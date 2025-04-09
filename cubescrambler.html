@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Rubik's Cube Scrambler</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #111;
+      color: #eee;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px;
+    }
+
+    h1 {
+      color: #00ffc8;
+      margin-bottom: 20px;
+      animation: fadeIn 1s ease-in-out;
+    }
+
+    select, button {
+      font-size: 16px;
+      padding: 10px;
+      margin: 10px;
+      border-radius: 5px;
+      border: none;
+      outline: none;
+    }
+
+    button {
+      background-color: #00ffc8;
+      color: #111;
+      cursor: pointer;
+      transition: transform 0.2s ease, background-color 0.3s, box-shadow 0.3s ease;
+      box-shadow: 0 0 10px 3px rgba(0, 255, 200, 0.8); /* Initial glowing effect */
+    }
+
+    button:hover {
+      background-color: #00cfa0;
+      transform: scale(1.05);
+      box-shadow: 0 0 20px 6px rgba(0, 255, 200, 1); /* Glow effect on hover */
+    }
+
+    #scramble {
+      margin-top: 30px;
+      padding: 20px;
+      background: #222;
+      border-radius: 10px;
+      font-size: 36px; /* Larger text size */
+      max-width: 90%;
+      text-align: center;
+      word-wrap: break-word;
+      box-shadow: 0 0 20px 5px rgba(0, 255, 200, 0.8); /* Glowing effect */
+      transition: box-shadow 0.3s ease;
+    }
+
+    #scramble:hover {
+      box-shadow: 0 0 30px 10px rgba(0, 255, 200, 1); /* Glowing effect on hover */
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <h1>🧩 Cube Scrambler</h1>
+
+  <select id="puzzleSelect">
+    <option value="2x2">2x2</option>
+    <option value="3x3" selected>3x3</option>
+    <option value="4x4">4x4</option>
+    <option value="5x5">5x5</option>
+    <option value="6x6">6x6</option>
+    <option value="megaminx">Megaminx</option>
+    <option value="pyraminx">Pyraminx</option>
+  </select>
+
+  <button onclick="generateScramble()">Generate Scramble</button>
+  <button id="autoScrambleToggle">Enable Auto Scramble</button> <!-- Button to toggle auto-scramble -->
+
+  <div id="scramble">Your scramble will appear here.</div>
+
+  <script>
+    const basicMoves = ['U', 'D', 'L', 'R', 'F', 'B'];
+    const modifiers = ["", "'", "2"];
+    const wideMoves = basicMoves.map(m => m + 'w');
+    const innerMoves = basicMoves.map(m => m + '3');
+    const megaminxMoves = ['R++', 'R--', 'D++', 'D--'];
+    const pyraminxMoves = ['U', 'L', 'R', 'B'];
+    const pyraminxMods = ["", "'"];
+
+    const axisMap = {
+      U: 'UD', D: 'UD',
+      L: 'LR', R: 'LR',
+      F: 'FB', B: 'FB'
+    };
+
+    function getAxis(move) {
+      return axisMap[move[0]];
+    }
+
+    function generateMoves(moveList, mods, count) {
+      let scramble = [];
+      let lastAxis = '', lastFace = '';
+
+      while (scramble.length < count) {
+        const moveFace = moveList[Math.floor(Math.random() * moveList.length)];
+        const modifier = mods[Math.floor(Math.random() * mods.length)];
+        const face = moveFace[0];
+        const axis = getAxis(face);
+        if (face !== lastFace && axis !== lastAxis) {
+          scramble.push(moveFace + modifier);
+          lastFace = face;
+          lastAxis = axis;
+        }
+      }
+
+      return scramble;
+    }
+
+    function generateScramble() {
+      const type = document.getElementById("puzzleSelect").value;
+      let scramble = [];
+
+      if (type === '2x2') {
+        scramble = generateMoves(basicMoves, modifiers, 9);
+      } else if (type === '3x3') {
+        scramble = generateMoves(basicMoves, modifiers, 20);
+      } else if (type === '4x4') {
+        scramble = generateMoves(basicMoves.concat(wideMoves), modifiers, 40);
+      } else if (type === '5x5') {
+        scramble = generateMoves(basicMoves.concat(wideMoves), modifiers, 60);
+      } else if (type === '6x6') {
+        scramble = generateMoves(basicMoves.concat(wideMoves, innerMoves), modifiers, 80);
+      } else if (type === 'megaminx') {
+        for (let i = 0; i < 11; i++)
+          scramble.push(megaminxMoves[Math.floor(Math.random() * megaminxMoves.length)]);
+      } else if (type === 'pyraminx') {
+        scramble = generateMoves(pyraminxMoves, pyraminxMods, 11);
+      }
+
+      // Get the scramble box
+      const box = document.getElementById("scramble");
+
+      // Set the scramble text without fade effect
+      box.textContent = scramble.join(' ');
+    }
+
+    // Automatically scramble on puzzle selection
+    document.getElementById("puzzleSelect").addEventListener("change", generateScramble);
+
+    // Scramble immediately on page load
+    window.addEventListener("DOMContentLoaded", generateScramble);
+
+    // Auto-scramble functionality (optional)
+    let autoScrambleEnabled = false;
+    let autoScrambleInterval;
+
+    // Function to toggle auto-scramble on or off
+    document.getElementById('autoScrambleToggle').addEventListener('click', () => {
+      autoScrambleEnabled = !autoScrambleEnabled;
+      if (autoScrambleEnabled) {
+        document.getElementById('autoScrambleToggle').textContent = "Disable Auto Scramble";
+        autoScrambleInterval = setInterval(generateScramble, 60000); // Generate scramble every minute
+      } else {
+        document.getElementById('autoScrambleToggle').textContent = "Enable Auto Scramble";
+        clearInterval(autoScrambleInterval); // Stop auto-scrambling
+      }
+    });
+  </script>
+</body>
+</html>
