@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>📚 Library Self-Checkout Kiosk</title>
+  <style>
+    :root {
+      --main-color: #2e7d32;
+      --accent-color: #81c784;
+      --bg-color: #f4f4f4;
+      --text-color: #222;
+      --error-color: #c62828;
+      --success-color: #2e7d32;
+      --border-radius: 8px;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 40px 20px;
+    }
+
+    .kiosk-container {
+      width: 100%;
+      max-width: 500px;
+      background: white;
+      border-radius: var(--border-radius);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      padding: 30px;
+      position: relative;
+    }
+
+    h1 {
+      text-align: center;
+      color: var(--main-color);
+      margin-bottom: 30px;
+    }
+
+    label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 8px;
+      margin-top: 20px;
+    }
+
+    input[type="text"],
+    input[type="number"] {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: var(--border-radius);
+      box-sizing: border-box;
+      margin-bottom: 10px;
+    }
+
+    .message {
+      font-weight: bold;
+      margin-top: 5px;
+      padding: 10px;
+      border-radius: var(--border-radius);
+    }
+
+    .success {
+      background-color: #e8f5e9;
+      color: var(--success-color);
+    }
+
+    .error {
+      background-color: #ffebee;
+      color: var(--error-color);
+    }
+
+    .buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      flex: 1;
+      padding: 12px;
+      font-size: 16px;
+      background-color: var(--main-color);
+      color: white;
+      border: none;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      transition: background-color 0.3s;
+      min-width: 80px;
+    }
+
+    button:hover {
+      background-color: #1b5e20;
+    }
+
+    button.help-button {
+      background-color: #0277bd;
+    }
+
+    button.help-button:hover {
+      background-color: #014f86;
+    }
+
+    .receipt {
+      border: 1px dashed #444;
+      background-color: #fff;
+      padding: 15px;
+      border-radius: var(--border-radius);
+      margin-top: 15px;
+    }
+
+    .receipt div {
+      margin-bottom: 6px;
+    }
+
+    #receiptContainer {
+      margin-top: 20px;
+    }
+
+    .help-popup {
+      display: none;
+      position: absolute;
+      top: 100%;
+      right: 0;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: var(--border-radius);
+      padding: 15px;
+      width: 280px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      z-index: 10;
+      margin-top: 10px;
+      font-size: 14px;
+      color: #333;
+      line-height: 1.4;
+    }
+
+    #videoContainer {
+      margin-top: 10px;
+    }
+
+    #adminBtn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background-color: #444;
+    }
+
+    #adminPanel {
+      display: none;
+      margin-top: 20px;
+      border: 2px solid var(--main-color);
+      padding: 15px;
+      border-radius: 8px;
+    }
+
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #receiptContainer, #receiptContainer * {
+        visibility: visible;
+      }
+      #receiptContainer {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="kiosk-container">
+  <h1>📚 Self-Checkout</h1>
+  <button id="adminBtn" onclick="toggleAdmin()">🔒 Admin</button>
+
+  <label for="borrowerInput">Scan Library Card:</label>
+  <input type="text" id="borrowerInput" placeholder="Borrower Barcode" autofocus onkeydown="if(event.key==='Enter') confirmBorrower()" />
+  <div id="borrowerMessage" class="message" style="display: none;"></div>
+
+  <div id="checkoutSection" style="display:none;">
+    <label for="bookInput">Scan Book:</label>
+    <input type="text" id="bookInput" placeholder="Book Barcode" onkeydown="if(event.key==='Enter') checkoutBook()" autocomplete="off" />
+    <div id="checkoutMessage" class="message" style="display: none;"></div>
+
+    <div class="buttons">
+      <button onclick="startCameraScan()">📷 Start Camera Scan</button>
+      <button onclick="stopCameraScan()" id="stopCameraBtn" style="display:none; background:#c62828;">✖ Stop Camera Scan</button>
+      <button onclick="print()">🖨️ Print Receipt</button>
+      <button onclick="clearReceipts()">Done</button>
+      <button class="help-button" onclick="toggleHelp()">❓ Help</button>
+    </div>
+
+    <div class="help-popup" id="helpPopup">
+      <strong>How to Use:</strong>
+      <ul>
+        <li>Scan your library card and press Enter.</li>
+        <li>Scan book barcodes to checkout books.</li>
+        <li>Use the camera scan for quick barcode scanning.</li>
+        <li>Print or clear your receipt when done.</li>
+        <li>Contact staff for further assistance.</li>
+      </ul>
+    </div>
+
+    <div id="videoContainer" style="display:none; margin-top: 10px;">
+      <video id="video" width="100%" muted></video>
+      <p>Point your camera at the book barcode.</p>
+    </div>
+  </div>
+
+  <div id="receiptContainer"></div>
+
+  <!-- Admin Panel -->
+  <div id="adminPanel">
+    <h2>🔧 Admin Mode</h2>
+    <label for="maxBooksInput">Max books per borrower:</label>
+    <input type="number" id="maxBooksInput" min="1" style="width:100px;" />
+    <button onclick="saveMaxBooks()">Save</button>
+
+    <div style="margin-top: 15px;">
+      <h3>📖 Edit Borrower's Checkouts</h3>
+      <div id="adminCheckouts"></div>
+    </div>
+  </div>
+
+  <audio id="beepSound" src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAgD4AAIA+AAABAAgAZGF0YQAAAAA=" preload="auto"></audio>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.18.6/umd/index.min.js"></script>
+
+<script>
+  const borrowers = JSON.parse(localStorage.getItem("borrowerDB")) || {};
+  const books = JSON.parse(localStorage.getItem("bookDB")) || {};
+  let checkouts = JSON.parse(localStorage.getItem("checkoutLog")) || [];
+
+  let currentBorrower = null;
+  let adminMode = false;
+  let maxBooks = parseInt(localStorage.getItem("maxBooksAllowed")) || 5;
+
+  let selectedDeviceId = null;
+  let codeReader = null;
+  let checkoutFromCamera = false;
+
+  function confirmBorrower() {
+    const input = document.getElementById("borrowerInput").value.trim();
+    const msg = document.getElementById("borrowerMessage");
+    const section = document.getElementById("checkoutSection");
+
+    if (!borrowers[input]) {
+      msg.textContent = "❌ Borrower not found.";
+      msg.className = "message error";
+      msg.style.display = "block";
+      currentBorrower = null;
+      section.style.display = "none";
+      stopCameraScan();
+    } else {
+      currentBorrower = input;
+      msg.textContent = `✅ Welcome, ${borrowers[input]}!`;
+      msg.className = "message success";
+      msg.style.display = "block";
+      section.style.display = "block";
+      document.getElementById("bookInput").focus();
+      if (adminMode) loadAdminCheckouts();
+    }
+    document.getElementById("borrowerInput").value = "";
+  }
+
+  function checkoutBook(bookCode = null) {
+    if (!bookCode) {
+      bookCode = document.getElementById("bookInput").value.trim();
+      checkoutFromCamera = false;
+    } else {
+      checkoutFromCamera = true;
+    }
+
+    const msg = document.getElementById("checkoutMessage");
+
+    if (!currentBorrower) {
+      msg.textContent = "❌ Please scan your library card first.";
+      msg.className = "message error";
+      msg.style.display = "block";
+      return;
+    }
+
+    if (!bookCode) {
+      msg.textContent = "❌ Please scan or enter a book barcode.";
+      msg.className = "message error";
+      msg.style.display = "block";
+      return;
+    }
+
+    const book = books[bookCode];
+    if (!book) {
+      msg.textContent = "❌ Book not found. Please ask an associate for more information.";
+      msg.className = "message error";
+      msg.style.display = "block";
+      return;
+    }
+
+    const alreadyOut = checkouts.find(c => c.barcode === bookCode && !c.checkedIn);
+    if (alreadyOut) {
+      msg.textContent = `❌ "${book.title}" is already checked out.`;
+      msg.className = "message error";
+      msg.style.display = "block";
+      return;
+    }
+
+    const currentUserCheckouts = checkouts.filter(c => c.borrowerCode === currentBorrower && !c.checkedIn);
+    if (currentUserCheckouts.length >= maxBooks) {
+      msg.textContent = `❌ Checkout limit reached (${maxBooks} books).`;
+      msg.className = "message error";
+      msg.style.display = "block";
+      return;
+    }
+
+    const now = new Date();
+    const due = new Date();
+    due.setDate(now.getDate() + 14);
+
+    const checkout = {
+      barcode: bookCode,
+      title: book.title,
+      author: book.author,
+      callNumber: book.callNumber,
+      name: borrowers[currentBorrower],
+      borrowerCode: currentBorrower,
+      checkoutDate: now.toISOString(),
+      dueDate: due.toISOString(),
+      checkedIn: false
+    };
+
+    checkouts.push(checkout);
+    localStorage.setItem("checkoutLog", JSON.stringify(checkouts));
+
+    msg.textContent = `✅ "${book.title}" checked out. Due ${due.toDateString()}`;
+    msg.className = "message success";
+    msg.style.display = "block";
+
+    document.getElementById("bookInput").value = "";
+
+    showReceipt(checkout);
+
+    if (checkoutFromCamera) {
+      const beep = document.getElementById('beepSound');
+      beep.currentTime = 0;
+      beep.play().catch(() => {});
+    }
+  }
+
+  function showReceipt(checkout) {
+    const container = document.getElementById("receiptContainer");
+    const div = document.createElement("div");
+    div.className = "receipt";
+    div.innerHTML = `
+      <div><strong>${checkout.title}</strong></div>
+      <div>Author: ${checkout.author}</div>
+      <div>Call Number: ${checkout.callNumber}</div>
+      <div>Barcode: ${checkout.barcode}</div>
+      <div>Due: ${new Date(checkout.dueDate).toDateString()}</div>
+    `;
+    container.appendChild(div);
+  }
+
+  function clearReceipts() {
+    location.reload();
+  }
+
+  async function startCameraScan() {
+    if (!currentBorrower) {
+      alert("Please scan your library card first.");
+      return;
+    }
+
+    if (codeReader) return;
+
+    codeReader = new ZXing.BrowserMultiFormatReader();
+
+    document.getElementById("videoContainer").style.display = "block";
+    document.getElementById("stopCameraBtn").style.display = "inline-block";
+
+    try {
+      const videoInputDevices = await codeReader.listVideoInputDevices();
+      selectedDeviceId = videoInputDevices[0].deviceId;
+
+      await codeReader.decodeFromVideoDevice(selectedDeviceId, 'video', (result, err) => {
+        if (result) checkoutBook(result.text);
+        if (err && !(err instanceof ZXing.NotFoundException)) console.error(err);
+      });
+    } catch (error) {
+      alert("Error starting camera: " + error);
+      stopCameraScan();
+    }
+  }
+
+  function stopCameraScan() {
+    if (codeReader) {
+      codeReader.reset();
+      codeReader = null;
+    }
+    document.getElementById("videoContainer").style.display = "none";
+    document.getElementById("stopCameraBtn").style.display = "none";
+  }
+
+  function toggleHelp() {
+    const popup = document.getElementById("helpPopup");
+    popup.style.display = popup.style.display === "block" ? "none" : "block";
+  }
+
+  function toggleAdmin() {
+    if (adminMode) {
+      adminMode = false;
+      document.getElementById("adminPanel").style.display = "none";
+    } else {
+      const code = prompt("Enter admin code:");
+      if (code === "82184088") {
+        adminMode = true;
+        document.getElementById("adminPanel").style.display = "block";
+        document.getElementById("maxBooksInput").value = maxBooks;
+        loadAdminCheckouts();
+      } else {
+        alert("Incorrect code.");
+      }
+    }
+  }
+
+  function saveMaxBooks() {
+    const val = parseInt(document.getElementById("maxBooksInput").value);
+    if (!isNaN(val) && val > 0) {
+      maxBooks = val;
+      localStorage.setItem("maxBooksAllowed", maxBooks);
+      alert("Max books per borrower updated.");
+    } else {
+      alert("Please enter a valid number.");
+    }
+  }
+
+  function loadAdminCheckouts() {
+    const container = document.getElementById("adminCheckouts");
+    if (!currentBorrower) {
+      container.innerHTML = "<em>No borrower selected.</em>";
+      return;
+    }
+
+    container.innerHTML = "";
+    const userCheckouts = checkouts.filter(c => c.borrowerCode === currentBorrower && !c.checkedIn);
+    if (userCheckouts.length === 0) {
+      container.innerHTML = "<em>No active checkouts.</em>";
+      return;
+    }
+
+    userCheckouts.forEach((c, i) => {
+      const div = document.createElement("div");
+      div.innerHTML = `
+        <div style="margin-bottom:10px; border:1px solid #ccc; padding:10px;">
+          <strong>${c.title}</strong><br/>
+          Barcode: ${c.barcode}<br/>
+          <button onclick="removeCheckout(${i})" style="margin-top:5px;">Remove</button>
+        </div>
+      `;
+      container.appendChild(div);
+    });
+  }
+
+  function removeCheckout(index) {
+    const userCheckouts = checkouts.filter(c => c.borrowerCode === currentBorrower && !c.checkedIn);
+    const toRemove = userCheckouts[index];
+    const idx = checkouts.findIndex(c => c.barcode === toRemove.barcode && !c.checkedIn);
+    if (idx !== -1) {
+      checkouts.splice(idx, 1);
+      localStorage.setItem("checkoutLog", JSON.stringify(checkouts));
+      loadAdminCheckouts();
+      alert(`Removed: ${toRemove.title}`);
+    }
+  }
+
+  // Auto refresh on inactivity
+  let refreshTimeout;
+  function resetInactivityTimer() {
+    if (refreshTimeout) clearTimeout(refreshTimeout);
+    refreshTimeout = setTimeout(() => location.reload(), 30000);
+  }
+  ['keydown', 'mousemove', 'mousedown', 'touchstart'].forEach(evt => {
+    document.addEventListener(evt, resetInactivityTimer, true);
+  });
+  resetInactivityTimer();
+</script>
+</body>
+</html>
