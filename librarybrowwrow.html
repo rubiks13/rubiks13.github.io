@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="refresh" content="60">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Library Barcode System</title>
+  <style>
+   #helpOverlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(255, 0, 0, 0.9);
+  color: white;
+  font-size: 2em;
+  font-weight: bold;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 20px;
+  z-index: 9999;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+#helpOverlay.visible {
+  visibility: visible;
+  opacity: 1;
+}
+
+#helpOverlay .message {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  font-size: 1.5em;
+  font-weight: bold;
+}
+
+#helpOverlay .closeBtn {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 2em;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 10px;
+  user-select: none;
+}
+
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f5f7fa;
+    color: #333;
+    margin: 0;
+    padding: 30px;
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  h2 {
+    text-align: center;
+    color: #2c3e50;
+    margin-bottom: 30px;
+  }
+
+  h3 {
+    color: #34495e;
+    margin-bottom: 12px;
+    margin-top: 0;
+  }
+
+  .section {
+    background-color: #fff;
+    padding: 20px 24px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    margin-bottom: 30px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+  }
+
+  label {
+    display: block;
+    margin-top: 10px;
+    font-weight: 500;
+  }
+
+  input[type="text"] {
+    width: 100%;
+    padding: 8px 10px;
+    margin-top: 4px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    box-sizing: border-box;
+  }
+
+  button {
+    margin-top: 12px;
+    margin-right: 8px;
+    padding: 8px 16px;
+    background-color: #2c7be5;
+    border: none;
+    color: #fff;
+    font-size: 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+
+  button:hover {
+    background-color: #1a5ec8;
+  }
+
+  #checkoutMessage,
+  #borrowerMessage,
+  #checkinMessage,
+  #lookupStatus {
+    margin-top: 10px;
+    font-weight: bold;
+  }
+
+  #currentBorrowerDisplay {
+    font-weight: bold;
+    color: #555;
+  }
+
+  #receiptContainer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .receipt {
+    border: 1px dashed #555;
+    background-color: #fff;
+    padding: 10px;
+    width: 240px;
+    font-size: 13px;
+    border-radius: 4px;
+    box-shadow: 1px 1px 4px rgba(0,0,0,0.05);
+  }
+
+  .receipt-title {
+    font-weight: bold;
+    font-size: 14px;
+    margin-bottom: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .receipt-line {
+    margin-bottom: 3px;
+    word-break: break-word;
+  }
+
+  #dueList,
+  #overdueList,
+  #allCheckoutsList {
+    background-color: #eef2f7;
+    padding: 10px;
+    border-radius: 4px;
+    margin-top: 10px;
+    white-space: pre-wrap;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 13px;
+  }
+
+  #lookupResult input {
+    width: 100%;
+    margin-top: 4px;
+    padding: 6px;
+    box-sizing: border-box;
+  }
+
+  @media print {
+    input, label, button, h2, .section {
+      display: none;
+    }
+    .receipt {
+      page-break-inside: avoid;
+    }
+  }
+</style>
+
+  </style>
+</head>
+<body>
+
+<h2>📚 Library Barcode System</h2>
+
+<!-- Step 1: Register Book -->
+<div class="section">
+  <h3>Step 1: Register Book</h3>
+  <label>Book Barcode: <input type="text" id="bookBarcode" /></label><br>
+  <label>Title: <input type="text" id="bookTitle" /></label><br>
+  <label>Author: <input type="text" id="bookAuthor" /></label><br>
+  <label>Call Number: <input type="text" id="bookCallNumber" /></label><br>
+  <button onclick="saveBook()">Save Book</button>
+</div>
+
+<!-- Step 2: Register Borrower -->
+<div class="section">
+  <h3>Step 2: Register Borrower</h3>
+  <label>Borrower Barcode: <input type="text" id="borrowerBarcode" /></label><br>
+  <label>Name: <input type="text" id="borrowerName" /></label><br>
+  <button onclick="saveBorrower()">Save Borrower</button>
+</div>
+
+<!-- Step 3: Checkout -->
+<div class="section">
+  <h3>Step 3: Checkout</h3>
+  <label>Scan Borrower Barcode: 
+    <input type="text" id="checkoutBorrower" 
+      onkeydown="if(event.key==='Enter') confirmBorrower()" 
+      autocomplete="off"
+    />
+  </label>
+  <div id="borrowerMessage" style="color: green;"></div>
+  <br>
+
+  <div><strong>Current Borrower:</strong> <span id="currentBorrowerDisplay">None</span></div><br>
+
+  <label>Scan Book Barcode: 
+    <input type="text" id="checkoutBook" 
+      onkeydown="if(event.key==='Enter') createReceipt()" 
+      autocomplete="off"
+    />
+  </label><br>
+  <div id="checkoutMessage" style="margin-top: 6px;"></div>
+  <button onclick="print()">Print</button>
+  <button onclick="clearLabels()">Clear Labels</button>
+</div>
+
+<!-- Step 4: Due Tomorrow -->
+<div class="section">
+  <h3>Step 4: View Checkouts Due Tomorrow</h3>
+  <button onclick="showDueTomorrow()">Show Due Tomorrow</button>
+  <div id="dueList" style="white-space: pre-wrap; margin-top: 10px;"></div>
+</div>
+
+<!-- Step 5: Overdue -->
+<div class="section">
+  <h3>Step 5: View Overdue</h3>
+  <button onclick="showOverdue()">Show Overdue</button>
+  <div id="overdueList" style="white-space: pre-wrap; margin-top: 10px;"></div>
+</div>
+
+<!-- Step 6: Check In -->
+<div class="section">
+  <h3>Step 6: Check In Book</h3>
+  <label>Book Barcode: 
+    <input type="text" id="checkinBookBarcode" 
+      onkeydown="if(event.key==='Enter') checkInBook()" 
+      autocomplete="off"
+    />
+  </label><br>
+  <div id="checkinMessage"></div>
+</div>
+
+<!-- Step 7: Lookup & Edit Book -->
+<div class="section">
+  <h3>Step 7: Lookup & Edit Book</h3>
+  <label>Book Barcode: <input type="text" id="lookupBookBarcode" /></label><br>
+  <label>Or Title: <input type="text" id="lookupBookTitle" /></label><br>
+  <button onclick="lookupBookStatus()">Check Status & Edit</button>
+  <div id="lookupResult"></div>
+</div>
+
+<!-- Step 8: View All Checkouts -->
+<div class="section">
+  <h3>Step 8: View All Checkouts</h3>
+  <button onclick="showAllCheckouts()">Show All Checkouts</button>
+  <div id="allCheckoutsList" style="white-space: pre-wrap; margin-top: 10px; font-weight: bold;"></div>
+</div>
+
+<!-- Step 9: View Currently Checked Out Books -->
+<div class="section">
+  <h3>Step 9: View Currently Checked Out Books</h3>
+  <button onclick="showCurrentlyCheckedOut()">Show Currently Checked Out</button>
+  <div id="checkedOutList" style="white-space: pre-wrap; margin-top: 10px; font-weight: bold;"></div>
+</div>
+
+<!-- Step 10: Export / Import All Data -->
+<div class="section">
+  <h3>Step 10: Export / Import Data</h3>
+  <button onclick="exportLibraryData()">⬇️ Export to JSON</button>
+  
+  <input type="file" id="importFile" accept=".json" style="margin-left: 12px;" />
+  <button onclick="importLibraryData()">⬆️ Import JSON</button>
+  <div id="importStatus" style="margin-top: 10px; font-weight: bold;"></div>
+</div>
+
+
+
+
+<!-- Receipts -->
+<div id="receiptContainer"></div>
+
+<script>
+  function showCurrentlyCheckedOut() {
+  const checkedOutList = document.getElementById("checkedOutList");
+  const currentlyOut = checkouts.filter(c => !c.checkedIn);
+
+  if (currentlyOut.length === 0) {
+    checkedOutList.textContent = "No books are currently checked out.";
+    return;
+  }
+
+  let text = "Currently Checked Out Books:\n";
+  currentlyOut.forEach(b => {
+    text += `• "${b.title}" by ${b.author} (Barcode: ${b.barcode})\n  Borrower: ${b.name} (${b.borrowerCode})\n  Checked Out: ${formatDateLong(new Date(b.checkoutDate))}\n  Due: ${formatDateLong(new Date(b.dueDate))}\n\n`;
+  });
+
+  checkedOutList.textContent = text;
+}
+
+  let books = JSON.parse(localStorage.getItem("bookDB")) || {};
+  let borrowers = JSON.parse(localStorage.getItem("borrowerDB")) || {};
+  let checkouts = JSON.parse(localStorage.getItem("checkoutLog")) || [];
+  let currentBorrowerCode = null;
+
+  // Step 1: Save Book
+  function saveBook() {
+    const barcode = document.getElementById("bookBarcode").value.trim();
+    const title = document.getElementById("bookTitle").value.trim();
+    const author = document.getElementById("bookAuthor").value.trim();
+    const callNumber = document.getElementById("bookCallNumber").value.trim();
+    if (!barcode || !title || !author || !callNumber) return alert("Please fill all book fields.");
+    if (books[barcode]) {
+      if (!confirm("Book barcode already exists. Overwrite?")) return;
+    }
+    books[barcode] = { title, author, callNumber };
+    localStorage.setItem("bookDB", JSON.stringify(books));
+    alert(`✅ Saved: ${title}`);
+    document.getElementById("bookBarcode").value = '';
+    document.getElementById("bookTitle").value = '';
+    document.getElementById("bookAuthor").value = '';
+    document.getElementById("bookCallNumber").value = '';
+  }
+
+  // Step 2: Save Borrower
+  function saveBorrower() {
+    const barcode = document.getElementById("borrowerBarcode").value.trim();
+    const name = document.getElementById("borrowerName").value.trim();
+    if (!barcode || !name) return alert("Please fill both borrower fields.");
+    borrowers[barcode] = name;
+    localStorage.setItem("borrowerDB", JSON.stringify(borrowers));
+    alert(`✅ Saved: ${name}`);
+    document.getElementById("borrowerBarcode").value = '';
+    document.getElementById("borrowerName").value = '';
+  }
+
+  // Step 3: Confirm Borrower for checkout
+  function confirmBorrower() {
+    const barcode = document.getElementById("checkoutBorrower").value.trim();
+    const msg = document.getElementById("borrowerMessage");
+    const name = borrowers[barcode];
+    if (!name) {
+      msg.style.color = "red";
+      msg.textContent = "❌ Borrower not found.";
+      currentBorrowerCode = null;
+      updateCurrentBorrowerDisplay();
+      return;
+    }
+    currentBorrowerCode = barcode;
+    updateCurrentBorrowerDisplay();
+    msg.style.color = "green";
+    msg.textContent = `✅ Borrower confirmed: ${name}`;
+    document.getElementById("checkoutBorrower").value = '';
+    document.getElementById("checkoutBook").focus();
+  }
+
+  function updateCurrentBorrowerDisplay() {
+    const display = document.getElementById("currentBorrowerDisplay");
+    if (currentBorrowerCode && borrowers[currentBorrowerCode]) {
+      display.textContent = `${borrowers[currentBorrowerCode]} (${currentBorrowerCode})`;
+    } else {
+      display.textContent = "None";
+    }
+  }
+
+  // Format date nicely
+  function formatDateLong(date) {
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    return date.toLocaleDateString(undefined, options);
+  }
+
+  // Get date object days ahead (0=Today)
+  function getDueDateObject(daysAhead) {
+    const d = new Date();
+    d.setHours(0,0,0,0);
+    d.setDate(d.getDate() + daysAhead);
+    return d;
+  }
+
+  // Step 3: Create checkout receipt
+  function createReceipt() {
+    const msg = document.getElementById("checkoutMessage");
+    msg.textContent = "";
+    if (!currentBorrowerCode || !borrowers[currentBorrowerCode]) {
+      msg.style.color = "red";
+      msg.textContent = "❌ Please confirm a valid borrower first.";
+      return;
+    }
+    const bookBarcode = document.getElementById("checkoutBook").value.trim();
+    if (!bookBarcode) {
+      msg.style.color = "red";
+      msg.textContent = "❌ Please scan a book barcode.";
+      return;
+    }
+    const book = books[bookBarcode];
+    if (!book) {
+      msg.style.color = "red";
+      msg.textContent = "❌ Book not found in system.";
+      return;
+    }
+    const existingCheckout = checkouts.find(c => c.barcode === bookBarcode && !c.checkedIn);
+    if (existingCheckout) {
+      msg.style.color = "red";
+      msg.textContent = `❌ Book "${book.title}" is already checked out.`;
+      return;
+    }
+    const checkoutDate = new Date();
+    const dueDate = new Date();
+    dueDate.setDate(checkoutDate.getDate() + 14);
+    const newCheckout = {
+      barcode: bookBarcode,
+      title: book.title,
+      author: book.author,
+      callNumber: book.callNumber,
+      name: borrowers[currentBorrowerCode],
+      borrowerCode: currentBorrowerCode,
+      checkoutDate: checkoutDate.toISOString(),
+      dueDate: dueDate.toISOString(),
+      checkedIn: false
+    };
+    checkouts.push(newCheckout);
+    localStorage.setItem("checkoutLog", JSON.stringify(checkouts));
+
+    addReceipt(newCheckout);
+    msg.style.color = "green";
+    msg.textContent = `✅ Checked out "${book.title}" to ${borrowers[currentBorrowerCode]}. Due on ${formatDateLong(dueDate)}.`;
+    document.getElementById("checkoutBook").value = "";
+  }
+
+  // Add receipt card
+  function addReceipt(checkout) {
+    const container = document.getElementById("receiptContainer");
+    const receipt = document.createElement("div");
+    receipt.className = "receipt";
+    receipt.innerHTML = `
+      <div class="receipt-title" title="${checkout.title}">${checkout.title}</div>
+      <div class="receipt-line">Author: ${checkout.author}</div>
+      <div class="receipt-line">Call Number: ${checkout.callNumber}</div>
+      <div class="receipt-line">Barcode: ${checkout.barcode}</div>
+      <div class="receipt-line">Borrower: ${checkout.name}</div>
+      <div class="receipt-line">Borrower Barcode: ${checkout.borrowerCode}</div>
+      <div class="receipt-line">Checked Out: ${formatDateLong(new Date(checkout.checkoutDate))}</div>
+      <div class="receipt-line">Due: ${formatDateLong(new Date(checkout.dueDate))}</div>
+    `;
+    container.appendChild(receipt);
+  }
+
+  // Clear receipts and messages
+  function clearLabels() {
+    document.getElementById("receiptContainer").innerHTML = "";
+    document.getElementById("checkoutMessage").textContent = "";
+    document.getElementById("borrowerMessage").textContent = "";
+  }
+
+  // Step 4: Show checkouts due tomorrow
+  function showDueTomorrow() {
+    const dueList = document.getElementById("dueList");
+    dueList.textContent = "";
+    const tomorrow = getDueDateObject(1).toISOString().slice(0,10);
+    const dueTomorrowBooks = checkouts.filter(c => !c.checkedIn && c.dueDate.slice(0,10) === tomorrow);
+    if (dueTomorrowBooks.length === 0) {
+      dueList.textContent = "No books due tomorrow.";
+      return;
+    }
+    let text = "Books Due Tomorrow:\n";
+    dueTomorrowBooks.forEach(b => {
+      text += `• "${b.title}" by ${b.author} (Barcode: ${b.barcode}), Borrower: ${b.name}\n`;
+    });
+    dueList.textContent = text;
+  }
+
+  // Step 5: Show overdue books
+  function showOverdue() {
+    const overdueList = document.getElementById("overdueList");
+    overdueList.textContent = "";
+    const today = getDueDateObject(0).toISOString().slice(0,10);
+    const overdueBooks = checkouts.filter(c => !c.checkedIn && c.dueDate.slice(0,10) < today);
+    if (overdueBooks.length === 0) {
+      overdueList.textContent = "No overdue books.";
+      return;
+    }
+    let text = "Overdue Books:\n";
+    overdueBooks.forEach(b => {
+      text += `• "${b.title}" by ${b.author} (Barcode: ${b.barcode}), Borrower: ${b.name}, Due: ${formatDateLong(new Date(b.dueDate))}\n`;
+    });
+    overdueList.textContent = text;
+  }
+
+  // Step 6: Check In book
+  function checkInBook() {
+    const barcode = document.getElementById("checkinBookBarcode").value.trim();
+    const msg = document.getElementById("checkinMessage");
+    if (!barcode) {
+      msg.style.color = "red";
+      msg.textContent = "Please enter a barcode.";
+      return;
+    }
+    const activeCheckout = checkouts.find(c => c.barcode === barcode && !c.checkedIn);
+    if (!activeCheckout) {
+      msg.style.color = "red";
+      msg.textContent = "Book is not currently checked out.";
+      return;
+    }
+    activeCheckout.checkedIn = true;
+    localStorage.setItem("checkoutLog", JSON.stringify(checkouts));
+    msg.style.color = "green";
+    msg.textContent = `✅ Book "${activeCheckout.title}" checked in successfully.`;
+    document.getElementById("checkinBookBarcode").value = "";
+  }
+
+  // Step 7: Lookup & Edit book
+  function lookupBookStatus() {
+    const barcodeInput = document.getElementById("lookupBookBarcode").value.trim();
+    const titleInput = document.getElementById("lookupBookTitle").value.trim().toLowerCase();
+    const resultDiv = document.getElementById("lookupResult");
+    resultDiv.innerHTML = "";
+
+    let foundBarcode = null;
+    let foundBook = null;
+
+    if (barcodeInput && books[barcodeInput]) {
+      foundBarcode = barcodeInput;
+      foundBook = books[barcodeInput];
+    } else if (titleInput) {
+      for (const [code, book] of Object.entries(books)) {
+        if (book.title.toLowerCase() === titleInput) {
+          foundBarcode = code;
+          foundBook = book;
+          break;
+        }
+      }
+    }
+
+    if (!foundBook) {
+      resultDiv.textContent = "❌ Book not found.";
+      return;
+    }
+
+    // Check status
+    let checkedOut = false;
+    const matchingCheckouts = checkouts.filter(c => c.barcode === foundBarcode && !c.checkedIn);
+    if (matchingCheckouts.length > 0) {
+      checkedOut = true;
+    }
+
+    const statusText = checkedOut ? "❌ Status: Checked Out" : "✅ Status: Checked In";
+    const statusColor = checkedOut ? "red" : "green";
+
+    resultDiv.innerHTML = `
+      <div><strong>Edit Book Info:</strong></div>
+      <label>Barcode: <input id="editBarcode" value="${foundBarcode}" /></label><br>
+      <label>Title: <input id="editTitle" value="${foundBook.title}" /></label><br>
+      <label>Author: <input id="editAuthor" value="${foundBook.author}" /></label><br>
+      <label>Call Number: <input id="editCallNumber" value="${foundBook.callNumber}" /></label><br>
+      <button onclick="saveBookEdits('${foundBarcode}')">💾 Save Changes</button>
+      <div id="lookupStatus" style="color: ${statusColor};">${statusText}</div>
+    `;
+  }
+
+  function saveBookEdits(originalBarcode) {
+    const newBarcode = document.getElementById("editBarcode").value.trim();
+    const newTitle = document.getElementById("editTitle").value.trim();
+    const newAuthor = document.getElementById("editAuthor").value.trim();
+    const newCallNumber = document.getElementById("editCallNumber").value.trim();
+
+    if (!newBarcode || !newTitle || !newAuthor || !newCallNumber) {
+      alert("Please fill all fields.");
+      return;
+    }
+
+    if (newBarcode !== originalBarcode) {
+      if (books[newBarcode]) {
+        alert("❌ A book with that barcode already exists.");
+        return;
+      }
+      // Move book record to new barcode
+      books[newBarcode] = {
+        title: newTitle,
+        author: newAuthor,
+        callNumber: newCallNumber
+      };
+      delete books[originalBarcode];
+
+      // Update checkouts barcode references
+      for (let i = 0; i < checkouts.length; i++) {
+        if (checkouts[i].barcode === originalBarcode) {
+          checkouts[i].barcode = newBarcode;
+        }
+      }
+    } else {
+      // Update existing book info
+      books[newBarcode] = {
+        title: newTitle,
+        author: newAuthor,
+        callNumber: newCallNumber
+      };
+    }
+
+    localStorage.setItem("bookDB", JSON.stringify(books));
+    localStorage.setItem("checkoutLog", JSON.stringify(checkouts));
+    alert("✅ Book updated!");
+    document.getElementById("lookupResult").innerHTML = "";
+    document.getElementById("lookupBookTitle").value = "";
+    document.getElementById("lookupBookBarcode").value = "";
+  }
+
+  // Step 8: Show all checkouts
+  function showAllCheckouts() {
+    const allCheckoutsList = document.getElementById("allCheckoutsList");
+    if (checkouts.length === 0) {
+      allCheckoutsList.textContent = "No checkouts recorded.";
+      return;
+    }
+    let text = "All Checkouts:\n";
+    checkouts.forEach(c => {
+      text += `• "${c.title}" by ${c.author} (Barcode: ${c.barcode})\n  Borrower: ${c.name} (${c.borrowerCode})\n  Checked Out: ${formatDateLong(new Date(c.checkoutDate))}\n  Due: ${formatDateLong(new Date(c.dueDate))}\n  Status: ${c.checkedIn ? "Checked In" : "Checked Out"}\n\n`;
+    });
+    allCheckoutsList.textContent = text;
+  }
+
+  //for backing up data
+  function exportLibraryData() {
+  const data = {
+    books: books,
+    borrowers: borrowers,
+    checkouts: checkouts
+  };
+
+  const json = JSON.stringify(data, null, 2); // Pretty-print with indentation
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "library_data_export.json";
+  link.click();
+
+  URL.revokeObjectURL(url); // Cleanup
+}
+
+//for importing data from JSON file
+function importLibraryData() {
+  const fileInput = document.getElementById("importFile");
+  const status = document.getElementById("importStatus");
+
+  if (!fileInput.files || fileInput.files.length === 0) {
+    status.style.color = "red";
+    status.textContent = "❌ Please select a JSON file first.";
+    return;
+  }
+
+  const file = fileInput.files[0];
+  const reader = new FileReader();
+
+  reader.onload = function (e) {
+    try {
+      const importedData = JSON.parse(e.target.result);
+
+      if (!importedData.books || !importedData.borrowers || !importedData.checkouts) {
+        throw new Error("Missing required data fields.");
+      }
+
+      // Save to localStorage
+      localStorage.setItem("bookDB", JSON.stringify(importedData.books));
+      localStorage.setItem("borrowerDB", JSON.stringify(importedData.borrowers));
+      localStorage.setItem("checkoutLog", JSON.stringify(importedData.checkouts));
+
+      // Update in-memory copies
+      books = importedData.books;
+      borrowers = importedData.borrowers;
+      checkouts = importedData.checkouts;
+
+      status.style.color = "green";
+      status.textContent = "✅ Data imported successfully!";
+    } catch (err) {
+      status.style.color = "red";
+      status.textContent = "❌ Import failed: " + err.message;
+    }
+  };
+
+  reader.readAsText(file);
+}
+
+
+</script>
+
+</body>
+</html>
