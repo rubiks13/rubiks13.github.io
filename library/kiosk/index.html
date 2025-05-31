@@ -148,12 +148,7 @@
       margin-top: 10px;
     }
 
-    #adminBtn {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background-color: #444;
-    }
+    /* Removed #adminBtn */
 
     #adminPanel {
       display: none;
@@ -183,7 +178,9 @@
 
 <div class="kiosk-container">
   <h1>📚 Self-Checkout</h1>
-  <button id="adminBtn" onclick="toggleAdmin()">🔒 Admin</button>
+
+  <!-- Removed Admin Button -->
+  <!-- <button id="adminBtn" onclick="toggleAdmin()">🔒 Admin</button> -->
 
   <label for="borrowerInput">Scan Library Card:</label>
   <input type="text" id="borrowerInput" placeholder="Borrower Barcode" autofocus onkeydown="if(event.key==='Enter') confirmBorrower()" />
@@ -483,6 +480,14 @@
       alert(`Removed: ${toRemove.title}`);
     }
   }
+
+  // Enable Admin Mode with Ctrl + A
+  document.addEventListener('keydown', function (e) {
+    if (e.ctrlKey && e.key.toLowerCase() === 'a') {
+      e.preventDefault(); // Prevent "Select All"
+      toggleAdmin();
+    }
+  });
 
   // Auto refresh on inactivity
   let refreshTimeout;
