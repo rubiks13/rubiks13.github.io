@@ -2,135 +2,167 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>My Library Checkouts</title>
+  <title>My Library Account</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      max-width: 700px;
-      margin: 40px auto;
-      background-color: #f8f9fa;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f4f8fb;
       color: #333;
+      padding: 40px;
+      max-width: 800px;
+      margin: auto;
     }
 
-    h2 {
+    h1 {
       text-align: center;
       color: #2c3e50;
     }
 
+    .card-input {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
     input[type="text"] {
-      width: 100%;
       padding: 10px;
-      margin-top: 8px;
-      margin-bottom: 12px;
+      width: 300px;
+      font-size: 16px;
       border: 1px solid #ccc;
-      border-radius: 4px;
+      border-radius: 6px;
+      margin-right: 10px;
     }
 
     button {
       padding: 10px 16px;
-      background-color: #007bff;
+      background-color: #2c7be5;
       color: white;
       border: none;
-      border-radius: 4px;
+      border-radius: 6px;
+      font-size: 15px;
       cursor: pointer;
     }
 
     button:hover {
-      background-color: #0056b3;
+      background-color: #1a5ec8;
     }
 
-    .checkout {
-      background-color: #fff;
+    #result {
+      margin-top: 30px;
+    }
+
+    .book-card {
+      background: #fff;
       border: 1px solid #ddd;
-      border-radius: 6px;
-      padding: 12px;
-      margin-bottom: 16px;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
     }
 
-    .status {
+    .book-title {
+      font-size: 18px;
+      font-weight: bold;
+      color: #34495e;
+    }
+
+    .book-detail {
       margin-top: 6px;
-      font-size: 0.9em;
+      font-size: 14px;
     }
 
-    .green { color: green; }
-    .red { color: red; }
+    .status-message {
+      text-align: center;
+      font-weight: bold;
+      margin-top: 20px;
+    }
+
+    .success {
+      color: green;
+    }
+
+    .error {
+      color: red;
+    }
   </style>
 </head>
 <body>
 
-<h2>📚 My Library Checkouts</h2>
+<h1>📚 My Library Account</h1>
 
-<label>Enter Library Card Number:</label>
-<input type="text" id="borrowerCode" placeholder="e.g., 123456" />
-<button onclick="loadMyCheckouts()">View My Checkouts</button>
+<div class="card-input">
+  <input type="text" id="cardNumber" placeholder="Enter your library card number">
+  <button onclick="lookupAccount()">Look Up</button>
+</div>
 
-<div id="results" style="margin-top: 24px;"></div>
+<div id="result"></div>
+<div id="statusMsg" class="status-message"></div>
 
 <script>
-function formatDate(dateString) {
-  const date = new Date(dateString);
-  return date.toLocaleDateString(undefined, {
-    year: 'numeric', month: 'long', day: 'numeric'
-  });
-}
-
-function loadMyCheckouts() {
-  const borrowerCode = document.getElementById("borrowerCode").value.trim();
-  const results = document.getElementById("results");
-  results.innerHTML = "";
-
-  const borrowers = JSON.parse(localStorage.getItem("borrowerDB")) || {};
-  const checkouts = JSON.parse(localStorage.getItem("checkoutLog")) || [];
-
-  if (!borrowers[borrowerCode]) {
-    results.innerHTML = `<p class="red">❌ Borrower not found.</p>`;
-    return;
+  function formatDate(dateStr) {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
   }
 
-  const patronName = borrowers[borrowerCode];
-  const active = checkouts.filter(c => c.borrowerCode === borrowerCode && !c.checkedIn);
+  function lookupAccount() {
+    const cardNum = document.getElementById("cardNumber").value.trim();
+    const result = document.getElementById("result");
+    const status = document.getElementById("statusMsg");
+    result.innerHTML = '';
+    status.textContent = '';
 
-  if (active.length === 0) {
-    results.innerHTML = `<p>✅ Hello <strong>${patronName}</strong>, you have no items checked out.</p>`;
-    return;
+    const borrowers = JSON.parse(localStorage.getItem("borrowerDB") || "{}");
+    const checkouts = JSON.parse(localStorage.getItem("checkoutLog") || "[]");
+
+    if (!borrowers[cardNum]) {
+      status.textContent = "❌ Library card not found.";
+      status.className = "status-message error";
+      return;
+    }
+
+    const patronName = borrowers[cardNum];
+    const currentCheckouts = checkouts.filter(c => c.borrowerCode === cardNum && !c.checkedIn);
+
+    if (currentCheckouts.length === 0) {
+      result.innerHTML = `<p><strong>${patronName}</strong>, you have no books checked out.</p>`;
+      return;
+    }
+
+    let html = `<h2>Hello, ${patronName}!</h2>`;
+    currentCheckouts.forEach((book, index) => {
+      html += `
+        <div class="book-card">
+          <div class="book-title">${book.title}</div>
+          <div class="book-detail">Author: ${book.author}</div>
+          <div class="book-detail">Due Date: <strong>${formatDate(book.dueDate)}</strong></div>
+          <button onclick="renewBook(${index})">🔁 Renew</button>
+        </div>
+      `;
+    });
+
+    result.innerHTML = html;
   }
 
-  let html = `<h3>Hello <strong>${patronName}</strong>, here are your current checkouts:</h3>`;
+  function renewBook(index) {
+    const cardNum = document.getElementById("cardNumber").value.trim();
+    const checkouts = JSON.parse(localStorage.getItem("checkoutLog") || "[]");
 
-  active.forEach((item, index) => {
-    html += `
-      <div class="checkout">
-        <div><strong>Title:</strong> ${item.title}</div>
-        <div><strong>Author:</strong> ${item.author}</div>
-        <div><strong>Due Date:</strong> <span id="due-${index}">${formatDate(item.dueDate)}</span></div>
-        <button onclick="renew('${item.barcode}', '${item.borrowerCode}', ${index})">🔁 Renew</button>
-        <div class="status" id="status-${index}"></div>
-      </div>
-    `;
-  });
+    const userBooks = checkouts
+      .map((c, i) => ({ ...c, i }))
+      .filter(c => c.borrowerCode === cardNum && !c.checkedIn);
 
-  results.innerHTML = html;
-}
+    const bookToRenew = userBooks[index];
+    if (!bookToRenew) return;
 
-function renew(barcode, borrowerCode, index) {
-  const checkouts = JSON.parse(localStorage.getItem("checkoutLog")) || [];
+    const currentDue = new Date(bookToRenew.dueDate);
+    currentDue.setDate(currentDue.getDate() + 14);
+    checkouts[bookToRenew.i].dueDate = currentDue.toISOString();
 
-  const record = checkouts.find(c => c.barcode === barcode && c.borrowerCode === borrowerCode && !c.checkedIn);
-  const status = document.getElementById(`status-${index}`);
+    localStorage.setItem("checkoutLog", JSON.stringify(checkouts));
+    document.getElementById("statusMsg").textContent = `✅ "${bookToRenew.title}" renewed! New due date: ${formatDate(currentDue)}`;
+    document.getElementById("statusMsg").className = "status-message success";
 
-  if (!record) {
-    status.innerHTML = `<span class="red">❌ Not found or already returned.</span>`;
-    return;
+    lookupAccount();
   }
-
-  const due = new Date(record.dueDate);
-  due.setDate(due.getDate() + 14);
-  record.dueDate = due.toISOString();
-
-  localStorage.setItem("checkoutLog", JSON.stringify(checkouts));
-  document.getElementById(`due-${index}`).textContent = formatDate(record.dueDate);
-  status.innerHTML = `<span class="green">✅ Renewed. New due date: ${formatDate(record.dueDate)}</span>`;
-}
 </script>
 
 </body>
