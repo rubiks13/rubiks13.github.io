@@ -1,169 +1,175 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>My Library Account</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Patron Account</title>
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #f4f8fb;
+      background-color: #f0f4f8;
       color: #333;
-      padding: 40px;
+      margin: 0;
+      padding: 40px 20px;
       max-width: 800px;
-      margin: auto;
+      margin-left: auto;
+      margin-right: auto;
     }
 
-    h1 {
+    h2 {
       text-align: center;
       color: #2c3e50;
     }
 
-    .card-input {
-      text-align: center;
-      margin-bottom: 20px;
+    .section {
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 30px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 6px;
     }
 
     input[type="text"] {
+      width: 100%;
       padding: 10px;
-      width: 300px;
       font-size: 16px;
+      margin-bottom: 12px;
       border: 1px solid #ccc;
-      border-radius: 6px;
-      margin-right: 10px;
+      border-radius: 5px;
+      box-sizing: border-box;
     }
 
     button {
       padding: 10px 16px;
       background-color: #2c7be5;
-      color: white;
       border: none;
-      border-radius: 6px;
-      font-size: 15px;
+      color: white;
+      font-size: 14px;
+      border-radius: 5px;
       cursor: pointer;
+      margin-top: 10px;
     }
 
     button:hover {
       background-color: #1a5ec8;
     }
 
-    #result {
-      margin-top: 30px;
+    .book-entry {
+      padding: 12px;
+      margin-bottom: 12px;
+      background-color: #f9f9f9;
+      border-left: 4px solid #2c7be5;
+      border-radius: 5px;
     }
 
-    .book-card {
-      background: #fff;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 16px;
-      margin-bottom: 15px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-    }
-
-    .book-title {
-      font-size: 18px;
-      font-weight: bold;
-      color: #34495e;
-    }
-
-    .book-detail {
-      margin-top: 6px;
-      font-size: 14px;
+    .book-entry h4 {
+      margin: 0 0 6px 0;
     }
 
     .status-message {
-      text-align: center;
+      margin-top: 12px;
       font-weight: bold;
-      margin-top: 20px;
+      padding: 8px;
+      border-radius: 5px;
     }
 
     .success {
-      color: green;
+      background-color: #d4edda;
+      color: #155724;
     }
 
     .error {
-      color: red;
+      background-color: #f8d7da;
+      color: #721c24;
     }
   </style>
 </head>
 <body>
 
-<h1>📚 My Library Account</h1>
+  <h2>📖 Your Library Account</h2>
 
-<div class="card-input">
-  <input type="text" id="cardNumber" placeholder="Enter your library card number">
-  <button onclick="lookupAccount()">Look Up</button>
-</div>
+  <div class="section">
+    <label for="cardNumber">Enter Your Library Card Number:</label>
+    <input type="text" id="cardNumber" placeholder="e.g. 123456" />
+    <button onclick="lookupAccount()">Lookup</button>
 
-<div id="result"></div>
-<div id="statusMsg" class="status-message"></div>
+    <div id="statusMsg" class="status-message" style="display: none;"></div>
+  </div>
 
-<script>
-  function formatDate(dateStr) {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
-  }
+  <div class="section">
+    <h3>Your Current Checkouts</h3>
+    <div id="checkoutList">No checkouts to display.</div>
+  </div>
 
-  function lookupAccount() {
-    const cardNum = document.getElementById("cardNumber").value.trim();
-    const result = document.getElementById("result");
-    const status = document.getElementById("statusMsg");
-    result.innerHTML = '';
-    status.textContent = '';
-
-    const borrowers = JSON.parse(localStorage.getItem("borrowerDB") || "{}");
-    const checkouts = JSON.parse(localStorage.getItem("checkoutLog") || "[]");
-
-    if (!borrowers[cardNum]) {
-      status.textContent = "❌ Library card not found.";
-      status.className = "status-message error";
-      return;
+  <script>
+    function formatDate(dateStr) {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
     }
 
-    const patronName = borrowers[cardNum];
-    const currentCheckouts = checkouts.filter(c => c.borrowerCode === cardNum && !c.checkedIn);
+    function lookupAccount() {
+      const cardNumber = document.getElementById("cardNumber").value.trim();
+      const msgBox = document.getElementById("statusMsg");
+      const list = document.getElementById("checkoutList");
 
-    if (currentCheckouts.length === 0) {
-      result.innerHTML = `<p><strong>${patronName}</strong>, you have no books checked out.</p>`;
-      return;
-    }
+      msgBox.style.display = "none";
+      list.innerHTML = "";
 
-    let html = `<h2>Hello, ${patronName}!</h2>`;
-    currentCheckouts.forEach((book, index) => {
-      html += `
-        <div class="book-card">
-          <div class="book-title">${book.title}</div>
-          <div class="book-detail">Author: ${book.author}</div>
-          <div class="book-detail">Due Date: <strong>${formatDate(book.dueDate)}</strong></div>
+      if (!cardNumber) {
+        msgBox.textContent = "❌ Please enter a valid library card number.";
+        msgBox.className = "status-message error";
+        msgBox.style.display = "block";
+        return;
+      }
+
+      const checkouts = JSON.parse(localStorage.getItem("checkoutLog") || "[]");
+      const currentCheckouts = checkouts.filter(c => c.borrowerCode === cardNumber && !c.checkedIn);
+
+      if (currentCheckouts.length === 0) {
+        list.innerHTML = "<p>You have no books currently checked out.</p>";
+        return;
+      }
+
+      currentCheckouts.forEach(book => {
+        const index = checkouts.indexOf(book); // Get actual index in the original array
+        const div = document.createElement("div");
+        div.className = "book-entry";
+        div.innerHTML = `
+          <h4>${book.title}</h4>
+          <div><strong>Author:</strong> ${book.author}</div>
+          <div><strong>Due Date:</strong> ${formatDate(book.dueDate)}</div>
           <button onclick="renewBook(${index})">🔁 Renew</button>
-        </div>
-      `;
-    });
+        `;
+        list.appendChild(div);
+      });
+    }
 
-    result.innerHTML = html;
-  }
+    function renewBook(index) {
+      const checkouts = JSON.parse(localStorage.getItem("checkoutLog") || "[]");
+      const book = checkouts[index];
+      if (!book || book.checkedIn) return;
 
-  function renewBook(index) {
-    const cardNum = document.getElementById("cardNumber").value.trim();
-    const checkouts = JSON.parse(localStorage.getItem("checkoutLog") || "[]");
+      const newDueDate = new Date(book.dueDate);
+      newDueDate.setDate(newDueDate.getDate() + 14);
+      book.dueDate = newDueDate.toISOString();
 
-    const userBooks = checkouts
-      .map((c, i) => ({ ...c, i }))
-      .filter(c => c.borrowerCode === cardNum && !c.checkedIn);
+      checkouts[index] = book;
+      localStorage.setItem("checkoutLog", JSON.stringify(checkouts));
 
-    const bookToRenew = userBooks[index];
-    if (!bookToRenew) return;
+      const msgBox = document.getElementById("statusMsg");
+      msgBox.textContent = `✅ "${book.title}" renewed! New due date: ${formatDate(newDueDate)}.`;
+      msgBox.className = "status-message success";
+      msgBox.style.display = "block";
 
-    const currentDue = new Date(bookToRenew.dueDate);
-    currentDue.setDate(currentDue.getDate() + 14);
-    checkouts[bookToRenew.i].dueDate = currentDue.toISOString();
-
-    localStorage.setItem("checkoutLog", JSON.stringify(checkouts));
-    document.getElementById("statusMsg").textContent = `✅ "${bookToRenew.title}" renewed! New due date: ${formatDate(currentDue)}`;
-    document.getElementById("statusMsg").className = "status-message success";
-
-    lookupAccount();
-  }
-</script>
+      lookupAccount(); // Refresh list
+    }
+  </script>
 
 </body>
 </html>
