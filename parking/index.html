@@ -3,23 +3,26 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Compact Parking Card</title>
+  <title>Parking Card System</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       text-align: center;
       margin: 20px;
     }
+
     form {
       max-width: 280px;
       margin: auto;
     }
+
     label {
       display: block;
       font-size: 13px;
       margin-bottom: 4px;
       text-align: left;
     }
+
     input {
       width: 100%;
       padding: 4px;
@@ -27,10 +30,13 @@
       font-size: 13px;
       box-sizing: border-box;
     }
+
     button {
       padding: 6px 12px;
       font-size: 13px;
+      cursor: pointer;
     }
+
     #card {
       border: 1px solid #000;
       width: 220px;
@@ -38,19 +44,32 @@
       margin: 20px auto;
       display: none;
     }
+
     .date {
       font-size: 18px;
       font-weight: bold;
       margin-bottom: 8px;
     }
+
     .info {
       font-size: 14px;
       margin: 6px 0;
     }
+
     .qr img {
       width: 120px;
       height: 120px;
     }
+
+    #lookupSection {
+      margin-top: 40px;
+    }
+
+    #lookupResult {
+      margin-top: 20px;
+      font-size: 14px;
+    }
+
     @media print {
       body * {
         visibility: hidden;
@@ -68,6 +87,7 @@
   </style>
 </head>
 <body>
+
   <h2>Create a Parking Card</h2>
   <form id="parkingForm">
     <label for="plate">License Plate:</label>
@@ -88,28 +108,62 @@
     </div>
   </div>
 
+  <hr style="margin: 40px 0;">
+
+  <div id="lookupSection">
+    <h2>Lookup by QR Code Number</h2>
+    <form id="lookupForm">
+      <label for="codeInput">Enter QR Code Number:</label>
+      <input type="text" id="codeInput" required />
+      <button type="submit">Lookup</button>
+    </form>
+    <div id="lookupResult">Enter a code to look up a person.</div>
+  </div>
+
   <script>
+    const generatedCards = [];
+
     document.getElementById('parkingForm').addEventListener('submit', function(e) {
       e.preventDefault();
 
       const plate = document.getElementById('plate').value.trim();
       const name = document.getElementById('name').value.trim();
-
       const today = new Date().toLocaleDateString(undefined, {
         year: 'numeric', month: 'short', day: 'numeric'
       });
-
       const randomNumber = Math.floor(10000000 + Math.random() * 90000000);
 
+      // Save the entry for lookup
+      generatedCards.push({ plate, name, code: randomNumber });
+
+      // Display the card
       document.getElementById('currentDate').textContent = today;
       document.getElementById('licensePlate').textContent = 'Plate: ' + plate;
       document.getElementById('personName').textContent = 'Name: ' + name;
-
       document.getElementById('qrCode').src =
         `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${randomNumber}`;
-
       document.getElementById('card').style.display = 'block';
     });
+
+    document.getElementById('lookupForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const inputCode = document.getElementById('codeInput').value.trim();
+      const match = generatedCards.find(entry => entry.code.toString() === inputCode);
+
+      const resultBox = document.getElementById('lookupResult');
+      if (match) {
+        resultBox.innerHTML = `
+          ✅ Match Found:<br>
+          <strong>Name:</strong> ${match.name}<br>
+          <strong>Plate:</strong> ${match.plate}<br>
+          <strong>Code:</strong> ${match.code}
+        `;
+      } else {
+        resultBox.innerHTML = `❌ No match for code: ${inputCode}`;
+      }
+    });
   </script>
+
 </body>
 </html>
