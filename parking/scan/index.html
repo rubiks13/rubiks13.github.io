@@ -3,158 +3,79 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Parking Card System</title>
+  <title>Parking Code Lookup</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       text-align: center;
-      margin: 20px;
+      margin: 40px;
     }
-    form {
-      max-width: 280px;
+    .lookup-form {
+      max-width: 300px;
       margin: auto;
     }
     label {
       display: block;
-      font-size: 13px;
+      font-size: 14px;
       margin-bottom: 4px;
       text-align: left;
     }
     input {
       width: 100%;
-      padding: 4px;
+      padding: 6px;
+      font-size: 14px;
       margin-bottom: 10px;
-      font-size: 13px;
       box-sizing: border-box;
     }
     button {
-      padding: 6px 12px;
-      font-size: 13px;
-    }
-    #card {
-      border: 1px solid #000;
-      width: 220px;
-      padding: 10px;
-      margin: 20px auto;
-      display: none;
-    }
-    .date {
-      font-size: 18px;
-      font-weight: bold;
-      margin-bottom: 8px;
-    }
-    .info {
+      padding: 6px 16px;
       font-size: 14px;
-      margin: 6px 0;
     }
-    .qr img {
-      width: 120px;
-      height: 120px;
-    }
-    #scanner {
-      margin-top: 40px;
-    }
-    video {
-      width: 300px;
-      height: auto;
-      margin-bottom: 10px;
-    }
-    #scanResult {
-      font-size: 14px;
-      margin-top: 10px;
+    #lookupResult {
+      margin-top: 20px;
+      font-size: 16px;
     }
   </style>
 </head>
 <body>
 
-  <h2>Create a Parking Card</h2>
-  <form id="parkingForm">
-    <label for="plate">License Plate:</label>
-    <input type="text" id="plate" required>
+  <h2>Lookup Parking Information</h2>
 
-    <label for="name">Person's Name:</label>
-    <input type="text" id="name" required>
-
-    <button type="submit">Generate Card</button>
+  <form class="lookup-form" id="lookupForm">
+    <label for="codeInput">Enter QR Code Number:</label>
+    <input type="text" id="codeInput" required />
+    <button type="submit">Lookup</button>
   </form>
 
-  <div id="card">
-    <div class="date" id="currentDate"></div>
-    <div class="info" id="licensePlate"></div>
-    <div class="info" id="personName"></div>
-    <div class="qr">
-      <img id="qrCode" src="" alt="QR Code"/>
-    </div>
-  </div>
-
-  <hr style="margin: 40px 0;">
-
-  <div id="scanner">
-    <h2>Scan a Parking Card</h2>
-    <video id="video" autoplay></video>
-    <div id="scanResult">Scan a QR code to view info...</div>
-  </div>
-
-  <!-- QR Scanner Library -->
-  <script src="https://unpkg.com/html5-qrcode"></script>
+  <div id="lookupResult">Enter a code to look up a person.</div>
 
   <script>
-    const generatedCards = [];
+    // Preloaded data — add more entries here
+    const generatedCards = [
+      { code: 12345678, name: "Alice Johnson", plate: "ABC123" },
+      { code: 23456789, name: "Bob Smith", plate: "XYZ789" },
+      { code: 34567890, name: "Carol Lee", plate: "LMN456" }
+    ];
 
-    document.getElementById('parkingForm').addEventListener('submit', function(e) {
+    document.getElementById('lookupForm').addEventListener('submit', function(e) {
       e.preventDefault();
 
-      const plate = document.getElementById('plate').value.trim();
-      const name = document.getElementById('name').value.trim();
+      const inputCode = document.getElementById('codeInput').value.trim();
+      const match = generatedCards.find(entry => entry.code.toString() === inputCode);
 
-      const today = new Date().toLocaleDateString(undefined, {
-        year: 'numeric', month: 'short', day: 'numeric'
-      });
-
-      const randomNumber = Math.floor(10000000 + Math.random() * 90000000);
-
-      generatedCards.push({ plate, name, code: randomNumber });
-
-      document.getElementById('currentDate').textContent = today;
-      document.getElementById('licensePlate').textContent = 'Plate: ' + plate;
-      document.getElementById('personName').textContent = 'Name: ' + name;
-
-      document.getElementById('qrCode').src =
-        `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${randomNumber}`;
-
-      document.getElementById('card').style.display = 'block';
-    });
-
-    // Start QR Scanner
-    const html5QrCode = new Html5Qrcode("video");
-
-    Html5Qrcode.getCameras().then(devices => {
-      if (devices && devices.length) {
-        const cameraId = devices[0].id;
-        html5QrCode.start(
-          cameraId,
-          { fps: 10, qrbox: { width: 200, height: 200 } },
-          qrCodeMessage => {
-            const matched = generatedCards.find(entry => entry.code.toString() === qrCodeMessage.trim());
-            if (matched) {
-              document.getElementById('scanResult').innerHTML = `
-                ✅ Match Found:<br>
-                <strong>Name:</strong> ${matched.name}<br>
-                <strong>Plate:</strong> ${matched.plate}<br>
-                <strong>Code:</strong> ${matched.code}
-              `;
-            } else {
-              document.getElementById('scanResult').innerText = '❌ Unknown code: ' + qrCodeMessage;
-            }
-          },
-          errorMessage => {
-            // Optional: Handle scan errors
-          }
-        );
+      const resultBox = document.getElementById('lookupResult');
+      if (match) {
+        resultBox.innerHTML = `
+          ✅ Match Found:<br>
+          <strong>Name:</strong> ${match.name}<br>
+          <strong>Plate:</strong> ${match.plate}<br>
+          <strong>Code:</strong> ${match.code}
+        `;
+      } else {
+        resultBox.innerHTML = `❌ No match for code: ${inputCode}`;
       }
-    }).catch(err => {
-      document.getElementById('scanResult').innerText = 'Error accessing camera: ' + err;
     });
   </script>
+
 </body>
 </html>
