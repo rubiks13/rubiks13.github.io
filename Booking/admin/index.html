@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Parking Card System - Admin</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f0f2f5;
+      color: #333;
+      margin: 40px 20px;
+      text-align: center;
+    }
+
+    h1 {
+      margin-bottom: 30px;
+      color: #4b4b4b;
+    }
+
+    label {
+      font-weight: 600;
+      font-size: 16px;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    input {
+      padding: 10px 12px;
+      font-size: 16px;
+      width: 250px;
+      border-radius: 8px;
+      border: 2px solid #ddd;
+      margin-bottom: 20px;
+      transition: border-color 0.3s ease;
+      box-sizing: border-box;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #6a1b9a;
+      box-shadow: 0 0 10px rgba(106, 27, 154, 0.3);
+    }
+
+    button {
+      padding: 12px 30px;
+      font-size: 16px;
+      font-weight: 700;
+      background-color: #6a1b9a;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      box-shadow: 0 5px 15px rgba(106, 27, 154, 0.4);
+    }
+
+    button:hover {
+      background-color: #4a146a;
+    }
+
+    #result {
+      margin-top: 30px;
+      font-size: 18px;
+      padding: 20px;
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
+      border-radius: 12px;
+      background-color: #e0e0e0;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+      min-height: 120px;
+      color: #333;
+    }
+
+    #result.not-found {
+      background-color: #f8d7da;
+      color: #721c24;
+      box-shadow: 0 6px 15px rgba(114, 28, 36, 0.3);
+    }
+
+    #result.found {
+      background-color: #d4edda;
+      color: #155724;
+      box-shadow: 0 6px 15px rgba(21, 87, 36, 0.3);
+      text-align: left;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Verify Parking Booking</h1>
+  <form id="lookupForm">
+    <label for="codeInput">Enter Customer QR Code Number</label>
+    <input type="text" id="codeInput" autocomplete="off" placeholder="e.g. 12345678" required />
+    <button type="submit">Lookup Booking</button>
+  </form>
+
+  <div id="result">Enter a code above and press Lookup.</div>
+
+  <script>
+    const lookupForm = document.getElementById('lookupForm');
+    const resultDiv = document.getElementById('result');
+
+    lookupForm.addEventListener('submit', e => {
+      e.preventDefault();
+
+      const codeInput = document.getElementById('codeInput').value.trim();
+
+      if (!codeInput) {
+        showResult('Please enter a code to look up.', true);
+        return;
+      }
+
+      // Load bookings from localStorage
+      const bookings = JSON.parse(localStorage.getItem('parkingBookings')) || [];
+
+      const booking = bookings.find(b => b.qrCode.toString() === codeInput);
+
+      if (booking) {
+        showResult(`
+          ✅ <strong>Booking Found!</strong><br>
+          <strong>Name:</strong> ${booking.name}<br>
+          <strong>License Plate:</strong> ${booking.plate}<br>
+          <strong>Booking Date:</strong> ${booking.date}<br>
+          <strong>Code:</strong> ${booking.qrCode}
+        `, false);
+      } else {
+        showResult(`❌ No booking found for code: ${codeInput}`, true);
+      }
+    });
+
+    function showResult(message, isError) {
+      resultDiv.innerHTML = message;
+      if (isError) {
+        resultDiv.classList.add('not-found');
+        resultDiv.classList.remove('found');
+      } else {
+        resultDiv.classList.add('found');
+        resultDiv.classList.remove('not-found');
+      }
+    }
+  </script>
+
+</body>
+</html>
