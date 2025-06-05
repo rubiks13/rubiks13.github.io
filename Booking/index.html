@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Parking Booking - Customer</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #71b7e6, #9b59b6);
+      color: #fff;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: rgba(0,0,0,0.6);
+      padding: 30px 40px;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+      max-width: 400px;
+      width: 100%;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 25px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+      font-size: 14px;
+      color: #e0e0e0;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 10px 14px;
+      margin-bottom: 20px;
+      border-radius: 6px;
+      border: none;
+      font-size: 15px;
+      box-sizing: border-box;
+      transition: box-shadow 0.3s ease;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      box-shadow: 0 0 10px #8e44ad;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #8e44ad;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      box-shadow: 0 5px 15px rgba(142, 68, 173, 0.4);
+    }
+
+    button:hover {
+      background: #732d91;
+      box-shadow: 0 7px 20px rgba(115, 45, 145, 0.7);
+    }
+
+    .result {
+      margin-top: 20px;
+      background: #27ae60;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+      font-weight: 600;
+      font-size: 16px;
+      color: #dff0d8;
+      box-shadow: 0 4px 10px rgba(39, 174, 96, 0.7);
+      display: none;
+      word-break: break-word;
+    }
+
+    .error {
+      background: #c0392b;
+      box-shadow: 0 4px 10px rgba(192, 57, 43, 0.7);
+      color: #f9d6d5;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>Book Your Parking Spot</h1>
+    <form id="bookingForm" autocomplete="off">
+      <label for="plate">License Plate Number</label>
+      <input type="text" id="plate" required placeholder="e.g. ABC1234" maxlength="10" />
+
+      <label for="name">Full Name</label>
+      <input type="text" id="name" required placeholder="Your full name" maxlength="50" />
+
+      <label for="date">Booking Date</label>
+      <input type="date" id="date" required min="" />
+
+      <button type="submit">Confirm Booking</button>
+    </form>
+
+    <div class="result" id="resultBox"></div>
+  </div>
+
+  <script>
+    // Set minimum date for booking as today
+    const dateInput = document.getElementById('date');
+    const today = new Date().toISOString().split('T')[0];
+    dateInput.min = today;
+
+    const bookingForm = document.getElementById('bookingForm');
+    const resultBox = document.getElementById('resultBox');
+
+    bookingForm.addEventListener('submit', e => {
+      e.preventDefault();
+
+      const plate = document.getElementById('plate').value.trim().toUpperCase();
+      const name = document.getElementById('name').value.trim();
+      const date = document.getElementById('date').value;
+
+      if (!plate || !name || !date) {
+        showResult("Please fill all fields.", true);
+        return;
+      }
+
+      // Generate random QR code number
+      const qrCode = Math.floor(10000000 + Math.random() * 90000000);
+
+      // Load existing bookings from localStorage or create new array
+      let bookings = JSON.parse(localStorage.getItem('parkingBookings')) || [];
+
+      // Add new booking
+      bookings.push({ plate, name, date, qrCode });
+
+      // Save back to localStorage
+      localStorage.setItem('parkingBookings', JSON.stringify(bookings));
+
+      // Show confirmation with QR code number (they can save or screenshot this)
+      showResult(`Booking Confirmed! Your code is: <strong>${qrCode}</strong><br><br>
+        <em>Keep this code safe for parking verification.</em>`, false);
+
+      bookingForm.reset();
+      dateInput.min = today;
+    });
+
+    function showResult(message, isError) {
+      resultBox.innerHTML = message;
+      resultBox.style.display = 'block';
+      if (isError) {
+        resultBox.classList.add('error');
+      } else {
+        resultBox.classList.remove('error');
+      }
+    }
+  </script>
+
+</body>
+</html>
