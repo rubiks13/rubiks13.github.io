@@ -121,7 +121,19 @@
   </div>
 
   <script>
-    const generatedCards = [];
+    let generatedCards = [];
+
+    // Load from localStorage on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      const saved = localStorage.getItem('parkingCards');
+      if (saved) {
+        generatedCards = JSON.parse(saved);
+      }
+    });
+
+    function saveCards() {
+      localStorage.setItem('parkingCards', JSON.stringify(generatedCards));
+    }
 
     document.getElementById('parkingForm').addEventListener('submit', function(e) {
       e.preventDefault();
@@ -133,8 +145,9 @@
       });
       const randomNumber = Math.floor(10000000 + Math.random() * 90000000);
 
-      // Save the entry for lookup (including date)
-      generatedCards.push({ plate, name, code: randomNumber, date: today });
+      const newCard = { plate, name, code: randomNumber, date: today };
+      generatedCards.push(newCard);
+      saveCards(); // Save to localStorage
 
       // Display the card
       document.getElementById('currentDate').textContent = today;
