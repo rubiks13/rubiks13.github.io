@@ -133,8 +133,8 @@
       });
       const randomNumber = Math.floor(10000000 + Math.random() * 90000000);
 
-      // Save the entry for lookup
-      generatedCards.push({ plate, name, code: randomNumber });
+      // Save the entry for lookup (including date)
+      generatedCards.push({ plate, name, code: randomNumber, date: today });
 
       // Display the card
       document.getElementById('currentDate').textContent = today;
@@ -157,7 +157,8 @@
           ✅ Match Found:<br>
           <strong>Name:</strong> ${match.name}<br>
           <strong>Plate:</strong> ${match.plate}<br>
-          <strong>Code:</strong> ${match.code}
+          <strong>Code:</strong> ${match.code}<br>
+          <strong>Date:</strong> ${match.date}
         `;
       } else {
         resultBox.innerHTML = `❌ No match for code: ${inputCode}`;
