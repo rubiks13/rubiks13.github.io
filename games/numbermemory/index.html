@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Number Memory Game</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     * {
       box-sizing: border-box;
@@ -12,7 +12,7 @@
     }
 
     body {
-      font-family: 'Segoe UI', sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: linear-gradient(to bottom right, #6dd5fa, #2980b9);
       color: #fff;
       display: flex;
@@ -26,6 +26,7 @@
     h1 {
       font-size: 2.5rem;
       margin-bottom: 20px;
+      text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4);
     }
 
     .container {
@@ -38,19 +39,64 @@
       max-width: 500px;
     }
 
-    select, input[type="number"], button {
+    label {
+      display: block;
+      margin: 15px 0 8px;
+      font-weight: 600;
+      font-size: 1.1rem;
+      text-align: left;
+      color: #e0eaff;
+      text-shadow: 0 0 4px #0009;
+    }
+
+    select,
+    input[type='number'],
+    button {
       font-size: 1.1rem;
       padding: 10px 15px;
-      margin: 10px 0;
-      border-radius: 8px;
+      margin: 0 auto 15px;
+      border-radius: 12px;
       border: none;
       outline: none;
       width: 100%;
+      max-width: 300px;
+      box-shadow:
+        inset 0 2px 5px rgba(255, 255, 255, 0.6),
+        0 4px 10px rgba(0, 0, 0, 0.3);
+      background: linear-gradient(145deg, #e0eaff, #a6c8ff);
+      color: #222;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      position: relative;
     }
 
-    select, input {
-      background: rgba(255, 255, 255, 0.8);
-      color: #000;
+    select:hover,
+    input[type='number']:hover,
+    button:hover {
+      box-shadow:
+        inset 0 3px 7px rgba(255, 255, 255, 0.85),
+        0 6px 14px rgba(0, 0, 0, 0.4);
+      background: linear-gradient(145deg, #c0d4ff, #85adff);
+      color: #111;
+      transform: translateY(-2px);
+    }
+
+    select {
+      /* custom arrow */
+      background-image:
+        linear-gradient(45deg, transparent 50%, #555 50%),
+        linear-gradient(135deg, #555 50%, transparent 50%),
+        linear-gradient(to right, #ccc, #ccc);
+      background-position:
+        calc(100% - 20px) calc(1em + 2px),
+        calc(100% - 15px) calc(1em + 2px),
+        calc(100% - 25px) 1em;
+      background-size: 5px 5px, 5px 5px, 1px 1.5em;
+      background-repeat: no-repeat;
+      padding-right: 40px;
     }
 
     button {
@@ -59,11 +105,16 @@
       font-weight: bold;
       transition: background-color 0.3s ease, transform 0.2s ease;
       cursor: pointer;
+      max-width: 320px;
+      user-select: none;
+      text-shadow: 0 1px 3px #0f3d0f;
+      box-shadow:
+        0 4px 10px rgba(39, 174, 96, 0.8);
     }
 
-    button:hover {
-      background-color: #219150;
-      transform: scale(1.03);
+    button:active {
+      transform: translateY(1px);
+      box-shadow: 0 2px 5px rgba(39, 174, 96, 0.7);
     }
 
     #numberDisplay {
@@ -72,6 +123,8 @@
       margin: 30px 0;
       opacity: 0;
       transition: opacity 0.3s ease;
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
+      min-height: 80px;
     }
 
     #numberDisplay.show {
@@ -82,18 +135,22 @@
       font-size: 1.5rem;
       margin-top: 20px;
       font-weight: bold;
+      min-height: 30px;
     }
 
     .correct {
       color: #2ecc71;
+      text-shadow: 0 0 8px #2ecc71aa;
     }
 
     .wrong {
       color: #e74c3c;
+      text-shadow: 0 0 8px #e74c3caa;
     }
 
     .warning {
       color: #f39c12;
+      text-shadow: 0 0 8px #f39c12aa;
     }
 
     @media (max-width: 500px) {
@@ -114,8 +171,8 @@
   <div class="container">
     <label for="digitOption">Choose number type:</label>
     <select id="digitOption">
-      <option value="1">1-digit numbers (0–9)</option>
-      <option value="2" selected>2-digit numbers (10–99)</option>
+      <option value="1" selected>1-digit numbers (0–9)</option>
+      <option value="2">2-digit numbers (10–99)</option>
     </select>
 
     <label for="speedOption">Choose speed:</label>
@@ -131,7 +188,7 @@
     <button id="startBtn">Start</button>
 
     <div id="inputSection" style="display:none;">
-      <input type="number" id="userAnswer" placeholder="Enter total sum">
+      <input type="number" id="userAnswer" placeholder="Enter total sum" />
       <button onclick="checkAnswer()">Submit</button>
     </div>
 
@@ -196,7 +253,7 @@
     function startGame() {
       const digitChoice = digitOption.value;
       speed = parseInt(speedOption.value);
-      const numberCount = Math.floor(Math.random() * 8) + 3;
+      const numberCount = Math.floor(Math.random() * 8) + 3; // 3 to 10 numbers
 
       numbers = Array.from({ length: numberCount }, () => {
         return digitChoice === "1"
@@ -224,7 +281,7 @@
         setTimeout(() => {
           numberDisplay.classList.remove("show");
           index++;
-          setTimeout(showNumber, 150); // brief pause
+          setTimeout(showNumber, 150);
         }, speed);
       } else {
         numberDisplay.textContent = "What is the total?";
@@ -259,6 +316,5 @@
 
     startBtn.addEventListener("click", startGame);
   </script>
-
 </body>
 </html>
