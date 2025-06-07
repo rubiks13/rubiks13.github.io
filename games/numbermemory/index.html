@@ -5,6 +5,7 @@
   <title>Number Memory Game</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
+    /* Reset & base */
     * {
       box-sizing: border-box;
       margin: 0;
@@ -13,8 +14,8 @@
 
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(to bottom right, #6dd5fa, #2980b9);
-      color: #fff;
+      background: #121212;
+      color: #e0e0e0;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -26,14 +27,14 @@
     h1 {
       font-size: 2.5rem;
       margin-bottom: 20px;
-      text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4);
+      text-shadow: 0 0 6px #14b8a6aa;
     }
 
     .container {
-      background: rgba(255, 255, 255, 0.1);
+      background: #1f2937;
       padding: 30px 40px;
       border-radius: 15px;
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 8px 20px rgba(20, 184, 166, 0.5);
       text-align: center;
       width: 100%;
       max-width: 500px;
@@ -45,7 +46,7 @@
       font-weight: 600;
       font-size: 1.1rem;
       text-align: left;
-      color: #e0eaff;
+      color: #a5b4fc;
       text-shadow: 0 0 4px #0009;
     }
 
@@ -61,10 +62,10 @@
       width: 100%;
       max-width: 300px;
       box-shadow:
-        inset 0 2px 5px rgba(255, 255, 255, 0.6),
-        0 4px 10px rgba(0, 0, 0, 0.3);
-      background: linear-gradient(145deg, #e0eaff, #a6c8ff);
-      color: #222;
+        inset 0 2px 5px rgba(255, 255, 255, 0.1),
+        0 4px 10px rgba(0, 0, 0, 0.8);
+      background: linear-gradient(145deg, #273549, #1f2937);
+      color: #e0e0e0;
       cursor: pointer;
       transition: all 0.3s ease;
       -webkit-appearance: none;
@@ -77,19 +78,19 @@
     input[type='number']:hover,
     button:hover {
       box-shadow:
-        inset 0 3px 7px rgba(255, 255, 255, 0.85),
-        0 6px 14px rgba(0, 0, 0, 0.4);
-      background: linear-gradient(145deg, #c0d4ff, #85adff);
-      color: #111;
+        inset 0 3px 7px rgba(255, 255, 255, 0.2),
+        0 6px 14px rgba(20, 184, 166, 0.8);
+      background: linear-gradient(145deg, #14b8a6, #0f766e);
+      color: #d0f0ec;
       transform: translateY(-2px);
     }
 
     select {
       /* custom arrow */
       background-image:
-        linear-gradient(45deg, transparent 50%, #555 50%),
-        linear-gradient(135deg, #555 50%, transparent 50%),
-        linear-gradient(to right, #ccc, #ccc);
+        linear-gradient(45deg, transparent 50%, #e0e0e0 50%),
+        linear-gradient(135deg, #e0e0e0 50%, transparent 50%),
+        linear-gradient(to right, #aaa, #aaa);
       background-position:
         calc(100% - 20px) calc(1em + 2px),
         calc(100% - 15px) calc(1em + 2px),
@@ -100,21 +101,21 @@
     }
 
     button {
-      background-color: #27ae60;
+      background-color: #14b8a6;
       color: white;
       font-weight: bold;
       transition: background-color 0.3s ease, transform 0.2s ease;
       cursor: pointer;
       max-width: 320px;
       user-select: none;
-      text-shadow: 0 1px 3px #0f3d0f;
+      text-shadow: 0 1px 3px #0b544a;
       box-shadow:
-        0 4px 10px rgba(39, 174, 96, 0.8);
+        0 4px 10px rgba(20, 184, 166, 0.8);
     }
 
     button:active {
       transform: translateY(1px);
-      box-shadow: 0 2px 5px rgba(39, 174, 96, 0.7);
+      box-shadow: 0 2px 5px rgba(20, 184, 166, 0.7);
     }
 
     #numberDisplay {
@@ -123,7 +124,7 @@
       margin: 30px 0;
       opacity: 0;
       transition: opacity 0.3s ease;
-      text-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
+      text-shadow: 0 0 10px rgba(20, 184, 166, 0.7);
       min-height: 80px;
     }
 
@@ -139,18 +140,18 @@
     }
 
     .correct {
-      color: #2ecc71;
-      text-shadow: 0 0 8px #2ecc71aa;
+      color: #4ade80; /* brighter green */
+      text-shadow: 0 0 8px #4ade80aa;
     }
 
     .wrong {
-      color: #e74c3c;
-      text-shadow: 0 0 8px #e74c3caa;
+      color: #f87171; /* coral red */
+      text-shadow: 0 0 8px #f87171aa;
     }
 
     .warning {
-      color: #f39c12;
-      text-shadow: 0 0 8px #f39c12aa;
+      color: #fbbf24; /* amber */
+      text-shadow: 0 0 8px #fbbf24aa;
     }
 
     @media (max-width: 500px) {
@@ -208,6 +209,7 @@
     let total = 0;
     let index = 0;
     let speed = 1000;
+    let refreshTimeout;
 
     function playBeep() {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -251,6 +253,8 @@
     }
 
     function startGame() {
+      if (refreshTimeout) clearTimeout(refreshTimeout);
+
       const digitChoice = digitOption.value;
       speed = parseInt(speedOption.value);
       const numberCount = Math.floor(Math.random() * 8) + 3; // 3 to 10 numbers
@@ -288,10 +292,13 @@
         numberDisplay.classList.add("show");
         inputSection.style.display = "block";
         startBtn.disabled = false;
+        userAnswer.focus();
       }
     }
 
     function checkAnswer() {
+      if (refreshTimeout) clearTimeout(refreshTimeout);
+
       const answer = parseInt(userAnswer.value, 10);
       if (isNaN(answer)) {
         result.textContent = "Please enter a valid number.";
@@ -309,7 +316,8 @@
         playErrorSound();
       }
 
-      setTimeout(() => {
+      // Refresh page after 5 seconds
+      refreshTimeout = setTimeout(() => {
         location.reload();
       }, 5000);
     }
