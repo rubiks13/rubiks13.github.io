@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>WPM Typing Speed Test</title>
+  <title>60-Second WPM Typing Test</title>
   <style>
     body {
       margin: 0;
-      background: #0e0e0e;
-      font-family: 'Segoe UI', sans-serif;
+      background: #0d0d0d;
       color: #0f0;
+      font-family: 'Segoe UI', sans-serif;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -22,18 +22,18 @@
       box-shadow: 0 0 20px rgba(0, 255, 150, 0.3);
       width: 600px;
       max-width: 90%;
+      text-align: center;
     }
 
     h1 {
-      text-align: center;
       margin-bottom: 1rem;
     }
 
     textarea {
       width: 100%;
       height: 150px;
-      padding: 1rem;
       font-size: 16px;
+      padding: 1rem;
       background: #222;
       color: #0f0;
       border: none;
@@ -42,49 +42,68 @@
       box-shadow: inset 0 0 10px #00ff99;
     }
 
-    .wpm-display {
-      margin-top: 1.5rem;
-      text-align: center;
-      font-size: 1.5rem;
+    .status {
+      margin-top: 1rem;
+      font-size: 1.2rem;
       color: #00ffaa;
+    }
+
+    .wpm-display {
+      font-size: 2rem;
       font-weight: bold;
+      margin-top: 1rem;
+    }
+
+    .disabled {
+      background: #333;
+      color: #666;
     }
   </style>
 </head>
 <body>
+
   <div class="container">
-    <h1>Typing Speed: Words Per Minute</h1>
+    <h1>1-Minute Typing Speed Test</h1>
     <textarea id="typingArea" placeholder="Start typing here..."></textarea>
-    <div class="wpm-display" id="wpmOutput">WPM: 0</div>
+    <div class="status" id="timerDisplay">Time: 60s</div>
+    <div class="wpm-display" id="wpmDisplay"></div>
   </div>
 
   <script>
     const textarea = document.getElementById('typingArea');
-    const wpmOutput = document.getElementById('wpmOutput');
+    const timerDisplay = document.getElementById('timerDisplay');
+    const wpmDisplay = document.getElementById('wpmDisplay');
 
-    let startTime = null;
-    let timerInterval = null;
+    let timeLeft = 60;
+    let timerStarted = false;
+    let timer;
 
     function countWords(text) {
       return text.trim().split(/\s+/).filter(word => word.length > 0).length;
     }
 
-    function updateWPM() {
-      const text = textarea.value;
-      const words = countWords(text);
-      const elapsedMinutes = (Date.now() - startTime) / 60000;
-      const wpm = Math.round(words / elapsedMinutes);
-      wpmOutput.textContent = `WPM: ${wpm}`;
+    function startTimer() {
+      timer = setInterval(() => {
+        timeLeft--;
+        timerDisplay.textContent = `Time: ${timeLeft}s`;
+
+        if (timeLeft <= 0) {
+          clearInterval(timer);
+          textarea.disabled = true;
+          textarea.classList.add("disabled");
+          const wordCount = countWords(textarea.value);
+          wpmDisplay.textContent = `Your WPM: ${wordCount}`;
+        }
+      }, 1000);
     }
 
     textarea.addEventListener('input', () => {
-      if (!startTime) {
-        startTime = Date.now();
-        timerInterval = setInterval(updateWPM, 500);
+      if (!timerStarted) {
+        timerStarted = true;
+        startTimer();
       }
     });
-
-    window.addEventListener('beforeunload', () => clearInterval(timerInterval));
   </script>
+
 </body>
 </html>
