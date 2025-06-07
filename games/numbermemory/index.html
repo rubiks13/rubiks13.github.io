@@ -142,14 +142,30 @@
     let total = 0;
     let index = 0;
 
+    function playBeep() {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(600, ctx.currentTime); // frequency in Hz
+      gainNode.gain.setValueAtTime(0.2, ctx.currentTime);
+
+      oscillator.connect(gainNode);
+      gainNode.connect(ctx.destination);
+
+      oscillator.start();
+      oscillator.stop(ctx.currentTime + 0.15); // short beep
+    }
+
     function startGame() {
       const digitChoice = digitOption.value;
-      const numberCount = Math.floor(Math.random() * 8) + 3; // Random 3–10
+      const numberCount = Math.floor(Math.random() * 8) + 3; // 3–10 numbers
 
       numbers = Array.from({length: numberCount}, () => {
         return digitChoice === "1"
-          ? Math.floor(Math.random() * 10)       // 0–9
-          : Math.floor(Math.random() * 90) + 10; // 10–99
+          ? Math.floor(Math.random() * 10)
+          : Math.floor(Math.random() * 90) + 10;
       });
 
       total = numbers.reduce((sum, num) => sum + num, 0);
@@ -167,6 +183,7 @@
       if (index < numbers.length) {
         numberDisplay.textContent = numbers[index];
         numberDisplay.classList.add("show");
+        playBeep();
         setTimeout(() => {
           numberDisplay.classList.remove("show");
           index++;
