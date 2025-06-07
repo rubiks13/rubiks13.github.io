@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Number Memory Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to bottom right, #6dd5fa, #2980b9);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 20px;
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 30px 40px;
+      border-radius: 15px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+      text-align: center;
+      width: 100%;
+      max-width: 500px;
+    }
+
+    select, input[type="number"], button {
+      font-size: 1.1rem;
+      padding: 10px 15px;
+      margin: 10px 0;
+      border-radius: 8px;
+      border: none;
+      outline: none;
+      width: 100%;
+    }
+
+    select, input {
+      background: rgba(255, 255, 255, 0.8);
+      color: #000;
+    }
+
+    button {
+      background-color: #27ae60;
+      color: white;
+      font-weight: bold;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #219150;
+      transform: scale(1.03);
+    }
+
+    #numberDisplay {
+      font-size: 4rem;
+      font-weight: bold;
+      margin: 30px 0;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+
+    #numberDisplay.show {
+      opacity: 1;
+    }
+
+    #result {
+      font-size: 1.5rem;
+      margin-top: 20px;
+      font-weight: bold;
+    }
+
+    .correct {
+      color: #2ecc71;
+    }
+
+    .wrong {
+      color: #e74c3c;
+    }
+
+    .warning {
+      color: #f39c12;
+    }
+
+    @media (max-width: 500px) {
+      h1 {
+        font-size: 2rem;
+      }
+
+      #numberDisplay {
+        font-size: 3rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Number Memory Game</h1>
+
+  <div class="container">
+    <label for="digitOption">Choose number type:</label>
+    <select id="digitOption">
+      <option value="1">1-digit numbers (0–9)</option>
+      <option value="2" selected>2-digit numbers (10–99)</option>
+    </select>
+
+    <div id="numberDisplay">Ready?</div>
+
+    <button id="startBtn">Start</button>
+
+    <div id="inputSection" style="display:none;">
+      <input type="number" id="userAnswer" placeholder="Enter total sum">
+      <button onclick="checkAnswer()">Submit</button>
+    </div>
+
+    <div id="result"></div>
+  </div>
+
+  <script>
+    const numberDisplay = document.getElementById("numberDisplay");
+    const startBtn = document.getElementById("startBtn");
+    const inputSection = document.getElementById("inputSection");
+    const userAnswer = document.getElementById("userAnswer");
+    const result = document.getElementById("result");
+    const digitOption = document.getElementById("digitOption");
+
+    let numbers = [];
+    let total = 0;
+    let index = 0;
+
+    function startGame() {
+      const digitChoice = digitOption.value;
+      const numberCount = Math.floor(Math.random() * 8) + 3; // Random 3–10
+
+      numbers = Array.from({length: numberCount}, () => {
+        return digitChoice === "1"
+          ? Math.floor(Math.random() * 10)       // 0–9
+          : Math.floor(Math.random() * 90) + 10; // 10–99
+      });
+
+      total = numbers.reduce((sum, num) => sum + num, 0);
+      index = 0;
+      result.textContent = "";
+      result.className = "";
+      userAnswer.value = "";
+      inputSection.style.display = "none";
+      startBtn.disabled = true;
+
+      showNumber();
+    }
+
+    function showNumber() {
+      if (index < numbers.length) {
+        numberDisplay.textContent = numbers[index];
+        numberDisplay.classList.add("show");
+        setTimeout(() => {
+          numberDisplay.classList.remove("show");
+          index++;
+          setTimeout(showNumber, 200);
+        }, 1000);
+      } else {
+        numberDisplay.textContent = "What is the total?";
+        numberDisplay.classList.add("show");
+        inputSection.style.display = "block";
+        startBtn.disabled = false;
+      }
+    }
+
+    function checkAnswer() {
+      const answer = parseInt(userAnswer.value, 10);
+      if (isNaN(answer)) {
+        result.textContent = "Please enter a valid number.";
+        result.className = "warning";
+        return;
+      }
+
+      if (answer === total) {
+        result.textContent = "✅ Correct!";
+        result.className = "correct";
+      } else {
+        result.textContent = `❌ Wrong! The correct answer was ${total}.`;
+        result.className = "wrong";
+      }
+    }
+
+    startBtn.addEventListener("click", startGame);
+  </script>
+
+</body>
+</html>
