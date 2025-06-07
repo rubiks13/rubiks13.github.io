@@ -123,6 +123,7 @@
       <option value="2000">Slow (2 sec)</option>
       <option value="1000" selected>Medium (1 sec)</option>
       <option value="500">Fast (0.5 sec)</option>
+      <option value="250">Very Fast (0.25 sec)</option>
     </select>
 
     <div id="numberDisplay">Ready?</div>
@@ -149,7 +150,7 @@
     let numbers = [];
     let total = 0;
     let index = 0;
-    let speed = 1000; // default to medium
+    let speed = 1000;
 
     function playBeep() {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -195,9 +196,9 @@
     function startGame() {
       const digitChoice = digitOption.value;
       speed = parseInt(speedOption.value);
-      const numberCount = Math.floor(Math.random() * 8) + 3; // 3–10
+      const numberCount = Math.floor(Math.random() * 8) + 3;
 
-      numbers = Array.from({length: numberCount}, () => {
+      numbers = Array.from({ length: numberCount }, () => {
         return digitChoice === "1"
           ? Math.floor(Math.random() * 10)
           : Math.floor(Math.random() * 90) + 10;
@@ -223,7 +224,7 @@
         setTimeout(() => {
           numberDisplay.classList.remove("show");
           index++;
-          setTimeout(showNumber, 200); // short pause before next
+          setTimeout(showNumber, 150); // brief pause
         }, speed);
       } else {
         numberDisplay.textContent = "What is the total?";
