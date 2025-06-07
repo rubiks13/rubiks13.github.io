@@ -56,6 +56,13 @@
       cursor: not-allowed;
     }
 
+    #restartButton {
+      background: #ff5050;
+      color: #fff;
+      display: none;
+      margin-top: 1rem;
+    }
+
     .output {
       margin-top: 1.5rem;
       font-size: 1.2rem;
@@ -77,20 +84,21 @@
     <textarea id="itemInput" placeholder="Enter items, separated by commas"></textarea>
     <br>
     <button id="pickButton">Pick One</button>
+    <button id="restartButton">Restart</button>
     <div class="output" id="result"></div>
     <div class="remaining" id="leftCount"></div>
   </div>
 
   <script>
     const input = document.getElementById('itemInput');
-    const button = document.getElementById('pickButton');
+    const pickButton = document.getElementById('pickButton');
+    const restartButton = document.getElementById('restartButton');
     const result = document.getElementById('result');
     const leftCount = document.getElementById('leftCount');
 
     let items = [];
 
-    button.addEventListener('click', () => {
-      // On first click, initialize the list
+    pickButton.addEventListener('click', () => {
       if (items.length === 0) {
         items = input.value
           .split(',')
@@ -101,11 +109,11 @@
 
       if (items.length === 0) {
         result.textContent = 'No more items to pick.';
-        button.disabled = true;
+        pickButton.disabled = true;
+        restartButton.style.display = 'inline-block';
         return;
       }
 
-      // Pick a random index
       const index = Math.floor(Math.random() * items.length);
       const picked = items.splice(index, 1)[0];
 
@@ -113,9 +121,14 @@
       leftCount.textContent = `${items.length} item(s) remaining`;
 
       if (items.length === 0) {
-        button.disabled = true;
+        pickButton.disabled = true;
         leftCount.textContent = 'No items left.';
+        restartButton.style.display = 'inline-block';
       }
+    });
+
+    restartButton.addEventListener('click', () => {
+      location.reload();
     });
   </script>
 
