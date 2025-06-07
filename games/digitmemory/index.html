@@ -5,8 +5,6 @@
   <title>Digit Memory Game</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    /* Reusing the exact same CSS as before */
-
     * {
       box-sizing: border-box;
       margin: 0;
@@ -41,41 +39,25 @@
       max-width: 500px;
     }
 
-    label {
-      display: block;
-      margin: 15px 0 8px;
-      font-weight: 600;
-      font-size: 1.1rem;
-      text-align: left;
-      color: #a5b4fc;
-      text-shadow: 0 0 4px #0009;
-    }
-
-    select,
-    input[type='number'],
-    button {
+    button,
+    input[type='number'] {
       font-size: 1.1rem;
       padding: 10px 15px;
-      margin: 0 auto 15px;
+      margin: 15px auto;
       border-radius: 12px;
       border: none;
       outline: none;
       width: 100%;
       max-width: 300px;
-      box-shadow:
-        inset 0 2px 5px rgba(255, 255, 255, 0.1),
-        0 4px 10px rgba(0, 0, 0, 0.8);
       background: linear-gradient(145deg, #273549, #1f2937);
       color: #e0e0e0;
       cursor: pointer;
       transition: all 0.3s ease;
-      -webkit-appearance: none;
-      -moz-appearance: none;
-      appearance: none;
-      position: relative;
+      box-shadow:
+        inset 0 2px 5px rgba(255, 255, 255, 0.1),
+        0 4px 10px rgba(0, 0, 0, 0.8);
     }
 
-    select:hover,
     input[type='number']:hover,
     button:hover {
       box-shadow:
@@ -86,32 +68,12 @@
       transform: translateY(-2px);
     }
 
-    select {
-      /* custom arrow */
-      background-image:
-        linear-gradient(45deg, transparent 50%, #e0e0e0 50%),
-        linear-gradient(135deg, #e0e0e0 50%, transparent 50%),
-        linear-gradient(to right, #aaa, #aaa);
-      background-position:
-        calc(100% - 20px) calc(1em + 2px),
-        calc(100% - 15px) calc(1em + 2px),
-        calc(100% - 25px) 1em;
-      background-size: 5px 5px, 5px 5px, 1px 1.5em;
-      background-repeat: no-repeat;
-      padding-right: 40px;
-    }
-
     button {
       background-color: #14b8a6;
       color: white;
       font-weight: bold;
-      transition: background-color 0.3s ease, transform 0.2s ease;
-      cursor: pointer;
-      max-width: 320px;
-      user-select: none;
+      box-shadow: 0 4px 10px rgba(20, 184, 166, 0.8);
       text-shadow: 0 1px 3px #0b544a;
-      box-shadow:
-        0 4px 10px rgba(20, 184, 166, 0.8);
     }
 
     button:active {
@@ -141,17 +103,17 @@
     }
 
     .correct {
-      color: #4ade80; /* brighter green */
+      color: #4ade80;
       text-shadow: 0 0 8px #4ade80aa;
     }
 
     .wrong {
-      color: #f87171; /* coral red */
+      color: #f87171;
       text-shadow: 0 0 8px #f87171aa;
     }
 
     .warning {
-      color: #fbbf24; /* amber */
+      color: #fbbf24;
       text-shadow: 0 0 8px #fbbf24aa;
     }
 
@@ -235,7 +197,6 @@
     }
 
     function getRandomNumber() {
-      // Randomly pick 1 to 4 digit number
       const digits = Math.floor(Math.random() * 4) + 1;
       const min = digits === 1 ? 0 : Math.pow(10, digits - 1);
       const max = Math.pow(10, digits) - 1;
@@ -284,13 +245,20 @@
         playErrorSound();
       }
 
-      // Reload page after 3 seconds
       refreshTimeout = setTimeout(() => {
         location.reload();
       }, 3000);
     }
 
     startBtn.addEventListener("click", startGame);
+
+    // ⌨️ Auto-submit on Enter key
+    userAnswer.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        checkAnswer();
+      }
+    });
   </script>
 </body>
 </html>
