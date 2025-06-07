@@ -71,7 +71,7 @@
       font-weight: bold;
       margin: 30px 0;
       opacity: 0;
-      transition: opacity 0.5s ease;
+      transition: opacity 0.3s ease;
     }
 
     #numberDisplay.show {
@@ -118,6 +118,13 @@
       <option value="2" selected>2-digit numbers (10–99)</option>
     </select>
 
+    <label for="speedOption">Choose speed:</label>
+    <select id="speedOption">
+      <option value="2000">Slow (2 sec)</option>
+      <option value="1000" selected>Medium (1 sec)</option>
+      <option value="500">Fast (0.5 sec)</option>
+    </select>
+
     <div id="numberDisplay">Ready?</div>
 
     <button id="startBtn">Start</button>
@@ -137,10 +144,12 @@
     const userAnswer = document.getElementById("userAnswer");
     const result = document.getElementById("result");
     const digitOption = document.getElementById("digitOption");
+    const speedOption = document.getElementById("speedOption");
 
     let numbers = [];
     let total = 0;
     let index = 0;
+    let speed = 1000; // default to medium
 
     function playBeep() {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -185,6 +194,7 @@
 
     function startGame() {
       const digitChoice = digitOption.value;
+      speed = parseInt(speedOption.value);
       const numberCount = Math.floor(Math.random() * 8) + 3; // 3–10
 
       numbers = Array.from({length: numberCount}, () => {
@@ -209,11 +219,12 @@
         numberDisplay.textContent = numbers[index];
         numberDisplay.classList.add("show");
         playBeep();
+
         setTimeout(() => {
           numberDisplay.classList.remove("show");
           index++;
-          setTimeout(showNumber, 200);
-        }, 1000);
+          setTimeout(showNumber, 200); // short pause before next
+        }, speed);
       } else {
         numberDisplay.textContent = "What is the total?";
         numberDisplay.classList.add("show");
@@ -240,7 +251,6 @@
         playErrorSound();
       }
 
-      // Auto-restart after 5 seconds
       setTimeout(() => {
         location.reload();
       }, 5000);
