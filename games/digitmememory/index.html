@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Digit Memory Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    /* Reusing the exact same CSS as before */
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #121212;
+      color: #e0e0e0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 20px;
+      text-shadow: 0 0 6px #14b8a6aa;
+    }
+
+    .container {
+      background: #1f2937;
+      padding: 30px 40px;
+      border-radius: 15px;
+      box-shadow: 0 8px 20px rgba(20, 184, 166, 0.5);
+      text-align: center;
+      width: 100%;
+      max-width: 500px;
+    }
+
+    label {
+      display: block;
+      margin: 15px 0 8px;
+      font-weight: 600;
+      font-size: 1.1rem;
+      text-align: left;
+      color: #a5b4fc;
+      text-shadow: 0 0 4px #0009;
+    }
+
+    select,
+    input[type='number'],
+    button {
+      font-size: 1.1rem;
+      padding: 10px 15px;
+      margin: 0 auto 15px;
+      border-radius: 12px;
+      border: none;
+      outline: none;
+      width: 100%;
+      max-width: 300px;
+      box-shadow:
+        inset 0 2px 5px rgba(255, 255, 255, 0.1),
+        0 4px 10px rgba(0, 0, 0, 0.8);
+      background: linear-gradient(145deg, #273549, #1f2937);
+      color: #e0e0e0;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      position: relative;
+    }
+
+    select:hover,
+    input[type='number']:hover,
+    button:hover {
+      box-shadow:
+        inset 0 3px 7px rgba(255, 255, 255, 0.2),
+        0 6px 14px rgba(20, 184, 166, 0.8);
+      background: linear-gradient(145deg, #14b8a6, #0f766e);
+      color: #d0f0ec;
+      transform: translateY(-2px);
+    }
+
+    select {
+      /* custom arrow */
+      background-image:
+        linear-gradient(45deg, transparent 50%, #e0e0e0 50%),
+        linear-gradient(135deg, #e0e0e0 50%, transparent 50%),
+        linear-gradient(to right, #aaa, #aaa);
+      background-position:
+        calc(100% - 20px) calc(1em + 2px),
+        calc(100% - 15px) calc(1em + 2px),
+        calc(100% - 25px) 1em;
+      background-size: 5px 5px, 5px 5px, 1px 1.5em;
+      background-repeat: no-repeat;
+      padding-right: 40px;
+    }
+
+    button {
+      background-color: #14b8a6;
+      color: white;
+      font-weight: bold;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+      cursor: pointer;
+      max-width: 320px;
+      user-select: none;
+      text-shadow: 0 1px 3px #0b544a;
+      box-shadow:
+        0 4px 10px rgba(20, 184, 166, 0.8);
+    }
+
+    button:active {
+      transform: translateY(1px);
+      box-shadow: 0 2px 5px rgba(20, 184, 166, 0.7);
+    }
+
+    #numberDisplay {
+      font-size: 4rem;
+      font-weight: bold;
+      margin: 30px 0;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      text-shadow: 0 0 10px rgba(20, 184, 166, 0.7);
+      min-height: 80px;
+    }
+
+    #numberDisplay.show {
+      opacity: 1;
+    }
+
+    #result {
+      font-size: 1.5rem;
+      margin-top: 20px;
+      font-weight: bold;
+      min-height: 30px;
+    }
+
+    .correct {
+      color: #4ade80; /* brighter green */
+      text-shadow: 0 0 8px #4ade80aa;
+    }
+
+    .wrong {
+      color: #f87171; /* coral red */
+      text-shadow: 0 0 8px #f87171aa;
+    }
+
+    .warning {
+      color: #fbbf24; /* amber */
+      text-shadow: 0 0 8px #fbbf24aa;
+    }
+
+    @media (max-width: 500px) {
+      h1 {
+        font-size: 2rem;
+      }
+
+      #numberDisplay {
+        font-size: 3rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Digit Memory Game</h1>
+
+  <div class="container">
+    <div id="numberDisplay">Ready?</div>
+
+    <button id="startBtn">Start</button>
+
+    <div id="inputSection" style="display:none;">
+      <input type="number" id="userAnswer" placeholder="Enter the number" />
+      <button onclick="checkAnswer()">Submit</button>
+    </div>
+
+    <div id="result"></div>
+  </div>
+
+  <script>
+    const numberDisplay = document.getElementById("numberDisplay");
+    const startBtn = document.getElementById("startBtn");
+    const inputSection = document.getElementById("inputSection");
+    const userAnswer = document.getElementById("userAnswer");
+    const result = document.getElementById("result");
+
+    let currentNumber = null;
+    let refreshTimeout;
+
+    function playBeep() {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.frequency.value = 600;
+      osc.type = "sine";
+      gain.gain.value = 0.2;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.15);
+    }
+
+    function playSuccessSound() {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(800, ctx.currentTime);
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.frequency.linearRampToValueAtTime(1200, ctx.currentTime + 0.3);
+      osc.stop(ctx.currentTime + 0.4);
+    }
+
+    function playErrorSound() {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "square";
+      osc.frequency.setValueAtTime(300, ctx.currentTime);
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.frequency.linearRampToValueAtTime(100, ctx.currentTime + 0.3);
+      osc.stop(ctx.currentTime + 0.4);
+    }
+
+    function getRandomNumber() {
+      // Randomly pick 1 to 4 digit number
+      const digits = Math.floor(Math.random() * 4) + 1;
+      const min = digits === 1 ? 0 : Math.pow(10, digits - 1);
+      const max = Math.pow(10, digits) - 1;
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function startGame() {
+      if (refreshTimeout) clearTimeout(refreshTimeout);
+      currentNumber = getRandomNumber();
+      userAnswer.value = "";
+      result.textContent = "";
+      result.className = "";
+      inputSection.style.display = "none";
+      startBtn.disabled = true;
+
+      numberDisplay.textContent = currentNumber;
+      numberDisplay.classList.add("show");
+      playBeep();
+
+      setTimeout(() => {
+        numberDisplay.classList.remove("show");
+        numberDisplay.textContent = "Enter the number:";
+        inputSection.style.display = "block";
+        startBtn.disabled = false;
+        userAnswer.focus();
+      }, 3000);
+    }
+
+    function checkAnswer() {
+      if (refreshTimeout) clearTimeout(refreshTimeout);
+
+      const answer = userAnswer.value.trim();
+      if (answer === "") {
+        result.textContent = "Please enter a number.";
+        result.className = "warning";
+        return;
+      }
+
+      if (answer === currentNumber.toString()) {
+        result.textContent = "✅ Correct!";
+        result.className = "correct";
+        playSuccessSound();
+      } else {
+        result.textContent = `❌ Wrong! The correct number was ${currentNumber}.`;
+        result.className = "wrong";
+        playErrorSound();
+      }
+
+      // Reload page after 3 seconds
+      refreshTimeout = setTimeout(() => {
+        location.reload();
+      }, 3000);
+    }
+
+    startBtn.addEventListener("click", startGame);
+  </script>
+</body>
+</html>
