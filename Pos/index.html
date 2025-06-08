@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Costco-Style POS System</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f9f9f9;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+    h1, h2 {
+      text-align: center;
+      color: #b60000;
+    }
+    .container {
+      max-width: 800px;
+      margin: auto;
+      background: #fff;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    label {
+      font-weight: bold;
+    }
+    input[type="text"], input[type="number"] {
+      padding: 8px;
+      margin-top: 5px;
+      width: 100%;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-sizing: border-box;
+      font-size: 16px;
+    }
+    button {
+      background-color: #b60000;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      margin-top: 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #9f0000;
+    }
+    .item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f1f1f1;
+      padding: 10px;
+      border-radius: 6px;
+      margin-bottom: 8px;
+    }
+    .controls button {
+      background-color: #555;
+      font-size: 14px;
+      padding: 6px 10px;
+    }
+    .controls button:hover {
+      background-color: #333;
+    }
+    .total, .member-status {
+      font-weight: bold;
+      margin-top: 20px;
+      font-size: 18px;
+    }
+    .section-title {
+      margin-bottom: 10px;
+      border-bottom: 2px solid #ddd;
+      padding-bottom: 5px;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>Costco-Style POS System</h1>
+  </div>
+
+  <!-- Membership Management -->
+  <div class="container">
+    <h2 class="section-title">Membership</h2>
+    <label for="memberId">Member ID:</label>
+    <input type="text" id="memberId" placeholder="Enter or scan Member ID">
+    <button onclick="login()">Login</button>
+    <button onclick="addMember()">Add Member</button>
+    <div class="member-status" id="member-status"></div>
+  </div>
+
+  <!-- Cart -->
+  <div class="container">
+    <h2 class="section-title">Cart</h2>
+    <div id="cart"></div>
+    <div class="total">Total: <span id="total">$0.00</span></div>
+    <button onclick="checkout()">Checkout</button>
+  </div>
+
+  <!-- Add/Edit Item -->
+  <div class="container">
+    <h2 class="section-title">Add/Edit Item</h2>
+    <label for="itemName">Item Name:</label>
+    <input type="text" id="itemName" placeholder="Item name">
+    <label for="itemPrice">Item Price:</label>
+    <input type="number" id="itemPrice" placeholder="Item price">
+    <label for="itemQuantity">Quantity:</label>
+    <input type="number" id="itemQuantity" placeholder="Quantity">
+    <button onclick="addItem()">Add Item</button>
+  </div>
+
+  <!-- Returns -->
+  <div class="container">
+    <h2 class="section-title">Process Return</h2>
+    <label for="returnMemberId">Scan Member ID:</label>
+    <input type="text" id="returnMemberId" placeholder="Scan Member ID">
+    <label for="returnItemName">Item Name:</label>
+    <input type="text" id="returnItemName" placeholder="Item name to return">
+    <label for="returnQuantity">Quantity to Return:</label>
+    <input type="number" id="returnQuantity" placeholder="Quantity">
+    <button onclick="processReturn()">Process Return</button>
+  </div>
+
+  <script>
+    let members = [];
+    let loggedInMember = null;
+    let items = [];
+
+    function login() {
+      const id = document.getElementById('memberId').value.trim();
+      if (members.includes(id)) {
+        loggedInMember = id;
+        document.getElementById('member-status').textContent = `Logged in as Member ID: ${id} ✅`;
+        alert(`Welcome back, Member ${id}!`);
+      } else {
+        alert('Member ID not found. Please add member first.');
+      }
+    }
+
+    function addMember() {
+      const id = document.getElementById('memberId').value.trim();
+      if (!id) {
+        alert('Please enter a valid Member ID.');
+        return;
+      }
+      if (!members.includes(id)) {
+        members.push(id);
+        alert(`Member ${id} added successfully.`);
+      } else {
+        alert(`Member ${id} already exists.`);
+      }
+    }
+
+    function updateCart() {
+      const cart = document.getElementById('cart');
+      cart.innerHTML = '';
+      items.forEach((item, index) => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'item';
+        itemDiv.innerHTML = `
+          <span>${item.name} (Qty: ${item.quantity}) - $${item.price.toFixed(2)}</span>
+          <div class="controls">
+            <button onclick="editItem(${index})">Edit</button>
+            <button onclick="deleteItem(${index})">Delete</button>
+          </div>
+        `;
+        cart.appendChild(itemDiv);
+      });
+      updateTotal();
+    }
+
+    function updateTotal() {
+      const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      document.getElementById('total').textContent = `$${total.toFixed(2)}`;
+    }
+
+    function addItem() {
+      const name = document.getElementById('itemName').value.trim();
+      const price = parseFloat(document.getElementById('itemPrice').value);
+      const quantity = parseInt(document.getElementById('itemQuantity').value);
+
+      if (!name || isNaN(price) || price <= 0 || isNaN(quantity) || quantity <= 0) {
+        alert('Please enter valid item details.');
+        return;
+      }
+
+      const existingIndex = items.findIndex(item => item.name.toLowerCase() === name.toLowerCase());
+      if (existingIndex !== -1) {
+        items[existingIndex].quantity += quantity;
+        items[existingIndex].price = price;
+      } else {
+        items.push({ name, price, quantity });
+      }
+
+      updateCart();
+      clearItemInputs();
+    }
+
+    function editItem(index) {
+      const item = items[index];
+      const newName = prompt('Enter new item name:', item.name);
+      const newPrice = parseFloat(prompt('Enter new price:', item.price));
+      const newQuantity = parseInt(prompt('Enter new quantity:', item.quantity));
+
+      if (!newName || isNaN(newPrice) || newPrice <= 0 || isNaN(newQuantity) || newQuantity <= 0) {
+        alert('Invalid inputs. No changes made.');
+        return;
+      }
+
+      item.name = newName;
+      item.price = newPrice;
+      item.quantity = newQuantity;
+      updateCart();
+    }
+
+    function deleteItem(index) {
+      if (confirm(`Are you sure you want to delete "${items[index].name}"?`)) {
+        items.splice(index, 1);
+        updateCart();
+      }
+    }
+
+    function checkout() {
+      if (!loggedInMember) {
+        alert('Please login with your Membership ID before checkout.');
+        return;
+      }
+      items.forEach(item => {
+        item.quantity = Math.max(item.quantity - 1, 0);
+      });
+      alert('Payment processed successfully ✅');
+      updateCart();
+    }
+
+    function processReturn() {
+      const memberId = document.getElementById('returnMemberId').value.trim();
+      if (!members.includes(memberId)) {
+        alert('Member ID not recognized.');
+        return;
+      }
+
+      const itemName = document.getElementById('returnItemName').value.trim();
+      const quantity = parseInt(document.getElementById('returnQuantity').value);
+
+      if (!itemName || isNaN(quantity) || quantity <= 0) {
+        alert('Please enter valid return details.');
+        return;
+      }
+
+      const item = items.find(item => item.name.toLowerCase() === itemName.toLowerCase());
+      if (item) {
+        item.quantity += quantity;
+        alert(`Returned ${quantity} unit(s) of ${item.name}.`);
+        updateCart();
+      } else {
+        alert('Item not found.');
+      }
+    }
+
+    function clearItemInputs() {
+      document.getElementById('itemName').value = '';
+      document.getElementById('itemPrice').value = '';
+      document.getElementById('itemQuantity').value = '';
+    }
+
+    updateCart();
+  </script>
+</body>
+</html>
