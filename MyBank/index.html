@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MyBank - Play Banking System with Employee Portal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; background: #f0f4f8; }
+    header { background: #004080; color: white; padding: 1rem; text-align: center; }
+    main { max-width: 900px; margin: 2rem auto; background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    h2 { color: #004080; margin-bottom: 1rem; }
+    .hidden { display: none; }
+    .input-group { margin-bottom: 1rem; }
+    label { display: block; margin-bottom: 0.25rem; font-weight: bold; }
+    input, select { width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; }
+    button { background: #004080; color: white; padding: 0.75rem; border: none; border-radius: 5px; cursor: pointer; }
+    button:hover { background: #002c5d; }
+    .balance { font-size: 1.2rem; margin-bottom: 1rem; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { border: 1px solid #ddd; padding: 0.5rem; text-align: left; }
+    th { background: #004080; color: white; }
+    .nav { margin-bottom: 1rem; }
+    .nav button { margin-right: 0.5rem; }
+  </style>
+</head>
+<body>
+  <header><h1>MyBank</h1></header>
+  <main>
+    <div class="nav">
+      <button onclick="showSection('login-section')">Customer Login</button>
+      <button onclick="showSection('employee-login-section')">Employee Portal</button>
+    </div>
+
+    <!-- Customer Login -->
+    <section id="login-section">
+      <h2>Customer Login</h2>
+      <div class="input-group">
+        <label for="username">Username:</label>
+        <input type="text" id="username" placeholder="Enter username">
+      </div>
+      <div class="input-group">
+        <label for="password">Password:</label>
+        <input type="password" id="password" placeholder="Enter password">
+      </div>
+      <button onclick="customerLogin()">Login</button>
+    </section>
+
+    <!-- Employee Login -->
+    <section id="employee-login-section" class="hidden">
+      <h2>Employee Login</h2>
+      <div class="input-group">
+        <label for="emp-username">Employee ID:</label>
+        <input type="text" id="emp-username" placeholder="Enter Employee ID">
+      </div>
+      <div class="input-group">
+        <label for="emp-password">Password:</label>
+        <input type="password" id="emp-password" placeholder="Enter password">
+      </div>
+      <button onclick="employeeLogin()">Login</button>
+    </section>
+
+    <!-- Employee Dashboard -->
+    <section id="employee-dashboard-section" class="hidden">
+      <h2>Employee Dashboard</h2>
+      <button onclick="showSection('create-account-section')">Create New Account</button>
+      <button onclick="showSection('deposit-section')">Deposit / Cash Check</button>
+      <h3>All Accounts</h3>
+      <table id="accounts-table">
+        <thead>
+          <tr>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Checking</th>
+            <th>Savings</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <br>
+      <button onclick="logout()">Logout</button>
+    </section>
+
+    <!-- Create New Account -->
+    <section id="create-account-section" class="hidden">
+      <h2>Create New Account</h2>
+      <div class="input-group">
+        <label for="new-username">Username:</label>
+        <input type="text" id="new-username">
+      </div>
+      <div class="input-group">
+        <label for="new-password">Password:</label>
+        <input type="password" id="new-password">
+      </div>
+      <div class="input-group">
+        <label for="new-email">Email:</label>
+        <input type="email" id="new-email" placeholder="Enter email">
+      </div>
+      <div class="input-group">
+        <label for="init-checking">Initial Checking Balance:</label>
+        <input type="number" id="init-checking" step="0.01">
+      </div>
+      <div class="input-group">
+        <label for="init-savings">Initial Savings Balance:</label>
+        <input type="number" id="init-savings" step="0.01">
+      </div>
+      <button onclick="createAccount()">Create Account</button>
+      <br><br>
+      <button onclick="showSection('employee-dashboard-section')">Back to Dashboard</button>
+    </section>
+
+    <!-- Employee Deposit -->
+    <section id="deposit-section" class="hidden">
+      <h2>Deposit / Cash Check</h2>
+      <div class="input-group">
+        <label for="deposit-username">Account Username:</label>
+        <input type="text" id="deposit-username">
+      </div>
+      <div class="input-group">
+        <label for="deposit-password">Account Password:</label>
+        <input type="password" id="deposit-password">
+      </div>
+      <div class="input-group">
+        <label for="deposit-amount">Amount to Deposit:</label>
+        <input type="number" id="deposit-amount" step="0.01">
+      </div>
+      <div class="input-group">
+        <label for="deposit-account">Account Type:</label>
+        <select id="deposit-account">
+          <option value="checking">Checking</option>
+          <option value="savings">Savings</option>
+        </select>
+      </div>
+      <button onclick="depositFunds()">Deposit</button>
+      <br><br>
+      <button onclick="showSection('employee-dashboard-section')">Back to Dashboard</button>
+    </section>
+  </main>
+
+  <script>
+    const EMPLOYEE_CREDENTIALS = { id: 'admin', password: 'adminpass' };
+    let currentUser = null;
+
+    function getAccounts() {
+      let accounts = localStorage.getItem('mybank-accounts');
+      if (!accounts) {
+        const defaultAccount = {
+          username: 'user',
+          password: 'password',
+          email: 'user@example.com',
+          checking: 2500.00,
+          savings: 5000.00,
+          transactions: []
+        };
+        localStorage.setItem('mybank-accounts', JSON.stringify([defaultAccount]));
+        accounts = JSON.stringify([defaultAccount]);
+      }
+      return JSON.parse(accounts);
+    }
+
+    function saveAccounts(accounts) {
+      localStorage.setItem('mybank-accounts', JSON.stringify(accounts));
+    }
+
+    function showSection(sectionId) {
+      document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
+      document.getElementById(sectionId).classList.remove('hidden');
+    }
+
+    function customerLogin() {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const accounts = getAccounts();
+      const user = accounts.find(acc => acc.username === username && acc.password === password);
+      if (user) {
+        currentUser = user.username;
+        alert(`Welcome, ${currentUser}!`);
+      } else {
+        alert('Invalid credentials!');
+      }
+    }
+
+    function employeeLogin() {
+      const id = document.getElementById('emp-username').value.trim();
+      const password = document.getElementById('emp-password').value;
+      if (id === EMPLOYEE_CREDENTIALS.id && password === EMPLOYEE_CREDENTIALS.password) {
+        showSection('employee-dashboard-section');
+        loadAccounts();
+      } else {
+        alert('Invalid employee credentials!');
+      }
+    }
+
+    function loadAccounts() {
+      const accounts = getAccounts();
+      const tbody = document.getElementById('accounts-table').querySelector('tbody');
+      tbody.innerHTML = '';
+      accounts.forEach(acc => {
+        const row = tbody.insertRow();
+        row.insertCell(0).textContent = acc.username;
+        row.insertCell(1).textContent = acc.email;
+        row.insertCell(2).textContent = `$${acc.checking.toFixed(2)}`;
+        row.insertCell(3).textContent = `$${acc.savings.toFixed(2)}`;
+      });
+    }
+
+    function createAccount() {
+      const username = document.getElementById('new-username').value.trim();
+      const password = document.getElementById('new-password').value;
+      const email = document.getElementById('new-email').value.trim();
+      const checking = parseFloat(document.getElementById('init-checking').value) || 0;
+      const savings = parseFloat(document.getElementById('init-savings').value) || 0;
+
+      if (!username || !password || !email) {
+        alert('Username, password, and email are required.');
+        return;
+      }
+
+      const accounts = getAccounts();
+      if (accounts.find(acc => acc.username === username)) {
+        alert('Username already exists.');
+        return;
+      }
+
+      accounts.push({
+        username,
+        password,
+        email,
+        checking,
+        savings,
+        transactions: []
+      });
+
+      saveAccounts(accounts);
+      alert('Account created successfully.');
+      showSection('employee-dashboard-section');
+      loadAccounts();
+    }
+
+    function depositFunds() {
+      const username = document.getElementById('deposit-username').value.trim();
+      const password = document.getElementById('deposit-password').value;
+      const amount = parseFloat(document.getElementById('deposit-amount').value);
+      const accountType = document.getElementById('deposit-account').value;
+      const accounts = getAccounts();
+      const user = accounts.find(acc => acc.username === username);
+      if (!user) { alert('Account not found.'); return; }
+      if (user.password !== password) { alert('Incorrect account password.'); return; }
+      if (isNaN(amount) || amount <= 0) { alert('Invalid amount.'); return; }
+      user[accountType] += amount;
+      const date = new Date().toLocaleDateString();
+      user.transactions.unshift({
+        date,
+        description: `Employee deposit into ${accountType}`,
+        amount: amount.toFixed(2),
+        checking: user.checking.toFixed(2),
+        savings: user.savings.toFixed(2)
+      });
+      saveAccounts(accounts);
+      alert('Deposit successful.');
+      showSection('employee-dashboard-section');
+      loadAccounts();
+    }
+
+    function logout() {
+      currentUser = null;
+      showSection('login-section');
+    }
+
+    window.onload = function() {
+      getAccounts();
+    };
+  </script>
+</body>
+</html>
