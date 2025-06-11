@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>POS System with Customer Discount</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background-color: #121212;
+      color: white;
+    }
+    nav {
+      position: fixed;
+      top: 0; width: 100%;
+      background: #1e1e1e;
+      display: flex; justify-content: space-around;
+      padding: 10px; z-index: 1000;
+    }
+    nav button {
+      background: #2d3436; color: white;
+      border: none; padding: 10px 20px;
+      cursor: pointer; font-weight: bold;
+    }
+    .content {
+      display: flex;
+      margin-top: 60px;
+      height: calc(100vh - 60px);
+    }
+    .left, .right {
+      padding: 20px;
+      overflow-y: auto;
+    }
+    .left {
+      width: 60%; border-right: 2px solid #333;
+    }
+    .right {
+      width: 40%; position: relative;
+      display: flex; flex-direction: column;
+      justify-content: space-between;
+    }
+    h2, h3 { color: #fff; }
+    #checkout {
+      background: #00b894;
+      color: white;
+      padding: 15px 30px;
+      font-size: 18px;
+      border: none;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    .overlay {
+      position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 999;
+    }
+    .modal {
+      background: #222;
+      padding: 30px;
+      border-radius: 10px;
+      text-align: center;
+      color: white;
+      width: 300px;
+    }
+    .modal input, .right input {
+      padding: 10px;
+      margin: 5px;
+      font-size: 16px;
+      width: 80%;
+      background: #333;
+      color: white;
+      border: 1px solid #555;
+    }
+    .modal button {
+      background: #00cec9;
+      color: white;
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      margin: 5px;
+      cursor: pointer;
+    }
+    .receipt-item {
+      margin-bottom: 6px;
+    }
+    #total {
+      font-size: 20px;
+      font-weight: bold;
+      color: #00cec9;
+      margin-top: 15px;
+    }
+    .custom-price {
+      background: #222;
+      padding: 10px;
+      margin-top: 20px;
+      border-radius: 10px;
+    }
+    .custom-price input {
+      width: 120px;
+    }
+    .custom-price button {
+      padding: 8px 15px;
+      background: #0984e3;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    #hiddenBarcode {
+      opacity: 0;
+      position: absolute;
+      top: -1000px;
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <button onclick="showPage('checkout')">Checkout</button>
+  <button onclick="showPage('additem')">Add Items</button>
+  <button onclick="viewInventory()">View Inventory</button>
+  <button onclick="viewCustomers()">View Customers</button>
+  <button onclick="clearAll()">Clear All Data</button>
+</nav>
+
+<div class="content">
+  <div class="left">
+    <h2>Scanned Items</h2>
+    <div id="itemList"></div>
+  </div>
+
+  <div class="right">
+    <div id="checkoutPage">
+      <h2>Scan Barcode</h2>
+      <input type="text" id="hiddenBarcode" onkeyup="if(event.key==='Enter')scanBarcode()">
+
+      <div class="custom-price">
+        <h3>Add Custom Item</h3>
+        <input type="number" id="customPrice" step="0.01" min="0" placeholder="Price">
+        <button onclick="addCustomPrice()">Add</button>
+      </div>
+
+      <h3 id="total">Total: $0.00</h3>
+      <button id="checkout" onclick="startCheckout()">Checkout</button>
+    </div>
+
+    <div id="additemPage" style="display:none;">
+      <h2>Add New Item</h2>
+      <input id="newName" placeholder="Item Name"><br>
+      <input id="newPrice" type="number" placeholder="Price"><br>
+      <input id="newBarcode" placeholder="Barcode"><br>
+      <button onclick="addNewItem()">Add Item</button>
+    </div>
+  </div>
+</div>
+
+<div id="modalContainer"></div>
+
+<script>
+  let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+  let inventory = JSON.parse(localStorage.getItem('inventory') || '{}');
+  let customers = JSON.parse(localStorage.getItem('customers') || '{}');
+  let discount = 0;
+  let customerPhone = '';
+
+  document.addEventListener('DOMContentLoaded', () => {
+    updateCartDisplay();
+    focusBarcodeInput();
+  });
+
+  function focusBarcodeInput() {
+    const barcodeInput = document.getElementById("hiddenBarcode");
+    document.addEventListener("keydown", () => {
+      if (document.activeElement.tagName !== "INPUT" ||
+          document.activeElement.id === "hiddenBarcode") {
+        barcodeInput.focus();
+      }
+    });
+  }
+
+  function showPage(page) {
+    document.getElementById('checkoutPage').style.display = page === 'checkout' ? 'block' : 'none';
+    document.getElementById('additemPage').style.display = page === 'additem' ? 'block' : 'none';
+  }
+
+  function scanBarcode() {
+    const code = document.getElementById('hiddenBarcode').value.trim();
+    document.getElementById('hiddenBarcode').value = '';
+    if (inventory[code]) {
+      cart.push(inventory[code]);
+      saveCart();
+      updateCartDisplay();
+    } else {
+      alert('Item not found!');
+    }
+  }
+
+  function addNewItem() {
+    const name = document.getElementById('newName').value.trim();
+    const price = parseFloat(document.getElementById('newPrice').value);
+    const barcode = document.getElementById('newBarcode').value.trim();
+    if (!name || isNaN(price) || !barcode) {
+      alert('Please fill in all fields.');
+      return;
+    }
+    inventory[barcode] = { name, price };
+    localStorage.setItem('inventory', JSON.stringify(inventory));
+    alert('Item added!');
+    document.getElementById('newName').value = '';
+    document.getElementById('newPrice').value = '';
+    document.getElementById('newBarcode').value = '';
+  }
+
+  function addCustomPrice() {
+    const price = parseFloat(document.getElementById('customPrice').value);
+    if (!isNaN(price) && price >= 0.01) {
+      cart.push({ name: 'Custom Item', price });
+      document.getElementById('customPrice').value = '';
+      saveCart();
+      updateCartDisplay();
+    } else {
+      alert("Enter a valid price.");
+    }
+  }
+
+  function updateCartDisplay() {
+    const itemList = document.getElementById('itemList');
+    itemList.innerHTML = '';
+    let total = cart.reduce((sum, item) => sum + item.price, 0);
+    let discountedTotal = total * (1 - discount);
+    document.getElementById('total').textContent = `Total: $${discountedTotal.toFixed(2)}`;
+    cart.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'receipt-item';
+      div.textContent = `${item.name} - $${item.price.toFixed(2)}`;
+      itemList.appendChild(div);
+    });
+  }
+
+  function saveCart() {
+    localStorage.setItem('cart', JSON.stringify(cart));
+  }
+
+  function startCheckout() {
+    discount = 0;
+    customerPhone = '';
+    const modal = `
+      <div class="overlay">
+        <div class="modal">
+          <h2>Enter Phone Number</h2>
+          <input id="phoneInput" placeholder="123-456-7890"><br>
+          <button onclick="checkPhone()">Continue</button>
+          <button onclick="skipPhone()">Skip</button>
+          <button onclick="signUp()">Sign Up</button>
+        </div>
+      </div>`;
+    document.getElementById('modalContainer').innerHTML = modal;
+  }
+
+  function checkPhone() {
+    const phone = document.getElementById('phoneInput').value.trim();
+    if (customers[phone]) {
+      discount = 0.15;
+      customerPhone = phone;
+      showBagPrompt();
+    } else {
+      alert('Phone not found. Try signing up.');
+    }
+  }
+
+  function skipPhone() {
+    discount = 0;
+    customerPhone = '';
+    showBagPrompt();
+  }
+
+  function signUp() {
+    const modal = `
+      <div class="overlay">
+        <div class="modal">
+          <h2>Sign Up</h2>
+          <input id="signPhone" placeholder="Phone"><br>
+          <input id="signName" placeholder="Name"><br>
+          <input id="signEmail" placeholder="Email"><br>
+          <button onclick="registerUser()">Confirm</button>
+        </div>
+      </div>`;
+    document.getElementById('modalContainer').innerHTML = modal;
+  }
+
+  function registerUser() {
+    const phone = document.getElementById('signPhone').value.trim();
+    const name = document.getElementById('signName').value.trim();
+    const email = document.getElementById('signEmail').value.trim();
+    if (!phone || !name || !email) {
+      alert("Fill all fields");
+      return;
+    }
+    customers[phone] = { name, email };
+    localStorage.setItem('customers', JSON.stringify(customers));
+    discount = 0.15;
+    customerPhone = phone;
+    showBagPrompt();
+  }
+
+  function showBagPrompt() {
+    const modal = `
+      <div class="overlay">
+        <div class="modal">
+          <h2>How many bags? ($0.10 each)</h2>
+          <input type="number" min="0" value="0" id="bagInput"><br><br>
+          <button onclick="confirmBags()">Next</button>
+        </div>
+      </div>`;
+    document.getElementById('modalContainer').innerHTML = modal;
+  }
+
+  function confirmBags() {
+    const bags = parseInt(document.getElementById('bagInput').value) || 0;
+    const bagFee = bags * 0.10;
+    const modal = `
+      <div class="overlay">
+        <div class="modal">
+          <h2>Choose Payment Method</h2>
+          <button onclick="completeSale(${bagFee}, 'Cash')">Cash</button>
+          <button onclick="completeSale(${bagFee}, 'Credit')">Credit</button>
+        </div>
+      </div>`;
+    document.getElementById('modalContainer').innerHTML = modal;
+  }
+
+  function completeSale(bagFee, method) {
+    let subtotal = cart.reduce((sum, item) => sum + item.price, 0);
+    let discountAmount = subtotal * discount;
+    let total = subtotal - discountAmount + bagFee;
+    let receipt = 'RECEIPT\n\n';
+    cart.forEach(item => {
+      receipt += `${item.name} - $${item.price.toFixed(2)}\n`;
+    });
+    if (discount > 0) receipt += `Discount - -$${discountAmount.toFixed(2)}\n`;
+    if (bagFee > 0) receipt += `Bag Fee - $${bagFee.toFixed(2)}\n`;
+    receipt += `\nTotal: $${total.toFixed(2)}\nPaid by: ${method}\n\nThank you!`;
+
+    const printWindow = window.open('', '', 'width=600,height=600');
+    printWindow.document.write(`<pre>${receipt}</pre>`);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
+
+    cart = [];
+    saveCart();
+    updateCartDisplay();
+    document.getElementById('modalContainer').innerHTML = '';
+  }
+
+  function viewInventory() {
+    alert(JSON.stringify(inventory, null, 2));
+  }
+
+  function viewCustomers() {
+    alert(JSON.stringify(customers, null, 2));
+  }
+
+  function clearAll() {
+    if (confirm("Are you sure you want to clear all data?")) {
+      localStorage.clear();
+      cart = [];
+      inventory = {};
+      customers = {};
+      updateCartDisplay();
+      alert("All data cleared.");
+    }
+  }
+</script>
+</body>
+</html>
