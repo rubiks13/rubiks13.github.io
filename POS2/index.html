@@ -1,0 +1,1464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple POS System</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
+    <style>
+        /* Dark Theme Styles */
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background-color: #1a1a1a; /* Dark background */
+            color: #e0e0e0; /* Light text */
+            overflow-y: scroll; /* Allow scrolling for long content */
+        }
+        .tab-container {
+            width: 90%;
+            max-width: 1200px;
+            background-color: #2c2c2c; /* Slightly lighter dark background */
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        .tab-buttons {
+            display: flex;
+            border-bottom: 1px solid #444; /* Darker border */
+        }
+        .tab-button {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            background-color: #3a3a3a; /* Dark button background */
+            border: none;
+            outline: none;
+            font-size: 18px;
+            color: #b0b0b0; /* Lighter button text */
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        .tab-button:hover {
+            background-color: #4a4a4a; /* Darker hover */
+        }
+        .tab-button.active {
+            background-color: #007bff; /* Accent color */
+            color: white;
+            border-bottom: 3px solid #007bff;
+        }
+        .tab-content {
+            padding: 20px;
+            display: none; /* Hidden by default */
+        }
+        .tab-content.active {
+            display: block; /* Shown when active */
+        }
+        h1, h2, h3 {
+            color: #ffffff; /* White headings */
+            border-bottom: 2px solid #444;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #e0e0e0;
+        }
+        input[type="text"],
+        input[type="number"],
+        textarea {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #555; /* Darker border for inputs */
+            border-radius: 4px;
+            font-size: 16px;
+            background-color: #3a3a3a; /* Dark input background */
+            color: #e0e0e0; /* Light input text */
+        }
+        /* Hidden input for barcode scanning - Refined for focusability */
+        .hidden-input-for-scan {
+            position: absolute;
+            left: -9999px; /* Move off-screen */
+            width: 0; /* Make it take no space */
+            height: 0; /* Make it take no space */
+            border: none; /* Remove any visible border */
+            padding: 0; /* Remove padding */
+            margin: 0; /* Remove margin */
+            font-size: 0; /* Hide text if any */
+            line-height: 0; /* Hide line height */
+            /* Do NOT use display: none or visibility: hidden as they prevent focus */
+            /* Do NOT use opacity: 0; and pointer-events: none; as pointer-events can interfere with focus */
+        }
+        input[type="file"] {
+            margin-bottom: 15px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+            margin-top: 5px;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button.red {
+            background-color: #dc3545;
+        }
+        button.red:hover {
+            background-color: #c82333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #444; /* Darker table border */
+        }
+        th {
+            background-color: #3a3a3a; /* Darker table header */
+            border-bottom: 1px solid #555;
+            color: #ffffff;
+        }
+        #cart-total {
+            font-size: 20px;
+            font-weight: bold;
+            margin-top: 20px;
+            text-align: right;
+            color: #ffffff;
+        }
+        .receipt-container {
+            display: none; /* Hidden by default */
+            width: 80mm; /* Approx 3.15 inches */
+            padding: 10px;
+            border: 1px solid #000;
+            margin-top: 20px;
+            background-color: #ffffff; /* White background for receipt to ensure printability */
+            color: #000000; /* Black text for receipt */
+            font-family: 'Consolas', 'Monospace';
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        .receipt-header, .receipt-footer {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .receipt-header img {
+            max-width: 100%;
+            height: auto;
+            margin-bottom: 10px;
+        }
+        .receipt-items div {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 3px;
+        }
+        .receipt-total {
+            text-align: right;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        .receipt-separator {
+            border-top: 1px dashed #000;
+            margin: 10px 0;
+        }
+        #qrcode-container {
+            text-align: center;
+            margin-top: 15px;
+        }
+        #logo-preview {
+            max-width: 150px;
+            max-height: 150px;
+            margin-top: 10px;
+            border: 1px solid #555;
+            display: block;
+        }
+
+        /* Modal specific styles */
+        .modal-overlay {
+            display: none; /* Hidden by default */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7); /* Dark semi-transparent background */
+            z-index: 1000; /* On top of everything */
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #2c2c2c; /* Same as tab container */
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+            width: 90%;
+            max-width: 800px;
+            position: relative;
+            color: #e0e0e0;
+            max-height: 90vh; /* Max height to allow scrolling if content is long */
+            overflow-y: auto; /* Enable scrolling for modal content */
+        }
+        .modal-close-button {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #ccc;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+        .modal-close-button:hover {
+            color: #fff;
+        }
+        .modal-content h2, .modal-content h3 {
+            color: #ffffff;
+            border-bottom: 2px solid #444;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .modal-content table {
+            margin-bottom: 20px;
+        }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .receipt-container, .receipt-container * {
+                visibility: visible;
+            }
+            .receipt-container {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 80mm;
+                border: none;
+                box-shadow: none;
+            }
+            .modal-overlay {
+                display: none !important; /* Hide modal during print */
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Simple POS System</h1>
+
+    <div class="tab-container">
+        <div class="tab-buttons">
+            <button class="tab-button active" onclick="openTab(event, 'ItemManagement')">Item Management</button>
+            <button class="tab-button" onclick="openTab(event, 'Checkout')">Checkout</button>
+            <button class="tab-button" onclick="openTab(event, 'SalesHistory')">Sales History</button>
+            <button class="tab-button" onclick="openTab(event, 'Settings')">Settings</button>
+        </div>
+
+        <div id="ItemManagement" class="tab-content active">
+            <h2>Item Management</h2>
+            <label for="itemName">Item Name:</label>
+            <input type="text" id="itemName" placeholder="e.g., Apple">
+
+            <label for="itemBarcode">Barcode:</label>
+            <input type="text" id="itemBarcode" placeholder="e.g., 123456789012">
+
+            <label for="itemPrice">Price:</label>
+            <input type="number" id="itemPrice" step="0.01" min="0" value="0.00">
+
+            <label for="itemStock">Stock:</label>
+            <input type="number" id="itemStock" min="0" value="1">
+
+            <button id="addItemButton" onclick="addItem()">Add Item</button>
+            <button id="cancelEditButton" class="red" style="display: none;" onclick="clearItemFormAndState()">Cancel Edit</button>
+
+            <h2>Available Items</h2>
+            <table id="item-list">
+                <thead>
+                    <tr>
+                        <th>Barcode</th>
+                        <th>Name</th>
+                        <th>Price</th>
+                        <th>Stock</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+
+        <div id="Checkout" class="tab-content">
+            <h2>Checkout</h2>
+            <label for="checkoutBarcode">Scan/Enter Barcode Here:</label>
+            <input type="text" id="checkoutBarcode" class="hidden-input-for-scan" placeholder="Enter barcode" onkeyup="if(event.keyCode === 13) addToCart()">
+            <div style="padding: 10px; border: 1px dashed #555; text-align: center; margin-bottom: 15px;">
+                Ready to scan item barcode...
+            </div>
+            <button onclick="addToCart()">Add to Cart</button>
+
+            <h3>Shopping Cart</h3>
+            <table id="cart-items">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Price</th>
+                        <th>Qty</th>
+                        <th>Subtotal</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+            <div id="cart-total">Subtotal: $0.00</div>
+            <button onclick="checkout()">Checkout</button>
+            <button class="red" onclick="clearCart()">Clear Cart</button>
+
+            <hr style="border-top: 1px dashed #555; margin: 30px 0;">
+
+            <h2>Returns</h2>
+            <button onclick="openReturnsModal()">Process Returns</button>
+        </div>
+
+        <div id="SalesHistory" class="tab-content">
+            <h2>Sales History</h2>
+            <table id="sales-history">
+                <thead>
+                    <tr>
+                        <th>Date/Time</th>
+                        <th>Transaction ID</th>
+                        <th>Total</th>
+                        <th>Items</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+
+        <div id="Settings" class="tab-content">
+            <h2>Settings</h2>
+            <h3>Store Information</h3>
+            <label for="settingStoreName">Store Name:</label>
+            <input type="text" id="settingStoreName" placeholder="e.g., My Awesome Store">
+
+            <label for="settingStoreAddress">Street Address:</label>
+            <input type="text" id="settingStoreAddress" placeholder="e.g., 123 Main Street, Anytown, USA">
+
+            <label for="settingStorePhone">Telephone:</label>
+            <input type="text" id="settingStorePhone" placeholder="e.g., (123) 456-7890">
+
+            <h3>Tax Percentage</h3>
+            <label for="settingTaxPercentage">Sales Tax Percentage (%):</label>
+            <input type="number" id="settingTaxPercentage" step="0.01" min="0" max="100" value="7.25">
+            <p style="font-size: 0.9em; color: #b0b0b0;">Enter as a percentage, e.g., 7.25 for 7.25%</p>
+
+            <button onclick="saveStoreSettings()">Save Store Settings</button>
+
+            <hr style="border-top: 1px dashed #555; margin: 30px 0;">
+
+            <h3>Receipt Logo</h3>
+            <label for="logoUpload">Upload Logo Image (PNG, JPG, JPEG, GIF):</label>
+            <input type="file" id="logoUpload" accept="image/png, image/jpeg, image/gif" onchange="handleLogoUpload(event)">
+            <img id="logo-preview" src="#" alt="Logo Preview" style="display: none;">
+            <button onclick="saveLogo()">Save Logo</button>
+            <button class="red" onclick="clearLogo()">Clear Logo</button>
+
+            <hr style="border-top: 1px dashed #555; margin: 30px 0;">
+
+            <h2>Data Transfer</h2>
+            <h3>Give Data</h3>
+            <p>Copy this code to transfer your POS data to another device.</p>
+            <textarea id="giveDataCode" rows="6" readonly style="width: calc(100% - 22px); resize: vertical; background-color: #3a3a3a; color: #e0e0e0;"></textarea>
+            <button onclick="copyDataCode()">Copy Code</button>
+
+            <h3>Receive Data</h3>
+            <p>Paste the data code from another device here to load its data. This will overwrite existing data.</p>
+            <input type="text" id="receiveDataCode" placeholder="Paste data code here">
+            <button onclick="receiveData()">Load Data</button>
+        </div>
+    </div>
+
+    <div id="returnsModal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="modal-close-button" onclick="closeReturnsModal()">&times;</button>
+            <h2>Process Returns</h2>
+            <label for="returnTransactionId">Scan QR or Enter Transaction ID Here:</label>
+            <input type="text" id="returnTransactionId" class="hidden-input-for-scan" placeholder="Enter Transaction ID" onkeyup="if(event.keyCode === 13) loadReturnItems()">
+            <div style="padding: 10px; border: 1px dashed #555; text-align: center; margin-bottom: 15px;">
+                Ready to scan receipt QR code or enter Transaction ID...
+            </div>
+            <button onclick="loadReturnItems()">Load Items for Return</button>
+
+            <div id="return-items-section">
+                <h3>Items from Transaction: <span id="return-trans-id-display"></span></h3>
+                <table id="return-items-table">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Original Qty</th>
+                            <th>Qty to Return</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        </tbody>
+                </table>
+                <button onclick="processReturn()">Process Selected Returns</button>
+                <button class="red" onclick="clearReturnForm()">Clear Return Form</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="paymentModal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="modal-close-button" onclick="cancelPayment()">&times;</button>
+            <h2>Select Payment Method</h2>
+
+            <div id="paymentMethodSelection">
+                <p>Total Due: $<span id="overallTotalDue">0.00</span></p>
+                <button onclick="showCashPayment()">Cash</button>
+                <button onclick="showCardPayment()">Card</button>
+                <button class="red" onclick="cancelPayment()">Cancel</button>
+            </div>
+
+            <div id="cashPaymentSection" style="display: none;">
+                <h3>Cash Payment</h3>
+                <p>Total Due: $<span id="cashTotalDue">0.00</span></p>
+                <label for="amountGiven">Amount Given:</label>
+                <input type="number" id="amountGiven" step="0.01" min="0" value="0.00">
+                <p>Change Due: $<span id="changeDue">0.00</span></p>
+                <button onclick="calculateChange()">Tender</button>
+                <button class="red" onclick="backToPaymentSelection()">Back</button>
+            </div>
+
+            <div id="cardPaymentSection" style="display: none;">
+                <h3>Card Payment</h3>
+                <p>Total Due: $<span id="cardTotalDue">0.00</span></p>
+                <label for="creditCardNumber">Enter Credit Card Number:</label>
+                <input type="text" id="creditCardNumber" placeholder="XXXX XXXX XXXX XXXX" maxlength="19">
+                <button onclick="processCardPayment()">Process</button>
+                <button class="red" onclick="backToPaymentSelection()">Back</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="receipt" class="receipt-container">
+        <div class="receipt-header">
+            <img id="receipt-logo" src="#" alt="Store Logo" style="display: none;">
+            <h3 id="receipt-store-name">Your Store Name</h3>
+            <p id="receipt-address">123 Main Street, Anytown, USA</p>
+            <p id="receipt-phone">Tel: (123) 456-7890</p>
+            <p>Date: <span id="receipt-date"></span></p>
+            <p>Time: <span id="receipt-time"></span></p>
+            <p>Trans ID: <span id="receipt-transaction-id"></span></p>
+            <div class="receipt-separator"></div>
+        </div>
+        <div class="receipt-body">
+            <div style="display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 5px;">
+                <span style="width: 40%;">ITEM</span><span style="width: 25%; text-align: center;">QTY</span><span style="width: 15%; text-align: right;">PRICE</span><span style="width: 20%; text-align: right;">TOTAL</span>
+            </div>
+            <div class="receipt-items">
+            </div>
+            <div class="receipt-separator"></div>
+            <div class="receipt-total">
+                <p>SUBTOTAL: $<span id="receipt-subtotal"></span></p>
+                <p>TAX: $<span id="receipt-tax"></span></p>
+                <p>TOTAL: $<span id="receipt-final-total"></span></p>
+                <div class="receipt-separator"></div>
+                <p>PAYMENT METHOD: <span id="receipt-payment-method"></span></p>
+            </div>
+        </div>
+        <div class="receipt-footer">
+            <div class="receipt-separator"></div>
+            <p>THANK YOU FOR YOUR PURCHASE!</p>
+            <p>Please come again!</p>
+            <div id="qrcode-container"></div> </div>
+    </div>
+
+    <script>
+        let items = {}; // Stores items by barcode: {barcode: {name, price, stock}}
+        let cart = {}; // Stores items in cart: {barcode: {name, price, qty}}
+        let salesHistory = [];
+        let transactionIdCounter = 1000; // Simple counter for transaction IDs
+        let currentReturnTransaction = null; // Store the sale object for the current return process
+        let receiptLogo = null; // Stores the Base64 string of the logo
+
+        // Global variables for store settings
+        let storeName = "Your Store Name";
+        let storeAddress = "123 Main Street, Anytown, USA";
+        let storePhone = "(123) 456-7890";
+        let salesTaxPercentage = 7.25; // Stored as percentage (e.g., 7.25 for 7.25%)
+
+        // Global variable for editing item
+        let editingBarcode = null;
+
+        // NEW: Global variables for the current transaction totals
+        let currentTransactionSubtotal = 0;
+        let currentTransactionTaxAmount = 0;
+        let currentTransactionFinalTotal = 0;
+
+
+        // --- Local Storage Functions ---
+        function saveData() {
+            localStorage.setItem('posItems', JSON.stringify(items));
+            localStorage.setItem('posCart', JSON.stringify(cart));
+            localStorage.setItem('posSalesHistory', JSON.stringify(salesHistory));
+            localStorage.setItem('posTransactionIdCounter', transactionIdCounter);
+            if (receiptLogo) {
+                localStorage.setItem('posReceiptLogo', receiptLogo);
+            } else {
+                localStorage.removeItem('posReceiptLogo');
+            }
+            // Save store settings
+            localStorage.setItem('posStoreName', storeName);
+            localStorage.setItem('posStoreAddress', storeAddress);
+            localStorage.setItem('posStorePhone', storePhone);
+            localStorage.setItem('posSalesTaxPercentage', salesTaxPercentage);
+        }
+
+        function loadData() {
+            const storedItems = localStorage.getItem('posItems');
+            const storedCart = localStorage.getItem('posCart');
+            const storedSalesHistory = localStorage.getItem('posSalesHistory');
+            const storedTransactionIdCounter = localStorage.getItem('posTransactionIdCounter');
+            const storedReceiptLogo = localStorage.getItem('posReceiptLogo');
+
+            if (storedItems) {
+                items = JSON.parse(storedItems);
+            } else {
+                addDummyData(); // Add dummy data only if no existing items are found
+            }
+
+            if (storedCart) {
+                cart = JSON.parse(storedCart);
+            }
+
+            if (storedSalesHistory) {
+                salesHistory = JSON.parse(storedSalesHistory);
+            }
+
+            if (storedTransactionIdCounter && !isNaN(parseInt(storedTransactionIdCounter))) {
+                transactionIdCounter = parseInt(storedTransactionIdCounter);
+            }
+
+            if (storedReceiptLogo) {
+                receiptLogo = storedReceiptLogo;
+                // Logo preview is rendered in renderSettings or generateReceipt
+            }
+
+            // Load store settings
+            const storedStoreName = localStorage.getItem('posStoreName');
+            const storedStoreAddress = localStorage.getItem('posStoreAddress');
+            const storedStorePhone = localStorage.getItem('posStorePhone');
+            const storedSalesTaxPercentage = localStorage.getItem('posSalesTaxPercentage');
+
+            if (storedStoreName) {
+                storeName = storedStoreName;
+            }
+            if (storedStoreAddress) {
+                storeAddress = storedStoreAddress;
+            }
+            if (storedStorePhone) {
+                storePhone = storedStorePhone;
+            }
+            if (storedSalesTaxPercentage && !isNaN(parseFloat(storedSalesTaxPercentage))) {
+                salesTaxPercentage = parseFloat(storedSalesTaxPercentage);
+            }
+        }
+        // --- End Local Storage Functions ---
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData(); // Load data from local storage first
+            renderItems();
+            updateCartDisplay();
+            renderSalesHistory();
+            // Open the default tab on load
+            openTab(null, 'ItemManagement'); // Simulate click on default tab
+        });
+
+        function openTab(evt, tabName) {
+            let i, tabcontent, tablinks;
+
+            tabcontent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+
+            tablinks = document.getElementsByClassName("tab-button");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+
+            document.getElementById(tabName).style.display = "block";
+            if (evt) { // Only add active class if it's an actual click event
+                evt.currentTarget.className += " active";
+            } else { // For initial load
+                document.querySelector(`.tab-button[onclick*="'${tabName}'"]`).className += " active";
+            }
+
+            // Auto-focus hidden input for relevant tabs
+            if (tabName === 'Checkout') {
+                setTimeout(() => { // Timeout to ensure the element is visible/focusable
+                    const checkoutBarcodeInput = document.getElementById('checkoutBarcode');
+                    if (checkoutBarcodeInput) {
+                        checkoutBarcodeInput.focus();
+                    }
+                }, 100);
+            } else if (tabName === 'Settings') { // Call renderSettings when opening Settings tab
+                renderSettings();
+            }
+
+            // Clear item form state when switching tabs away from ItemManagement
+            if (tabName !== 'ItemManagement') {
+                clearItemFormAndState();
+            }
+        }
+
+        function addDummyData() {
+            // Only add dummy data if 'items' is empty (i.e., no data loaded from local storage)
+            if (Object.keys(items).length === 0) {
+                items['123456789012'] = { name: 'Apple', price: 1.50, stock: 50 };
+                items['987654321098'] = { name: 'Banana', price: 0.75, stock: 100 };
+                items['112233445566'] = { name: 'Milk (1L)', price: 3.00, stock: 30 };
+                items['223344556677'] = { name: 'Bread', price: 2.20, stock: 40 };
+                saveData(); // Save dummy data to local storage
+            }
+        }
+
+        function addItem() { // This function now handles both add and update
+            const name = document.getElementById('itemName').value.trim();
+            const barcode = document.getElementById('itemBarcode').value.trim();
+            const price = parseFloat(document.getElementById('itemPrice').value);
+            const stock = parseInt(document.getElementById('itemStock').value);
+
+            if (!name || !barcode || isNaN(price) || price <= 0 || isNaN(stock) || stock < 0) {
+                alert('Please fill in all item details correctly.');
+                return;
+            }
+
+            if (editingBarcode) {
+                // Update existing item
+                if (editingBarcode !== barcode) { // Barcode should be readOnly, so this is a safeguard
+                    alert("Error: Cannot change barcode while editing. Please cancel and re-edit if barcode needs to change.");
+                    return;
+                }
+                items[barcode] = { name, price, stock };
+                alert(`Item "${name}" (Barcode: ${barcode}) updated.`);
+            } else {
+                // Add new item
+                if (items[barcode]) {
+                    alert(`Item with barcode ${barcode} already exists (${items[barcode].name}). Use the "Edit" button to modify.`);
+                    return;
+                }
+                items[barcode] = { name, price, stock };
+                alert(`Item "${name}" (Barcode: ${barcode}) added.`);
+            }
+
+            renderItems();
+            clearItemFormAndState(); // Reset form and state after add/update
+            saveData(); // Save changes
+        }
+
+        function editItem(barcode) {
+            const item = items[barcode];
+            if (!item) {
+                alert('Item not found for editing.');
+                return;
+            }
+
+            document.getElementById('itemName').value = item.name;
+            document.getElementById('itemBarcode').value = barcode;
+            document.getElementById('itemBarcode').readOnly = true; // Make barcode read-only during edit
+            document.getElementById('itemPrice').value = item.price.toFixed(2);
+            document.getElementById('itemStock').value = item.stock;
+
+            editingBarcode = barcode; // Set the editing flag
+
+            // Change button text and visibility
+            document.getElementById('addItemButton').textContent = 'Save Changes';
+            document.getElementById('cancelEditButton').style.display = 'inline-block';
+        }
+
+        function clearItemFormAndState() {
+            document.getElementById('itemName').value = '';
+            document.getElementById('itemBarcode').value = '';
+            document.getElementById('itemBarcode').readOnly = false; // Make barcode editable again
+            document.getElementById('itemPrice').value = '0.00';
+            document.getElementById('itemStock').value = '1';
+
+            editingBarcode = null; // Clear the editing flag
+
+            // Reset button text and visibility
+            document.getElementById('addItemButton').textContent = 'Add Item';
+            document.getElementById('cancelEditButton').style.display = 'none';
+        }
+
+        function renderItems() {
+            const itemListBody = document.querySelector('#item-list tbody');
+            itemListBody.innerHTML = '';
+            for (const barcode in items) {
+                const item = items[barcode];
+                const row = itemListBody.insertRow();
+                row.insertCell().textContent = barcode;
+                row.insertCell().textContent = item.name;
+                row.insertCell().textContent = `$${item.price.toFixed(2)}`;
+                row.insertCell().textContent = item.stock;
+                const actionsCell = row.insertCell();
+
+                const editButton = document.createElement('button');
+                editButton.textContent = 'Edit';
+                editButton.onclick = () => editItem(barcode);
+                actionsCell.appendChild(editButton);
+
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Delete';
+                deleteButton.className = 'red';
+                deleteButton.onclick = () => deleteItem(barcode);
+                actionsCell.appendChild(deleteButton);
+            }
+        }
+
+        function deleteItem(barcode) {
+            if (confirm(`Are you sure you want to delete item with barcode: ${barcode}?`)) {
+                delete items[barcode];
+                renderItems();
+                clearItemFormAndState(); // Ensure form is reset if deleted item was being edited
+                saveData(); // Save changes
+            }
+        }
+
+        function addToCart() {
+            const barcodeInput = document.getElementById('checkoutBarcode');
+            const barcode = barcodeInput.value.trim();
+            barcodeInput.value = ''; // Clear immediately after reading
+
+            if (!barcode) {
+                // If the input is empty but focus is active, wait for scan
+                barcodeInput.focus(); // Ensure it remains focused
+                return;
+            }
+
+            const item = items[barcode];
+            if (!item) {
+                alert('Item not found.');
+                barcodeInput.focus(); // Re-focus
+                return;
+            }
+
+            if (item.stock <= 0) {
+                alert(`${item.name} is out of stock.`);
+                barcodeInput.focus(); // Re-focus
+                return;
+            }
+
+            if (cart[barcode]) {
+                if (item.stock > 0) { // Can still add if there's stock
+                    cart[barcode].qty++;
+                } else {
+                     alert(`Cannot add more ${item.name}. Maximum stock reached.`);
+                     barcodeInput.focus(); // Re-focus
+                     return;
+                }
+            } else {
+                cart[barcode] = {
+                    name: item.name,
+                    price: item.price,
+                    qty: 1
+                };
+            }
+            item.stock--; // Decrement stock when added to cart
+            renderItems(); // Update stock display
+            updateCartDisplay();
+            saveData(); // Save changes
+            barcodeInput.focus(); // Re-focus for next scan
+        }
+
+        function updateCartDisplay() {
+            const cartItemsBody = document.querySelector('#cart-items tbody');
+            cartItemsBody.innerHTML = '';
+            let total = 0; // This will be the subtotal for display
+
+            for (const barcode in cart) {
+                const item = cart[barcode];
+                const subtotal = item.price * item.qty;
+                total += subtotal;
+
+                const row = cartItemsBody.insertRow();
+                row.insertCell().textContent = item.name;
+                row.insertCell().textContent = `$${item.price.toFixed(2)}`;
+                row.insertCell().textContent = item.qty;
+                row.insertCell().textContent = `$${subtotal.toFixed(2)}`;
+
+                const actionsCell = row.insertCell();
+                const removeOneButton = document.createElement('button');
+                removeOneButton.textContent = '-';
+                removeOneButton.onclick = () => updateCartItemQuantity(barcode, -1);
+                actionsCell.appendChild(removeOneButton);
+
+                const addOneButton = document.createElement('button');
+                addOneButton.textContent = '+';
+                addOneButton.onclick = () => updateCartItemQuantity(barcode, 1);
+                actionsCell.appendChild(addOneButton);
+
+                const removeButton = document.createElement('button');
+                removeButton.textContent = 'X';
+                removeButton.className = 'red';
+                removeButton.onclick = () => removeFromCart(barcode);
+                actionsCell.appendChild(removeButton);
+            }
+            // Display only subtotal in the cart, tax will be calculated at checkout
+            document.getElementById('cart-total').textContent = `Subtotal: $${total.toFixed(2)}`;
+        }
+
+        function updateCartItemQuantity(barcode, change) {
+            const barcodeInput = document.getElementById('checkoutBarcode');
+            if (cart[barcode]) {
+                const itemInStore = items[barcode];
+                if (!itemInStore) {
+                    barcodeInput.focus(); // Re-focus
+                    return;
+                }
+
+                if (change === 1) { // Adding quantity
+                    if (itemInStore.stock > 0) {
+                        cart[barcode].qty++;
+                        itemInStore.stock--;
+                    } else {
+                        alert(`${itemInStore.name} is out of stock.`);
+                    }
+                } else if (change === -1) { // Removing quantity
+                    if (cart[barcode].qty > 1) {
+                        cart[barcode].qty--;
+                        itemInStore.stock++;
+                    } else {
+                        // If quantity becomes 0, remove from cart
+                        removeFromCart(barcode);
+                        barcodeInput.focus(); // Re-focus
+                        return; // Exit to prevent further processing
+                    }
+                }
+                renderItems(); // Update stock display
+                updateCartDisplay();
+                saveData(); // Save changes
+            }
+            barcodeInput.focus(); // Re-focus for next scan
+        }
+
+        function removeFromCart(barcode) {
+            const barcodeInput = document.getElementById('checkoutBarcode');
+            if (cart[barcode]) {
+                const qtyToRemove = cart[barcode].qty;
+                if (items[barcode]) {
+                    items[barcode].stock += qtyToRemove; // Return stock to inventory
+                }
+                delete cart[barcode];
+                renderItems(); // Update stock display
+                updateCartDisplay();
+                saveData(); // Save changes
+            }
+            barcodeInput.focus(); // Re-focus for next scan
+        }
+
+        function clearCart() {
+            if (confirm('Are you sure you want to clear the entire cart?')) {
+                for (const barcode in cart) {
+                    if (items[barcode]) {
+                        items[barcode].stock += cart[barcode].qty; // Return stock
+                    }
+                }
+                cart = {};
+                renderItems(); // Update stock display
+                updateCartDisplay();
+                saveData(); // Save changes
+            }
+            document.getElementById('checkoutBarcode').focus(); // Re-focus for next scan
+        }
+
+        // UPDATED: Initial checkout function to prompt for payment method
+        function checkout() {
+            if (Object.keys(cart).length === 0) {
+                alert('Cart is empty. Please add items before checking out.');
+                return;
+            }
+
+            // Calculate current transaction totals upfront
+            let subtotal = 0;
+            for (const barcode in cart) {
+                subtotal += cart[barcode].price * cart[barcode].qty;
+            }
+            currentTransactionSubtotal = subtotal;
+
+            const actualSalesTaxRate = salesTaxPercentage / 100;
+            currentTransactionTaxAmount = currentTransactionSubtotal * actualSalesTaxRate;
+            currentTransactionFinalTotal = currentTransactionSubtotal + currentTransactionTaxAmount;
+
+            openPaymentModal();
+        }
+
+        // UPDATED: Function to finalize checkout, called by payment handlers
+        function completeCheckoutProcess(paymentMethod) { // paymentMethod could be 'Cash' or 'Card'
+            const subtotal = currentTransactionSubtotal;
+            const taxAmount = currentTransactionTaxAmount;
+            const finalTotal = currentTransactionFinalTotal;
+
+            const now = new Date();
+            const transactionId = `TRN-${transactionIdCounter++}`;
+
+            const sale = {
+                id: transactionId,
+                timestamp: now.toLocaleString(),
+                items: JSON.parse(JSON.stringify(cart)), // Deep copy cart items
+                subtotal: subtotal,
+                tax: taxAmount,
+                total: finalTotal,
+                paymentMethod: paymentMethod // NEW: Store payment method
+            };
+            salesHistory.push(sale);
+            renderSalesHistory();
+            generateReceipt(sale);
+            cart = {}; // Clear cart after checkout
+            updateCartDisplay();
+            saveData();
+            alert('Checkout successful!');
+            document.getElementById('checkoutBarcode').focus();
+            closePaymentModal(); // Close the payment modal
+            // Reset current transaction totals
+            currentTransactionSubtotal = 0;
+            currentTransactionTaxAmount = 0;
+            currentTransactionFinalTotal = 0;
+        }
+
+        function renderSalesHistory() {
+            const salesHistoryBody = document.querySelector('#sales-history tbody');
+            salesHistoryBody.innerHTML = '';
+            salesHistory.forEach(sale => {
+                const row = salesHistoryBody.insertRow();
+                row.insertCell().textContent = sale.timestamp;
+                row.insertCell().textContent = sale.id;
+                // Display final total from sale history
+                row.insertCell().textContent = `$${sale.total.toFixed(2)}`;
+                const itemsCell = row.insertCell();
+                let itemDetails = [];
+                for (const barcode in sale.items) {
+                    const item = sale.items[barcode];
+                    itemDetails.push(`${item.name} (x${item.qty})`);
+                }
+                itemsCell.textContent = itemDetails.join(', ');
+            });
+        }
+
+        // --- Settings Tab Functions ---
+        function saveStoreSettings() {
+            const newStoreName = document.getElementById('settingStoreName').value.trim();
+            const newStoreAddress = document.getElementById('settingStoreAddress').value.trim();
+            const newStorePhone = document.getElementById('settingStorePhone').value.trim();
+            const newTaxPercentage = parseFloat(document.getElementById('settingTaxPercentage').value);
+
+            if (!newStoreName || !newStoreAddress || !newStorePhone) {
+                alert('Please fill in all store information fields.');
+                return;
+            }
+            if (isNaN(newTaxPercentage) || newTaxPercentage < 0 || newTaxPercentage > 100) {
+                alert('Please enter a valid sales tax percentage between 0 and 100.');
+                return;
+            }
+
+            storeName = newStoreName;
+            storeAddress = newStoreAddress;
+            storePhone = newStorePhone;
+            salesTaxPercentage = newTaxPercentage;
+
+            saveData();
+            alert('Store settings saved successfully!');
+        }
+
+        function renderSettings() {
+            document.getElementById('settingStoreName').value = storeName;
+            document.getElementById('settingStoreAddress').value = storeAddress;
+            document.getElementById('settingStorePhone').value = storePhone;
+            document.getElementById('settingTaxPercentage').value = salesTaxPercentage.toFixed(2);
+
+            // Re-render the logo preview in case it was just loaded
+            if (receiptLogo) {
+                document.getElementById('logo-preview').src = receiptLogo;
+                document.getElementById('logo-preview').style.display = 'block';
+            } else {
+                document.getElementById('logo-preview').style.display = 'none';
+                document.getElementById('logo-preview').src = '#';
+            }
+            // Clear receive data field when settings tab is opened/rendered
+            document.getElementById('receiveDataCode').value = '';
+
+            // Generate and display the code immediately when settings are rendered
+            generateDataCode();
+        }
+
+        function handleLogoUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                if (!file.type.startsWith('image/')) {
+                    alert('Please upload an image file (PNG, JPG, JPEG, GIF).');
+                    event.target.value = ''; // Clear the file input
+                    document.getElementById('logo-preview').style.display = 'none';
+                    document.getElementById('logo-preview').src = '#';
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById('logo-preview');
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                document.getElementById('logo-preview').style.display = 'none';
+                document.getElementById('logo-preview').src = '#';
+            }
+        }
+
+        function saveLogo() {
+            const preview = document.getElementById('logo-preview');
+            // Check if preview.src is a data URL (starts with data:image)
+            if (preview.src && preview.src.startsWith('data:image/')) {
+                receiptLogo = preview.src;
+                saveData();
+                alert('Logo saved successfully!');
+            } else {
+                alert('No valid logo image selected to save.');
+            }
+        }
+
+        function clearLogo() {
+            if (confirm('Are you sure you want to clear the receipt logo?')) {
+                receiptLogo = null;
+                document.getElementById('logoUpload').value = ''; // Clear file input
+                document.getElementById('logo-preview').style.display = 'none';
+                document.getElementById('logo-preview').src = '#';
+                saveData();
+                alert('Logo cleared.');
+            }
+        }
+
+        // --- Returns Modal Functions ---
+
+        function openReturnsModal() {
+            document.getElementById('returnsModal').style.display = 'flex'; // Show modal
+            setTimeout(() => { // Timeout to ensure the element is visible/focusable
+                const returnTransactionIdInput = document.getElementById('returnTransactionId');
+                if (returnTransactionIdInput) {
+                    returnTransactionIdInput.focus();
+                }
+            }, 100);
+            document.getElementById('return-items-section').style.display = 'block'; // Ensure section is visible inside modal
+            document.getElementById('return-trans-id-display').textContent = '';
+            document.querySelector('#return-items-table tbody').innerHTML = '';
+            document.getElementById('returnTransactionId').value = ''; // Clear previous input
+            currentReturnTransaction = null;
+        }
+
+        function closeReturnsModal() {
+            document.getElementById('returnsModal').style.display = 'none'; // Hide modal
+            document.getElementById('checkoutBarcode').focus(); // Re-focus main checkout input
+        }
+
+        function searchSaleByTransactionId(transactionId) {
+            return salesHistory.find(sale => sale.id === transactionId);
+        }
+
+        function loadReturnItems() {
+            const barcodeInput = document.getElementById('returnTransactionId');
+            const transactionId = barcodeInput.value.trim();
+            barcodeInput.value = ''; // Clear immediately after reading
+
+            if (!transactionId) {
+                // If the input is empty but focus is active, wait for scan
+                barcodeInput.focus(); // Ensure it remains focused
+                return;
+            }
+
+            const saleToReturn = searchSaleByTransactionId(transactionId);
+
+            if (!saleToReturn) {
+                alert(`No sale found for Transaction ID: ${transactionId}`);
+                document.getElementById('return-trans-id-display').textContent = 'N/A';
+                document.querySelector('#return-items-table tbody').innerHTML = '';
+                currentReturnTransaction = null;
+                barcodeInput.focus(); // Re-focus
+                return;
+            }
+
+            // 30-day return policy check
+            const purchaseDate = new Date(saleToReturn.timestamp); // Convert timestamp string to Date object
+            const currentDate = new Date();
+
+            // Normalize dates to start of day for accurate day difference (important for boundary cases)
+            purchaseDate.setHours(0, 0, 0, 0);
+            currentDate.setHours(0, 0, 0, 0);
+
+            const diffTime = Math.abs(currentDate.getTime() - purchaseDate.getTime());
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); // Calculate difference in days
+
+            if (diffDays > 30) {
+                alert(`This transaction (${transactionId}) is outside the 30-day return window. Purchased on ${saleToReturn.timestamp.split(',')[0]}.`);
+                document.getElementById('return-trans-id-display').textContent = 'N/A';
+                document.querySelector('#return-items-table tbody').innerHTML = '';
+                currentReturnTransaction = null;
+                barcodeInput.focus(); // Re-focus
+                return;
+            }
+
+            currentReturnTransaction = saleToReturn;
+            document.getElementById('return-trans-id-display').textContent = transactionId;
+
+            const returnItemsTableBody = document.querySelector('#return-items-table tbody');
+            returnItemsTableBody.innerHTML = '';
+
+            for (const barcode in saleToReturn.items) {
+                const item = saleToReturn.items[barcode];
+                const row = returnItemsTableBody.insertRow();
+                row.insertCell().textContent = item.name;
+                row.insertCell().textContent = item.qty;
+
+                const qtyReturnCell = row.insertCell();
+                const qtyReturnInput = document.createElement('input');
+                qtyReturnInput.type = 'number';
+                qtyReturnInput.min = '0';
+                qtyReturnInput.max = item.qty; // Cannot return more than purchased
+                qtyReturnInput.value = '0'; // Default to 0 for selection
+                qtyReturnInput.dataset.barcode = barcode; // Store barcode for later retrieval
+                qtyReturnCell.appendChild(qtyReturnInput);
+            }
+            barcodeInput.focus(); // Re-focus for next scan
+        }
+
+        function processReturn() {
+            if (!currentReturnTransaction) {
+                alert('No transaction loaded for return.');
+                document.getElementById('returnTransactionId').focus(); // Re-focus
+                return;
+            }
+
+            const returnItemsTableBody = document.querySelector('#return-items-table tbody');
+            const returnInputs = returnItemsTableBody.querySelectorAll('input[type="number"]');
+            let itemsToProcess = [];
+            let totalReturnAmount = 0;
+            let isValid = true;
+
+            returnInputs.forEach(input => {
+                const barcode = input.dataset.barcode;
+                const qtyToReturn = parseInt(input.value);
+
+                if (qtyToReturn < 0) {
+                    alert('Quantity to return cannot be negative.');
+                    isValid = false;
+                    return; // Exit forEach
+                }
+
+                if (qtyToReturn > 0) {
+                    const originalItem = currentReturnTransaction.items[barcode]; // This gets the item data AT TIME OF PURCHASE
+                    if (originalItem && qtyToReturn <= originalItem.qty) {
+                        itemsToProcess.push({
+                            barcode: barcode,
+                            name: originalItem.name,
+                            qty: qtyToReturn,
+                            price: originalItem.price // Use the price from the original sale
+                        });
+                        totalReturnAmount += (originalItem.price * qtyToReturn);
+                    } else if (originalItem) {
+                        alert(`Cannot return ${qtyToReturn} of ${originalItem.name}. Only ${originalItem.qty} were purchased in this transaction.`);
+                        isValid = false;
+                        return; // Exit forEach
+                    }
+                }
+            });
+
+            if (!isValid) {
+                document.getElementById('returnTransactionId').focus(); // Re-focus
+                return;
+            }
+
+            if (itemsToProcess.length === 0) {
+                alert('No items selected for return or invalid quantities entered.');
+                document.getElementById('returnTransactionId').focus(); // Re-focus
+                return;
+            }
+
+            if (confirm(`Confirm return of items totalling $${totalReturnAmount.toFixed(2)}?`)) {
+                itemsToProcess.forEach(returnItem => {
+                    // Update main inventory stock
+                    if (items[returnItem.barcode]) {
+                        items[returnItem.barcode].stock += returnItem.qty;
+                    } else {
+                        console.warn(`Returned item ${returnItem.name} (barcode: ${returnItem.barcode}) not found in current inventory. Stock not updated.`);
+                    }
+                });
+
+                renderItems(); // Update stock display
+                saveData(); // Save changes to inventory
+
+                alert(`Return processed successfully for Transaction ID ${currentReturnTransaction.id}. Total refund/credit: $${totalReturnAmount.toFixed(2)}.`);
+                clearReturnForm();
+            }
+            document.getElementById('returnTransactionId').focus(); // Re-focus
+        }
+
+        function clearReturnForm() {
+            document.getElementById('returnTransactionId').value = '';
+            document.querySelector('#return-items-table tbody').innerHTML = '';
+            document.getElementById('return-trans-id-display').textContent = '';
+            currentReturnTransaction = null;
+            document.getElementById('returnTransactionId').focus(); // Re-focus
+        }
+
+        // NEW: Payment Modal Functions
+
+        function openPaymentModal() {
+            document.getElementById('paymentModal').style.display = 'flex';
+            document.getElementById('paymentMethodSelection').style.display = 'block';
+            document.getElementById('cashPaymentSection').style.display = 'none';
+            document.getElementById('cardPaymentSection').style.display = 'none';
+            // Set total due for all sections
+            document.getElementById('overallTotalDue').textContent = currentTransactionFinalTotal.toFixed(2);
+            document.getElementById('cashTotalDue').textContent = currentTransactionFinalTotal.toFixed(2);
+            document.getElementById('cardTotalDue').textContent = currentTransactionFinalTotal.toFixed(2);
+        }
+
+        function closePaymentModal() {
+            document.getElementById('paymentModal').style.display = 'none';
+            document.getElementById('amountGiven').value = '0.00'; // Reset cash input
+            document.getElementById('changeDue').textContent = '0.00'; // Reset change display
+            document.getElementById('creditCardNumber').value = ''; // Reset card input
+        }
+
+        function cancelPayment() {
+            closePaymentModal();
+            document.getElementById('checkoutBarcode').focus(); // Re-focus main checkout input
+        }
+
+        function backToPaymentSelection() {
+            document.getElementById('paymentMethodSelection').style.display = 'block';
+            document.getElementById('cashPaymentSection').style.display = 'none';
+            document.getElementById('cardPaymentSection').style.display = 'none';
+            // Reset inputs when going back
+            document.getElementById('amountGiven').value = '0.00';
+            document.getElementById('changeDue').textContent = '0.00';
+            document.getElementById('creditCardNumber').value = '';
+            document.getElementById('overallTotalDue').textContent = currentTransactionFinalTotal.toFixed(2); // Re-set the overall total display
+        }
+
+        function showCashPayment() {
+            document.getElementById('paymentMethodSelection').style.display = 'none';
+            document.getElementById('cashPaymentSection').style.display = 'block';
+            document.getElementById('amountGiven').value = currentTransactionFinalTotal.toFixed(2); // Pre-fill with exact amount
+            document.getElementById('changeDue').textContent = '0.00';
+            setTimeout(() => document.getElementById('amountGiven').focus(), 100);
+        }
+
+        function calculateChange() {
+            const amountGiven = parseFloat(document.getElementById('amountGiven').value);
+            if (isNaN(amountGiven) || amountGiven < currentTransactionFinalTotal) {
+                alert('Amount given must be a valid number and at least the total due.');
+                document.getElementById('amountGiven').focus();
+                return;
+            }
+            const change = amountGiven - currentTransactionFinalTotal;
+            document.getElementById('changeDue').textContent = change.toFixed(2);
+            alert(`Change Due: $${change.toFixed(2)}`);
+            completeCheckoutProcess('Cash');
+        }
+
+        function showCardPayment() {
+            document.getElementById('paymentMethodSelection').style.display = 'none';
+            document.getElementById('cardPaymentSection').style.display = 'block';
+            document.getElementById('creditCardNumber').value = ''; // Clear previous input
+            setTimeout(() => document.getElementById('creditCardNumber').focus(), 100);
+        }
+
+        function processCardPayment() {
+            const cardNumber = document.getElementById('creditCardNumber').value.trim();
+            // Basic validation - just check if something is entered, no actual processing
+            if (!cardNumber) {
+                alert('Please enter a credit card number.');
+                document.getElementById('creditCardNumber').focus();
+                return;
+            }
+            alert('Processing card... Transaction complete!');
+            completeCheckoutProcess('Card');
+        }
+
+        // --- Receipt Generation with QR Code and Logo ---
+        function generateReceipt(sale) {
+            const receiptDiv = document.getElementById('receipt');
+            const receiptLogoImg = document.getElementById('receipt-logo');
+            const receiptDate = document.getElementById('receipt-date');
+            const receiptTime = document.getElementById('receipt-time');
+            const receiptTransactionId = document.getElementById('receipt-transaction-id');
+            const receiptItemsDiv = document.querySelector('.receipt-items');
+            const receiptSubtotalSpan = document.getElementById('receipt-subtotal');
+            const receiptTaxSpan = document.getElementById('receipt-tax');
+            const receiptFinalTotalSpan = document.getElementById('receipt-final-total');
+            const receiptPaymentMethodSpan = document.getElementById('receipt-payment-method'); // NEW
+            const qrcodeContainer = document.getElementById('qrcode-container');
+
+            receiptItemsDiv.innerHTML = ''; // Clear previous items
+            qrcodeContainer.innerHTML = ''; // Clear previous QR code
+
+            // Display Logo if available
+            if (receiptLogo) {
+                receiptLogoImg.src = receiptLogo;
+                receiptLogoImg.style.display = 'block';
+            } else {
+                receiptLogoImg.style.display = 'none';
+                receiptLogoImg.src = '#';
+            }
+
+            // Use dynamic store info
+            document.getElementById('receipt-store-name').textContent = storeName;
+            document.getElementById('receipt-address').textContent = storeAddress;
+            document.getElementById('receipt-phone').textContent = `Tel: ${storePhone}`;
+
+            const now = new Date();
+            receiptDate.textContent = now.toLocaleDateString();
+            receiptTime.textContent = now.toLocaleTimeString();
+            receiptTransactionId.textContent = sale.id;
+
+            for (const barcode in sale.items) {
+                const item = sale.items[barcode];
+                const itemTotal = item.price * item.qty;
+
+                const itemLine = document.createElement('div');
+                itemLine.innerHTML = `
+                    <span style="width: 40%;"> ${item.name}</span>
+                    <span style="width: 25%; text-align: center;">${item.qty}</span>
+                    <span style="width: 15%; text-align: right;">$${item.price.toFixed(2)}</span>
+                    <span style="width: 20%; text-align: right;">$${itemTotal.toFixed(2)}</span>
+                `;
+                receiptItemsDiv.appendChild(itemLine);
+            }
+
+            // Use the actual subtotal, tax, and total from the sale object for consistency
+            receiptSubtotalSpan.textContent = sale.subtotal.toFixed(2);
+            receiptTaxSpan.textContent = sale.tax.toFixed(2);
+            receiptFinalTotalSpan.textContent = sale.total.toFixed(2);
+            receiptPaymentMethodSpan.textContent = sale.paymentMethod; // NEW: Display payment method
+
+            // Generate QR code with the transaction ID
+            new QRCode(qrcodeContainer, {
+                text: sale.id, // Embed only the transaction ID
+                width: 80,
+                height: 80,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+
+            receiptDiv.style.display = 'block'; // Make receipt visible
+            window.print(); // Open print dialog
+            receiptDiv.style.display = 'none'; // Hide receipt after printing attempt
+        }
+
+        // Data Transfer Functions
+        function generateDataCode() {
+            const allPosData = {
+                items: items,
+                salesHistory: salesHistory,
+                transactionIdCounter: transactionIdCounter,
+                receiptLogo: receiptLogo,
+                storeName: storeName,
+                storeAddress: storeAddress,
+                storePhone: storePhone,
+                salesTaxPercentage: salesTaxPercentage
+            };
+            try {
+                const jsonData = JSON.stringify(allPosData);
+                const base64Data = btoa(jsonData); // Base64 encode
+                document.getElementById('giveDataCode').value = base64Data;
+            } catch (error) {
+                console.error("Error generating data code:", error);
+                document.getElementById('giveDataCode').value = "Error generating code. Data might be too large or invalid.";
+                alert("Failed to generate data code. Data might be too large or invalid.");
+            }
+        }
+
+        function copyDataCode() {
+            const giveDataCodeTextarea = document.getElementById('giveDataCode');
+            giveDataCodeTextarea.select();
+            giveDataCodeTextarea.setSelectionRange(0, 99999); // For mobile devices
+
+            try {
+                navigator.clipboard.writeText(giveDataCodeTextarea.value);
+                alert('Data code copied to clipboard!');
+            } catch (err) {
+                console.error('Failed to copy text: ', err);
+                alert('Failed to copy code. Please manually select and copy.');
+            }
+        }
+
+        function receiveData() {
+            const receivedCode = document.getElementById('receiveDataCode').value.trim();
+            if (!receivedCode) {
+                alert('Please paste the data code into the input field.');
+                return;
+            }
+
+            if (!confirm('WARNING: Loading data will OVERWRITE all existing POS data on this device. Are you sure you want to proceed?')) {
+                return;
+            }
+
+            try {
+                const decodedData = atob(receivedCode); // Base64 decode
+                const parsedData = JSON.parse(decodedData);
+
+                // Basic validation: Check if the parsed data has the expected structure
+                if (typeof parsedData !== 'object' || parsedData === null ||
+                    !parsedData.hasOwnProperty('items') ||
+                    !parsedData.hasOwnProperty('salesHistory') ||
+                    !parsedData.hasOwnProperty('transactionIdCounter') ||
+                    !parsedData.hasOwnProperty('storeName'))
+                {
+                    throw new Error('Invalid data structure in the received code.');
+                }
+
+                // Update all global variables with the received data
+                items = parsedData.items || {};
+                salesHistory = parsedData.salesHistory || [];
+                transactionIdCounter = parsedData.transactionIdCounter || 1000;
+                receiptLogo = parsedData.receiptLogo || null;
+                storeName = parsedData.storeName || "Your Store Name";
+                storeAddress = parsedData.storeAddress || "123 Main Street, Anytown, USA";
+                storePhone = parsedData.storePhone || "(123) 456-7890";
+                salesTaxPercentage = parsedData.salesTaxPercentage || 7.25;
+
+
+                saveData(); // Persist the new data to local storage
+                alert('Data loaded successfully! The system will now refresh to reflect the changes.');
+
+                // Re-render UI elements to show the new data
+                renderItems();
+                updateCartDisplay(); // In case cart data was overwritten
+                renderSalesHistory();
+                renderSettings(); // Update settings display with new store info/logo
+
+            } catch (error) {
+                console.error("Error receiving data:", error);
+                alert(`Failed to load data. Please ensure the code is correct and not corrupted. Error: ${error.message}`);
+            }
+        }
+    </script>
+</body>
+</html>
