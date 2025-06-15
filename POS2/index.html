@@ -253,6 +253,49 @@
             color: #e0e0e0;
         }
 
+        /* Styles for radio buttons in Item Management */
+        .item-type-selection {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+        .item-type-selection label {
+            display: inline-flex;
+            align-items: center;
+            margin-bottom: 0;
+            font-weight: normal;
+        }
+        .item-type-selection input[type="radio"] {
+            margin-right: 5px;
+            appearance: none; /* Hide default radio button */
+            width: 16px;
+            height: 16px;
+            border: 2px solid #007bff;
+            border-radius: 50%;
+            background-color: #3a3a3a;
+            outline: none;
+            cursor: pointer;
+            position: relative;
+            top: 1px;
+        }
+        .item-type-selection input[type="radio"]:checked {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+        .item-type-selection input[type="radio"]:checked::before {
+            content: '';
+            display: block;
+            width: 8px;
+            height: 8px;
+            background-color: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
         @media print {
             body * {
                 visibility: hidden;
@@ -294,11 +337,23 @@
             <label for="itemBarcode">Barcode:</label>
             <input type="text" id="itemBarcode" placeholder="e.g., 123456789012">
 
-            <label for="itemPrice">Price:</label>
+            <div class="item-type-selection">
+                <p style="margin-bottom: 0;">Item Type:</p>
+                <label>
+                    <input type="radio" name="itemType" value="normal" checked onchange="togglePriceLabel()"> Normal
+                </label>
+                <label>
+                    <input type="radio" name="itemType" value="produce" onchange="togglePriceLabel()"> Produce
+                </label>
+            </div>
+
+            <label for="itemPrice" id="itemPriceLabel">Price:</label>
             <input type="number" id="itemPrice" step="0.01" min="0" value="0.00">
 
             <label for="itemStock">Stock:</label>
             <input type="number" id="itemStock" min="0" value="1">
+            <p style="font-size: 0.9em; color: #b0b0b0;">*Stock is not tracked for produce items.</p>
+
 
             <button id="addItemButton" onclick="addItem()">Add Item</button>
             <button id="cancelEditButton" class="red" style="display: none;" onclick="clearItemFormAndState()">Cancel Edit</button>
@@ -309,6 +364,7 @@
                     <tr>
                         <th>Barcode</th>
                         <th>Name</th>
+                        <th>Type</th>
                         <th>Price</th>
                         <th>Stock</th>
                         <th>Actions</th>
@@ -517,6 +573,19 @@
         </div>
     </div>
 
+    <div id="produceWeightModal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="modal-close-button" onclick="cancelProduceWeightEntry()">&times;</button>
+            <h2>Enter Produce Weight</h2>
+            <p>Item: <strong id="produceItemName"></strong></p>
+            <p>Price per Ounce: $<span id="produceItemPricePerOz"></span></p>
+            <label for="produceWeight">Weight (ounces):</label>
+            <input type="number" id="produceWeight" step="0.01" min="0.01" value="0.00">
+            <button onclick="addProduceToCart()">Add to Cart</button>
+            <button class="red" onclick="cancelProduceWeightEntry()">Cancel</button>
+        </div>
+    </div>
+
     <div id="receipt" class="receipt-container">
         <div class="receipt-header">
             <img id="receipt-logo" src="#" alt="Store Logo" style="display: none;">
@@ -552,8 +621,8 @@
     </div>
 
     <script>
-        let items = {}; // Stores items by barcode: {barcode: {name, price, stock}}
-        let cart = {}; // Stores items in cart: {barcode: {name, price, qty}}
+        let items = {}; // Stores items by barcode: {barcode: {name, price, stock, isProduce}}
+        let cart = {}; // Stores items in cart: {barcode: {name, price, qty, isProduce, originalPricePerOz (for produce)}}
         let salesHistory = [];
         let members = {}; // Stores members by barcode: {barcode: {name}}
         let transactionIdCounter = 1000; // Simple counter for transaction IDs
@@ -580,6 +649,9 @@
         let currentTransactionTaxAmount = 0;
         let currentTransactionFinalTotal = 0;
         let currentTransactionMember = null; // Store the member object for the current transaction
+
+        // Global variable for produce checkout
+        let currentProduceBarcode = null;
 
         // --- Local Storage Functions ---
         function saveData() {
@@ -726,10 +798,12 @@
         function addDummyData() {
             // Only add dummy data if 'items' is empty (i.e., no data loaded from local storage)
             if (Object.keys(items).length === 0) {
-                items['123456789012'] = { name: 'Apple', price: 1.50, stock: 50 };
-                items['987654321098'] = { name: 'Banana', price: 0.75, stock: 100 };
-                items['112233445566'] = { name: 'Milk (1L)', price: 3.00, stock: 30 };
-                items['223344556677'] = { name: 'Bread', price: 2.20, stock: 40 };
+                items['123456789012'] = { name: 'Apple', price: 1.50, stock: 50, isProduce: false };
+                items['987654321098'] = { name: 'Banana', price: 0.75, stock: 100, isProduce: false };
+                items['112233445566'] = { name: 'Milk (1L)', price: 3.00, stock: 30, isProduce: false };
+                items['223344556677'] = { name: 'Bread', price: 2.20, stock: 40, isProduce: false };
+                items['PROD001'] = { name: 'Avocado', price: 0.50, stock: -1, isProduce: true }; // -1 for unlimited stock
+                items['PROD002'] = { name: 'Organic Spinach', price: 0.25, stock: -1, isProduce: true };
                 saveData(); // Save dummy data to local storage
             }
         }
@@ -743,16 +817,57 @@
             }
         }
 
+        function togglePriceLabel() {
+            const itemPriceLabel = document.getElementById('itemPriceLabel');
+            const itemPriceInput = document.getElementById('itemPrice');
+            const itemStockLabel = document.querySelector('label[for="itemStock"]');
+            const itemStockInput = document.getElementById('itemStock');
+            const itemStockNote = itemStockInput.nextElementSibling; // The <p> tag after stock input
+
+            const isProduce = document.querySelector('input[name="itemType"]:checked').value === 'produce';
+
+            if (isProduce) {
+                itemPriceLabel.textContent = 'Price per Ounce:';
+                if (parseFloat(itemPriceInput.value) <= 0.01) { // Set a reasonable default for produce
+                    itemPriceInput.value = '0.01';
+                }
+                itemStockLabel.style.display = 'none';
+                itemStockInput.style.display = 'none';
+                itemStockNote.style.display = 'block';
+                itemStockInput.value = '-1'; // Convention for unlimited stock
+            } else {
+                itemPriceLabel.textContent = 'Price:';
+                if (parseFloat(itemPriceInput.value) === 0.01) { // Reset if it was produce default
+                    itemPriceInput.value = '0.00';
+                }
+                itemStockLabel.style.display = 'block';
+                itemStockInput.style.display = 'block';
+                itemStockNote.style.display = 'none';
+                if (parseInt(itemStockInput.value) === -1) { // Reset if it was produce default
+                    itemStockInput.value = '1';
+                }
+            }
+        }
+
+
         function addItem() { // This function now handles both add and update
             const name = document.getElementById('itemName').value.trim();
             const barcode = document.getElementById('itemBarcode').value.trim();
             const price = parseFloat(document.getElementById('itemPrice').value);
             const stock = parseInt(document.getElementById('itemStock').value);
+            const isProduce = document.querySelector('input[name="itemType"]:checked').value === 'produce';
 
-            if (!name || !barcode || isNaN(price) || price <= 0 || isNaN(stock) || stock < 0) {
-                alert('Please fill in all item details correctly.');
+            if (!name || !barcode || isNaN(price) || price <= 0) {
+                alert('Please fill in all item details correctly. Price must be greater than 0.');
                 return;
             }
+
+            if (!isProduce && (isNaN(stock) || stock < 0)) {
+                 alert('For normal items, stock must be 0 or greater.');
+                 return;
+            }
+
+            const itemStock = isProduce ? -1 : stock; // Produce stock is always -1 (unlimited)
 
             if (editingBarcode) {
                 // Update existing item
@@ -760,7 +875,7 @@
                     alert("Error: Cannot change barcode while editing. Please cancel and re-edit if barcode needs to change.");
                     return;
                 }
-                items[barcode] = { name, price, stock };
+                items[barcode] = { name, price, stock: itemStock, isProduce };
                 alert(`Item "${name}" (Barcode: ${barcode}) updated.`);
             } else {
                 // Add new item
@@ -768,7 +883,7 @@
                     alert(`Item with barcode ${barcode} already exists (${items[barcode].name}). Use the "Edit" button to modify.`);
                     return;
                 }
-                items[barcode] = { name, price, stock };
+                items[barcode] = { name, price, stock: itemStock, isProduce };
                 alert(`Item "${name}" (Barcode: ${barcode}) added.`);
             }
 
@@ -790,6 +905,11 @@
             document.getElementById('itemPrice').value = item.price.toFixed(2);
             document.getElementById('itemStock').value = item.stock;
 
+            // Set radio button and update price label/stock display
+            document.querySelector(`input[name="itemType"][value="${item.isProduce ? 'produce' : 'normal'}"]`).checked = true;
+            togglePriceLabel();
+
+
             editingBarcode = barcode; // Set the editing flag
 
             // Change button text and visibility
@@ -803,6 +923,10 @@
             document.getElementById('itemBarcode').readOnly = false; // Make barcode editable again
             document.getElementById('itemPrice').value = '0.00';
             document.getElementById('itemStock').value = '1';
+
+            // Reset radio button to normal and update labels/stock display
+            document.querySelector('input[name="itemType"][value="normal"]').checked = true;
+            togglePriceLabel();
 
             editingBarcode = null; // Clear the editing flag
 
@@ -819,8 +943,9 @@
                 const row = itemListBody.insertRow();
                 row.insertCell().textContent = barcode;
                 row.insertCell().textContent = item.name;
-                row.insertCell().textContent = `$${item.price.toFixed(2)}`;
-                row.insertCell().textContent = item.stock;
+                row.insertCell().textContent = item.isProduce ? 'Produce' : 'Normal'; // New column for type
+                row.insertCell().textContent = item.isProduce ? `$${item.price.toFixed(2)} / Oz` : `$${item.price.toFixed(2)}`; // Price display
+                row.insertCell().textContent = item.isProduce ? 'N/A' : item.stock; // Stock display
                 const actionsCell = row.insertCell();
 
                 const editButton = document.createElement('button');
@@ -853,7 +978,7 @@
             if (barcode === '0' || barcode === '') {
                 // If 0 or empty, skip member lookup and proceed with non-member logic
                 currentTransactionMember = null;
-                document.getElementById('memberStatus').textContent = 'No member scanned (Non-member fee applies).';
+                document.getElementById('memberStatus').textContent = 'No member scanned (Non-membership fee applies).';
                 document.getElementById('checkoutBarcode').focus(); // Move focus to item barcode
                 return;
             }
@@ -890,32 +1015,83 @@
                 return;
             }
 
-            if (item.stock <= 0) {
-                alert(`${item.name} is out of stock.`);
-                barcodeInput.focus(); // Re-focus
+            if (item.isProduce) {
+                // If it's a produce item, open the weight modal
+                currentProduceBarcode = barcode; // Store for modal
+                document.getElementById('produceItemName').textContent = item.name;
+                document.getElementById('produceItemPricePerOz').textContent = item.price.toFixed(2);
+                document.getElementById('produceWeight').value = '0.00'; // Reset weight input
+                document.getElementById('produceWeightModal').style.display = 'flex';
+                setTimeout(() => document.getElementById('produceWeight').focus(), 100);
+            } else {
+                // Normal item logic
+                if (item.stock <= 0) {
+                    alert(`${item.name} is out of stock.`);
+                    barcodeInput.focus(); // Re-focus
+                    return;
+                }
+
+                if (cart[barcode]) {
+                    if (item.stock > 0) { // Can still add if there's stock
+                        cart[barcode].qty++;
+                    } else {
+                         alert(`Cannot add more ${item.name}. Maximum stock reached.`);
+                         barcodeInput.focus(); // Re-focus
+                         return;
+                    }
+                } else {
+                    cart[barcode] = {
+                        name: item.name,
+                        price: item.price,
+                        qty: 1,
+                        isProduce: false // Explicitly mark as not produce
+                    };
+                }
+                item.stock--; // Decrement stock when added to cart
+                renderItems(); // Update stock display
+                updateCartDisplay();
+                saveData(); // Save changes
+                barcodeInput.focus(); // Re-focus for next scan
+            }
+        }
+
+        function addProduceToCart() {
+            const barcode = currentProduceBarcode;
+            const item = items[barcode];
+            const weight = parseFloat(document.getElementById('produceWeight').value);
+
+            if (isNaN(weight) || weight <= 0) {
+                alert('Please enter a valid weight in ounces (must be greater than 0).');
+                document.getElementById('produceWeight').focus();
                 return;
             }
 
-            if (cart[barcode]) {
-                if (item.stock > 0) { // Can still add if there's stock
-                    cart[barcode].qty++;
-                } else {
-                     alert(`Cannot add more ${item.name}. Maximum stock reached.`);
-                     barcodeInput.focus(); // Re-focus
-                     return;
-                }
-            } else {
-                cart[barcode] = {
-                    name: item.name,
-                    price: item.price,
-                    qty: 1
-                };
-            }
-            item.stock--; // Decrement stock when added to cart
-            renderItems(); // Update stock display
+            const calculatedPrice = item.price * weight; // Price per ounce * weight
+
+            // For produce, we add it as a new line item in the cart each time it's weighed
+            // This is because each 'addition' might have a different weight/price.
+            // We'll use a unique identifier for each produce entry in the cart, e.g., barcode + timestamp
+            const uniqueProduceId = barcode + '-' + Date.now();
+            cart[uniqueProduceId] = {
+                name: `${item.name} (${weight.toFixed(2)} oz)`, // Display name with weight
+                price: calculatedPrice, // Store the calculated total price for this instance
+                qty: 1, // Quantity is always 1 for a weighed item
+                isProduce: true, // Mark as produce
+                originalBarcode: barcode, // Keep original barcode for reference
+                originalPricePerOz: item.price, // Store original price per ounce for potential returns
+                weight: weight // Store weight for receipt detail
+            };
+
             updateCartDisplay();
-            saveData(); // Save changes
-            barcodeInput.focus(); // Re-focus for next scan
+            saveData();
+            cancelProduceWeightEntry(); // Close modal
+            document.getElementById('checkoutBarcode').focus(); // Re-focus for next scan
+        }
+
+        function cancelProduceWeightEntry() {
+            document.getElementById('produceWeightModal').style.display = 'none';
+            currentProduceBarcode = null;
+            document.getElementById('checkoutBarcode').focus(); // Re-focus for next scan
         }
 
         function updateCartDisplay() {
@@ -923,32 +1099,34 @@
             cartItemsBody.innerHTML = '';
             let total = 0; // This will be the subtotal for display
 
-            for (const barcode in cart) {
-                const item = cart[barcode];
-                const subtotal = item.price * item.qty;
+            for (const key in cart) { // key can be barcode or uniqueProduceId
+                const item = cart[key];
+                const subtotal = item.price * item.qty; // For produce, price is already calculated total
                 total += subtotal;
 
                 const row = cartItemsBody.insertRow();
                 row.insertCell().textContent = item.name;
-                row.insertCell().textContent = `$${item.price.toFixed(2)}`;
-                row.insertCell().textContent = item.qty;
+                row.insertCell().textContent = `$${item.price.toFixed(2)}`; // Display actual price per unit or calculated produce price
+                row.insertCell().textContent = item.isProduce ? `1` : item.qty; // Qty is 1 for produce
                 row.insertCell().textContent = `$${subtotal.toFixed(2)}`;
 
                 const actionsCell = row.insertCell();
-                const removeOneButton = document.createElement('button');
-                removeOneButton.textContent = '-';
-                removeOneButton.onclick = () => updateCartItemQuantity(barcode, -1);
-                actionsCell.appendChild(removeOneButton);
+                if (!item.isProduce) { // Only allow quantity adjustments for normal items
+                    const removeOneButton = document.createElement('button');
+                    removeOneButton.textContent = '-';
+                    removeOneButton.onclick = () => updateCartItemQuantity(key, -1);
+                    actionsCell.appendChild(removeOneButton);
 
-                const addOneButton = document.createElement('button');
-                addOneButton.textContent = '+';
-                addOneButton.onclick = () => updateCartItemQuantity(barcode, 1);
-                actionsCell.appendChild(addOneButton);
+                    const addOneButton = document.createElement('button');
+                    addOneButton.textContent = '+';
+                    addOneButton.onclick = () => updateCartItemQuantity(key, 1);
+                    actionsCell.appendChild(addOneButton);
+                }
 
                 const removeButton = document.createElement('button');
                 removeButton.textContent = 'X';
                 removeButton.className = 'red';
-                removeButton.onclick = () => removeFromCart(barcode);
+                removeButton.onclick = () => removeFromCart(key);
                 actionsCell.appendChild(removeButton);
             }
             // Display only subtotal in the cart, tax will be calculated at checkout
@@ -957,46 +1135,53 @@
 
         function updateCartItemQuantity(barcode, change) {
             const barcodeInput = document.getElementById('checkoutBarcode');
-            if (cart[barcode]) {
-                const itemInStore = items[barcode];
-                if (!itemInStore) {
-                    barcodeInput.focus(); // Re-focus
-                    return;
-                }
+            const itemInCart = cart[barcode]; // This barcode will be the actual item barcode for normal items
 
-                if (change === 1) { // Adding quantity
-                    if (itemInStore.stock > 0) {
-                        cart[barcode].qty++;
-                        itemInStore.stock--;
-                    } else {
-                        alert(`Cannot add more ${itemInStore.name}. Maximum stock reached.`);
-                    }
-                } else if (change === -1) { // Removing quantity
-                    if (cart[barcode].qty > 1) {
-                        cart[barcode].qty--;
-                        itemInStore.stock++;
-                    } else {
-                        // If quantity becomes 0, remove from cart
-                        removeFromCart(barcode);
-                        barcodeInput.focus(); // Re-focus
-                        return; // Exit to prevent further processing
-                    }
-                }
-                renderItems(); // Update stock display
-                updateCartDisplay();
-                saveData(); // Save changes
+            if (!itemInCart || itemInCart.isProduce) { // Prevent quantity adjustment for produce items
+                barcodeInput.focus();
+                return;
             }
+
+            const itemInStore = items[barcode]; // This is the actual item from the inventory
+            if (!itemInStore) {
+                barcodeInput.focus(); // Re-focus
+                return;
+            }
+
+            if (change === 1) { // Adding quantity
+                if (itemInStore.stock > 0) {
+                    itemInCart.qty++;
+                    itemInStore.stock--;
+                } else {
+                    alert(`Cannot add more ${itemInStore.name}. Maximum stock reached.`);
+                }
+            } else if (change === -1) { // Removing quantity
+                if (itemInCart.qty > 1) {
+                    itemInCart.qty--;
+                    itemInStore.stock++;
+                } else {
+                    // If quantity becomes 0, remove from cart
+                    removeFromCart(barcode);
+                    barcodeInput.focus(); // Re-focus
+                    return; // Exit to prevent further processing
+                }
+            }
+            renderItems(); // Update stock display
+            updateCartDisplay();
+            saveData(); // Save changes
             barcodeInput.focus(); // Re-focus for next scan
         }
 
-        function removeFromCart(barcode) {
+        function removeFromCart(key) { // Key can be actual barcode or uniqueProduceId
             const barcodeInput = document.getElementById('checkoutBarcode');
-            if (cart[barcode]) {
-                const qtyToRemove = cart[barcode].qty;
-                if (items[barcode]) {
-                    items[barcode].stock += qtyToRemove; // Return stock to inventory
+            const itemInCart = cart[key];
+
+            if (itemInCart) {
+                // Only return stock for normal items
+                if (!itemInCart.isProduce && items[key]) { // For normal items, key is barcode
+                    items[key].stock += itemInCart.qty; // Return stock to inventory
                 }
-                delete cart[barcode];
+                delete cart[key];
                 renderItems(); // Update stock display
                 updateCartDisplay();
                 saveData(); // Save changes
@@ -1006,9 +1191,11 @@
 
         function clearCart() {
             if (confirm('Are you sure you want to clear the entire cart?')) {
-                for (const barcode in cart) {
-                    if (items[barcode]) {
-                        items[barcode].stock += cart[barcode].qty; // Return stock
+                for (const key in cart) {
+                    const itemInCart = cart[key];
+                    // Only return stock for normal items
+                    if (!itemInCart.isProduce && items[key]) { // For normal items, key is barcode
+                        items[key].stock += itemInCart.qty; // Return stock
                     }
                 }
                 cart = {};
@@ -1031,8 +1218,8 @@
 
             // Calculate current transaction totals upfront
             let subtotal = 0;
-            for (const barcode in cart) {
-                subtotal += cart[barcode].price * cart[barcode].qty;
+            for (const key in cart) {
+                subtotal += cart[key].price * cart[key].qty;
             }
             currentTransactionSubtotal = subtotal;
 
@@ -1102,7 +1289,12 @@
                 let itemDetails = [];
                 for (const barcode in sale.items) {
                     const item = sale.items[barcode];
-                    itemDetails.push(`${item.name} (x${item.qty})`);
+                    // Display produce items with their weight
+                    if (item.isProduce) {
+                        itemDetails.push(`${item.name}`); // Name already contains weight
+                    } else {
+                        itemDetails.push(`${item.name} (x${item.qty})`);
+                    }
                 }
                 itemsCell.textContent = itemDetails.join(', ');
             });
@@ -1407,11 +1599,11 @@
             const returnItemsTableBody = document.querySelector('#return-items-table tbody');
             returnItemsTableBody.innerHTML = '';
 
-            for (const barcode in saleToReturn.items) {
-                const item = saleToReturn.items[barcode];
+            for (const key in saleToReturn.items) { // Key can be barcode or uniqueProduceId
+                const item = saleToReturn.items[key];
                 const row = returnItemsTableBody.insertRow();
                 row.insertCell().textContent = item.name;
-                row.insertCell().textContent = item.qty;
+                row.insertCell().textContent = item.qty; // Original quantity (1 for produce)
 
                 const qtyReturnCell = row.insertCell();
                 const qtyReturnInput = document.createElement('input');
@@ -1419,7 +1611,8 @@
                 qtyReturnInput.min = '0';
                 qtyReturnInput.max = item.qty; // Cannot return more than purchased
                 qtyReturnInput.value = '0'; // Default to 0 for selection
-                qtyReturnInput.dataset.barcode = barcode; // Store barcode for later retrieval
+                qtyReturnInput.dataset.barcode = key; // Store key for later retrieval (can be original barcode or unique produce ID)
+                qtyReturnInput.dataset.isProduce = item.isProduce; // Store item type
                 qtyReturnCell.appendChild(qtyReturnInput);
             }
             barcodeInput.focus(); // Re-focus for next scan
@@ -1439,7 +1632,8 @@
             let isValid = true;
 
             returnInputs.forEach(input => {
-                const barcode = input.dataset.barcode;
+                const key = input.dataset.barcode; // This is the key from the sale.items
+                const isProduce = input.dataset.isProduce === 'true';
                 const qtyToReturn = parseInt(input.value);
 
                 if (qtyToReturn < 0) {
@@ -1449,15 +1643,22 @@
                 }
 
                 if (qtyToReturn > 0) {
-                    const originalItem = currentReturnTransaction.items[barcode]; // This gets the item data AT TIME OF PURCHASE
+                    const originalItem = currentReturnTransaction.items[key]; // This gets the item data AT TIME OF PURCHASE
                     if (originalItem && qtyToReturn <= originalItem.qty) {
+                        // For produce items, originalItem.price is already the total calculated price for that specific instance.
+                        // So, the 'price' to use for return calculation is originalItem.price / originalItem.qty (which is 1 for produce)
+                        // For normal items, originalItem.price is the unit price.
+                        const unitPriceForReturn = isProduce ? originalItem.price / originalItem.qty : originalItem.price;
+
                         itemsToProcess.push({
-                            barcode: barcode,
+                            barcode: originalItem.originalBarcode || key, // Use originalBarcode for produce, key for normal
                             name: originalItem.name,
                             qty: qtyToReturn,
-                            price: originalItem.price // Use the price from the original sale
+                            price: unitPriceForReturn, // Use unit price for return
+                            isProduce: isProduce,
+                            weight: isProduce ? originalItem.weight : null // Include weight for produce returns
                         });
-                        totalReturnAmount += (originalItem.price * qtyToReturn);
+                        totalReturnAmount += (unitPriceForReturn * qtyToReturn);
                     } else if (originalItem) {
                         alert(`Cannot return ${qtyToReturn} of ${originalItem.name}. Only ${originalItem.qty} were purchased in this transaction.`);
                         isValid = false;
@@ -1479,9 +1680,11 @@
 
             if (confirm(`Confirm return of items totalling $${totalReturnAmount.toFixed(2)}?`)) {
                 itemsToProcess.forEach(returnItem => {
-                    // Update main inventory stock
-                    if (items[returnItem.barcode]) {
+                    // Update main inventory stock ONLY for normal items
+                    if (!returnItem.isProduce && items[returnItem.barcode]) {
                         items[returnItem.barcode].stock += returnItem.qty;
+                    } else if (returnItem.isProduce) {
+                        console.log(`Returned produce item ${returnItem.name} (barcode: ${returnItem.barcode}). Stock is not tracked for produce.`);
                     } else {
                         console.warn(`Returned item ${returnItem.name} (barcode: ${returnItem.barcode}) not found in current inventory. Stock not updated.`);
                     }
@@ -1629,15 +1832,29 @@
             }
 
 
-            for (const barcode in sale.items) {
-                const item = sale.items[barcode];
-                const itemTotal = item.price * item.qty;
+            for (const key in sale.items) { // Key can be barcode or uniqueProduceId
+                const item = sale.items[key];
+                const itemTotal = item.price * item.qty; // For produce, item.price is already the total calculated price
+
+                let itemNameDisplay = item.name;
+                let itemPriceDisplay = `$${item.price.toFixed(2)}`;
+                let itemQtyDisplay = item.qty;
+
+                // Adjust display for produce items on receipt
+                if (item.isProduce) {
+                    // For produce, price in sale.items is the final calculated price
+                    // We need originalPricePerOz and weight to reconstruct the line
+                    itemNameDisplay = `${item.name.split(' (')[0]}`; // Remove "(X oz)" from name
+                    itemPriceDisplay = `$${item.originalPricePerOz.toFixed(2)}/oz`;
+                    itemQtyDisplay = `${item.weight.toFixed(2)} oz`;
+                    // The total is still itemTotal as calculated
+                }
 
                 const itemLine = document.createElement('div');
                 itemLine.innerHTML = `
-                    <span style="width: 40%;"> ${item.name}</span>
-                    <span style="width: 25%; text-align: center;">${item.qty}</span>
-                    <span style="width: 15%; text-align: right;">$${item.price.toFixed(2)}</span>
+                    <span style="width: 40%;"> ${itemNameDisplay}</span>
+                    <span style="width: 25%; text-align: center;">${itemQtyDisplay}</span>
+                    <span style="width: 15%; text-align: right;">${itemPriceDisplay}</span>
                     <span style="width: 20%; text-align: right;">$${itemTotal.toFixed(2)}</span>
                 `;
                 receiptItemsDiv.appendChild(itemLine);
