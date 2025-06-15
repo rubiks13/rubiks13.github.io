@@ -369,7 +369,7 @@
                 padding: 5mm;
                 box-sizing: border-box;
                 font-family: 'Courier New', Courier, monospace;
-                font-size: 20px; /* Increased font size for kitchen receipt */
+                font-size: 10px; /* Smaller and uniform receipt font */
             }
             #receipt-print-area .receipt-logo {
                 max-width: 60mm; /* Adjust as needed */
@@ -381,14 +381,14 @@
             #receipt-print-area h2, #receipt-print-area h3 {
                 text-align: center;
                 margin-bottom: 5px;
-                font-size: 1.5em; /* Slightly larger heading for kitchen - adjusted relative to new base */
+                font-size: 1em; /* Make it same as base font */
             }
             #receipt-print-area .receipt-header-info {
                 text-align: center;
                 margin-bottom: 5px;
             }
             #receipt-print-area .receipt-header-info div {
-                font-size: 0.8em; /* Adjusted relative to new base */
+                font-size: 1em; /* Make it same as base font */
                 margin-bottom: 2px;
             }
             #receipt-print-area .receipt-summary-line,
@@ -396,6 +396,7 @@
                 display: flex;
                 justify-content: space-between;
                 margin-bottom: 2px;
+                font-size: 1em; /* Make it same as base font */
             }
             #receipt-print-area .receipt-item .qty {
                 width: 15mm;
@@ -420,14 +421,15 @@
                 justify-content: space-between;
                 font-weight: bold;
                 margin-top: 5px;
+                font-size: 1em; /* Make it same as base font */
             }
             #receipt-print-area .receipt-total-line.grand-total {
-                font-size: 1.1em; /* Adjusted relative to new base */
+                font-size: 1em; /* Make it same as base font */
             }
             #receipt-print-area .receipt-footer {
                 text-align: center;
                 margin-top: 15px;
-                font-size: 0.7em; /* Adjusted relative to new base */
+                font-size: 1em; /* Make it same as base font */
             }
         }
         /* This ensures the print area is hidden by default */
@@ -561,7 +563,7 @@
             gap: 15px;
             width: 320px; /* Adjust based on desired size of keys */
             max-width: 90%;
-            margin-bottom: 20px;
+            /* Removed margin-bottom here to place unlock button right after */
         }
         .keypad-button {
             background-color: #3a3a3a;
@@ -616,7 +618,9 @@
             padding: 15px 30px;
             font-size: 1.3em;
             background-color: #00bcd4;
-            margin-top: 20px;
+            margin-top: 15px; /* Adjust margin to bring it closer to the keypad */
+            width: 100%; /* Make it span the width of the keypad for visual alignment */
+            max-width: 320px; /* Match keypad container width */
         }
     </style>
 </head>
@@ -745,8 +749,8 @@
             <div class="keypad-button" data-value="7">7<small>PQRS</small></div>
             <div class="keypad-button" data-value="8">8<small>TUV</small></div>
             <div class="keypad-button" data-value="9">9<small>WXYZ</small></div>
-            <div class="keypad-button empty"></div> <div class="keypad-button zero" data-value="0">0</div>
-            <div class="keypad-button backspace" data-value="backspace">&#x232B;</div> </div>
+            <div class="keypad-button" data-value="backspace">&#x232B;</div> <div class="keypad-button zero" data-value="0">0</div>
+            <div class="keypad-button empty"></div> </div>
         <button class="unlock-button" onclick="attemptUnlock()">Unlock</button>
     </div>
 
