@@ -85,8 +85,8 @@
         .hidden-input-for-scan {
             position: absolute;
             left: -9999px; /* Move off-screen */
-            width: 0; /* Make it take no space */
-            height: 0; /* Make it take no space */
+            width: 1px; /* Make it take minimal space */
+            height: 1px; /* Make it take minimal space */
             border: none; /* Remove any visible border */
             padding: 0; /* Remove padding */
             margin: 0; /* Remove margin */
@@ -318,10 +318,10 @@
 
         <div id="Checkout" class="tab-content">
             <h2>Checkout</h2>
-            <label for="memberBarcode">Scan Member Barcode (Optional):</label>
+            <label for="memberBarcode">Scan Member Barcode (or enter 0 to skip):</label>
             <input type="text" id="memberBarcode" class="hidden-input-for-scan" placeholder="Scan member barcode" onkeyup="if(event.keyCode === 13) checkMemberBarcode()">
             <div style="padding: 10px; border: 1px dashed #555; text-align: center; margin-bottom: 15px;">
-                Member barcode status: <span id="memberStatus">No member scanned.</span>
+                Member status: <span id="memberStatus">Ready for member scan.</span>
             </div>
 
             <label for="checkoutBarcode">Scan/Enter Item Barcode Here:</label>
@@ -517,8 +517,7 @@
             <p>Date: <span id="receipt-date"></span></p>
             <p>Time: <span id="receipt-time"></span></p>
             <p>Trans ID: <span id="receipt-transaction-id"></span></p>
-            <p>Member: <span id="receipt-member-name"></span></p>
-            <div class="receipt-separator"></div>
+            <p id="receipt-member-info"></p> <div class="receipt-separator"></div>
         </div>
         <div class="receipt-body">
             <div style="display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 5px;">
@@ -688,7 +687,7 @@
             if (tabName === 'Checkout') {
                 // Clear any previous member status
                 currentTransactionMember = null;
-                document.getElementById('memberStatus').textContent = 'No member scanned.';
+                document.getElementById('memberStatus').textContent = 'Ready for member scan.';
                 document.getElementById('memberBarcode').value = ''; // Clear member barcode input
                 setTimeout(() => {
                     document.getElementById('memberBarcode').focus(); // Focus member barcode first
@@ -836,11 +835,11 @@
             const barcode = memberBarcodeInput.value.trim();
             memberBarcodeInput.value = ''; // Clear immediately after reading
 
-            if (!barcode) {
-                // If the input is empty but focus is active, wait for scan
-                document.getElementById('memberStatus').textContent = 'No member scanned.';
+            if (barcode === '0' || barcode === '') {
+                // If 0 or empty, skip member lookup and proceed with non-member logic
                 currentTransactionMember = null;
-                memberBarcodeInput.focus(); // Ensure it remains focused
+                document.getElementById('memberStatus').textContent = 'No member scanned (Non-member fee applies).';
+                document.getElementById('checkoutBarcode').focus(); // Move focus to item barcode
                 return;
             }
 
@@ -852,10 +851,11 @@
             } else {
                 currentTransactionMember = null;
                 document.getElementById('memberStatus').textContent = 'Invalid member barcode. No membership applied.';
-                alert('Invalid member barcode. Membership benefits will not be applied.');
+                alert('Invalid member barcode. Please scan a valid member or enter 0 to proceed without membership.');
                 memberBarcodeInput.focus(); // Re-focus member barcode
             }
         }
+
 
         function addToCart() {
             const barcodeInput = document.getElementById('checkoutBarcode');
@@ -954,7 +954,7 @@
                         cart[barcode].qty++;
                         itemInStore.stock--;
                     } else {
-                        alert(`${itemInStore.name} is out of stock.`);
+                        alert(`Cannot add more ${itemInStore.name}. Maximum stock reached.`);
                     }
                 } else if (change === -1) { // Removing quantity
                     if (cart[barcode].qty > 1) {
@@ -998,7 +998,7 @@
                 }
                 cart = {};
                 currentTransactionMember = null; // Clear member too
-                document.getElementById('memberStatus').textContent = 'No member scanned.';
+                document.getElementById('memberStatus').textContent = 'Ready for member scan.';
                 document.getElementById('memberBarcode').value = ''; // Clear member barcode input
                 renderItems(); // Update stock display
                 updateCartDisplay();
@@ -1058,7 +1058,7 @@
             generateReceipt(sale);
             cart = {}; // Clear cart after checkout
             currentTransactionMember = null; // Clear member after checkout
-            document.getElementById('memberStatus').textContent = 'No member scanned.';
+            document.getElementById('memberStatus').textContent = 'Ready for member scan.'; // Reset status
             document.getElementById('memberBarcode').value = ''; // Clear member barcode input
             updateCartDisplay();
             saveData();
@@ -1562,10 +1562,10 @@
             const receiptDate = document.getElementById('receipt-date');
             const receiptTime = document.getElementById('receipt-time');
             const receiptTransactionId = document.getElementById('receipt-transaction-id');
-            const receiptMemberName = document.getElementById('receipt-member-name'); // NEW: Member Name on receipt
+            const receiptMemberInfo = document.getElementById('receipt-member-info'); // Use the new unified element
             const receiptItemsDiv = document.querySelector('.receipt-items');
             const receiptSubtotalSpan = document.getElementById('receipt-subtotal');
-            const receiptMembershipFeeSpan = document.getElementById('receipt-membership-fee'); // NEW: Membership Fee on receipt
+            const receiptMembershipFeeSpan = document.getElementById('receipt-membership-fee');
             const receiptTaxSpan = document.getElementById('receipt-tax');
             const receiptFinalTotalSpan = document.getElementById('receipt-final-total');
             const receiptPaymentMethodSpan = document.getElementById('receipt-payment-method');
@@ -1592,7 +1592,14 @@
             receiptDate.textContent = now.toLocaleDateString();
             receiptTime.textContent = now.toLocaleTimeString();
             receiptTransactionId.textContent = sale.id;
-            receiptMemberName.textContent = sale.member ? sale.member.name : 'No Membership Fee'; // Display member name or default
+
+            // Set member info based on whether a member was scanned
+            if (sale.member) {
+                receiptMemberInfo.innerHTML = `Thanks for being a ${storeName} member, ${sale.member.name}!`;
+            } else {
+                receiptMemberInfo.textContent = 'No Membership Fee';
+            }
+
 
             for (const barcode in sale.items) {
                 const item = sale.items[barcode];
@@ -1610,7 +1617,7 @@
 
             // Use the actual subtotal, tax, and total from the sale object for consistency
             receiptSubtotalSpan.textContent = sale.subtotal.toFixed(2);
-            receiptMembershipFeeSpan.textContent = sale.membershipFee.toFixed(2); // Display membership fee
+            receiptMembershipFeeSpan.textContent = sale.membershipFee.toFixed(2);
             receiptTaxSpan.textContent = sale.tax.toFixed(2);
             receiptFinalTotalSpan.textContent = sale.total.toFixed(2);
             receiptPaymentMethodSpan.textContent = sale.method;
