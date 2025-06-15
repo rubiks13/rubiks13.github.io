@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Simple POS System</title>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <style>
         /* Dark Theme Styles */
         body {
@@ -71,6 +72,7 @@
         }
         input[type="text"],
         input[type="number"],
+        input[type="date"],
         textarea {
             width: calc(100% - 22px);
             padding: 10px;
@@ -176,9 +178,13 @@
             border-top: 1px dashed #000;
             margin: 10px 0;
         }
-        #qrcode-container {
+        #receipt-barcode-container {
             text-align: center;
             margin-top: 15px;
+        }
+        #receipt-barcode-container svg {
+            width: 100%; /* Make barcode fill container width */
+            height: 50px; /* Adjust height as needed */
         }
         #logo-preview {
             max-width: 150px;
@@ -297,14 +303,19 @@
             transform: translate(-50%, -50%);
         }
 
-        /* Style for discount QR codes in the table */
-        .discount-qr-code-container {
+        /* Style for discount barcodes in the table */
+        .discount-barcode-container {
             padding: 5px;
             border: 1px solid #555;
             border-radius: 4px;
             background-color: #3a3a3a;
             display: inline-block; /* Keep it compact */
             margin-top: 5px;
+        }
+        .discount-barcode-container svg {
+            display: block;
+            width: 120px; /* Adjust as needed */
+            height: 40px; /* Adjust as needed */
         }
 
         /* Responsive adjustments for layout */
@@ -348,9 +359,11 @@
             margin: 0;
             font-size: 0.9em;
         }
-        .receipt-recommendation-item img {
+        .receipt-recommendation-item svg {
             display: block;
             margin: 0 auto;
+            width: 100px; /* Smaller barcode for recommendations */
+            height: 30px;
         }
 
         @media print {
@@ -441,7 +454,7 @@
                 Member status: <span id="memberStatus">Ready for member scan.</span>
             </div>
             <p id="appliedDiscountStatus" style="padding: 10px; border: 1px dashed #007bff; text-align: center; margin-bottom: 15px; display: none;">
-                Applied Discount: <span id="appliedDiscountTitle"></span>
+                Applied Discount: <span id="appliedDiscountTitle"></span> (Valid Thru: <span id="appliedDiscountValidThru"></span>)
             </p>
 
             <label for="checkoutBarcode">Scan/Enter Item or Discount Barcode Here:</label>
@@ -483,12 +496,13 @@
             <table id="discount-list">
                 <thead>
                     <tr>
-                        <th>QR Code</th>
+                        <th>Barcode</th>
                         <th>Title</th>
                         <th>Description</th>
                         <th>Type</th>
                         <th>Details</th>
                         <th>% Off</th>
+                        <th>Valid Thru</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -597,10 +611,10 @@
         <div class="modal-content">
             <button class="modal-close-button" onclick="closeReturnsModal()">&times;</button>
             <h2>Process Returns</h2>
-            <label for="returnTransactionId">Scan QR or Enter Transaction ID Here:</label>
+            <label for="returnTransactionId">Scan Barcode or Enter Transaction ID Here:</label>
             <input type="text" id="returnTransactionId" class="hidden-input-for-scan" placeholder="Enter Transaction ID" onkeyup="if(event.keyCode === 13) loadReturnItems()">
             <div style="padding: 10px; border: 1px dashed #555; text-align: center; margin-bottom: 15px;">
-                Ready to scan receipt QR code or enter Transaction ID...
+                Ready to scan receipt barcode or enter Transaction ID...
             </div>
             <button onclick="loadReturnItems()">Load Items for Return</button>
 
@@ -683,6 +697,10 @@
             <label for="discountPercentage">Percentage Off (%):</label>
             <input type="number" id="discountPercentage" step="0.01" min="0.01" max="100" value="0.01">
 
+            <label for="discountValidThru">Valid Thru Date:</label>
+            <input type="date" id="discountValidThru">
+
+
             <div class="discount-type-selection">
                 <p style="margin-bottom: 0;">Discount Type:</p>
                 <label>
@@ -735,6 +753,7 @@
             <div id="receipt-discount-applied" class="receipt-discount-section" style="display: none;">
                 <p style="font-weight: bold;">DISCOUNT APPLIED:</p>
                 <p style="font-style: italic;"><span id="applied-discount-title"></span>: <span id="applied-discount-desc"></span></p>
+                <p style="font-style: italic;">Valid Thru: <span id="applied-discount-valid-thru"></span></p>
                 <p style="text-align: right; font-weight: bold;">SAVED: $<span id="applied-discount-amount"></span></p>
                 <div class="receipt-separator"></div>
             </div>
@@ -752,7 +771,7 @@
             <div class="receipt-separator"></div>
             <p>THANK YOU FOR YOUR PURCHASE!</p>
             <p>Please come again!</p>
-            <div id="qrcode-container"></div> <div id="receipt-recommendations" class="receipt-recommendations-section" style="display: none;">
+            <div id="receipt-barcode-container"></div> <div id="receipt-recommendations" class="receipt-recommendations-section" style="display: none;">
                 <div class="receipt-separator" style="border-top: 1px dashed #888;"></div>
                 <h4>RECOMMENDED DISCOUNTS FOR YOU!</h4>
                 <div id="recommended-discounts-list">
@@ -768,7 +787,7 @@
         let cart = {}; // Stores items in cart: {barcode: {name, price, qty, isProduce, originalPricePerOz (for produce)}}
         let salesHistory = [];
         let members = {}; // Stores members by barcode: {barcode: {name}}
-        let discounts = {}; // Stores discounts: {discountId: {title, description, percentage, type, itemBarcode?, minimumPrice?}}
+        let discounts = {}; // Stores discounts: {discountId: {title, description, percentage, type, itemBarcode?, minimumPrice?, validThru}}
         let transactionIdCounter = 1000; // Simple counter for transaction IDs
         let discountIdCounter = 1; // Counter for discount IDs
         let currentReturnTransaction = null; // Store the sale object for the current return process
@@ -857,6 +876,7 @@
 
             if (storedDiscounts) { // Load discounts
                 discounts = JSON.parse(storedDiscounts);
+                cleanupExpiredDiscounts(); // Clean up expired discounts on load
             } else {
                 addDummyDiscounts();
             }
@@ -948,6 +968,7 @@
             } else if (tabName === 'Members') {
                 renderMembers();
             } else if (tabName === 'Coupons') { // Render discounts when opening Coupons tab
+                cleanupExpiredDiscounts(); // Clean up on tab open
                 renderDiscounts();
             }
 
@@ -989,11 +1010,18 @@
 
         function addDummyDiscounts() {
             if (Object.keys(discounts).length === 0) {
-                discounts['DISC-1'] = { id: 'DISC-1', title: 'Weekend Sale', description: '10% off entire purchase!', percentage: 10, type: 'fullTotal' };
-                discounts['DISC-2'] = { id: 'DISC-2', title: 'Fruit Lovers', description: '50% off Apples!', percentage: 50, type: 'oneItem', itemBarcode: '123456789012' };
-                discounts['DISC-3'] = { id: 'DISC-3', title: 'Big Spender', description: '20% off if you spend over $50!', percentage: 20, type: 'purchaseMinimum', minimumPrice: 50.00 };
-                discounts['DISC-4'] = { id: 'DISC-4', title: 'Milk Deal', description: '25% off Milk!', percentage: 25, type: 'oneItem', itemBarcode: '112233445566' };
-                discounts['DISC-5'] = { id: 'DISC-5', title: 'Vegetable Special', description: '15% off Organic Spinach!', percentage: 15, type: 'oneItem', itemBarcode: 'PROD002' };
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                const nextMonth = new Date();
+                nextMonth.setMonth(nextMonth.getMonth() + 1);
+                const farFuture = new Date();
+                farFuture.setFullYear(farFuture.getFullYear() + 1);
+
+                discounts['DISC-1'] = { id: 'DISC-1', title: 'Weekend Sale', description: '10% off entire purchase!', percentage: 10, type: 'fullTotal', validThru: tomorrow.toISOString().split('T')[0] };
+                discounts['DISC-2'] = { id: 'DISC-2', title: 'Fruit Lovers', description: '50% off Apples!', percentage: 50, type: 'oneItem', itemBarcode: '123456789012', validThru: nextMonth.toISOString().split('T')[0] };
+                discounts['DISC-3'] = { id: 'DISC-3', title: 'Big Spender', description: '20% off if you spend over $50!', percentage: 20, type: 'purchaseMinimum', minimumPrice: 50.00, validThru: farFuture.toISOString().split('T')[0] };
+                discounts['DISC-4'] = { id: 'DISC-4', title: 'Milk Deal', description: '25% off Milk!', percentage: 25, type: 'oneItem', itemBarcode: '112233445566', validThru: nextMonth.toISOString().split('T')[0] };
+                discounts['DISC-5'] = { id: 'DISC-5', title: 'Vegetable Special', description: '15% off Organic Spinach!', percentage: 15, type: 'oneItem', itemBarcode: 'PROD002', validThru: farFuture.toISOString().split('T')[0] };
                 discountIdCounter = 6;
                 saveData();
             }
@@ -1179,8 +1207,8 @@
                 return;
             }
 
-            // Check if it's a discount code
-            if (scannedCode.startsWith('DISCOUNT-')) { // Our convention for discount QR codes
+            // Check if it's a discount code (our convention)
+            if (scannedCode.startsWith('DISCOUNT-')) {
                 applyDiscount(scannedCode);
                 barcodeInput.focus();
                 return;
@@ -1274,10 +1302,24 @@
             document.getElementById('checkoutBarcode').focus();
         }
 
+        function isDiscountValid(discount) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Normalize to start of day
+
+            const validThruDate = new Date(discount.validThru);
+            validThruDate.setHours(0, 0, 0, 0); // Normalize to start of day
+
+            return validThruDate >= today;
+        }
+
         function applyDiscount(discountId) {
             const discount = discounts[discountId];
             if (!discount) {
                 alert('Invalid discount code.');
+                return;
+            }
+            if (!isDiscountValid(discount)) {
+                alert(`Discount "${discount.title}" has expired.`);
                 return;
             }
             if (appliedDiscount) {
@@ -1325,9 +1367,11 @@
                     percentage: discount.percentage,
                     type: discount.type,
                     itemBarcode: discount.itemBarcode, // Only present for oneItem
-                    minimumPrice: discount.minimumPrice // Only present for purchaseMinimum
+                    minimumPrice: discount.minimumPrice, // Only present for purchaseMinimum
+                    validThru: discount.validThru // Store valid thru date
                 };
                 document.getElementById('appliedDiscountTitle').textContent = appliedDiscount.title;
+                document.getElementById('appliedDiscountValidThru').textContent = new Date(appliedDiscount.validThru).toLocaleDateString();
                 document.getElementById('appliedDiscountStatus').style.display = 'block';
                 updateCartDisplay(); // Recalculate and display new total
                 alert(`Discount "${discount.title}" applied successfully! ${discountDetails}`);
@@ -1669,6 +1713,7 @@
             document.getElementById('discountTitle').value = '';
             document.getElementById('discountDescription').value = '';
             document.getElementById('discountPercentage').value = '0.01';
+            document.getElementById('discountValidThru').value = ''; // Clear valid thru date
             document.getElementById('discountItemBarcode').value = '';
             document.getElementById('discountMinimumPrice').value = '0.01';
             document.querySelector('input[name="discountType"][value="fullTotal"]').checked = true;
@@ -1682,6 +1727,7 @@
                     document.getElementById('discountTitle').value = discount.title;
                     document.getElementById('discountDescription').value = discount.description;
                     document.getElementById('discountPercentage').value = discount.percentage;
+                    document.getElementById('discountValidThru').value = discount.validThru || ''; // Set valid thru date
                     document.querySelector(`input[name="discountType"][value="${discount.type}"]`).checked = true;
                     toggleDiscountFields();
                     if (discount.type === 'oneItem') {
@@ -1722,14 +1768,27 @@
             const title = document.getElementById('discountTitle').value.trim();
             const description = document.getElementById('discountDescription').value.trim();
             const percentage = parseFloat(document.getElementById('discountPercentage').value);
+            const validThru = document.getElementById('discountValidThru').value; // Get valid thru date
             const type = document.querySelector('input[name="discountType"]:checked').value;
             let itemBarcode = null;
             let minimumPrice = null;
 
-            if (!title || !description || isNaN(percentage) || percentage <= 0 || percentage > 100) {
-                alert('Please fill in all discount details correctly. Percentage must be between 0.01 and 100.');
+            if (!title || !description || isNaN(percentage) || percentage <= 0 || percentage > 100 || !validThru) {
+                alert('Please fill in all discount details correctly, including a valid "Valid Thru Date". Percentage must be between 0.01 and 100.');
                 return;
             }
+
+            // Validate validThru date: must be today or in the future
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Normalize to start of day
+            const selectedDate = new Date(validThru);
+            selectedDate.setHours(0, 0, 0, 0); // Normalize to start of day
+
+            if (selectedDate < today) {
+                alert('The "Valid Thru Date" cannot be in the past.');
+                return;
+            }
+
 
             if (type === 'oneItem') {
                 itemBarcode = document.getElementById('discountItemBarcode').value.trim();
@@ -1753,6 +1812,7 @@
                 title,
                 description,
                 percentage,
+                validThru, // Save valid thru date
                 type,
                 itemBarcode,
                 minimumPrice
@@ -1778,6 +1838,7 @@
             document.getElementById('discountTitle').value = '';
             document.getElementById('discountDescription').value = '';
             document.getElementById('discountPercentage').value = '0.01';
+            document.getElementById('discountValidThru').value = '';
             document.getElementById('discountItemBarcode').value = '';
             document.getElementById('discountMinimumPrice').value = '0.01';
             document.querySelector('input[name="discountType"][value="fullTotal"]').checked = true;
@@ -1788,28 +1849,55 @@
             document.getElementById('cancelEditDiscountButton').style.display = 'none';
         }
 
+        function cleanupExpiredDiscounts() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Normalize to start of day
+            let cleaned = false;
+            for (const id in discounts) {
+                const discount = discounts[id];
+                const validThruDate = new Date(discount.validThru);
+                validThruDate.setHours(0, 0, 0, 0);
+
+                if (validThruDate < today) {
+                    console.log(`Deleting expired discount: ${discount.title} (ID: ${id})`);
+                    delete discounts[id];
+                    cleaned = true;
+                }
+            }
+            if (cleaned) {
+                saveData();
+                renderDiscounts(); // Re-render the table to reflect deletions
+            }
+        }
+
         function renderDiscounts() {
+            cleanupExpiredDiscounts(); // Ensure expired discounts are removed before rendering
             const discountListBody = document.querySelector('#discount-list tbody');
             discountListBody.innerHTML = '';
             for (const id in discounts) {
                 const discount = discounts[id];
                 const row = discountListBody.insertRow();
 
-                const qrCell = row.insertCell();
-                const qrContainer = document.createElement('div');
-                qrContainer.className = 'discount-qr-code-container';
-                qrCell.appendChild(qrContainer);
-                // Ensure a unique ID for each QR code container
-                const qrId = `discount-qrcode-${id}`;
-                qrContainer.id = qrId;
-                new QRCode(document.getElementById(qrId), {
-                    text: id, // The discount ID is the data for the QR code
-                    width: 60,
-                    height: 60,
-                    colorDark: "#000000",
-                    colorLight: "#ffffff",
-                    correctLevel: QRCode.CorrectLevel.L
-                });
+                const barcodeCell = row.insertCell();
+                const barcodeContainer = document.createElement('div');
+                barcodeContainer.className = 'discount-barcode-container';
+                barcodeCell.appendChild(barcodeContainer);
+                const barcodeSvgId = `discount-barcode-${id}`;
+                barcodeContainer.innerHTML = `<svg id="${barcodeSvgId}"></svg>`;
+                try {
+                    JsBarcode(`#${barcodeSvgId}`, id, {
+                        format: "CODE128",
+                        displayValue: true,
+                        width: 2,
+                        height: 40,
+                        margin: 0,
+                        fontSize: 12
+                    });
+                } catch (e) {
+                    console.error(`Error generating barcode for ${id}:`, e);
+                    barcodeContainer.textContent = `Error: ${id}`;
+                }
+
 
                 row.insertCell().textContent = discount.title;
                 row.insertCell().textContent = discount.description;
@@ -1826,6 +1914,7 @@
                 }
                 row.insertCell().textContent = details;
                 row.insertCell().textContent = `${discount.percentage}%`;
+                row.insertCell().textContent = new Date(discount.validThru).toLocaleDateString();
 
                 const actionsCell = row.insertCell();
                 const editButton = document.createElement('button');
@@ -2223,7 +2312,7 @@
             completeCheckoutProcess('Card');
         }
 
-        // --- Receipt Generation with QR Code, Logo, and Discounts ---
+        // --- Receipt Generation with 1D Barcode, Logo, and Discounts ---
         function generateReceipt(sale) {
             const receiptDiv = document.getElementById('receipt');
             receiptDiv.style.width = `${receiptWidth}mm`;
@@ -2237,18 +2326,19 @@
             const receiptDiscountSection = document.getElementById('receipt-discount-applied');
             const appliedDiscountTitleSpan = document.getElementById('applied-discount-title');
             const appliedDiscountDescSpan = document.getElementById('applied-discount-desc');
+            const appliedDiscountValidThruSpan = document.getElementById('applied-discount-valid-thru');
             const appliedDiscountAmountSpan = document.getElementById('applied-discount-amount');
             const receiptSubtotalSpan = document.getElementById('receipt-subtotal');
             const receiptMembershipFeeSpan = document.getElementById('receipt-membership-fee');
             const receiptTaxSpan = document.getElementById('receipt-tax');
             const receiptFinalTotalSpan = document.getElementById('receipt-final-total');
             const receiptPaymentMethodSpan = document.getElementById('receipt-payment-method');
-            const qrcodeContainer = document.getElementById('qrcode-container');
+            const receiptBarcodeContainer = document.getElementById('receipt-barcode-container');
             const recommendedDiscountsSection = document.getElementById('receipt-recommendations');
             const recommendedDiscountsListDiv = document.getElementById('recommended-discounts-list');
 
             receiptItemsDiv.innerHTML = '';
-            qrcodeContainer.innerHTML = '';
+            receiptBarcodeContainer.innerHTML = ''; // Clear previous barcode
             recommendedDiscountsListDiv.innerHTML = ''; // Clear previous recommendations
 
             if (receiptLogo) {
@@ -2303,6 +2393,7 @@
                 receiptDiscountSection.style.display = 'block';
                 appliedDiscountTitleSpan.textContent = sale.discount.title;
                 appliedDiscountDescSpan.textContent = sale.discount.description;
+                appliedDiscountValidThruSpan.textContent = new Date(sale.discount.validThru).toLocaleDateString();
                 appliedDiscountAmountSpan.textContent = sale.discount.amountSaved.toFixed(2);
             } else {
                 receiptDiscountSection.style.display = 'none';
@@ -2315,18 +2406,27 @@
             receiptFinalTotalSpan.textContent = sale.total.toFixed(2);
             receiptPaymentMethodSpan.textContent = sale.method;
 
-            new QRCode(qrcodeContainer, {
-                text: sale.id,
-                width: 80,
-                height: 80,
-                colorDark: "#000000",
-                colorLight: "#ffffff",
-                correctLevel: QRCode.CorrectLevel.H
-            });
+            // Generate 1D barcode for transaction ID
+            const transactionBarcodeSvg = document.createElement('svg');
+            transactionBarcodeSvg.id = 'transaction-barcode-svg';
+            receiptBarcodeContainer.appendChild(transactionBarcodeSvg);
+            try {
+                JsBarcode("#transaction-barcode-svg", sale.id, {
+                    format: "CODE128",
+                    displayValue: true,
+                    width: 2,
+                    height: 50,
+                    margin: 0,
+                    fontSize: 14
+                });
+            } catch (e) {
+                console.error(`Error generating transaction barcode for ${sale.id}:`, e);
+                receiptBarcodeContainer.textContent = `Trans ID: ${sale.id}`;
+            }
 
             // Add recommended discounts
-            const allDiscountIds = Object.keys(discounts);
-            if (allDiscountIds.length > 0) {
+            const activeDiscountIds = Object.keys(discounts).filter(id => isDiscountValid(discounts[id])); // Only show valid discounts
+            if (activeDiscountIds.length > 0) {
                 recommendedDiscountsSection.style.display = 'block';
                 let numberOfRecommendations = 0;
                 if (sale.member) {
@@ -2336,8 +2436,8 @@
                 }
 
                 // Shuffle discounts and pick unique ones
-                const shuffledDiscounts = [...allDiscountIds].sort(() => 0.5 - Math.random());
-                const selectedDiscountIds = shuffledDiscounts.slice(0, Math.min(numberOfRecommendations, allDiscountIds.length));
+                const shuffledDiscounts = [...activeDiscountIds].sort(() => 0.5 - Math.random());
+                const selectedDiscountIds = shuffledDiscounts.slice(0, Math.min(numberOfRecommendations, activeDiscountIds.length));
 
                 selectedDiscountIds.forEach(discountId => {
                     const discount = discounts[discountId];
@@ -2346,19 +2446,25 @@
                     recItemDiv.innerHTML = `
                         <p style="font-weight: bold;">${discount.title}</p>
                         <p>${discount.description}</p>
-                        <div id="rec-qr-${discountId}" style="margin: 5px auto;"></div>
+                        <p style="font-size:0.8em; margin-top:2px;">Valid Thru: ${new Date(discount.validThru).toLocaleDateString()}</p>
+                        <svg id="rec-barcode-${discountId}"></svg>
                     `;
                     recommendedDiscountsListDiv.appendChild(recItemDiv);
 
-                    // Generate QR code for each recommended discount
-                    new QRCode(document.getElementById(`rec-qr-${discountId}`), {
-                        text: discount.id,
-                        width: 50,
-                        height: 50,
-                        colorDark: "#000000",
-                        colorLight: "#ffffff",
-                        correctLevel: QRCode.CorrectLevel.L
-                    });
+                    // Generate 1D barcode for each recommended discount
+                    try {
+                        JsBarcode(`#rec-barcode-${discountId}`, discount.id, {
+                            format: "CODE128",
+                            displayValue: true,
+                            width: 1,
+                            height: 30,
+                            margin: 0,
+                            fontSize: 10
+                        });
+                    } catch (e) {
+                        console.error(`Error generating recommendation barcode for ${discount.id}:`, e);
+                        document.getElementById(`rec-barcode-${discountId}`).textContent = `Code: ${discount.id}`;
+                    }
                 });
             } else {
                 recommendedDiscountsSection.style.display = 'none';
