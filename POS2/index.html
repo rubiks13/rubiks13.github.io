@@ -237,17 +237,19 @@
             margin-bottom: 20px;
         }
 
-        /* NEW: QR Code container styling for Data Transfer */
-        #giveDataQrCode {
-            margin: 20px auto;
+        /* Styling for the data string display area */
+        #dataStringDisplay {
+            word-wrap: break-word; /* Allow long words to break and wrap to the next line */
+            max-width: 100%;
+            background-color: #3a3a3a;
             border: 1px solid #555;
             padding: 10px;
-            background-color: white; /* QR code needs a light background */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 150px; /* Fixed size for consistency */
-            height: 150px; /* Fixed size for consistency */
+            margin-top: 10px;
+            margin-bottom: 15px;
+            font-family: 'Consolas', 'Monospace';
+            font-size: 14px;
+            color: #e0e0e0;
+            overflow-x: auto; /* Allow horizontal scrolling if still too long */
         }
 
         @media print {
@@ -434,12 +436,16 @@
 
             <h2>Data Transfer</h2>
             <h3>Give Data</h3>
-            <p>Scan this QR code with another device to transfer all POS data.</p>
-            <div id="giveDataQrCode"></div>
-            <button onclick="copyDataCode()">Copy Data String (Fallback)</button>
+            <p>Copy the data string below to transfer all POS data to another device.</p>
+            <div id="dataStringDisplay"></div>
+            <button onclick="copyDataCode()">Copy Data String</button>
+            <p style="font-size: 0.9em; color: #b0b0b0; margin-top: 10px;">
+                Note: This string can be very long. QR code generation is not supported for large datasets.
+            </p>
+
 
             <h3>Receive Data</h3>
-            <p>Paste the decoded data string from a scanned QR code here to load its data. This will overwrite existing data.</p>
+            <p>Paste the data string from another device here to load its data. This will overwrite existing data.</p>
             <input type="text" id="receiveDataCode" placeholder="Paste data string here">
             <button onclick="receiveData()">Load Data</button>
         </div>
@@ -1215,8 +1221,8 @@
 
             saveData();
             alert('Store settings saved successfully!');
-            // Re-generate QR code if settings change
-            generateDataCode();
+            // Update the data string display after settings change
+            generateDataStringForDisplay();
         }
 
         function renderSettings() {
@@ -1237,8 +1243,8 @@
             // Clear receive data field when settings tab is opened/rendered
             document.getElementById('receiveDataCode').value = '';
 
-            // Generate and display the QR code immediately when settings are rendered
-            generateDataCode();
+            // Generate and display the data string immediately when settings are rendered
+            generateDataStringForDisplay();
         }
 
         function handleLogoUpload(event) {
@@ -1271,8 +1277,8 @@
                 receiptLogo = preview.src;
                 saveData();
                 alert('Logo saved successfully!');
-                // Re-generate QR code if logo changes (as it's part of the data)
-                generateDataCode();
+                // Update the data string display after logo changes
+                generateDataStringForDisplay();
             } else {
                 alert('No valid logo image selected to save.');
             }
@@ -1286,8 +1292,8 @@
                 document.getElementById('logo-preview').src = '#';
                 saveData();
                 alert('Logo cleared.');
-                // Re-generate QR code if logo changes (as it's part of the data)
-                generateDataCode();
+                // Update the data string display after logo changes
+                generateDataStringForDisplay();
             }
         }
 
@@ -1339,7 +1345,7 @@
                 return;
             }
 
-            // 30-day return policy check
+            // 30-day return policy check (or current year after June 14, 2025)
             const purchaseDate = new Date(saleToReturn.timestamp); // Convert timestamp string to Date object
             const currentDate = new Date();
 
@@ -1355,8 +1361,12 @@
             // Get purchase year
             const purchaseYear = purchaseDate.getFullYear();
 
-            // If purchased in a previous year and current year is after June 14, 2025, and purchase year is not current year
-            if (purchaseYear < currentYear && currentDate > new Date('2025-06-14T00:00:00') && purchaseYear !== currentYear) {
+            // Condition for "current calendar year after June 14, 2025"
+            // This date refers to 2025-06-14 as the cutoff.
+            // If current date is *after* this cutoff, then if the purchase year is not the current year, it's invalid.
+            const june14_2025 = new Date('2025-06-14T00:00:00'); // Specific date for policy change
+
+            if (currentDate >= june14_2025 && purchaseYear < currentYear) {
                 alert(`This transaction (${transactionId}) is from a previous year. Returns are only allowed within the current calendar year after June 14, 2025.`);
                 document.getElementById('return-trans-id-display').textContent = 'N/A';
                 document.querySelector('#return-items-table tbody').innerHTML = '';
@@ -1365,8 +1375,7 @@
                 return;
             }
 
-
-            // Original 30-day policy
+            // Original 30-day policy (still applies if not in the new year-based restriction)
             if (diffDays > 30) {
                 alert(`This transaction (${transactionId}) is outside the 30-day return window.`);
                 document.getElementById('return-trans-id-display').textContent = 'N/A';
@@ -1622,7 +1631,8 @@
             receiptFinalTotalSpan.textContent = sale.total.toFixed(2);
             receiptPaymentMethodSpan.textContent = sale.method;
 
-            // Generate QR code with the transaction ID
+            // Generate QR code with the transaction ID for the *receipt*
+            // This QR code is small and only contains the transaction ID, which is fine.
             new QRCode(qrcodeContainer, {
                 text: sale.id, // Embed only the transaction ID
                 width: 80,
@@ -1638,7 +1648,7 @@
         }
 
         // Data Transfer Functions
-        function generateDataCode() {
+        function generateDataStringForDisplay() {
             const allPosData = {
                 items: items,
                 salesHistory: salesHistory,
@@ -1653,25 +1663,12 @@
             };
             try {
                 const jsonData = JSON.stringify(allPosData);
-                const base64Data = btoa(jsonData); // Base64 encode
-                generatedDataString = base64Data; // Store the generated string
-
-                const qrCodeDiv = document.getElementById('giveDataQrCode');
-                qrCodeDiv.innerHTML = ''; // Clear previous QR code
-                new QRCode(qrCodeDiv, {
-                    text: generatedDataString,
-                    width: 150,
-                    height: 150,
-                    colorDark : "#000000",
-                    colorLight : "#ffffff",
-                    correctLevel : QRCode.CorrectLevel.H
-                });
+                generatedDataString = btoa(jsonData); // Base64 encode
+                document.getElementById('dataStringDisplay').textContent = generatedDataString;
             } catch (error) {
-                console.error("Error generating data code:", error);
-                const qrCodeDiv = document.getElementById('giveDataQrCode');
-                qrCodeDiv.innerHTML = '<p style="color: red;">Error generating QR. Data might be too large.</p>';
+                console.error("Error generating data string:", error);
+                document.getElementById('dataStringDisplay').textContent = 'Error generating data string. Data might be too large or invalid.';
                 generatedDataString = ""; // Clear string on error
-                alert("Failed to generate data QR code. Data might be too large or invalid.");
             }
         }
 
@@ -1689,10 +1686,10 @@
                     alert('Data string copied to clipboard!');
                 } catch (err) {
                     console.error('Failed to copy text: ', err);
-                    alert('Failed to copy data string. Please manually select the text from the QR code and copy it.');
+                    alert('Failed to copy data string. Your browser might not support automatic copying. Please manually select the text from the display area and copy it.');
                 }
             } else {
-                alert('No data string generated yet. Please open the Settings tab to generate the QR code.');
+                alert('No data string generated yet. Please open the Settings tab to generate the data string.');
             }
         }
 
