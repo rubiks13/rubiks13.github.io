@@ -143,7 +143,7 @@
         }
         .receipt-container {
             display: none; /* Hidden by default */
-            width: 80mm; /* Approx 3.15 inches */
+            /* Width controlled by JS now via setting posReceiptWidth */
             padding: 10px;
             border: 1px solid #000;
             margin-top: 20px;
@@ -237,19 +237,20 @@
             margin-bottom: 20px;
         }
 
-        /* Styling for the data string display area */
+        /* Styling for the data string display area - now hidden */
         #dataStringDisplay {
             word-wrap: break-word; /* Allow long words to break and wrap to the next line */
             max-width: 100%;
             background-color: #3a3a3a;
             border: 1px solid #555;
-            padding: 10px;
+            padding: 0px; /* No padding to make it truly hidden */
+            height: 0px; /* Collapse its height */
+            overflow: hidden; /* Hide any overflow */
             margin-top: 10px;
             margin-bottom: 15px;
             font-family: 'Consolas', 'Monospace';
             font-size: 14px;
             color: #e0e0e0;
-            overflow-x: auto; /* Allow horizontal scrolling if still too long */
         }
 
         @media print {
@@ -263,7 +264,7 @@
                 position: absolute;
                 left: 0;
                 top: 0;
-                width: 80mm;
+                /* Width is set by JS from posReceiptWidth */
                 border: none;
                 box-shadow: none;
             }
@@ -421,6 +422,11 @@
             <input type="number" id="settingMembershipFee" step="0.01" min="0" value="0.20">
             <p style="font-size: 0.9em; color: #b0b0b0;">This fee is applied if no valid member barcode is scanned at checkout.</p>
 
+            <h3>Receipt Settings</h3>
+            <label for="settingReceiptWidth">Receipt Width (mm):</label>
+            <input type="number" id="settingReceiptWidth" step="1" min="50" max="120" value="80">
+            <p style="font-size: 0.9em; color: #b0b0b0;">Typical thermal printer widths are 58mm or 80mm.</p>
+
             <button onclick="saveStoreSettings()">Save Store Settings</button>
 
             <hr style="border-top: 1px dashed #555; margin: 30px 0;">
@@ -436,12 +442,9 @@
 
             <h2>Data Transfer</h2>
             <h3>Give Data</h3>
-            <p>Copy the data string below to transfer all POS data to another device.</p>
+            <p>The full POS data string is generated and can be copied using the button below. It is hidden for display purposes.</p>
             <div id="dataStringDisplay"></div>
             <button onclick="copyDataCode()">Copy Data String</button>
-            <p style="font-size: 0.9em; color: #b0b0b0; margin-top: 10px;">
-                Note: This string can be very long. QR code generation is not supported for large datasets.
-            </p>
 
 
             <h3>Receive Data</h3>
@@ -534,7 +537,7 @@
             <div class="receipt-separator"></div>
             <div class="receipt-total">
                 <p>SUBTOTAL: $<span id="receipt-subtotal"></span></p>
-                <p>MEMBERSHIP FEE: $<span id="receipt-membership-fee"></span></p>
+                <p>NON-MEMBERSHIP FEE: $<span id="receipt-membership-fee"></span></p>
                 <p>TAX: $<span id="receipt-tax"></span></p>
                 <p>TOTAL: $<span id="receipt-final-total"></span></p>
                 <div class="receipt-separator"></div>
@@ -564,6 +567,7 @@
         let storePhone = "(123) 456-7890";
         let salesTaxPercentage = 7.25; // Stored as percentage (e.g., 7.25 for 7.25%)
         let nonMemberFee = 0.20; // Default non-member fee
+        let receiptWidth = 80; // Default receipt width in mm
 
         // Global variable for editing item
         let editingBarcode = null;
@@ -595,6 +599,7 @@
             localStorage.setItem('posStorePhone', storePhone);
             localStorage.setItem('posSalesTaxPercentage', salesTaxPercentage);
             localStorage.setItem('posNonMemberFee', nonMemberFee); // Save non-member fee
+            localStorage.setItem('posReceiptWidth', receiptWidth); // Save receipt width
         }
 
         function loadData() {
@@ -640,6 +645,7 @@
             const storedStorePhone = localStorage.getItem('posStorePhone');
             const storedSalesTaxPercentage = localStorage.getItem('posSalesTaxPercentage');
             const storedNonMemberFee = localStorage.getItem('posNonMemberFee'); // Load non-member fee
+            const storedReceiptWidth = localStorage.getItem('posReceiptWidth'); // Load receipt width
 
             if (storedStoreName) {
                 storeName = storedStoreName;
@@ -655,6 +661,9 @@
             }
             if (storedNonMemberFee && !isNaN(parseFloat(storedNonMemberFee))) { // Load non-member fee
                 nonMemberFee = parseFloat(storedNonMemberFee);
+            }
+            if (storedReceiptWidth && !isNaN(parseInt(storedReceiptWidth))) { // Load receipt width
+                receiptWidth = parseInt(storedReceiptWidth);
             }
         }
         // --- End Local Storage Functions ---
@@ -1004,7 +1013,7 @@
                 }
                 cart = {};
                 currentTransactionMember = null; // Clear member too
-                document.getElementById('memberStatus').textContent = 'Ready for member scan.';
+                document.getElementById('memberStatus').textContent = 'Ready for member scan.'; // Reset status
                 document.getElementById('memberBarcode').value = ''; // Clear member barcode input
                 renderItems(); // Update stock display
                 updateCartDisplay();
@@ -1199,6 +1208,7 @@
             const newStorePhone = document.getElementById('settingStorePhone').value.trim();
             const newTaxPercentage = parseFloat(document.getElementById('settingTaxPercentage').value);
             const newNonMemberFee = parseFloat(document.getElementById('settingMembershipFee').value); // New fee setting
+            const newReceiptWidth = parseInt(document.getElementById('settingReceiptWidth').value); // New receipt width setting
 
             if (!newStoreName || !newStoreAddress || !newStorePhone) {
                 alert('Please fill in all store information fields.');
@@ -1212,12 +1222,17 @@
                 alert('Please enter a valid non-member fee (0 or greater).');
                 return;
             }
+            if (isNaN(newReceiptWidth) || newReceiptWidth < 50 || newReceiptWidth > 120) { // Validate receipt width
+                alert('Please enter a valid receipt width between 50mm and 120mm.');
+                return;
+            }
 
             storeName = newStoreName;
             storeAddress = newStoreAddress;
             storePhone = newStorePhone;
             salesTaxPercentage = newTaxPercentage;
             nonMemberFee = newNonMemberFee; // Save new non-member fee
+            receiptWidth = newReceiptWidth; // Save new receipt width
 
             saveData();
             alert('Store settings saved successfully!');
@@ -1231,6 +1246,7 @@
             document.getElementById('settingStorePhone').value = storePhone;
             document.getElementById('settingTaxPercentage').value = salesTaxPercentage.toFixed(2);
             document.getElementById('settingMembershipFee').value = nonMemberFee.toFixed(2); // Render non-member fee
+            document.getElementById('settingReceiptWidth').value = receiptWidth; // Render receipt width
 
             // Re-render the logo preview in case it was just loaded
             if (receiptLogo) {
@@ -1567,6 +1583,9 @@
         // --- Receipt Generation with QR Code and Logo ---
         function generateReceipt(sale) {
             const receiptDiv = document.getElementById('receipt');
+            // Set the receipt width based on the setting
+            receiptDiv.style.width = `${receiptWidth}mm`;
+
             const receiptLogoImg = document.getElementById('receipt-logo');
             const receiptDate = document.getElementById('receipt-date');
             const receiptTime = document.getElementById('receipt-time');
@@ -1606,7 +1625,7 @@
             if (sale.member) {
                 receiptMemberInfo.innerHTML = `Thanks for being a ${storeName} member, ${sale.member.name}!`;
             } else {
-                receiptMemberInfo.textContent = 'No Membership Fee';
+                receiptMemberInfo.textContent = 'Non-Membership Fee'; // Changed to "Non-Membership Fee"
             }
 
 
@@ -1659,11 +1678,13 @@
                 storeAddress: storeAddress,
                 storePhone: storePhone,
                 salesTaxPercentage: salesTaxPercentage,
-                nonMemberFee: nonMemberFee // Include non-member fee
+                nonMemberFee: nonMemberFee, // Include non-member fee
+                receiptWidth: receiptWidth // Include receipt width
             };
             try {
                 const jsonData = JSON.stringify(allPosData);
                 generatedDataString = btoa(jsonData); // Base64 encode
+                // The display div is intentionally hidden using CSS
                 document.getElementById('dataStringDisplay').textContent = generatedDataString;
             } catch (error) {
                 console.error("Error generating data string:", error);
@@ -1730,6 +1751,7 @@
                 storePhone = parsedData.storePhone || "(123) 456-7890";
                 salesTaxPercentage = parsedData.salesTaxPercentage || 7.25;
                 nonMemberFee = parsedData.nonMemberFee || 0.20; // Update non-member fee
+                receiptWidth = parsedData.receiptWidth || 80; // Update receipt width
 
                 saveData(); // Persist the new data to local storage
                 alert('Data loaded successfully! The system will now refresh to reflect the changes.');
