@@ -338,7 +338,7 @@
             text-align: right;
             color: #f0f0f0;
         }
-        
+
         .action-buttons {
             margin-top: 20px;
             text-align: right;
@@ -429,6 +429,10 @@
                 margin-top: 15px;
                 font-size: 0.7em; /* Adjusted relative to new base */
             }
+        }
+        /* This ensures the print area is hidden by default */
+        #receipt-print-area {
+            display: none;
         }
 
         /* --- Modal Base Styles (for Image Search and Settings) --- */
@@ -636,7 +640,7 @@
                 <div id="category-list">
                     </div>
             </section>
-            
+
             <section style="margin-top: 30px;">
                 <h3>Add New Menu Item</h3>
                 <form id="item-form">
@@ -893,7 +897,7 @@
                 } else if (event.key >= '0' && event.key <= '9') { // Allow number input on lock screen
                     unlockDisplayInput.value += event.key;
                 }
-                return; 
+                return;
             }
 
             if ((event.ctrlKey || event.metaKey) && event.key === 'a') {
@@ -1101,7 +1105,7 @@
             menuItems[itemIndex].photo = photoData;
 
             saveToLocalStorage();
-            
+
             // Also update any active orders that might contain this item
             for (const tableNum in activeOrders) {
                 activeOrders[tableNum].forEach(orderItem => {
@@ -1280,7 +1284,7 @@
             } else {
                 tableNumber = document.getElementById('table-number-input').value.trim();
             }
-            
+
             if (!tableNumber || isNaN(parseInt(tableNumber)) || parseInt(tableNumber) <= 0) {
                 alert('Please enter a valid table number (e.g., 1, 5, etc.).');
                 return;
@@ -1295,9 +1299,9 @@
 
             // Load the existing order for this table into currentOrder
             // This allows us to modify it and then save it back to activeOrders
-            currentOrder = (activeOrders[currentTableNumber] && activeOrders[currentTableNumber].length > 0) ? 
+            currentOrder = (activeOrders[currentTableNumber] && activeOrders[currentTableNumber].length > 0) ?
                             JSON.parse(JSON.stringify(activeOrders[currentTableNumber])) : [];
-            
+
             updateOrderSummary();
             renderOrderableItems(); // Re-render items to reflect their selection status in currentOrder
 
@@ -1311,7 +1315,7 @@
             saveToLocalStorage();
             resetIdleTimer(); // Start/reset timer when entering order screen
         }
-        
+
         // New function to go back to tables screen
         function backToTables() {
             // Save the current in-progress order for the table before leaving
@@ -1335,17 +1339,17 @@
 
             let allCategories = [...categories];
             const uncategorizedItems = menuItems.filter(item => item.categoryId === null || !categories.some(cat => cat.id === item.categoryId));
-            
+
             if (uncategorizedItems.length > 0) {
                 allCategories.push({ id: 'uncategorized', name: 'Uncategorized' });
             }
-            
+
             if (allCategories.length === 0 && menuItems.length > 0) {
                  allCategories.push({ id: 'all', name: 'All Items' });
             } else if (allCategories.length === 0 && menuItems.length === 0) {
                  return;
             }
-            
+
             allCategories.forEach(cat => {
                 const tab = document.createElement('div');
                 tab.classList.add('category-tab');
@@ -1437,7 +1441,7 @@
             saveToLocalStorage();
             resetIdleTimer();
         }
-        
+
         function updateOrderSummary() {
             currentOrderList.innerHTML = '';
             let total = 0;
@@ -1487,7 +1491,7 @@
 
                 generateKitchenReceipt(itemsToPrintForKitchen.filter(item => item.qty > 0)); // Pass only newly added items to kitchen receipt, filter out zero qty
                 alert(`Order for Table #${currentTableNumber} sent to kitchen!`);
-                
+
                 // Automatically go back to tables after sending to kitchen
                 backToTables();
                 resetIdleTimer(); // Reset timer after sending to kitchen and going back to tables
@@ -1509,7 +1513,7 @@
                 <hr>
                 <h3>ITEMS:</h3>
             `;
-            
+
             itemsToPrint.forEach(orderItem => { // Use the passed items for kitchen receipt
                 receiptContent += `
                     <div class="receipt-item">
@@ -1534,7 +1538,7 @@
         function cancelOrder() {
             if (confirm('Are you sure you want to cancel the order for this table? This will remove ALL items previously sent AND currently selected for this table.')) {
                 // Clear order for current table and remove it from active orders
-                delete activeOrders[currentTableNumber]; 
+                delete activeOrders[currentTableNumber];
                 currentOrder = []; // Clear the temporary order as well
                 saveToLocalStorage();
                 updateOrderSummary();
@@ -1570,13 +1574,14 @@
 
             if (tableNumbers.length === 0) {
                 noActiveTablesMessage.style.display = 'block';
-            } else {
+            }
+            else {
                 noActiveTablesMessage.style.display = 'none';
                 tableNumbers.forEach(tableNum => {
                     const tableCard = document.createElement('div');
                     tableCard.classList.add('active-table-card');
                     // Add an event listener to the entire card
-                    tableCard.addEventListener('click', () => startOrder(tableNum)); 
+                    tableCard.addEventListener('click', () => startOrder(tableNum));
                     tableCard.innerHTML = `
                         <span>Table ${tableNum}</span>
                         <div>
@@ -1688,13 +1693,13 @@
             // If there's an ongoing order from a previous session, resume it
             if (currentTableNumber !== null && (activeOrders[currentTableNumber] || []).length > 0) {
                 // Ensure currentOrder reflects the full state of activeOrders[currentTableNumber]
-                currentOrder = JSON.parse(JSON.stringify(activeOrders[currentTableNumber])); 
-                
+                currentOrder = JSON.parse(JSON.stringify(activeOrders[currentTableNumber]));
+
                 tableInputScreen.style.display = 'none';
                 orderScreen.style.display = 'flex';
                 currentTableDisplay.textContent = currentTableNumber;
                 document.getElementById('order-screen-title').textContent = `Take Order for Table #${currentTableNumber}`;
-                
+
                 updateOrderSummary();
                 renderOrderableItems(); // This will mark already-ordered items as selected
                 if (categories.length > 0) {
