@@ -1,0 +1,1722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced POS System</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- JsBarcode CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        /* Using a monospace font for receipts to mimic thermal printer output */
+        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c; /* Dark background */
+            color: #e2e8f0; /* Light text */
+        }
+        /* Override Tailwind for specific dark theme elements */
+        .bg-gray-800 { background-color: #2d3748; } /* Slightly lighter dark for sections */
+        .bg-gray-900 { background-color: #1a202c; } /* Body background */
+        .text-gray-100 { color: #f7fafc; }
+        .text-gray-200 { color: #edf2f7; }
+        .text-gray-300 { color: #e2e8f0; }
+        .text-gray-400 { color: #cbd5e0; }
+        .text-gray-500 { color: #a0aec0; }
+        .border-gray-200 { border-color: #4a5568; } /* Darker borders */
+        .border-gray-300 { border-color: #4a5568; }
+        .border-gray-600 { border-color: #4a5568; }
+        .border-gray-700 { border-color: #4a5568; }
+        .placeholder-gray-400::placeholder { color: #a0aec0; } /* Placeholder color */
+
+        input, select, textarea {
+            background-color: #2d3748; /* Darker input background */
+            color: #e2e8f0; /* Light text in inputs */
+            border-color: #4a5568;
+        }
+        input:focus, select:focus, textarea:focus {
+            border-color: #63b3ed; /* Focus border */
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5); /* Focus ring */
+        }
+
+        table {
+            color: #e2e8f0;
+        }
+        thead {
+            background-color: #2d3748; /* Table header background */
+        }
+        tbody tr:nth-child(even) {
+            background-color: #2d3748; /* Alternate row background */
+        }
+        tbody tr:nth-child(odd) {
+            background-color: #1a202c; /* Alternate row background */
+        }
+        tbody tr:hover {
+            background-color: #4a5568; /* Hover background */
+        }
+
+        /* Tab styling */
+        .tab-button {
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            font-weight: 600;
+            border-top-left-radius: 0.5rem;
+            border-top-right-radius: 0.5rem;
+            transition: all 0.2s ease-in-out;
+            background-color: #2d3748;
+            color: #a0aec0;
+            border-bottom: 3px solid transparent;
+        }
+        .tab-button.active {
+            background-color: #4a5568; /* Active tab background */
+            color: #f7fafc; /* Active tab text */
+            border-bottom-color: #63b3ed; /* Active tab indicator */
+            position: relative; /* For z-index */
+            z-index: 10; /* Bring to front of border */
+            box-shadow: 0 -4px 6px rgba(0,0,0,0.2); /* Subtle lift */
+        }
+        .tab-content {
+            display: none; /* Default hidden state (Tailwind's hidden class provides this) */
+            padding: 1.5rem;
+            background-color: #2d3748; /* Tab content background */
+            border-bottom-left-radius: 0.75rem;
+            border-bottom-right-radius: 0.75rem;
+            border-top-right-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            min-height: 400px; /* Ensure visible height even if content is small */
+        }
+        .tab-content.active {
+            display: flex; /* Show active tab (overrides hidden) */
+        }
+
+        /* Custom styles for print media (optimized for 80mm receipt printer) */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #receipt-print-area, #receipt-print-area * {
+                visibility: visible;
+                color: #000 !important; /* Force black text for print */
+                font-family: 'Roboto Mono', monospace !important; /* Monospace font for receipt */
+            }
+            #receipt-print-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 78mm; /* Approx 3.15 inches for 80mm printer */
+                padding: 5mm; /* Reduced padding for compact receipt */
+                box-sizing: border-box;
+                font-size: 11px; /* Smaller base font for receipts */
+                line-height: 1.4; /* Slightly more space for readability */
+                background-color: #fff !important; /* Force white background */
+            }
+            #receipt-print-area h2 {
+                text-align: center;
+                font-size: 1.5em; /* Larger store name */
+                margin-bottom: 5px;
+                color: #000 !important;
+                font-weight: bold;
+                text-transform: uppercase;
+            }
+            #receipt-print-area h3 {
+                text-align: center;
+                font-size: 1.1em;
+                margin-bottom: 3px;
+                color: #000 !important;
+                font-weight: bold;
+            }
+            #receipt-print-area h4 {
+                text-align: center;
+                font-size: 1em;
+                margin-bottom: 5px;
+                color: #000 !important;
+                font-weight: bold;
+                text-decoration: underline;
+            }
+            #receipt-print-area p {
+                font-size: 0.95em;
+                line-height: 1.3;
+                margin-bottom: 2px;
+                color: #000 !important;
+            }
+            #receipt-logo {
+                max-width: 60mm; /* Max width for logo to fit 80mm receipt */
+                height: auto;
+                margin: 0 auto 10px auto;
+                display: block;
+            }
+            .receipt-header, .receipt-footer, .receipt-totals, .receipt-barcode, .receipt-recommended-discounts {
+                margin-bottom: 5mm; /* Spacing between sections */
+            }
+            .dashed-line {
+                border-bottom: 1px dashed #000;
+                margin: 5px 0; /* Space around dashed lines */
+            }
+            table.receipt-items {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 5px 0;
+            }
+            table.receipt-items th, table.receipt-items td {
+                padding: 2px 0;
+                color: #000 !important;
+                border-bottom: none; /* Remove default table borders */
+            }
+            table.receipt-items th {
+                font-weight: bold;
+                padding-bottom: 5px;
+            }
+            /* Explicit alignment for receipt item table */
+            table.receipt-items th:nth-child(1),
+            table.receipt-items td:nth-child(1) {
+                text-align: left; /* Item Name */
+            }
+            table.receipt-items th:nth-child(2),
+            table.receipt-items td:nth-child(2) {
+                text-align: right; /* Price */
+            }
+
+            .receipt-totals div {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 3px;
+                font-size: 1.1em;
+            }
+            .receipt-totals h3 {
+                margin-top: 5px;
+                padding-top: 5px;
+                border-top: 2px solid #000; /* Strong line before grand total */
+                font-size: 1.3em;
+            }
+            .receipt-totals span {
+                font-weight: bold;
+            }
+            .receipt-barcode {
+                text-align: center;
+            }
+            .receipt-barcode svg {
+                max-width: 100%;
+                height: 40px;
+                margin-top: 5px;
+                display: block;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            .receipt-recommended-discounts .discount-item {
+                text-align: center;
+                margin-bottom: 8px;
+            }
+            .receipt-recommended-discounts .discount-item p {
+                margin-bottom: 2px;
+                font-size: 0.9em;
+                font-weight: bold;
+            }
+            .receipt-recommended-discounts .discount-item svg {
+                max-width: 90%;
+                height: 35px;
+                margin-top: 2px;
+                display: block;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            .receipt-footer {
+                text-align: center;
+                font-size: 1em;
+                margin-top: 10mm;
+            }
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+    <header class="bg-blue-800 text-white p-4 shadow-md">
+        <h1 class="text-3xl font-bold text-center">Advanced POS System</h1>
+    </header>
+
+    <main class="flex flex-1 flex-col p-4 gap-4 max-w-7xl mx-auto w-full">
+        <!-- Tabs Navigation -->
+        <div class="flex tab-buttons-container mb-4">
+            <button class="tab-button active" data-tab="sales">Sales Terminal</button>
+            <button class="tab-button" data-tab="products">Product & Coupon Management</button>
+            <button class="tab-button" data-tab="receipts">Receipts History</button>
+            <button class="tab-button" data-tab="settings">Settings</button>
+        </div>
+
+        <!-- Tab Content Containers -->
+        <!-- Sales Terminal Tab -->
+        <section id="sales-tab-content" class="tab-content active flex-col flex-1 rounded-xl shadow-lg border border-blue-600">
+            <h2 class="text-2xl font-semibold mb-4 text-gray-100">Sales Terminal</h2>
+
+            <!-- Barcode Scanner Input -->
+            <div class="mb-4">
+                <label for="barcode-scanner-input" class="block text-sm font-medium text-gray-300 mb-1">Scan Barcode / Enter Product Barcode</label>
+                <input type="text" id="barcode-scanner-input" placeholder="Scan barcode or type product barcode and press Enter"
+                       class="w-full p-3 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400">
+            </div>
+
+            <!-- Cart Display -->
+            <div class="flex-1 overflow-auto mb-4 border border-gray-600 rounded-lg">
+                <table class="min-w-full divide-y divide-gray-600">
+                    <thead class="bg-gray-700 sticky top-0">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Product</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">Price</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cart-items" class="bg-gray-800 divide-y divide-gray-700">
+                        <!-- Cart items will be dynamically added here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Coupon Input -->
+            <div class="mb-4 pt-4 border-t border-gray-700">
+                <h3 class="text-xl font-medium mb-3 text-gray-200">Apply Coupon</h3>
+                <div class="flex gap-2">
+                    <input type="text" id="coupon-code-input" placeholder="Enter coupon code"
+                           class="flex-1 p-3 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-400">
+                    <button id="apply-coupon-button"
+                            class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">
+                        Apply
+                    </button>
+                </div>
+                <p id="coupon-status" class="mt-2 text-sm text-gray-400"></p>
+            </div>
+
+            <!-- Totals and Checkout -->
+            <div class="mt-auto pt-4 border-t border-gray-700">
+                <div class="flex justify-between items-center text-lg font-bold text-gray-100 mb-2">
+                    <span>Subtotal:</span>
+                    <span id="subtotal-display">$0.00</span>
+                </div>
+                 <div id="discount-display-row" class="flex justify-between items-center text-lg font-bold text-red-400 mb-2 hidden">
+                    <span>Discount:</span>
+                    <span id="discount-display">-$0.00</span>
+                </div>
+                <div id="tax-display-row" class="flex justify-between items-center text-lg font-bold text-gray-100 mb-2">
+                    <span>Tax (<span id="tax-rate-display">8.00</span>%):</span>
+                    <span id="tax-display">$0.00</span>
+                </div>
+                <div class="flex justify-between items-center text-xl font-bold text-gray-100">
+                    <span>Grand Total:</span>
+                    <span id="grand-total-display" class="text-blue-400">$0.00</span>
+                </div>
+                <button id="checkout-button"
+                        class="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg shadow-lg transition duration-300 ease-in-out">
+                    Checkout & Print Receipt
+                </button>
+            </div>
+        </section>
+
+        <!-- Product & Coupon Management Tab -->
+        <section id="products-tab-content" class="tab-content hidden flex-col flex-1 rounded-xl shadow-lg border border-purple-600">
+            <h2 class="text-2xl font-semibold mb-4 text-gray-100">Product & Coupon Management</h2>
+
+            <!-- Product Management Section -->
+            <div class="mb-8 border-b pb-4 border-gray-700">
+                <h3 class="text-xl font-medium mb-3 text-gray-200">Manage Products</h3>
+                <!-- Add Product Form -->
+                <div class="mb-6">
+                    <h4 class="text-lg font-medium mb-2 text-gray-300">Add New Product</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="new-product-barcode" class="block text-sm font-medium text-gray-300">Product Barcode (Unique)</label>
+                            <input type="text" id="new-product-barcode" required placeholder="e.g., 1234567890"
+                                   class="mt-1 block w-full p-2 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 placeholder-gray-400">
+                        </div>
+                        <div>
+                            <label for="new-product-name" class="block text-sm font-medium text-gray-300">Product Name</label>
+                            <input type="text" id="new-product-name" required placeholder="e.g., Laptop"
+                                   class="mt-1 block w-full p-2 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 placeholder-gray-400">
+                        </div>
+                        <div>
+                            <label for="new-product-price" class="block text-sm font-medium text-gray-300">Price ($)</label>
+                            <input type="number" id="new-product-price" step="0.01" required placeholder="e.g., 1200.00"
+                                   class="mt-1 block w-full p-2 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 placeholder-gray-400">
+                        </div>
+                    </div>
+                    <button id="add-product-button"
+                            class="w-full mt-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">
+                        Add Product
+                    </button>
+                </div>
+
+                <!-- Existing Products List -->
+                <div>
+                    <h4 class="text-lg font-medium mb-3 text-gray-300">Existing Products</h4>
+                    <div class="overflow-y-auto max-h-80 border border-gray-600 rounded-lg">
+                        <table class="min-w-full divide-y divide-gray-700">
+                            <thead class="bg-gray-700 sticky top-0">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Barcode</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Name</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Price</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="product-list" class="bg-gray-800 divide-y divide-gray-700">
+                                <!-- Products will be dynamically added here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Coupon Management Section -->
+            <div>
+                <h3 class="text-xl font-medium mb-3 text-gray-200">Manage Coupons</h3>
+                <!-- Add Coupon Form -->
+                <div class="mb-6">
+                    <h4 class="text-lg font-medium mb-2 text-gray-300">Add New Coupon</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="new-coupon-code" class="block text-sm font-medium text-gray-300">Coupon Code (Auto-Generated)</label>
+                            <div class="flex gap-2">
+                                <input type="text" id="new-coupon-code" readonly
+                                    class="flex-1 p-2 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-400">
+                                <button id="generate-coupon-code-button"
+                                        class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-3 rounded-lg shadow-md transition duration-300 ease-in-out text-sm">
+                                    Generate
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="new-coupon-title" class="block text-sm font-medium text-gray-300">Coupon Title (For Receipt)</label>
+                            <input type="text" id="new-coupon-title" required placeholder="e.g., 10% Off Your Next Order"
+                                   class="mt-1 block w-full p-2 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-400">
+                        </div>
+                        <div>
+                            <label for="new-coupon-application-type" class="block text-sm font-medium text-gray-300">Application Type</label>
+                            <select id="new-coupon-application-type"
+                                    class="mt-1 block w-full p-2 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500">
+                                <option value="full-total">Full Total</option>
+                                <option value="min-purchase">Minimum Purchase</option>
+                                <option value="by-product">By Product</option>
+                            </select>
+                        </div>
+                         <div id="min-purchase-amount-div" class="hidden">
+                            <label for="new-coupon-min-purchase-amount" class="block text-sm font-medium text-gray-300">Minimum Purchase Amount ($)</label>
+                            <input type="number" id="new-coupon-min-purchase-amount" step="0.01" placeholder="e.g., 50.00"
+                                   class="mt-1 block w-full p-2 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-400">
+                        </div>
+                        <div id="target-product-barcode-div" class="hidden">
+                            <label for="new-coupon-target-product-barcode" class="block text-sm font-medium text-gray-300">Target Product Barcode</label>
+                            <input type="text" id="new-coupon-target-product-barcode" placeholder="e.g., 1000000001"
+                                   class="mt-1 block w-full p-2 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-400">
+                        </div>
+                        <div>
+                            <label for="new-coupon-type" class="block text-sm font-medium text-gray-300">Discount Type</label>
+                            <select id="new-coupon-type"
+                                    class="mt-1 block w-full p-2 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500">
+                                <option value="percentage">Percentage (%)</option>
+                                <option value="fixed">Fixed Amount ($)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="new-coupon-value" class="block text-sm font-medium text-gray-300">Discount Value</label>
+                            <input type="number" id="new-coupon-value" step="0.01" required placeholder="e.g., 10 (for 10% or $10)"
+                                   class="mt-1 block w-full p-2 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-400">
+                        </div>
+                    </div>
+                    <button id="add-coupon-button"
+                            class="w-full mt-4 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">
+                        Add Coupon
+                    </button>
+                </div>
+
+                <!-- Existing Coupons List -->
+                <div>
+                    <h4 class="text-lg font-medium mb-3 text-gray-300">Existing Coupons</h4>
+                    <div class="overflow-y-auto max-h-80 border border-gray-600 rounded-lg">
+                        <table class="min-w-full divide-y divide-gray-700">
+                            <thead class="bg-gray-700 sticky top-0">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Code</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Title</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">App Type</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Disc. Type</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Value</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="coupon-list" class="bg-gray-800 divide-y divide-gray-700">
+                                <!-- Coupons will be dynamically added here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Receipts History Tab -->
+        <section id="receipts-tab-content" class="tab-content hidden flex-col flex-1 rounded-xl shadow-lg border border-green-600">
+            <h2 class="text-2xl font-semibold mb-4 text-gray-100">Receipts History</h2>
+            <div id="receipts-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-y-auto max-h-screen">
+                <!-- Receipts will be dynamically loaded here -->
+                <p id="no-receipts-message" class="col-span-full text-center text-gray-400">No receipts yet. Complete a sale to see receipts here.</p>
+            </div>
+             <!-- Modal for viewing historical receipt -->
+            <div id="historical-receipt-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden">
+                <div class="bg-gray-800 p-6 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto relative border border-gray-700">
+                    <button id="close-historical-receipt-modal" class="absolute top-3 right-3 text-gray-400 hover:text-gray-100 text-3xl font-bold">&times;</button>
+                    <div id="historical-receipt-content" class="text-gray-100">
+                        <!-- Historical receipt details will be loaded here -->
+                    </div>
+                     <button id="print-historical-receipt"
+                            class="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg shadow-lg transition duration-300 ease-in-out">
+                        Print This Receipt
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Settings Tab -->
+        <section id="settings-tab-content" class="tab-content hidden flex-col flex-1 rounded-xl shadow-lg border border-yellow-600">
+            <h2 class="text-2xl font-semibold mb-4 text-gray-100">Settings</h2>
+
+            <!-- Store Information -->
+            <div class="mb-6 border-b pb-4 border-gray-700">
+                <h3 class="text-xl font-medium mb-3 text-gray-200">Store Information</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="store-name" class="block text-sm font-medium text-gray-300">Store Name</label>
+                        <input type="text" id="store-name" placeholder="e.g., My Awesome Store"
+                               class="mt-1 block w-full p-2 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400">
+                    </div>
+                    <div>
+                        <label for="store-address" class="block text-sm font-medium text-gray-300">Store Address</label>
+                        <input type="text" id="store-address" placeholder="e.g., 123 Main St, Anytown"
+                               class="mt-1 block w-full p-2 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400">
+                    </div>
+                     <div>
+                        <label for="store-phone" class="block text-sm font-medium text-gray-300">Phone Number</label>
+                        <input type="tel" id="store-phone" placeholder="e.g., (123) 456-7890"
+                               class="mt-1 block w-full p-2 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400">
+                    </div>
+                    <div>
+                        <label for="store-website" class="block text-sm font-medium text-gray-300">Website/Email</label>
+                        <input type="text" id="store-website" placeholder="e.g., www.mystore.com or info@mystore.com"
+                               class="mt-1 block w-full p-2 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Store Logo Upload -->
+            <div class="mb-6 pb-4">
+                <h3 class="text-xl font-medium mb-3 text-gray-200">Store Logo</h3>
+                <label for="logo-file-input" class="block text-sm font-medium text-gray-300 mb-1">Upload Logo Image:</label>
+                <input type="file" id="logo-file-input" accept="image/*" class="hidden">
+                <button id="upload-logo-button"
+                        class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">
+                    Upload Logo
+                </button>
+                <p class="text-sm text-gray-400 mt-2">Upload an image file. Max size 500KB recommended for receipts.</p>
+                <div class="mt-4">
+                    <p class="text-gray-300">Current Logo Preview:</p>
+                    <img id="current-logo-preview" src="" alt="Current Logo" class="max-w-[150px] mt-2 rounded-lg shadow-md">
+                </div>
+                <button id="save-settings-button"
+                        class="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">
+                    Save All Settings
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Receipt Print Area (hidden by default, used for both current and historical printing) -->
+    <div id="receipt-print-area" class="hidden fixed top-0 left-0 w-full h-full bg-white z-50 p-4 overflow-auto">
+        <!-- Receipt content will be dynamically generated here for printing -->
+    </div>
+
+    <!-- Message Box for user feedback -->
+    <div id="message-box" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-800 p-6 rounded-lg shadow-xl max-w-sm w-full text-center border border-gray-700">
+            <p id="message-content" class="text-lg font-medium text-gray-100 mb-4"></p>
+            <button id="message-ok-button" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-300 ease-in-out">OK</button>
+        </div>
+    </div>
+
+
+    <script>
+        // --- Local Storage Keys (Constants) ---
+        const LOCAL_STORAGE_KEYS = {
+            PRODUCTS: 'pos_products',
+            COUPONS: 'pos_coupons',
+            RECEIPTS: 'pos_receipts',
+            SETTINGS: 'pos_settings'
+        };
+
+        // Global variables for products, cart, receipts, coupons and store settings
+        let products = [];
+        let cart = []; // Cart items will store barcode, name, price, quantity, subtotal
+        let receipts = [];
+        let coupons = [];
+        let appliedCoupon = null; // Stores the currently applied coupon for the transaction
+        const TAX_RATE = 0.08; // 8% tax rate
+        const NUM_RECOMMENDED_COUPONS_TO_DISPLAY = 5; // Exactly 5 recommended coupons
+
+        let storeSettings = {
+            storeName: 'Your Store Name',
+            storeAddress: '123 Main St, Anytown, USA',
+            storePhone: '(123) 456-7890',
+            storeWebsite: 'www.yourstore.com',
+            logoUrl: 'https://placehold.co/150x50/1e40af/ffffff?text=Your+Logo' // Default placeholder logo
+        };
+
+        // --- DOM Elements ---
+        // Tab Navigation
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        // Sales Terminal
+        const barcodeScannerInput = document.getElementById('barcode-scanner-input');
+        const cartItemsBody = document.getElementById('cart-items');
+        const subtotalDisplay = document.getElementById('subtotal-display');
+        const grandTotalDisplay = document.getElementById('grand-total-display');
+        const discountDisplayRow = document.getElementById('discount-display-row');
+        const discountDisplay = document.getElementById('discount-display');
+        const taxRateDisplay = document.getElementById('tax-rate-display'); // For displaying the tax rate
+        const taxDisplay = document.getElementById('tax-display'); // For displaying the calculated tax
+        const checkoutButton = document.getElementById('checkout-button');
+        const couponCodeInput = document.getElementById('coupon-code-input');
+        const applyCouponButton = document.getElementById('apply-coupon-button');
+        const couponStatus = document.getElementById('coupon-status');
+
+        // Product Management
+        const newProductBarcodeInput = document.getElementById('new-product-barcode');
+        const newProductNameInput = document.getElementById('new-product-name');
+        const newProductPriceInput = document.getElementById('new-product-price');
+        const addProductButton = document.getElementById('add-product-button');
+        const productListBody = document.getElementById('product-list');
+
+        // Coupon Management
+        const newCouponCodeInput = document.getElementById('new-coupon-code');
+        const generateCouponCodeButton = document.getElementById('generate-coupon-code-button'); // New button
+        const newCouponTitleInput = document.getElementById('new-coupon-title');
+        const newCouponApplicationTypeSelect = document.getElementById('new-coupon-application-type'); // New application type select
+        const minPurchaseAmountDiv = document.getElementById('min-purchase-amount-div');
+        const newCouponMinPurchaseAmountInput = document.getElementById('new-coupon-min-purchase-amount');
+        const targetProductBarcodeDiv = document.getElementById('target-product-barcode-div');
+        const newCouponTargetProductBarcodeInput = document.getElementById('new-coupon-target-product-barcode');
+        const newCouponTypeSelect = document.getElementById('new-coupon-type');
+        const newCouponValueInput = document.getElementById('new-coupon-value');
+        const addCouponButton = document.getElementById('add-coupon-button');
+        const couponListBody = document.getElementById('coupon-list');
+
+        // Receipts History
+        const receiptsListDiv = document.getElementById('receipts-list');
+        const noReceiptsMessage = document.getElementById('no-receipts-message');
+        const historicalReceiptModal = document.getElementById('historical-receipt-modal');
+        const historicalReceiptContent = document.getElementById('historical-receipt-content');
+        const closeHistoricalReceiptModalBtn = document.getElementById('close-historical-receipt-modal');
+        const printHistoricalReceiptBtn = document.getElementById('print-historical-receipt');
+
+        // Settings
+        const storeNameInput = document.getElementById('store-name');
+        const storeAddressInput = document.getElementById('store-address');
+        const storePhoneInput = document.getElementById('store-phone');
+        const storeWebsiteInput = document.getElementById('store-website');
+        const logoFileInput = document.getElementById('logo-file-input'); // File input for logo
+        const uploadLogoButton = document.getElementById('upload-logo-button'); // Button to trigger file input
+        const currentLogoPreview = document.getElementById('current-logo-preview');
+        const saveSettingsButton = document.getElementById('save-settings-button');
+
+        // Global Utility
+        const receiptPrintArea = document.getElementById('receipt-print-area');
+        const messageBox = document.getElementById('message-box');
+        const messageContent = document.getElementById('message-content');
+        const messageOkButton = document.getElementById('message-ok-button');
+
+        // --- Local Storage Functions ---
+
+        /**
+         * Saves current state of data (products, coupons, receipts, settings) to local storage.
+         */
+        function saveData() {
+            try {
+                localStorage.setItem(LOCAL_STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
+                localStorage.setItem(LOCAL_STORAGE_KEYS.COUPONS, JSON.stringify(coupons));
+                localStorage.setItem(LOCAL_STORAGE_KEYS.RECEIPTS, JSON.stringify(receipts));
+                localStorage.setItem(LOCAL_STORAGE_KEYS.SETTINGS, JSON.stringify(storeSettings));
+            } catch (e) {
+                console.error("Error saving to local storage:", e);
+                showMessageBox("Error: Could not save data to your browser. Please check storage limits or browser settings.");
+            }
+        }
+
+        /**
+         * Loads data from local storage into global variables. Adds sample data if storage is empty.
+         */
+        function loadData() {
+            try {
+                const storedProducts = localStorage.getItem(LOCAL_STORAGE_KEYS.PRODUCTS);
+                if (storedProducts) {
+                    products = JSON.parse(storedProducts);
+                } else {
+                    addSampleProducts();
+                }
+
+                const storedCoupons = localStorage.getItem(LOCAL_STORAGE_KEYS.COUPONS);
+                if (storedCoupons) {
+                    // Important: Ensure old coupon data without new fields get defaults
+                    coupons = JSON.parse(storedCoupons).map(coupon => ({
+                        ...coupon,
+                        title: coupon.title || `${coupon.type === 'percentage' ? coupon.value + '%' : '$' + coupon.value.toFixed(2)} Off`,
+                        applicationType: coupon.applicationType || 'full-total', // Default for old coupons
+                        minPurchaseAmount: coupon.minPurchaseAmount || 0, // Default to 0
+                        targetProductBarcode: coupon.targetProductBarcode || '' // Default to empty string
+                    }));
+                } else {
+                    addSampleCoupons();
+                }
+
+                const storedReceipts = localStorage.getItem(LOCAL_STORAGE_KEYS.RECEIPTS);
+                if (storedReceipts) {
+                    // Ensure historical receipts have recommendedDiscounts array, even if empty, for consistent handling
+                    receipts = JSON.parse(storedReceipts).map(receipt => ({
+                        ...receipt,
+                        recommendedDiscounts: receipt.recommendedDiscounts || [] // Default to empty array for old receipts
+                    }));
+                }
+
+                const storedSettings = localStorage.getItem(LOCAL_STORAGE_KEYS.SETTINGS);
+                if (storedSettings) {
+                    // Merge loaded settings with default, so new properties in defaults don't break old data
+                    storeSettings = { ...storeSettings, ...JSON.parse(storedSettings) };
+                }
+            } catch (e) {
+                console.error("Error loading from local storage:", e);
+                showMessageBox("Error: Could not load saved data. Starting with fresh data. Please check storage limits or browser settings.");
+                // Reset to defaults if load fails
+                products = [];
+                coupons = [];
+                receipts = [];
+                storeSettings = {
+                    storeName: 'Your Store Name', storeAddress: '123 Main St, Anytown, USA',
+                    storePhone: '(123) 456-7890', storeWebsite: 'www.yourstore.com',
+                    logoUrl: 'https://placehold.co/150x50/1e40af/ffffff?text=Your+Logo'
+                };
+                addSampleProducts();
+                addSampleCoupons();
+            }
+        }
+
+        // --- Utility Functions ---
+
+        /**
+         * Displays a custom message box to the user.
+         * @param {string} message - The message to display.
+         */
+        function showMessageBox(message) {
+            messageContent.textContent = message;
+            messageBox.classList.remove('hidden');
+        }
+
+        /**
+         * Hides the custom message box.
+         */
+        function hideMessageBox() {
+            messageBox.classList.add('hidden');
+        }
+
+        /**
+         * Switches between tabs based on the clicked button.
+         * @param {string} tabId - The ID of the tab content to show.
+         */
+        function switchTab(tabId) {
+            tabButtons.forEach(button => {
+                if (button.dataset.tab === tabId) {
+                    button.classList.add('active');
+                } else {
+                    button.classList.remove('active');
+                }
+            });
+
+            tabContents.forEach(content => {
+                // First, explicitly hide all tab contents by adding 'hidden'
+                content.classList.add('hidden');
+                content.classList.remove('active'); // Ensure active class is also removed for content
+            });
+
+            // Then, show only the selected tab content by removing 'hidden'
+            const selectedTabContent = document.getElementById(`${tabId}-tab-content`);
+            if (selectedTabContent) {
+                selectedTabContent.classList.remove('hidden');
+                selectedTabContent.classList.add('active'); // Add active class to content
+
+                // Special rendering/loading for specific tabs when they become active
+                if (tabId === 'products') {
+                    renderProductList();
+                    renderCouponList();
+                    // Generate initial code when products tab is opened
+                    if (!newCouponCodeInput.value) { // Only generate if empty
+                        newCouponCodeInput.value = generate30DigitCode();
+                    }
+                    newCouponApplicationTypeSelect.dispatchEvent(new Event('change')); // Trigger initial visibility
+                } else if (tabId === 'receipts') {
+                    renderReceiptsHistory();
+                } else if (tabId === 'settings') {
+                    loadSettingsIntoForm();
+                }
+            }
+        }
+
+        /**
+         * Generates a random 9-digit number as a string.
+         * @returns {string} A 9-digit number string.
+         */
+        function generateRandomBarcodeNumber() {
+            // Generates a number between 100,000,000 and 999,999,999
+            return Math.floor(100000000 + Math.random() * 900000000).toString();
+        }
+
+        /**
+         * Generates a random 30-digit number as a string.
+         * @returns {string} A 30-digit number string.
+         */
+        function generate30DigitCode() {
+            let code = '';
+            for (let i = 0; i < 30; i++) {
+                code += Math.floor(Math.random() * 10); // Append a random digit (0-9)
+            }
+            return code;
+        }
+
+        // --- Product Management Functions ---
+
+        /**
+         * Adds initial sample products to the system.
+         */
+        function addSampleProducts() {
+            // Using specific barcodes for samples
+            products.push({ barcode: '1000000000', name: 'Laptop', price: 1200.00 });
+            products.push({ barcode: '1000000001', name: 'Mouse', price: 25.00 });
+            products.push({ barcode: '1000000002', name: 'Keyboard', price: 75.00 });
+            products.push({ barcode: '1000000003', name: 'Monitor', price: 300.00 });
+        }
+
+        /**
+         * Adds a new product to the global products array.
+         * Uses a custom barcode as its ID.
+         * @param {string} barcode - The unique barcode for the product.
+         * @param {string} name - The name of the product.
+         * @param {number} price - The price of the product.
+         * @returns {boolean} True if product was added, false if barcode exists.
+         */
+        function addProduct(barcode, name, price) {
+            if (products.some(p => p.barcode === barcode)) {
+                showMessageBox('Error: Product with this barcode already exists!');
+                return false;
+            }
+            products.push({ barcode, name, price: parseFloat(price.toFixed(2)) });
+            renderProductList();
+            saveData(); // Save changes to local storage
+            return true;
+        }
+
+        /**
+         * Renders (or re-renders) the list of available products in the product management section.
+         */
+        function renderProductList() {
+            productListBody.innerHTML = ''; // Clear existing list
+            products.forEach(product => {
+                const row = productListBody.insertRow();
+                row.className = 'hover:bg-gray-700';
+                row.insertCell().textContent = product.barcode;
+                row.insertCell().textContent = product.name;
+                row.insertCell().textContent = `$${product.price.toFixed(2)}`;
+                const actionsCell = row.insertCell();
+                actionsCell.className = 'flex gap-2 py-2';
+
+                const addToCartButton = document.createElement('button');
+                addToCartButton.textContent = 'Add to Cart';
+                addToCartButton.className = 'bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold py-1 px-2 rounded-lg';
+                addToCartButton.onclick = () => addProductToCart(product.barcode);
+                actionsCell.appendChild(addToCartButton);
+
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Delete';
+                deleteButton.className = 'bg-red-500 hover:bg-red-600 text-white text-xs font-semibold py-1 px-2 rounded-lg';
+                deleteButton.onclick = () => deleteProduct(product.barcode);
+                actionsCell.appendChild(deleteButton);
+            });
+        }
+
+        /**
+         * Deletes a product from the system.
+         * @param {string} productBarcode - The barcode of the product to delete.
+         */
+        function deleteProduct(productBarcode) {
+            products = products.filter(p => p.barcode !== productBarcode);
+            renderProductList();
+            cart = cart.filter(item => item.barcode !== productBarcode); // Also remove from cart
+            updateCartDisplay();
+            saveData(); // Save changes to local storage
+            showMessageBox(`Product with barcode ${productBarcode} deleted.`);
+        }
+
+        // --- Coupon Management Functions ---
+
+        /**
+         * Adds initial sample coupons to the system.
+         */
+        function addSampleCoupons() {
+            coupons.push({ code: generate30DigitCode(), title: '10% Off Your Next Order', applicationType: 'full-total', type: 'percentage', value: 10 });
+            coupons.push({ code: generate30DigitCode(), title: '$5 Off Any Purchase', applicationType: 'full-total', type: 'fixed', value: 5 });
+            coupons.push({ code: generate30DigitCode(), title: '$10 Off $50+ Purchase', applicationType: 'min-purchase', minPurchaseAmount: 50, type: 'fixed', value: 10 });
+            coupons.push({ code: generate30DigitCode(), title: '20% Off when buying a Laptop', applicationType: 'by-product', targetProductBarcode: '1000000000', type: 'percentage', value: 20 });
+            coupons.push({ code: generate30DigitCode(), title: 'Free Shipping Code', applicationType: 'full-total', type: 'fixed', value: 0 }); // Free shipping, could be handled separately
+            coupons.push({ code: generate30DigitCode(), title: '20% Off Holiday Items', applicationType: 'full-total', type: 'percentage', value: 20 });
+            // Add a few more to ensure we have enough for 5 recommendations
+            for (let i = 0; i < 5; i++) {
+                coupons.push({ code: generate30DigitCode(), title: `Special Offer ${i + 1}`, applicationType: 'full-total', type: 'percentage', value: 5 + i });
+            }
+        }
+
+        /**
+         * Adds a new coupon to the global coupons array.
+         * @param {Object} couponData - Object containing coupon details.
+         * @returns {boolean} True if coupon was added, false if code exists.
+         */
+        function addCoupon(couponData) {
+            if (coupons.some(c => c.code === couponData.code)) {
+                showMessageBox('Error: Coupon with this code already exists!');
+                return false;
+            }
+            coupons.push(couponData);
+            renderCouponList();
+            saveData(); // Save changes to local storage
+            return true;
+        }
+
+        /**
+         * Renders (or re-renders) the list of available coupons.
+         */
+        function renderCouponList() {
+            couponListBody.innerHTML = ''; // Clear existing list
+            coupons.forEach(coupon => {
+                const row = couponListBody.insertRow();
+                row.className = 'hover:bg-gray-700';
+                row.insertCell().textContent = coupon.code;
+                row.insertCell().textContent = coupon.title; // Display the custom title
+                row.insertCell().textContent = coupon.applicationType.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '); // Capitalize and space
+                row.insertCell().textContent = coupon.type === 'percentage' ? 'Percentage' : 'Fixed Amount';
+                row.insertCell().textContent = coupon.type === 'percentage' ? `${coupon.value}%` : `$${coupon.value.toFixed(2)}`;
+                const actionsCell = row.insertCell();
+                actionsCell.className = 'flex gap-2 py-2';
+
+                // Delete button
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Delete';
+                deleteButton.className = 'bg-red-500 hover:bg-red-600 text-white text-xs font-semibold py-1 px-2 rounded-lg';
+                deleteButton.onclick = () => deleteCoupon(coupon.code);
+                actionsCell.appendChild(deleteButton);
+            });
+        }
+
+        /**
+         * Deletes a coupon from the system.
+         * @param {string} couponCode - The code of the coupon to delete.
+         */
+        function deleteCoupon(couponCode) {
+            coupons = coupons.filter(c => c.code !== couponCode);
+            renderCouponList();
+            // If the deleted coupon was applied, clear it
+            if (appliedCoupon && appliedCoupon.code === couponCode) {
+                appliedCoupon = null;
+                couponCodeInput.value = '';
+                couponStatus.textContent = '';
+                updateCartDisplay();
+            }
+            saveData(); // Save changes to local storage
+            showMessageBox(`Coupon ${couponCode} deleted.`);
+        }
+
+        // --- Sales Terminal Functions ---
+
+        /**
+         * Adds a product to the cart or updates its quantity if already present.
+         * Uses product barcode for lookup.
+         * @param {string} productBarcode - The barcode of the product to add.
+         */
+        function addProductToCart(productBarcode) {
+            const product = products.find(p => p.barcode === productBarcode);
+            if (!product) {
+                showMessageBox(`Product with barcode "${productBarcode}" not found!`);
+                return;
+            }
+
+            const existingCartItem = cart.find(item => item.barcode === productBarcode);
+            if (existingCartItem) {
+                existingCartItem.quantity++;
+                existingCartItem.subtotal = existingCartItem.quantity * existingCartItem.price;
+            } else {
+                cart.push({
+                    barcode: product.barcode,
+                    name: product.name,
+                    price: product.price,
+                    quantity: 1,
+                    subtotal: product.price
+                });
+            }
+            updateCartDisplay();
+        }
+
+        /**
+         * Updates the quantity of an item in the cart.
+         * @param {string} productBarcode - The barcode of the product.
+         * @param {number} change - The amount to change the quantity by (e.g., 1 or -1).
+         */
+        function updateQuantity(productBarcode, change) {
+            const itemIndex = cart.findIndex(item => item.barcode === productBarcode);
+            if (itemIndex > -1) {
+                cart[itemIndex].quantity += change;
+                if (cart[itemIndex].quantity <= 0) {
+                    cart.splice(itemIndex, 1); // Remove if quantity is 0 or less
+                } else {
+                    cart[itemIndex].subtotal = cart[itemIndex].quantity * cart[itemIndex].price;
+                }
+                updateCartDisplay();
+            }
+        }
+
+        /**
+         * Removes an item completely from the cart.
+         * @param {string} productBarcode - The barcode of the product to remove.
+         */
+        function removeItemFromCart(productBarcode) {
+            cart = cart.filter(item => item.barcode !== productBarcode);
+            updateCartDisplay();
+        }
+
+        /**
+         * Calculates the total cart value and updates the display, including discounts and tax.
+         */
+        function updateCartDisplay() {
+            cartItemsBody.innerHTML = ''; // Clear existing items
+            let currentSubtotal = 0;
+
+            if (cart.length === 0) {
+                const row = cartItemsBody.insertRow();
+                const cell = row.insertCell();
+                cell.colSpan = 3; // Adjusted colspan: Product, Price, Actions
+                cell.textContent = 'Cart is empty.';
+                cell.className = 'text-center py-4 text-gray-500';
+            } else {
+                cart.forEach(item => {
+                    const row = cartItemsBody.insertRow();
+                    row.className = 'hover:bg-gray-700';
+                    row.insertCell().textContent = item.name;
+                    row.insertCell().textContent = `$${item.price.toFixed(2)} x ${item.quantity}`; // Show quantity with price
+                    row.cells[1].classList.add('text-right', 'pr-6'); // Add right alignment to price column
+
+                    const actionsCell = row.insertCell();
+                    actionsCell.className = 'flex gap-2 py-2';
+
+                    const increaseBtn = document.createElement('button');
+                    increaseBtn.textContent = '+';
+                    increaseBtn.className = 'bg-gray-600 hover:bg-gray-500 text-gray-100 text-sm font-bold py-1 px-2 rounded-lg';
+                    increaseBtn.onclick = () => updateQuantity(item.barcode, 1);
+                    actionsCell.appendChild(increaseBtn);
+
+                    const decreaseBtn = document.createElement('button');
+                    decreaseBtn.textContent = '-';
+                    decreaseBtn.className = 'bg-gray-600 hover:bg-gray-500 text-gray-100 text-sm font-bold py-1 px-2 rounded-lg';
+                    decreaseBtn.onclick = () => updateQuantity(item.barcode, -1);
+                    actionsCell.appendChild(decreaseBtn);
+
+                    const removeBtn = document.createElement('button');
+                    removeBtn.textContent = 'Remove';
+                    removeBtn.className = 'bg-red-500 hover:bg-red-600 text-white text-xs font-semibold py-1 px-2 rounded-lg';
+                    removeBtn.onclick = () => removeItemFromCart(item.barcode);
+                    actionsCell.appendChild(removeBtn);
+
+                    currentSubtotal += item.subtotal;
+                });
+            }
+
+            subtotalDisplay.textContent = `$${currentSubtotal.toFixed(2)}`;
+            taxRateDisplay.textContent = `${(TAX_RATE * 100).toFixed(2)}`; // Display tax rate percentage
+
+            let discountAmount = 0;
+            let totalBeforeTax = currentSubtotal;
+
+            if (appliedCoupon) {
+                let canApply = true;
+                let errorMessage = '';
+
+                if (appliedCoupon.applicationType === 'min-purchase') {
+                    if (currentSubtotal < appliedCoupon.minPurchaseAmount) {
+                        canApply = false;
+                        errorMessage = `Coupon requires a minimum purchase of $${appliedCoupon.minPurchaseAmount.toFixed(2)}. Current subtotal is $${currentSubtotal.toFixed(2)}.`;
+                    }
+                } else if (appliedCoupon.applicationType === 'by-product') {
+                    if (!cart.some(item => item.barcode === appliedCoupon.targetProductBarcode)) {
+                        canApply = false;
+                        errorMessage = `Coupon requires product with barcode "${appliedCoupon.targetProductBarcode}" to be in cart.`;
+                    }
+                }
+
+                if (canApply) {
+                    if (appliedCoupon.type === 'percentage') {
+                        discountAmount = totalBeforeTax * (appliedCoupon.value / 100);
+                    } else if (appliedCoupon.type === 'fixed') {
+                        discountAmount = appliedCoupon.value;
+                    }
+                    // Ensure discount doesn't make total negative
+                    totalBeforeTax = Math.max(0, totalBeforeTax - discountAmount);
+
+                    discountDisplay.textContent = `-$${discountAmount.toFixed(2)}`;
+                    discountDisplayRow.classList.remove('hidden');
+                    couponStatus.textContent = `Coupon "${appliedCoupon.code}" applied: ${appliedCoupon.title}.`;
+                    couponStatus.classList.remove('text-red-400');
+                    couponStatus.classList.add('text-green-400');
+                } else {
+                    appliedCoupon = null; // Clear if conditions not met
+                    couponStatus.textContent = errorMessage;
+                    couponStatus.classList.remove('text-green-400');
+                    couponStatus.classList.add('text-red-400');
+                    discountDisplayRow.classList.add('hidden'); // Hide discount if not applied
+                }
+            } else {
+                discountDisplayRow.classList.add('hidden');
+                couponStatus.textContent = '';
+            }
+
+            const taxAmount = totalBeforeTax * TAX_RATE;
+            taxDisplay.textContent = `$${taxAmount.toFixed(2)}`;
+
+            const finalTotal = totalBeforeTax + taxAmount;
+            grandTotalDisplay.textContent = `$${finalTotal.toFixed(2)}`;
+        }
+
+        /**
+         * Applies a coupon to the current transaction.
+         */
+        function applyCoupon() {
+            const code = couponCodeInput.value.trim(); // No toUpperCase() as code is numeric
+            if (!code) {
+                appliedCoupon = null; // Clear if input is empty
+                couponStatus.textContent = '';
+                updateCartDisplay();
+                return;
+            }
+
+            const coupon = coupons.find(c => c.code === code);
+            if (coupon) {
+                appliedCoupon = coupon; // Temporarily set to evaluate conditions
+            } else {
+                appliedCoupon = null; // Clear if not found
+            }
+            updateCartDisplay(); // This will re-evaluate and display status/error
+        }
+
+        // --- Receipt Generation & History Functions ---
+
+        /**
+         * Generates the HTML content for a receipt based on provided data.
+         * This function is used by both `generateReceipt` (for current sale)
+         * and `viewHistoricalReceipt` (for past sales).
+         * @param {Object} receiptData - The data for the receipt.
+         * @param {Array} receiptData.cartItems - Array of cart items for the receipt.
+         * @param {number} receiptData.subtotal - The subtotal amount.
+         * @param {number} receiptData.discountAmount - The discount amount applied.
+         * @param {number} receiptData.totalAfterDiscount - Subtotal minus discount.
+         * @param {number} receiptData.taxAmount - The tax amount.
+         * @param {number} receiptData.finalTotal - The final total amount.
+         * @param {string} receiptData.transactionId - The unique transaction ID.
+         * @param {string} receiptData.timestamp - The timestamp of the transaction.
+         * @param {Object} receiptData.storeInfo - Store information (name, address, etc.).
+         * @param {string} receiptData.storeInfo.logoUrl - URL for the store logo.
+         * @param {Array<Object>} receiptData.recommendedDiscounts - List of recommended coupons to display.
+         * @param {boolean} forPrint - If true, generates content suitable for print.
+         * @returns {string} HTML string of the receipt.
+         */
+        function generateReceiptHtml(receiptData, forPrint = true) {
+            const { storeName, storeAddress, storePhone, storeWebsite, logoUrl } = receiptData.storeInfo;
+            const recommendedDiscounts = receiptData.recommendedDiscounts; // Use the stored recommended discounts
+
+            let receiptHtml = `
+                <div class="receipt-container ${forPrint ? '' : 'bg-gray-800 text-gray-100 p-4 rounded-lg shadow-lg'}">
+                    <div class="receipt-header text-center mb-6">
+                        ${logoUrl ? `<img id="receipt-logo" src="${logoUrl}" onerror="this.onerror=null;this.src='https://placehold.co/150x50/1e40af/ffffff?text=Logo+Not+Found';" alt="Store Logo">` : ''}
+                        <h2>${storeName}</h2>
+                        <p>${storeAddress}</p>
+                        <p>${storePhone} | ${storeWebsite}</p>
+                        <div class="dashed-line"></div>
+                        <p>Date: ${new Date(receiptData.timestamp).toLocaleDateString()}</p>
+                        <p>Time: ${new Date(receiptData.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                        <p class="font-bold">Transaction ID: ${receiptData.transactionId}</p>
+                        <div class="dashed-line"></div>
+                    </div>
+
+                    <table class="receipt-items w-full mb-6">
+                        <thead>
+                            <tr>
+                                <th class="text-left">Item</th>
+                                <th class="text-right">Price</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+            receiptData.cartItems.forEach(item => {
+                receiptHtml += `
+                    <tr>
+                        <td class="text-left">${item.name} x ${item.quantity}</td>
+                        <td class="text-right">$${item.subtotal.toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+
+            receiptHtml += `
+                        </tbody>
+                    </table>
+
+                    <div class="dashed-line"></div>
+
+                    <div class="receipt-totals mb-6">
+                        <div>
+                            <span>Subtotal:</span>
+                            <span>$${receiptData.subtotal.toFixed(2)}</span>
+                        </div>
+                        ${receiptData.discountAmount > 0 ? `
+                            <div class="text-red-600">
+                                <span>Discount:</span>
+                                <span>-$${receiptData.discountAmount.toFixed(2)}</span>
+                            </div>
+                        ` : ''}
+                        <div>
+                            <span>Tax (${(TAX_RATE * 100).toFixed(2)}%):</span>
+                            <span>$${receiptData.taxAmount.toFixed(2)}</span>
+                        </div>
+                        <h3 class="mt-2 pt-2 border-t-2 border-black">
+                            <span>GRAND TOTAL:</span>
+                            <span>$${receiptData.finalTotal.toFixed(2)}</span>
+                        </h3>
+                    </div>
+
+                    <div class="dashed-line"></div>
+
+                    <div class="receipt-barcode text-center mb-6">
+                        <p class="font-bold">Transaction Barcode:</p>
+                        <svg id="receipt-transaction-barcode" class="w-full"></svg>
+                    </div>
+
+                    <div class="dashed-line"></div>
+
+                    `;
+
+            if (recommendedDiscounts && recommendedDiscounts.length > 0) {
+                receiptHtml += `
+                    <div class="receipt-recommended-discounts mb-6">
+                        <h4>Recommended Discounts For You!</h4>
+                `;
+                recommendedDiscounts.forEach((coupon) => {
+                    receiptHtml += `
+                        <div class="discount-item mb-4">
+                            <p>${coupon.title}</p>
+                            <svg id="rec-barcode-${coupon.code}" class="w-full"></svg>
+                        </div>
+                    `;
+                });
+                receiptHtml += `</div><div class="dashed-line"></div>`;
+            }
+
+            // Footer
+            receiptHtml += `
+                <div class="receipt-footer text-center">
+                    <p class="font-bold">Thank you for your purchase!</p>
+                    <p>Please come again!</p>
+                </div>
+                </div>
+            `;
+
+            return receiptHtml;
+        }
+
+        /**
+         * Generates and prints the receipt for the current sale.
+         * Also saves the receipt to history.
+         */
+        function generateReceipt() {
+            if (cart.length === 0) {
+                showMessageBox('Cart is empty. Please add items before checking out.');
+                return;
+            }
+
+            const transactionId = `TXN-${generateRandomBarcodeNumber()}`;
+            const timestamp = new Date().toISOString();
+            const subtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
+            let discountAmount = 0;
+            let totalBeforeTax = subtotal;
+
+            // Re-evaluate discount conditions one last time before finalizing receipt data
+            if (appliedCoupon) {
+                let canApply = true;
+                if (appliedCoupon.applicationType === 'min-purchase') {
+                    if (subtotal < appliedCoupon.minPurchaseAmount) {
+                        canApply = false;
+                    }
+                } else if (appliedCoupon.applicationType === 'by-product') {
+                    if (!cart.some(item => item.barcode === appliedCoupon.targetProductBarcode)) {
+                        canApply = false;
+                    }
+                }
+
+                if (canApply) {
+                    if (appliedCoupon.type === 'percentage') {
+                        discountAmount = subtotal * (appliedCoupon.value / 100);
+                    } else if (appliedCoupon.type === 'fixed') {
+                        discountAmount = appliedCoupon.value;
+                    }
+                    totalBeforeTax = Math.max(0, subtotal - discountAmount);
+                } else {
+                    // If coupon became invalid during checkout, clear it for this receipt
+                    appliedCoupon = null;
+                    discountAmount = 0;
+                }
+            }
+
+            const taxAmount = totalBeforeTax * TAX_RATE;
+            const finalTotal = totalBeforeTax + taxAmount;
+
+            // Select recommended discounts for THIS receipt
+            const availableCouponsForReceipt = [...coupons];
+            const recommendedDiscountsForThisReceipt = [];
+            const numToPickForThisReceipt = Math.min(NUM_RECOMMENDED_COUPONS_TO_DISPLAY, availableCouponsForReceipt.length);
+
+            for (let i = 0; i < numToPickForThisReceipt; i++) {
+                const randomIndex = Math.floor(Math.random() * availableCouponsForReceipt.length);
+                recommendedDiscountsForThisReceipt.push(availableCouponsForReceipt.splice(randomIndex, 1)[0]);
+            }
+
+            const receiptData = {
+                cartItems: JSON.parse(JSON.stringify(cart)), // Deep copy cart items
+                subtotal: subtotal,
+                discountAmount: discountAmount,
+                totalAfterDiscount: totalBeforeTax,
+                taxAmount: taxAmount,
+                finalTotal: finalTotal,
+                transactionId: transactionId,
+                timestamp: timestamp,
+                storeInfo: { ...storeSettings }, // Deep copy store settings
+                appliedCoupon: appliedCoupon ? { ...appliedCoupon } : null, // Copy applied coupon data
+                recommendedDiscounts: recommendedDiscountsForThisReceipt // Store selected recommended discounts
+            };
+
+            // Add receipt to history
+            receipts.unshift(receiptData); // Add to the beginning
+            saveData(); // Save receipts to local storage
+            renderReceiptsHistory(); // Update receipts history view
+
+            // Generate HTML for printing
+            receiptPrintArea.innerHTML = generateReceiptHtml(receiptData, true); // true for print-specific styles
+
+            // Render JsBarcodes for the generated receipt HTML
+            const transactionBarcodeElement = receiptPrintArea.querySelector('#receipt-transaction-barcode');
+            if (transactionBarcodeElement) {
+                try {
+                    JsBarcode(transactionBarcodeElement, transactionId, {
+                        format: "CODE128", // Explicitly Code-128
+                        displayValue: true,
+                        width: 1.5,
+                        height: 50,
+                        margin: 5,
+                        fontSize: 12,
+                        lineColor: "#000", // Ensure black lines for print
+                        background: "#fff" // Ensure white background for print
+                    });
+                } catch (e) {
+                    console.error(`Error generating transaction barcode (${transactionId}):`, e);
+                    transactionBarcodeElement.textContent = `Code: ${transactionId}`;
+                }
+            }
+
+            // Render JsBarcodes for recommended discounts on the generated receipt HTML
+            if (receiptData.recommendedDiscounts && receiptData.recommendedDiscounts.length > 0) {
+                receiptData.recommendedDiscounts.forEach((coupon) => {
+                    const recBarcodeElement = receiptPrintArea.querySelector(`#rec-barcode-${coupon.code}`);
+                    if (recBarcodeElement) {
+                        try {
+                            JsBarcode(recBarcodeElement, coupon.code, { // Use actual coupon code (30-digit)
+                                format: "CODE128", // Explicitly Code-128
+                                displayValue: true,
+                                width: 1.5,
+                                height: 50,
+                                margin: 5,
+                                fontSize: 12,
+                                lineColor: "#000",
+                                background: "#fff"
+                            });
+                        } catch (e) {
+                            console.error(`Error generating recommendation barcode for ${coupon.code}:`, e);
+                            recBarcodeElement.textContent = `Code: ${coupon.code}`; // Fallback text
+                        }
+                    }
+                });
+            }
+
+
+            // Show receipt area and print
+            receiptPrintArea.classList.remove('hidden');
+            window.print();
+            // Hide after print to restore normal view
+            receiptPrintArea.classList.add('hidden');
+
+            // Clear cart and applied coupon after successful transaction
+            cart = [];
+            appliedCoupon = null;
+            couponCodeInput.value = '';
+            couponStatus.textContent = '';
+            updateCartDisplay();
+            showMessageBox('Sale completed and receipt printed!');
+        }
+
+        /**
+         * Renders the list of historical receipts in the Receipts tab.
+         */
+        function renderReceiptsHistory() {
+            receiptsListDiv.innerHTML = ''; // Clear existing list
+            if (receipts.length === 0) {
+                noReceiptsMessage.classList.remove('hidden');
+            } else {
+                noReceiptsMessage.classList.add('hidden');
+                receipts.forEach((receipt, index) => {
+                    const receiptCard = document.createElement('div');
+                    receiptCard.className = 'bg-gray-700 p-4 rounded-lg shadow-md flex flex-col justify-between';
+                    receiptCard.innerHTML = `
+                        <h4 class="text-lg font-bold text-gray-100 mb-2">Transaction: ${receipt.transactionId}</h4>
+                        <p class="text-sm text-gray-300">Date: ${new Date(receipt.timestamp).toLocaleString()}</p>
+                        ${receipt.discountAmount > 0 ? `<p class="text-sm text-red-400">Discount: -$${receipt.discountAmount.toFixed(2)}</p>` : ''}
+                        <p class="text-xl font-semibold text-blue-400 mt-2">Total: $${receipt.finalTotal.toFixed(2)}</p>
+                        <button class="view-receipt-details-btn bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md mt-4 transition duration-300 ease-in-out"
+                                data-receipt-index="${index}">View Details</button>
+                    `;
+                    receiptsListDiv.appendChild(receiptCard);
+                });
+
+                // Attach event listeners to "View Details" buttons
+                document.querySelectorAll('.view-receipt-details-btn').forEach(button => {
+                    button.addEventListener('click', (event) => {
+                        const index = event.target.dataset.receiptIndex;
+                        viewHistoricalReceipt(receipts[index]);
+                    });
+                });
+            }
+        }
+
+        /**
+         * Displays a historical receipt in a modal.
+         * @param {Object} receiptData - The data of the historical receipt.
+         */
+        function viewHistoricalReceipt(receiptData) {
+            // Generate HTML for modal display (not for print)
+            historicalReceiptContent.innerHTML = generateReceiptHtml(receiptData, false);
+
+            // Render JsBarcodes for the modal receipt HTML
+            const transactionBarcodeElement = historicalReceiptContent.querySelector('#receipt-transaction-barcode');
+            if (transactionBarcodeElement) {
+                try {
+                    JsBarcode(transactionBarcodeElement, receiptData.transactionId, {
+                        format: "CODE128", // Explicitly Code-128
+                        displayValue: true,
+                        width: 1.5,
+                        height: 50,
+                        margin: 5,
+                        fontSize: 12,
+                        background: "transparent",
+                        lineColor: "#f7fafc"
+                    });
+                } catch (e) {
+                    console.error(`Error generating transaction barcode for modal (${receiptData.transactionId}):`, e);
+                    transactionBarcodeElement.textContent = `Code: ${receiptData.transactionId}`;
+                }
+            }
+
+            // Render JsBarcodes for recommended discounts on the modal receipt HTML
+            if (receiptData.recommendedDiscounts && receiptData.recommendedDiscounts.length > 0) {
+                receiptData.recommendedDiscounts.forEach((coupon) => {
+                    const recBarcodeElement = historicalReceiptContent.querySelector(`#rec-barcode-${coupon.code}`);
+                    if (recBarcodeElement) {
+                        try {
+                            JsBarcode(recBarcodeElement, coupon.code, { // Use actual coupon code (30-digit)
+                                format: "CODE128", // Explicitly Code-128
+                                displayValue: true,
+                                width: 1.5,
+                                height: 50,
+                                margin: 5,
+                                fontSize: 12,
+                                background: "transparent",
+                                lineColor: "#f7fafc"
+                            });
+                        } catch (e) {
+                            console.error(`Error generating recommendation barcode for ${coupon.code} in modal:`, e);
+                            recBarcodeElement.textContent = `Code: ${coupon.code}`; // Fallback text
+                        }
+                    }
+                });
+            }
+
+
+            historicalReceiptModal.classList.remove('hidden');
+
+            // Set up print button for the historical receipt modal
+            printHistoricalReceiptBtn.onclick = () => {
+                // Temporarily populate receipt print area for printing
+                receiptPrintArea.innerHTML = generateReceiptHtml(receiptData, true); // Re-generate for print styles
+                receiptPrintArea.classList.remove('hidden');
+                historicalReceiptModal.classList.add('hidden'); // Hide modal while printing
+
+                // Re-render JsBarcodes for print area (needed after innerHTML change)
+                const printTransactionBarcodeElement = receiptPrintArea.querySelector('#receipt-transaction-barcode');
+                if (printTransactionBarcodeElement) {
+                     try {
+                        JsBarcode(printTransactionBarcodeElement, receiptData.transactionId, { format: "CODE128", displayValue: true, width: 1.5, height: 50, margin: 5, fontSize: 12, lineColor: "#000", background: "#fff" });
+                    } catch (e) { console.error(`Error generating print transaction barcode:`, e); printTransactionBarcodeElement.textContent = `Code: ${receiptData.transactionId}`; }
+                }
+
+                // Render recommended barcodes for print
+                if (receiptData.recommendedDiscounts && receiptData.recommendedDiscounts.length > 0) {
+                    receiptData.recommendedDiscounts.forEach((coupon) => {
+                        const recBarcodeElement = receiptPrintArea.querySelector(`#rec-barcode-${coupon.code}`);
+                        if (recBarcodeElement) {
+                            try {
+                                JsBarcode(recBarcodeElement, coupon.code, { format: "CODE128", displayValue: true, width: 1.5, height: 50, margin: 5, fontSize: 12, lineColor: "#000", background: "#fff" });
+                            } catch (e) { console.error(`Error generating print rec barcode:`, e); recBarcodeElement.textContent = `Code: ${coupon.code}`; }
+                        }
+                    });
+                }
+
+                window.print();
+
+                // Restore original state
+                receiptPrintArea.classList.add('hidden');
+                receiptPrintArea.innerHTML = '';
+                historicalReceiptModal.classList.remove('hidden');
+            };
+        }
+
+        // --- Settings Functions ---
+
+        /**
+         * Loads current store settings into the settings form fields.
+         */
+        function loadSettingsIntoForm() {
+            storeNameInput.value = storeSettings.storeName;
+            storeAddressInput.value = storeSettings.storeAddress;
+            storePhoneInput.value = storeSettings.storePhone;
+            storeWebsiteInput.value = storeSettings.storeWebsite;
+            currentLogoPreview.src = storeSettings.logoUrl;
+            // Add fallback for logo if URL is broken or not set
+            currentLogoPreview.onerror = function() {
+                this.src = 'https://placehold.co/150x50/1e40af/ffffff?text=Logo+Not+Found';
+            };
+             if (!storeSettings.logoUrl) {
+                currentLogoPreview.src = 'https://placehold.co/150x50/1e40af/ffffff?text=Your+Logo'; // Set default if empty
+            }
+        }
+
+        /**
+         * Saves settings from the form into the global storeSettings object.
+         */
+        function saveSettings() {
+            storeSettings.storeName = storeNameInput.value.trim();
+            storeSettings.storeAddress = storeAddressInput.value.trim();
+            storeSettings.storePhone = storePhoneInput.value.trim();
+            storeSettings.storeWebsite = storeWebsiteInput.value.trim();
+            // logoUrl is updated directly by handleLogoUpload and saveData() is called there
+            saveData(); // Save other settings changes
+            showMessageBox('Settings saved successfully!');
+        }
+
+        /**
+         * Handles the logo file input change event. Reads the selected file as a Data URL.
+         */
+        function handleLogoUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                if (!file.type.startsWith('image/')) {
+                    showMessageBox('Please upload an image file (e.g., JPG, PNG, GIF).');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    storeSettings.logoUrl = e.target.result; // Save Data URL
+                    currentLogoPreview.src = e.target.result; // Update preview
+                    saveData(); // Save changes to local storage immediately
+                    showMessageBox('Logo uploaded and saved!');
+                };
+                reader.onerror = () => {
+                    showMessageBox('Error reading file. Please try again.');
+                };
+                reader.readAsDataURL(file); // Read file as Data URL
+            }
+        }
+
+
+        // --- Event Listeners ---
+
+        // Tab Switching
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                switchTab(button.dataset.tab);
+            });
+        });
+
+        // Product Management: Add Product Button
+        addProductButton.addEventListener('click', () => {
+            const barcode = newProductBarcodeInput.value.trim();
+            const name = newProductNameInput.value.trim();
+            const price = parseFloat(newProductPriceInput.value);
+
+            if (barcode && name && !isNaN(price) && price > 0) {
+                if (addProduct(barcode, name, price)) {
+                    newProductBarcodeInput.value = '';
+                    newProductNameInput.value = '';
+                    newProductPriceInput.value = '';
+                    showMessageBox('Product added successfully!');
+                }
+            } else {
+                showMessageBox('Please enter a unique barcode, valid product name, and price.');
+            }
+        });
+
+        // Coupon Management: Generate Coupon Code Button
+        generateCouponCodeButton.addEventListener('click', () => {
+            newCouponCodeInput.value = generate30DigitCode();
+        });
+
+        // Coupon Management: Dynamic fields based on application type
+        newCouponApplicationTypeSelect.addEventListener('change', () => {
+            minPurchaseAmountDiv.classList.add('hidden');
+            newCouponMinPurchaseAmountInput.removeAttribute('required');
+            targetProductBarcodeDiv.classList.add('hidden');
+            newCouponTargetProductBarcodeInput.removeAttribute('required');
+
+            const selectedType = newCouponApplicationTypeSelect.value;
+            if (selectedType === 'min-purchase') {
+                minPurchaseAmountDiv.classList.remove('hidden');
+                newCouponMinPurchaseAmountInput.setAttribute('required', 'required');
+            } else if (selectedType === 'by-product') {
+                targetProductBarcodeDiv.classList.remove('hidden');
+                newCouponTargetProductBarcodeInput.setAttribute('required', 'required');
+            }
+        });
+
+        // Coupon Management: Add Coupon Button
+        addCouponButton.addEventListener('click', () => {
+            const code = newCouponCodeInput.value.trim(); // Code is already generated
+            const title = newCouponTitleInput.value.trim();
+            const applicationType = newCouponApplicationTypeSelect.value;
+            const discountType = newCouponTypeSelect.value;
+            const discountValue = parseFloat(newCouponValueInput.value);
+            let minPurchaseAmount = 0;
+            let targetProductBarcode = '';
+
+            let isValid = true;
+            let errorMessage = '';
+
+            if (!code || !title || isNaN(discountValue) || discountValue < 0) {
+                isValid = false;
+                errorMessage = 'Please ensure a code is generated, and fill in coupon title and valid discount value.';
+            }
+
+            if (applicationType === 'min-purchase') {
+                minPurchaseAmount = parseFloat(newCouponMinPurchaseAmountInput.value);
+                if (isNaN(minPurchaseAmount) || minPurchaseAmount < 0) {
+                    isValid = false;
+                    errorMessage = 'Please enter a valid minimum purchase amount.';
+                }
+            } else if (applicationType === 'by-product') {
+                targetProductBarcode = newCouponTargetProductBarcodeInput.value.trim();
+                if (!targetProductBarcode) {
+                    isValid = false;
+                    errorMessage = 'Please enter a target product barcode for "By Product" coupons.';
+                } else if (!products.some(p => p.barcode === targetProductBarcode)) {
+                    isValid = false;
+                    errorMessage = `Product with barcode "${targetProductBarcode}" does not exist. Please add it first.`;
+                }
+            }
+
+            if (isValid) {
+                const newCoupon = {
+                    code: code,
+                    title: title,
+                    applicationType: applicationType,
+                    type: discountType,
+                    value: discountValue,
+                    minPurchaseAmount: minPurchaseAmount,
+                    targetProductBarcode: targetProductBarcode
+                };
+                if (addCoupon(newCoupon)) {
+                    newCouponCodeInput.value = generate30DigitCode(); // Generate new code for next entry
+                    newCouponTitleInput.value = '';
+                    newCouponApplicationTypeSelect.value = 'full-total'; // Reset dropdown
+                    newCouponMinPurchaseAmountInput.value = ''; // Clear conditionally hidden fields
+                    newCouponTargetProductBarcodeInput.value = '';
+                    minPurchaseAmountDiv.classList.add('hidden'); // Hide them
+                    targetProductBarcodeDiv.classList.add('hidden');
+                    newCouponMinPurchaseAmountInput.removeAttribute('required');
+                    newCouponTargetProductBarcodeInput.removeAttribute('required');
+                    newCouponTypeSelect.value = 'percentage'; // Reset discount type
+                    newCouponValueInput.value = '';
+                    showMessageBox('Coupon added successfully!');
+                }
+            } else {
+                showMessageBox(errorMessage);
+            }
+        });
+
+
+        // Sales Terminal: Barcode Scanner Input (for adding to cart)
+        barcodeScannerInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                const barcode = barcodeScannerInput.value.trim();
+                if (barcode) {
+                    addProductToCart(barcode);
+                    barcodeScannerInput.value = ''; // Clear input after "scan"
+                    barcodeScannerInput.focus(); // Keep focus for next scan
+                } else {
+                    showMessageBox('Please enter a barcode to add to cart.');
+                }
+            }
+        });
+
+        // Sales Terminal: Apply Coupon Button
+        applyCouponButton.addEventListener('click', applyCoupon);
+
+        // Checkout Button
+        checkoutButton.addEventListener('click', generateReceipt);
+
+        // Message box OK button
+        messageOkButton.addEventListener('click', hideMessageBox);
+
+        // Close Historical Receipt Modal
+        closeHistoricalReceiptModalBtn.addEventListener('click', () => {
+            historicalReceiptModal.classList.add('hidden');
+            historicalReceiptContent.innerHTML = ''; // Clear content
+        });
+
+        // Settings: Save All Settings Button
+        saveSettingsButton.addEventListener('click', saveSettings);
+
+        // Settings: Logo Upload related event listeners
+        uploadLogoButton.addEventListener('click', () => logoFileInput.click());
+        logoFileInput.addEventListener('change', handleLogoUpload);
+
+        // --- Initial setup ---
+        window.onload = () => {
+            loadData(); // Load all data from local storage first
+            updateCartDisplay(); // Initialize empty cart display
+            loadSettingsIntoForm(); // Populate settings form with loaded data
+            switchTab('sales'); // Start on the Sales Terminal tab (this will also render initial lists)
+        };
+    </script>
+</body>
+</html>
