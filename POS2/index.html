@@ -2451,54 +2451,36 @@
                     `;
                     recommendedDiscountsListDiv.appendChild(recItemDiv);
 
-                    // Generate 1D barcode for each recommended discount
-                    // Generate 1D barcode for each recommended discount
+                    // Generate 1D barcode for each recommended discount 
+try { 
+    // Generate a random 9-digit number
+    const randomNumber = Math.floor(100000000 + Math.random() * 900000000); 
 
-                    try {
+    JsBarcode(`#rec-barcode-${discountId}`, String(randomNumber), { 
+        format: "CODE128", 
+        displayValue: true, 
+        width: 1, 
+        height: 30, 
+        margin: 0, 
+        fontSize: 10 
+    }); 
+} catch (e) { 
+    console.error(`Error generating recommendation barcode for ${discount.id}:`, e); 
+    // If barcode generation fails, display the random number as text
+    const randomNumber = Math.floor(100000000 + Math.random() * 900000000); 
+    document.getElementById(`rec-barcode-${discountId}`).textContent = `Code: ${randomNumber}`; 
+} 
+}); 
+} else { 
+    recommendedDiscountsSection.style.display = 'none'; 
+} 
 
-                        JsBarcode(`#rec-barcode-${discountId}`, discount.id, {
-
-                            format: "CODE128",
-
-                            displayValue: true,
-
-                            width: 1,
-
-                            height: 30,
-
-                            margin: 0,
-
-                            fontSize: 10
-
-                        });
-
-                    } catch (e) {
-
-                        console.error(`Error generating recommendation barcode for ${discount.id}:`, e);
-
-                        document.getElementById(`rec-barcode-${discountId}`).textContent = `Code: ${discount.id}`;
-
-                    }
-
-                });
-
-            } else {
-
-                recommendedDiscountsSection.style.display = 'none';
-
-            }
-
-
-
-
-
-            receiptDiv.style.display = 'block';
-
-            window.print();
-
-            receiptDiv.style.display = 'none';
-
-        }
+receiptDiv.style.display = 'block'; 
+window.print(); 
+receiptDiv.style.display = 'none'; 
+}
+                    
+                     
         // Data Transfer Functions
         function generateDataStringForDisplay() {
             const allPosData = {
