@@ -263,7 +263,7 @@
                         <tr>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Product</th>
                             <th class="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">Price</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Actions</th>
+                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="cart-items" class="bg-gray-800 divide-y divide-gray-700">
@@ -454,6 +454,11 @@
         <!-- Receipts History Tab -->
         <section id="receipts-tab-content" class="tab-content hidden flex-col flex-1 rounded-xl shadow-lg border border-green-600">
             <h2 class="text-2xl font-semibold mb-4 text-gray-100">Receipts History</h2>
+            <div class="mb-4">
+                <label for="receipt-search-input" class="block text-sm font-medium text-gray-300 mb-1">Search Receipts (Transaction ID, Date/Time)</label>
+                <input type="text" id="receipt-search-input" placeholder="e.g., TXN-123, 2025-06-17"
+                       class="w-full p-3 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400">
+            </div>
             <div id="receipts-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-y-auto max-h-screen">
                 <!-- Receipts will be dynamically loaded here -->
                 <p id="no-receipts-message" class="col-span-full text-center text-gray-400">No receipts yet. Complete a sale to see receipts here.</p>
@@ -540,6 +545,23 @@
         </div>
     </div>
 
+    <!-- Payment Method Modal -->
+    <div id="payment-method-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-800 p-6 rounded-lg shadow-xl max-w-sm w-full text-center border border-gray-700">
+            <p class="text-lg font-medium text-gray-100 mb-6">Select Payment Method:</p>
+            <div class="flex justify-around gap-4">
+                <button id="pay-cash-button"
+                        class="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out">
+                    Cash
+                </button>
+                <button id="pay-card-button"
+                        class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out">
+                    Card
+                </button>
+            </div>
+        </div>
+    </div>
+
 
     <script>
         // --- Local Storage Keys (Constants) ---
@@ -610,6 +632,7 @@
         // Receipts History
         const receiptsListDiv = document.getElementById('receipts-list');
         const noReceiptsMessage = document.getElementById('no-receipts-message');
+        const receiptSearchInput = document.getElementById('receipt-search-input'); // New search input
         const historicalReceiptModal = document.getElementById('historical-receipt-modal');
         const historicalReceiptContent = document.getElementById('historical-receipt-content');
         const closeHistoricalReceiptModalBtn = document.getElementById('close-historical-receipt-modal');
@@ -630,6 +653,11 @@
         const messageBox = document.getElementById('message-box');
         const messageContent = document.getElementById('message-content');
         const messageOkButton = document.getElementById('message-ok-button');
+
+        // Payment Method Modal
+        const paymentMethodModal = document.getElementById('payment-method-modal');
+        const payCashButton = document.getElementById('pay-cash-button');
+        const payCardButton = document.getElementById('pay-card-button');
 
         // --- Local Storage Functions ---
 
@@ -677,9 +705,11 @@
                 const storedReceipts = localStorage.getItem(LOCAL_STORAGE_KEYS.RECEIPTS);
                 if (storedReceipts) {
                     // Ensure historical receipts have recommendedDiscounts array, even if empty, for consistent handling
+                    // Also ensure paymentMethod is present, defaulting for old receipts
                     receipts = JSON.parse(storedReceipts).map(receipt => ({
                         ...receipt,
-                        recommendedDiscounts: receipt.recommendedDiscounts || [] // Default to empty array for old receipts
+                        recommendedDiscounts: receipt.recommendedDiscounts || [], // Default to empty array for old receipts
+                        paymentMethod: receipt.paymentMethod || 'Unknown' // Default to 'Unknown' for old receipts
                     }));
                 }
 
@@ -758,7 +788,7 @@
                     }
                     newCouponApplicationTypeSelect.dispatchEvent(new Event('change')); // Trigger initial visibility
                 } else if (tabId === 'receipts') {
-                    renderReceiptsHistory();
+                    renderReceiptsHistory(); // Render with current search filter
                 } else if (tabId === 'settings') {
                     loadSettingsIntoForm();
                 }
@@ -871,7 +901,7 @@
             coupons.push({ code: generate30DigitCode(), title: '20% Off when buying a Laptop', applicationType: 'by-product', targetProductBarcode: '1000000000', type: 'percentage', value: 20 });
             coupons.push({ code: generate30DigitCode(), title: 'Free Shipping Code', applicationType: 'full-total', type: 'fixed', value: 0 }); // Free shipping, could be handled separately
             coupons.push({ code: generate30DigitCode(), title: '20% Off Holiday Items', applicationType: 'full-total', type: 'percentage', value: 20 });
-            // Add a few more to ensure we have enough for 5 recommendations
+            // Add a few more to ensure we have enough for 5 recommendations consistently
             for (let i = 0; i < 5; i++) {
                 coupons.push({ code: generate30DigitCode(), title: `Special Offer ${i + 1}`, applicationType: 'full-total', type: 'percentage', value: 5 + i });
             }
@@ -1084,6 +1114,7 @@
                 }
             } else {
                 discountDisplayRow.classList.add('hidden');
+                couponCodeInput.value = ''; // Clear coupon input if no coupon is active
                 couponStatus.textContent = '';
             }
 
@@ -1133,6 +1164,7 @@
          * @param {Object} receiptData.storeInfo - Store information (name, address, etc.).
          * @param {string} receiptData.storeInfo.logoUrl - URL for the store logo.
          * @param {Array<Object>} receiptData.recommendedDiscounts - List of recommended coupons to display.
+         * @param {string} receiptData.paymentMethod - The payment method used (Cash/Card).
          * @param {boolean} forPrint - If true, generates content suitable for print.
          * @returns {string} HTML string of the receipt.
          */
@@ -1198,6 +1230,7 @@
                             <span>GRAND TOTAL:</span>
                             <span>$${receiptData.finalTotal.toFixed(2)}</span>
                         </h3>
+                        <p class="text-right mt-2 font-bold">Payment: ${receiptData.paymentMethod}</p>
                     </div>
 
                     <div class="dashed-line"></div>
@@ -1242,8 +1275,9 @@
         /**
          * Generates and prints the receipt for the current sale.
          * Also saves the receipt to history.
+         * @param {string} paymentMethod - The method of payment (Cash or Card).
          */
-        function generateReceipt() {
+        function generateReceipt(paymentMethod) {
             if (cart.length === 0) {
                 showMessageBox('Cart is empty. Please add items before checking out.');
                 return;
@@ -1288,11 +1322,17 @@
             // Select recommended discounts for THIS receipt
             const availableCouponsForReceipt = [...coupons];
             const recommendedDiscountsForThisReceipt = [];
-            const numToPickForThisReceipt = Math.min(NUM_RECOMMENDED_COUPONS_TO_DISPLAY, availableCouponsForReceipt.length);
 
+            // Shuffle the available coupons
+            for (let i = availableCouponsForReceipt.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [availableCouponsForReceipt[i], availableCouponsForReceipt[j]] = [availableCouponsForReceipt[j], availableCouponsForReceipt[i]];
+            }
+
+            // Pick exactly NUM_RECOMMENDED_COUPONS_TO_DISPLAY or all if fewer are available
+            const numToPickForThisReceipt = Math.min(NUM_RECOMMENDED_COUPONS_TO_DISPLAY, availableCouponsForReceipt.length);
             for (let i = 0; i < numToPickForThisReceipt; i++) {
-                const randomIndex = Math.floor(Math.random() * availableCouponsForReceipt.length);
-                recommendedDiscountsForThisReceipt.push(availableCouponsForReceipt.splice(randomIndex, 1)[0]);
+                recommendedDiscountsForThisReceipt.push(availableCouponsForReceipt[i]);
             }
 
             const receiptData = {
@@ -1306,7 +1346,8 @@
                 timestamp: timestamp,
                 storeInfo: { ...storeSettings }, // Deep copy store settings
                 appliedCoupon: appliedCoupon ? { ...appliedCoupon } : null, // Copy applied coupon data
-                recommendedDiscounts: recommendedDiscountsForThisReceipt // Store selected recommended discounts
+                recommendedDiscounts: recommendedDiscountsForThisReceipt, // Store selected recommended discounts
+                paymentMethod: paymentMethod // Store payment method
             };
 
             // Add receipt to history
@@ -1379,14 +1420,29 @@
 
         /**
          * Renders the list of historical receipts in the Receipts tab.
+         * @param {string} searchTerm - Optional search term to filter receipts.
          */
-        function renderReceiptsHistory() {
+        function renderReceiptsHistory(searchTerm = '') {
             receiptsListDiv.innerHTML = ''; // Clear existing list
-            if (receipts.length === 0) {
+            const lowerCaseSearchTerm = searchTerm.toLowerCase().trim();
+
+            const filteredReceipts = receipts.filter(receipt => {
+                const transactionMatch = receipt.transactionId.toLowerCase().includes(lowerCaseSearchTerm);
+                const dateMatch = new Date(receipt.timestamp).toLocaleString().toLowerCase().includes(lowerCaseSearchTerm);
+                return transactionMatch || dateMatch;
+            });
+
+
+            if (filteredReceipts.length === 0) {
                 noReceiptsMessage.classList.remove('hidden');
+                if (lowerCaseSearchTerm) {
+                    noReceiptsMessage.textContent = `No receipts found for "${searchTerm}".`;
+                } else {
+                    noReceiptsMessage.textContent = 'No receipts yet. Complete a sale to see receipts here.';
+                }
             } else {
                 noReceiptsMessage.classList.add('hidden');
-                receipts.forEach((receipt, index) => {
+                filteredReceipts.forEach((receipt, index) => {
                     const receiptCard = document.createElement('div');
                     receiptCard.className = 'bg-gray-700 p-4 rounded-lg shadow-md flex flex-col justify-between';
                     receiptCard.innerHTML = `
@@ -1395,7 +1451,7 @@
                         ${receipt.discountAmount > 0 ? `<p class="text-sm text-red-400">Discount: -$${receipt.discountAmount.toFixed(2)}</p>` : ''}
                         <p class="text-xl font-semibold text-blue-400 mt-2">Total: $${receipt.finalTotal.toFixed(2)}</p>
                         <button class="view-receipt-details-btn bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md mt-4 transition duration-300 ease-in-out"
-                                data-receipt-index="${index}">View Details</button>
+                                data-receipt-index="${receipts.indexOf(receipt)}">View Details</button>
                     `;
                     receiptsListDiv.appendChild(receiptCard);
                 });
@@ -1461,7 +1517,6 @@
                     }
                 });
             }
-
 
             historicalReceiptModal.classList.remove('hidden');
 
@@ -1691,8 +1746,25 @@
         // Sales Terminal: Apply Coupon Button
         applyCouponButton.addEventListener('click', applyCoupon);
 
-        // Checkout Button
-        checkoutButton.addEventListener('click', generateReceipt);
+        // Checkout Button - show payment method modal instead of direct print
+        checkoutButton.addEventListener('click', () => {
+            if (cart.length === 0) {
+                showMessageBox('Cart is empty. Please add items before checking out.');
+                return;
+            }
+            paymentMethodModal.classList.remove('hidden');
+        });
+
+        // Payment Method Modal Buttons
+        payCashButton.addEventListener('click', () => {
+            paymentMethodModal.classList.add('hidden');
+            generateReceipt('Cash');
+        });
+
+        payCardButton.addEventListener('click', () => {
+            paymentMethodModal.classList.add('hidden');
+            generateReceipt('Card');
+        });
 
         // Message box OK button
         messageOkButton.addEventListener('click', hideMessageBox);
@@ -1701,6 +1773,11 @@
         closeHistoricalReceiptModalBtn.addEventListener('click', () => {
             historicalReceiptModal.classList.add('hidden');
             historicalReceiptContent.innerHTML = ''; // Clear content
+        });
+
+        // Receipts History Search Input
+        receiptSearchInput.addEventListener('keyup', (event) => {
+            renderReceiptsHistory(event.target.value);
         });
 
         // Settings: Save All Settings Button
