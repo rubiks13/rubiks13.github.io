@@ -2452,56 +2452,53 @@
                     recommendedDiscountsListDiv.appendChild(recItemDiv);
 
                     // Generate 1D barcode for each recommended discount
-                   // Function to generate a random 10-digit number as a string
-function generateRandom10DigitNumber() {
-    // Generate a number between 1,000,000,000 (smallest 10-digit) and 9,999,999,999 (largest 10-digit).
-    // Math.random() produces a float between 0 (inclusive) and 1 (exclusive).
-    // We scale this to our desired range and then floor it to get an integer.
-    const randomNumber = Math.floor(Math.random() * (9999999999 - 1000000000 + 1)) + 1000000000;
-    return randomNumber.toString(); // Convert to string as barcode libraries expect string input.
-}
+                    // Generate 1D barcode for each recommended discount
 
-// Your existing code, with modifications for random barcode generation
-// This section assumes 'recommendedDiscounts' is an array of discount objects
-// and 'recommendedDiscountsSection' and 'receiptDiv' are already defined elements.
-// If not, ensure these are set up correctly in your HTML or preceding JavaScript.
+                    try {
 
-// Check if there are recommended discounts to process
-if (recommendedDiscounts && recommendedDiscounts.length > 0) {
-    recommendedDiscountsSection.style.display = 'block'; // Make the section visible
+                        JsBarcode(`#rec-barcode-${discountId}`, discount.id, {
 
-    // Loop through each recommended discount to generate its barcode
-    recommendedDiscounts.forEach(discount => {
-        // Generate a random 10-digit number for the current barcode
-        const randomBarcodeNumber = generateRandom10DigitNumber();
-        const discountId = discount.id; // Use the original discount.id for element selection (e.g., in the HTML ID)
+                            format: "CODE128",
 
-        // Generate 1D barcode for each recommended discount
-        try {
-            // Use the newly generated random 10-digit number for the barcode value
-            JsBarcode(`#rec-barcode-${discountId}`, randomBarcodeNumber, {
-                format: "CODE128", // Specifies the barcode format (e.g., Code 128)
-                displayValue: true, // Shows the number below the barcode
-                width: 1,           // Barcode bar width
-                height: 30,         // Barcode height
-                margin: 0,          // No margin around the barcode
-                fontSize: 10        // Font size for the displayed number
-            });
-        } catch (e) {
-            // If barcode generation fails, log an error and display the number as text
-            console.error(`Error generating recommendation barcode for discount ID ${discountId}:`, e);
-            document.getElementById(`rec-barcode-${discountId}`).textContent = `Code: ${randomBarcodeNumber}`;
-        }
-    });
-} else {
-    recommendedDiscountsSection.style.display = 'none'; // Hide the section if no discounts
-}
+                            displayValue: true,
 
-// Display the receipt, print it, and then hide it again
-receiptDiv.style.display = 'block'; // Show the receipt
-window.print();                     // Trigger the browser's print dialog
-receiptDiv.style.display = 'none';  // Hide the receipt after printing
+                            width: 1,
 
+                            height: 30,
+
+                            margin: 0,
+
+                            fontSize: 10
+
+                        });
+
+                    } catch (e) {
+
+                        console.error(`Error generating recommendation barcode for ${discount.id}:`, e);
+
+                        document.getElementById(`rec-barcode-${discountId}`).textContent = `Code: ${discount.id}`;
+
+                    }
+
+                });
+
+            } else {
+
+                recommendedDiscountsSection.style.display = 'none';
+
+            }
+
+
+
+
+
+            receiptDiv.style.display = 'block';
+
+            window.print();
+
+            receiptDiv.style.display = 'none';
+
+        }
         // Data Transfer Functions
         function generateDataStringForDisplay() {
             const allPosData = {
