@@ -507,6 +507,11 @@
                                class="mt-1 block w-full p-2 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400">
                     </div>
                 </div>
+                <div class="mt-4">
+                    <label for="receipt-footer-message" class="block text-sm font-medium text-gray-300">Receipt Footer Message</label>
+                    <textarea id="receipt-footer-message" rows="3" placeholder="e.g., Thank you for your purchase! Please come again!"
+                              class="mt-1 block w-full p-2 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400"></textarea>
+                </div>
             </div>
 
             <!-- Store Logo Upload -->
@@ -586,7 +591,8 @@
             storeAddress: '123 Main St, Anytown, USA',
             storePhone: '(123) 456-7890',
             storeWebsite: 'www.yourstore.com',
-            logoUrl: 'https://placehold.co/150x50/1e40af/ffffff?text=Your+Logo' // Default placeholder logo
+            logoUrl: 'https://placehold.co/150x50/1e40af/ffffff?text=Your+Logo', // Default placeholder logo
+            receiptFooterMessage: 'Thank you for your purchase! Please come again!' // New default footer message
         };
 
         // --- DOM Elements ---
@@ -643,6 +649,7 @@
         const storeAddressInput = document.getElementById('store-address');
         const storePhoneInput = document.getElementById('store-phone');
         const storeWebsiteInput = document.getElementById('store-website');
+        const receiptFooterMessageInput = document.getElementById('receipt-footer-message'); // New footer message input
         const logoFileInput = document.getElementById('logo-file-input'); // File input for logo
         const uploadLogoButton = document.getElementById('upload-logo-button'); // Button to trigger file input
         const currentLogoPreview = document.getElementById('current-logo-preview');
@@ -728,7 +735,8 @@
                 storeSettings = {
                     storeName: 'Your Store Name', storeAddress: '123 Main St, Anytown, USA',
                     storePhone: '(123) 456-7890', storeWebsite: 'www.yourstore.com',
-                    logoUrl: 'https://placehold.co/150x50/1e40af/ffffff?text=Your+Logo'
+                    logoUrl: 'https://placehold.co/150x50/1e40af/ffffff?text=Your+Logo',
+                    receiptFooterMessage: 'Thank you for your purchase! Please come again!'
                 };
                 addSampleProducts();
                 addSampleCoupons();
@@ -1163,13 +1171,14 @@
          * @param {string} receiptData.timestamp - The timestamp of the transaction.
          * @param {Object} receiptData.storeInfo - Store information (name, address, etc.).
          * @param {string} receiptData.storeInfo.logoUrl - URL for the store logo.
+         * @param {string} receiptData.storeInfo.receiptFooterMessage - Custom footer message for the receipt.
          * @param {Array<Object>} receiptData.recommendedDiscounts - List of recommended coupons to display.
          * @param {string} receiptData.paymentMethod - The payment method used (Cash/Card).
          * @param {boolean} forPrint - If true, generates content suitable for print.
          * @returns {string} HTML string of the receipt.
          */
         function generateReceiptHtml(receiptData, forPrint = true) {
-            const { storeName, storeAddress, storePhone, storeWebsite, logoUrl } = receiptData.storeInfo;
+            const { storeName, storeAddress, storePhone, storeWebsite, logoUrl, receiptFooterMessage } = receiptData.storeInfo;
             const recommendedDiscounts = receiptData.recommendedDiscounts; // Use the stored recommended discounts
 
             let receiptHtml = `
@@ -1260,11 +1269,10 @@
                 receiptHtml += `</div><div class="dashed-line"></div>`;
             }
 
-            // Footer
+            // Footer (now uses editable message)
             receiptHtml += `
                 <div class="receipt-footer text-center">
-                    <p class="font-bold">Thank you for your purchase!</p>
-                    <p>Please come again!</p>
+                    <p class="font-bold">${receiptFooterMessage}</p>
                 </div>
                 </div>
             `;
@@ -1566,6 +1574,7 @@
             storeAddressInput.value = storeSettings.storeAddress;
             storePhoneInput.value = storeSettings.storePhone;
             storeWebsiteInput.value = storeSettings.storeWebsite;
+            receiptFooterMessageInput.value = storeSettings.receiptFooterMessage; // Load footer message
             currentLogoPreview.src = storeSettings.logoUrl;
             // Add fallback for logo if URL is broken or not set
             currentLogoPreview.onerror = function() {
@@ -1584,6 +1593,7 @@
             storeSettings.storeAddress = storeAddressInput.value.trim();
             storeSettings.storePhone = storePhoneInput.value.trim();
             storeSettings.storeWebsite = storeWebsiteInput.value.trim();
+            storeSettings.receiptFooterMessage = receiptFooterMessageInput.value.trim(); // Save footer message
             // logoUrl is updated directly by handleLogoUpload and saveData() is called there
             saveData(); // Save other settings changes
             showMessageBox('Settings saved successfully!');
