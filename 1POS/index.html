@@ -40,7 +40,15 @@
         input:focus, select:focus, textarea:focus {
             border-color: #63b3ed; /* Focus border */
             box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5); /* Focus ring */
+            outline: none; /* Remove default browser outline if ring is applied */
         }
+
+        /* Ensure all interactive elements get a visible focus style */
+        button:focus, a:focus, [tabindex]:focus:not(input, select, textarea) {
+            outline: 2px solid #63b3ed; /* Blue ring for focus */
+            outline-offset: 2px;
+        }
+
 
         table {
             color: #e2e8f0;
@@ -253,7 +261,7 @@
             <div class="mb-4">
                 <label for="barcode-scanner-input" class="block text-sm font-medium text-gray-300 mb-1">Scan Barcode / Enter Product Barcode</label>
                 <input type="text" id="barcode-scanner-input" placeholder="Scan barcode or type product barcode and press Enter"
-                       class="w-full p-3 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400">
+                       class="w-full p-3 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400" autofocus>
             </div>
 
             <!-- Cart Display -->
@@ -466,7 +474,7 @@
              <!-- Modal for viewing historical receipt -->
             <div id="historical-receipt-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden">
                 <div class="bg-gray-800 p-6 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto relative border border-gray-700">
-                    <button id="close-historical-receipt-modal" class="absolute top-3 right-3 text-gray-400 hover:text-gray-100 text-3xl font-bold">&times;</button>
+                    <button id="close-historical-receipt-modal" class="absolute top-3 right-3 text-gray-400 hover:text-gray-100 text-3xl font-bold" aria-label="Close">&times;</button>
                     <div id="historical-receipt-content" class="text-gray-100">
                         <!-- Historical receipt details will be loaded here -->
                     </div>
@@ -564,6 +572,74 @@
                     Card
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- Keyboard Instructions Modal -->
+    <div id="keyboard-instructions-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-800 p-6 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto relative border border-gray-700">
+            <button id="close-keyboard-instructions-modal" class="absolute top-3 right-3 text-gray-400 hover:text-gray-100 text-3xl font-bold" aria-label="Close">&times;</button>
+            <h3 class="text-2xl font-bold text-gray-100 mb-4 text-center">Keyboard Navigation Guide</h3>
+            <div class="text-gray-200 text-left space-y-3 text-base">
+                <p><strong>General:</strong></p>
+                <ul class="list-disc list-inside ml-4">
+                    <li>Use '<kbd>Tab</kbd>' and '<kbd>Shift</kbd> + <kbd>Tab</kbd>' to move focus between interactive elements.</li>
+                    <li>Press '<kbd>Enter</kbd>' or '<kbd>Space</kbd>' to activate a focused button, link, or confirm an action.</li>
+                    <li>Press '<kbd>Escape</kbd>' to close any open modals (e.g., Message Box, Payment, Receipt Details, this Guide).</li>
+                </ul>
+
+                <p><strong>Main Tabs:</strong></p>
+                <ul class="list-disc list-inside ml-4">
+                    <li>When a tab button (<span class="font-semibold">Sales Terminal</span>, <span class="font-semibold">Product & Coupon Management</span>, etc.) is focused, use '<kbd>Left Arrow</kbd>' and '<kbd>Right Arrow</kbd>' keys to switch between tabs.</li>
+                </ul>
+
+                <p><strong>Sales Terminal:</strong></p>
+                <ul class="list-disc list-inside ml-4">
+                    <li><span class="font-semibold">Barcode Input:</span> Type barcode, then press '<kbd>Enter</kbd>' to add the item to the cart.</li>
+                    <li><span class="font-semibold">Cart Items:</span> Navigate quantity adjustment buttons ('<kbd>+</kbd>', '<kbd>-</kbd>') and 'Remove' buttons using '<kbd>Tab</kbd>'. Press '<kbd>Enter</kbd>' or '<kbd>Space</kbd>' to activate.</li>
+                    <li><span class="font-semibold">Coupon Input:</span> Type coupon code. Press '<kbd>Enter</kbd>' while the input is focused, or '<kbd>Tab</kbd>' to the 'Apply' button and press '<kbd>Enter</kbd>'/<kbd>Space</kbd>'.</li>
+                    <li><span class="font-semibold">Checkout Button:</span> Press '<kbd>Enter</kbd>' or '<kbd>Space</kbd>'.</li>
+                </ul>
+
+                <p><strong>Payment Method Dialog:</strong></p>
+                <ul class="list-disc list-inside ml-4">
+                    <li>Use '<kbd>Tab</kbd>' to switch between 'Cash' and 'Card' buttons.</li>
+                    <li>Press '<kbd>Enter</kbd>' or '<kbd>Space</kbd>' on your desired payment selection.</li>
+                    <li>Press '<kbd>Escape</kbd>' to cancel payment and return to the sales terminal.</li>
+                </ul>
+
+                <p><strong>Product & Coupon Management:</strong></p>
+                <ul class="list-disc list-inside ml-4">
+                    <li>Navigate all input fields and buttons with '<kbd>Tab</kbd>'.</li>
+                    <li>Press '<kbd>Enter</kbd>' or '<kbd>Space</kbd>' on a focused 'Add Product', 'Generate', or 'Add Coupon' button.</li>
+                    <li>For product/coupon lists, tab through rows; use '<kbd>Enter</kbd>'/'<kbd>Space</kbd>' on 'Add to Cart' or 'Delete' buttons.</li>
+                </ul>
+
+                <p><strong>Receipts History:</strong></p>
+                <ul class="list-disc list-inside ml-4">
+                    <li><span class="font-semibold">Search Input:</span> Type to filter receipts; the list updates automatically.</li>
+                    <li><span class="font-semibold">Receipt Cards:</span> Tab to 'View Details' button, then press '<kbd>Enter</kbd>' or '<kbd>Space</kbd>'.</li>
+                </ul>
+
+                <p><strong>Historical Receipt Details (Modal):</strong></p>
+                <ul class="list-disc list-inside ml-4">
+                    <li>Use '<kbd>Tab</kbd>' to navigate the 'Print This Receipt' and 'Close' buttons.</li>
+                    <li>Press '<kbd>Enter</kbd>' or '<kbd>Space</kbd>' on your selection.</li>
+                    <li>Press '<kbd>Escape</kbd>' to close this modal.</li>
+                </ul>
+
+                <p><strong>Settings:</strong></p>
+                <ul class="list-disc list-inside ml-4">
+                    <li>Navigate input fields and buttons with '<kbd>Tab</kbd>'.</li>
+                    <li>Press '<kbd>Enter</kbd>' or '<kbd>Space</kbd>' on focused 'Upload Logo' or 'Save All Settings' buttons.</li>
+                </ul>
+
+                <p class="mt-4 text-center"><strong>Special Hotkey:</strong></p>
+                <p class="text-center text-xl font-bold text-blue-400">Press '<kbd>Ctrl</kbd> + <kbd>I</kbd>' to show this guide.</p>
+            </div>
+            <button id="keyboard-instructions-ok-button" class="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg shadow-lg transition duration-300 ease-in-out">
+                Got It!
+            </button>
         </div>
     </div>
 
@@ -666,6 +742,13 @@
         const payCashButton = document.getElementById('pay-cash-button');
         const payCardButton = document.getElementById('pay-card-button');
 
+        // Keyboard Instructions Modal
+        const keyboardInstructionsModal = document.getElementById('keyboard-instructions-modal');
+        const closeKeyboardInstructionsModalBtn = document.getElementById('close-keyboard-instructions-modal');
+        const keyboardInstructionsOkButton = document.getElementById('keyboard-instructions-ok-button');
+
+        let lastFocusedElement = null; // To store the element that had focus before a modal opened
+
         // --- Local Storage Functions ---
 
         /**
@@ -750,8 +833,10 @@
          * @param {string} message - The message to display.
          */
         function showMessageBox(message) {
+            lastFocusedElement = document.activeElement; // Store current focus
             messageContent.textContent = message;
             messageBox.classList.remove('hidden');
+            messageOkButton.focus(); // Focus the OK button
         }
 
         /**
@@ -759,6 +844,30 @@
          */
         function hideMessageBox() {
             messageBox.classList.add('hidden');
+            if (lastFocusedElement) {
+                lastFocusedElement.focus(); // Restore focus
+                lastFocusedElement = null;
+            }
+        }
+
+        /**
+         * Displays the keyboard instructions modal.
+         */
+        function showKeyboardInstructions() {
+            lastFocusedElement = document.activeElement; // Store current focus
+            keyboardInstructionsModal.classList.remove('hidden');
+            closeKeyboardInstructionsModalBtn.focus(); // Focus close button initially
+        }
+
+        /**
+         * Hides the keyboard instructions modal.
+         */
+        function hideKeyboardInstructions() {
+            keyboardInstructionsModal.classList.add('hidden');
+            if (lastFocusedElement) {
+                lastFocusedElement.focus(); // Restore focus
+                lastFocusedElement = null;
+            }
         }
 
         /**
@@ -769,10 +878,17 @@
             tabButtons.forEach(button => {
                 if (button.dataset.tab === tabId) {
                     button.classList.add('active');
+                    button.setAttribute('aria-selected', 'true');
+                    button.focus(); // Set focus to the activated tab button
                 } else {
                     button.classList.remove('active');
+                    button.setAttribute('aria-selected', 'false');
                 }
+                button.setAttribute('tabindex', '-1'); // Make inactive tabs unfocusable via Tab key
             });
+            // Make the active tab button focusable via Tab key
+            document.querySelector(`.tab-button.active`).setAttribute('tabindex', '0');
+
 
             tabContents.forEach(content => {
                 // First, explicitly hide all tab contents by adding 'hidden'
@@ -786,19 +902,15 @@
                 selectedTabContent.classList.remove('hidden');
                 selectedTabContent.classList.add('active'); // Add active class to content
 
-                // Special rendering/loading for specific tabs when they become active
-                if (tabId === 'products') {
-                    renderProductList();
-                    renderCouponList();
-                    // Generate initial code when products tab is opened
-                    if (!newCouponCodeInput.value) { // Only generate if empty
-                        newCouponCodeInput.value = generate30DigitCode();
-                    }
-                    newCouponApplicationTypeSelect.dispatchEvent(new Event('change')); // Trigger initial visibility
+                // Set initial focus for the active tab
+                if (tabId === 'sales') {
+                    barcodeScannerInput.focus();
+                } else if (tabId === 'products') {
+                    newProductBarcodeInput.focus();
                 } else if (tabId === 'receipts') {
-                    renderReceiptsHistory(); // Render with current search filter
+                    receiptSearchInput.focus();
                 } else if (tabId === 'settings') {
-                    loadSettingsIntoForm();
+                    storeNameInput.focus();
                 }
             }
         }
@@ -874,12 +986,14 @@
                 addToCartButton.textContent = 'Add to Cart';
                 addToCartButton.className = 'bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold py-1 px-2 rounded-lg';
                 addToCartButton.onclick = () => addProductToCart(product.barcode);
+                addToCartButton.tabIndex = 0; // Ensure focusable
                 actionsCell.appendChild(addToCartButton);
 
                 const deleteButton = document.createElement('button');
                 deleteButton.textContent = 'Delete';
                 deleteButton.className = 'bg-red-500 hover:bg-red-600 text-white text-xs font-semibold py-1 px-2 rounded-lg';
                 deleteButton.onclick = () => deleteProduct(product.barcode);
+                deleteButton.tabIndex = 0; // Ensure focusable
                 actionsCell.appendChild(deleteButton);
             });
         }
@@ -952,6 +1066,7 @@
                 deleteButton.textContent = 'Delete';
                 deleteButton.className = 'bg-red-500 hover:bg-red-600 text-white text-xs font-semibold py-1 px-2 rounded-lg';
                 deleteButton.onclick = () => deleteCoupon(coupon.code);
+                deleteButton.tabIndex = 0; // Ensure focusable
                 actionsCell.appendChild(deleteButton);
             });
         }
@@ -1059,18 +1174,21 @@
                     increaseBtn.textContent = '+';
                     increaseBtn.className = 'bg-gray-600 hover:bg-gray-500 text-gray-100 text-sm font-bold py-1 px-2 rounded-lg';
                     increaseBtn.onclick = () => updateQuantity(item.barcode, 1);
+                    increaseBtn.tabIndex = 0; // Ensure focusable
                     actionsCell.appendChild(increaseBtn);
 
                     const decreaseBtn = document.createElement('button');
                     decreaseBtn.textContent = '-';
                     decreaseBtn.className = 'bg-gray-600 hover:bg-gray-500 text-gray-100 text-sm font-bold py-1 px-2 rounded-lg';
                     decreaseBtn.onclick = () => updateQuantity(item.barcode, -1);
+                    decreaseBtn.tabIndex = 0; // Ensure focusable
                     actionsCell.appendChild(decreaseBtn);
 
                     const removeBtn = document.createElement('button');
                     removeBtn.textContent = 'Remove';
                     removeBtn.className = 'bg-red-500 hover:bg-red-600 text-white text-xs font-semibold py-1 px-2 rounded-lg';
                     removeBtn.onclick = () => removeItemFromCart(item.barcode);
+                    removeBtn.tabIndex = 0; // Ensure focusable
                     actionsCell.appendChild(removeBtn);
 
                     currentSubtotal += item.subtotal;
@@ -1459,7 +1577,7 @@
                         ${receipt.discountAmount > 0 ? `<p class="text-sm text-red-400">Discount: -$${receipt.discountAmount.toFixed(2)}</p>` : ''}
                         <p class="text-xl font-semibold text-blue-400 mt-2">Total: $${receipt.finalTotal.toFixed(2)}</p>
                         <button class="view-receipt-details-btn bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md mt-4 transition duration-300 ease-in-out"
-                                data-receipt-index="${receipts.indexOf(receipt)}">View Details</button>
+                                data-receipt-index="${receipts.indexOf(receipt)}" tabindex="0">View Details</button>
                     `;
                     receiptsListDiv.appendChild(receiptCard);
                 });
@@ -1468,6 +1586,7 @@
                 document.querySelectorAll('.view-receipt-details-btn').forEach(button => {
                     button.addEventListener('click', (event) => {
                         const index = event.target.dataset.receiptIndex;
+                        lastFocusedElement = event.target; // Store the button that opened the modal
                         viewHistoricalReceipt(receipts[index]);
                     });
                 });
@@ -1527,6 +1646,8 @@
             }
 
             historicalReceiptModal.classList.remove('hidden');
+            // Set initial focus inside the modal
+            closeHistoricalReceiptModalBtn.focus();
 
             // Set up print button for the historical receipt modal
             printHistoricalReceiptBtn.onclick = () => {
@@ -1561,6 +1682,9 @@
                 receiptPrintArea.classList.add('hidden');
                 receiptPrintArea.innerHTML = '';
                 historicalReceiptModal.classList.remove('hidden');
+                if (lastFocusedElement) {
+                    lastFocusedElement.focus(); // Restore focus after print
+                }
             };
         }
 
@@ -1629,8 +1753,23 @@
 
         // Tab Switching
         tabButtons.forEach(button => {
-            button.addEventListener('click', () => {
+            button.addEventListener('click', (event) => {
                 switchTab(button.dataset.tab);
+            });
+            // Add keydown listener for arrow keys on tab buttons
+            button.addEventListener('keydown', (event) => {
+                if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+                    event.preventDefault(); // Prevent default browser behavior (e.g., scrolling)
+                    const currentTabIndex = Array.from(tabButtons).indexOf(event.target);
+                    let nextTabIndex;
+
+                    if (event.key === 'ArrowRight') {
+                        nextTabIndex = (currentTabIndex + 1) % tabButtons.length;
+                    } else { // ArrowLeft
+                        nextTabIndex = (currentTabIndex - 1 + tabButtons.length) % tabButtons.length;
+                    }
+                    switchTab(tabButtons[nextTabIndex].dataset.tab);
+                }
             });
         });
 
@@ -1762,27 +1901,60 @@
                 showMessageBox('Cart is empty. Please add items before checking out.');
                 return;
             }
+            lastFocusedElement = document.activeElement; // Store current focus before opening modal
             paymentMethodModal.classList.remove('hidden');
+            payCashButton.focus(); // Focus on the first button in the modal
         });
 
         // Payment Method Modal Buttons
         payCashButton.addEventListener('click', () => {
             paymentMethodModal.classList.add('hidden');
             generateReceipt('Cash');
+            if (lastFocusedElement) {
+                lastFocusedElement.focus(); // Restore focus after modal closes and action completes
+                lastFocusedElement = null;
+            }
         });
 
         payCardButton.addEventListener('click', () => {
             paymentMethodModal.classList.add('hidden');
             generateReceipt('Card');
+            if (lastFocusedElement) {
+                lastFocusedElement.focus(); // Restore focus after modal closes and action completes
+                lastFocusedElement = null;
+            }
         });
 
         // Message box OK button
         messageOkButton.addEventListener('click', hideMessageBox);
+        messageBox.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                hideMessageBox();
+            }
+        });
 
         // Close Historical Receipt Modal
         closeHistoricalReceiptModalBtn.addEventListener('click', () => {
             historicalReceiptModal.classList.add('hidden');
             historicalReceiptContent.innerHTML = ''; // Clear content
+            if (lastFocusedElement) {
+                lastFocusedElement.focus(); // Restore focus
+                lastFocusedElement = null;
+            }
+        });
+        historicalReceiptModal.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                closeHistoricalReceiptModalBtn.click(); // Trigger click to use the existing close logic
+            }
+        });
+
+        // Keyboard Instructions Modal Buttons
+        closeKeyboardInstructionsModalBtn.addEventListener('click', hideKeyboardInstructions);
+        keyboardInstructionsOkButton.addEventListener('click', hideKeyboardInstructions);
+        keyboardInstructionsModal.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                hideKeyboardInstructions();
+            }
         });
 
         // Receipts History Search Input
@@ -1797,12 +1969,42 @@
         uploadLogoButton.addEventListener('click', () => logoFileInput.click());
         logoFileInput.addEventListener('change', handleLogoUpload);
 
+        // Global hotkey listener for Ctrl + I
+        document.addEventListener('keydown', (event) => {
+            // Check for Ctrl (or Command on Mac) + I
+            if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'i') {
+                event.preventDefault(); // Prevent browser default action for Ctrl+I
+                showKeyboardInstructions();
+            }
+            // Allow Escape to close payment modal if open
+            if (event.key === 'Escape' && !paymentMethodModal.classList.contains('hidden')) {
+                paymentMethodModal.classList.add('hidden');
+                if (lastFocusedElement) {
+                    lastFocusedElement.focus(); // Restore focus
+                    lastFocusedElement = null;
+                }
+            }
+        });
+
         // --- Initial setup ---
         window.onload = () => {
             loadData(); // Load all data from local storage first
             updateCartDisplay(); // Initialize empty cart display
             loadSettingsIntoForm(); // Populate settings form with loaded data
             switchTab('sales'); // Start on the Sales Terminal tab (this will also render initial lists)
+
+            // Ensure tab buttons are correctly initialized for keyboard navigation
+            tabButtons.forEach((button, index) => {
+                button.setAttribute('role', 'tab');
+                button.setAttribute('aria-controls', `${button.dataset.tab}-tab-content`);
+                if (index === 0) { // Set first tab as initially selected and focusable
+                    button.setAttribute('tabindex', '0');
+                    button.setAttribute('aria-selected', 'true');
+                } else {
+                    button.setAttribute('tabindex', '-1');
+                    button.setAttribute('aria-selected', 'false');
+                }
+            });
         };
     </script>
 </body>
