@@ -1405,7 +1405,8 @@
          */
         function generateReceipt(paymentMethod) {
             if (cart.length === 0) {
-                showMessageBox('Cart is empty. Please add items before checking out.');
+                // This check should ideally happen before the payment modal is even shown
+                console.error("Attempted to generate receipt for empty cart.");
                 return;
             }
 
@@ -1541,7 +1542,7 @@
             couponCodeInput.value = '';
             couponStatus.textContent = '';
             updateCartDisplay();
-            showMessageBox('Sale completed and receipt printed!');
+            // Removed: showMessageBox('Sale completed and receipt printed!'); // Removed as per user request
 
             // IMPORTANT: Auto-focus on the barcode scanner input after printing
             barcodeScannerInput.focus();
