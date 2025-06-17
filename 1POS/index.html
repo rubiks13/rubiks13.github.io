@@ -1542,6 +1542,9 @@
             couponStatus.textContent = '';
             updateCartDisplay();
             showMessageBox('Sale completed and receipt printed!');
+
+            // IMPORTANT: Auto-focus on the barcode scanner input after printing
+            barcodeScannerInput.focus();
         }
 
         /**
@@ -1910,25 +1913,19 @@
         payCashButton.addEventListener('click', () => {
             paymentMethodModal.classList.add('hidden');
             generateReceipt('Cash');
-            if (lastFocusedElement) {
-                lastFocusedElement.focus(); // Restore focus after modal closes and action completes
-                lastFocusedElement = null;
-            }
+            // Focus will be handled by generateReceipt now
         });
 
         payCardButton.addEventListener('click', () => {
             paymentMethodModal.classList.add('hidden');
             generateReceipt('Card');
-            if (lastFocusedElement) {
-                lastFocusedElement.focus(); // Restore focus after modal closes and action completes
-                lastFocusedElement = null;
-            }
+            // Focus will be handled by generateReceipt now
         });
 
         // Message box OK button
         messageOkButton.addEventListener('click', hideMessageBox);
         messageBox.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape') {
+            if (event.key === 'Escape' || event.key === 'Enter' || event.key === 'Space') { // Also allow Enter/Space to dismiss
                 hideMessageBox();
             }
         });
@@ -1946,13 +1943,21 @@
             if (event.key === 'Escape') {
                 closeHistoricalReceiptModalBtn.click(); // Trigger click to use the existing close logic
             }
+             if (event.key === 'Enter' || event.key === 'Space') {
+                // If focus is on Print button, trigger it. Otherwise, close modal.
+                if (document.activeElement === printHistoricalReceiptBtn) {
+                    printHistoricalReceiptBtn.click();
+                } else if (document.activeElement === closeHistoricalReceiptModalBtn) {
+                    closeHistoricalReceiptModalBtn.click();
+                }
+            }
         });
 
         // Keyboard Instructions Modal Buttons
         closeKeyboardInstructionsModalBtn.addEventListener('click', hideKeyboardInstructions);
         keyboardInstructionsOkButton.addEventListener('click', hideKeyboardInstructions);
         keyboardInstructionsModal.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape') {
+            if (event.key === 'Escape' || event.key === 'Enter' || event.key === 'Space') { // Allow Enter/Space to dismiss
                 hideKeyboardInstructions();
             }
         });
