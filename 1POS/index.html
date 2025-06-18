@@ -744,12 +744,9 @@
                     <span>Prorated Original Discount:</span>
                     <span id="prorated-original-discount">-$0.00</span>
                 </div>
-                <div class="flex justify-between items-center text-lg font-bold text-gray-100 mb-2">
-                    <span>Refund Tax (8.00%):</span>
-                    <span id="refund-tax-amount">$0.00</span>
-                </div>
+                <!-- Tax is calculated but not explicitly shown in this summary for the user to give back -->
                 <div class="flex justify-between items-center text-xl font-bold text-gray-100">
-                    <span>Total Refund Due:</span>
+                    <span>Total Refund Due (Pre-Tax):</span>
                     <span id="total-refund-amount" class="text-green-400">$0.00</span>
                 </div>
                 <button id="process-return-button"
@@ -894,8 +891,8 @@
         const returnItemsListBody = document.getElementById('return-items-list');
         const estimatedRefundSubtotalSpan = document.getElementById('estimated-refund-subtotal');
         const proratedOriginalDiscountSpan = document.getElementById('prorated-original-discount');
-        const refundTaxAmountSpan = document.getElementById('refund-tax-amount');
-        const totalRefundAmountSpan = document.getElementById('total-refund-amount');
+        const refundTaxAmountSpan = document.getElementById('refund-tax-amount'); // Kept for internal calculation/return receipt only
+        const totalRefundAmountSpan = document.getElementById('total-refund-amount'); // Now shows pre-tax refund
         const processReturnButton = document.getElementById('process-return-button');
         const cancelReturnButton = document.getElementById('cancel-return-button');
 
@@ -1103,6 +1100,7 @@
             products.push({ barcode: '1000000002', name: 'Keyboard', price: 75.00 });
             products.push({ barcode: '1000000003', name: 'Monitor', price: 300.00 });
             products.push({ barcode: '1000000004', name: 'Coat', price: 12.99 }); // Added for return test case
+            products.push({ barcode: '1000000005', name: 'Shirt', price: 10.00 }); // Added for single item return test case
         }
 
         /**
@@ -1962,13 +1960,13 @@
             }
 
             const subtotalAfterProratedDiscount = totalOriginalPriceOfReturnedItems - proratedDiscount;
-            const refundTax = subtotalAfterProratedDiscount * TAX_RATE; // Calculate tax on the refunded subtotal
-            const finalRefund = subtotalAfterProratedDiscount + refundTax;
+            const refundTax = subtotalAfterProratedDiscount * TAX_RATE; // Calculate tax on the refunded subtotal for the receipt
 
+            // Update display. Total Refund Due is now pre-tax.
             estimatedRefundSubtotalSpan.textContent = `$${totalOriginalPriceOfReturnedItems.toFixed(2)}`;
             proratedOriginalDiscountSpan.textContent = `-$${proratedDiscount.toFixed(2)}`;
-            refundTaxAmountSpan.textContent = `$${refundTax.toFixed(2)}`;
-            totalRefundAmountSpan.textContent = `$${finalRefund.toFixed(2)}`;
+            // refundTaxAmountSpan.textContent = `$${refundTax.toFixed(2)}`; // This span is now hidden from the user, but calculation is kept
+            totalRefundAmountSpan.textContent = `$${subtotalAfterProratedDiscount.toFixed(2)}`;
         }
 
         /**
@@ -2098,7 +2096,7 @@
 
             const subtotalRefundAfterDiscount = totalOriginalPriceOfReturnedItems - proratedOriginalDiscount;
             const refundTax = subtotalRefundAfterDiscount * TAX_RATE;
-            const finalRefundAmount = subtotalRefundAfterDiscount + refundTax;
+            const finalRefundAmountTotal = subtotalRefundAfterDiscount + refundTax; // This is the actual total refund including tax for accounting
 
             const returnTransactionId = `RET-${generateRandomBarcodeNumber()}`;
             const returnTimestamp = new Date().toISOString();
@@ -2111,7 +2109,7 @@
                 refundSubtotal: totalOriginalPriceOfReturnedItems,
                 proratedOriginalDiscount: proratedOriginalDiscount,
                 refundTax: refundTax,
-                finalRefundAmount: finalRefundAmount,
+                finalRefundAmount: finalRefundAmountTotal, // Pass the full amount for printing on receipt
                 storeInfo: { ...storeSettings } // Snapshot current store settings for return receipt
             };
 
@@ -2142,6 +2140,18 @@
             window.print();
             receiptPrintArea.classList.add('hidden');
 
+            // --- Handle Original Receipt Deletion (if applicable) ---
+            // If all items from a single-item original receipt are returned, delete the original receipt.
+            if (returnedItems.length === originalReceipt.cartItems.length && originalReceipt.cartItems.length === 1) {
+                const receiptIndex = receipts.findIndex(r => r.transactionId === originalReceipt.transactionId);
+                if (receiptIndex > -1) {
+                    receipts.splice(receiptIndex, 1);
+                    saveData(); // Save updated receipts array
+                    renderReceiptsHistory(); // Re-render receipts list
+                    console.log(`Original receipt ${originalReceipt.transactionId} deleted as all items from a single-item purchase were returned.`);
+                }
+            }
+
             // Close modals and refocus
             returnItemsModal.classList.add('hidden');
             historicalReceiptModal.classList.add('hidden');
@@ -2152,8 +2162,9 @@
             // After successful return, always refocus the sales terminal barcode input
             barcodeScannerInput.focus();
 
-            showMessageBox(`Return processed! Give customer: $${finalRefundAmount.toFixed(2)}`);
+            showMessageBox(`Return processed! Give customer: $${subtotalRefundAfterDiscount.toFixed(2)}`); // Display pre-tax refund
         }
+
 
         // --- Reports Functionality ---
         /**
