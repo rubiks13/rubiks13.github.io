@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customizable Countdown Timer</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for the Inter font and overall look */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Light background */
+        }
+        /* Modal overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        /* Modal content */
+        .modal-content {
+            background-color: white;
+            padding: 2.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 500px;
+            transform: translateY(-20px);
+            opacity: 0;
+            transition: all 0.3s ease-out;
+        }
+        .modal-content.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    <div class="bg-white rounded-xl shadow-2xl p-8 md:p-12 text-center max-w-2xl w-full">
+        <h1 class="text-4xl md:text-5xl font-extrabold text-gray-800 mb-6 leading-tight">
+            Countdown to <span id="displayTargetDate">June 24, 2025</span>
+        </h1>
+        <p class="text-lg md:text-xl text-gray-600 mb-8">
+            The clock is ticking until our special date!
+        </p>
+
+        <div id="countdown" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <!-- Days container -->
+            <div class="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg p-5 shadow-lg transform transition duration-300 hover:scale-105">
+                <div id="days" class="text-4xl md:text-6xl font-bold">00</div>
+                <div class="text-sm md:text-base mt-2">Days</div>
+            </div>
+            <!-- Hours container -->
+            <div class="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-lg p-5 shadow-lg transform transition duration-300 hover:scale-105">
+                <div id="hours" class="text-4xl md:text-6xl font-bold">00</div>
+                <div class="text-sm md:text-base mt-2">Hours</div>
+            </div>
+            <!-- Minutes container -->
+            <div class="bg-gradient-to-br from-pink-500 to-pink-600 text-white rounded-lg p-5 shadow-lg transform transition duration-300 hover:scale-105">
+                <div id="minutes" class="text-4xl md:text-6xl font-bold">00</div>
+                <div class="text-sm md:text-base mt-2">Minutes</div>
+            </div>
+            <!-- Seconds container -->
+            <div class="bg-gradient-to-br from-red-500 to-red-600 text-white rounded-lg p-5 shadow-lg transform transition duration-300 hover:scale-105">
+                <div id="seconds" class="text-4xl md:text-6xl font-bold">00</div>
+                <div class="text-sm md:text-base mt-2">Seconds</div>
+            </div>
+        </div>
+
+        <div id="message" class="text-2xl font-semibold text-green-700 hidden">
+            Countdown finished!
+        </div>
+
+        <p class="text-sm text-gray-500 mt-6">
+            Press <kbd class="px-2 py-1 bg-gray-200 rounded-md text-gray-700 font-mono text-xs">Ctrl + S</kbd> to change the target date and time.
+        </p>
+    </div>
+
+    <!-- Date/Time Input Modal -->
+    <div id="dateTimeModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Set New Countdown Target</h2>
+            <div class="mb-4 text-left">
+                <label for="inputDate" class="block text-gray-700 text-sm font-bold mb-2">Date:</label>
+                <input type="date" id="inputDate" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" />
+            </div>
+            <div class="mb-6 text-left">
+                <label for="inputTime" class="block text-gray-700 text-sm font-bold mb-2">Time (24-hour):</label>
+                <input type="time" id="inputTime" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" value="00:00"/>
+            </div>
+            <p id="modalError" class="text-red-600 text-sm mb-4 hidden"></p>
+            <div class="flex justify-end gap-3">
+                <button id="cancelBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-150 ease-in-out">
+                    Cancel
+                </button>
+                <button id="saveBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-150 ease-in-out">
+                    Save
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get references to the HTML elements
+        const daysEl = document.getElementById('days');
+        const hoursEl = document.getElementById('hours');
+        const minutesEl = document.getElementById('minutes');
+        const secondsEl = document.getElementById('seconds');
+        const messageEl = document.getElementById('message');
+        const countdownContainer = document.getElementById('countdown');
+        const displayTargetDateEl = document.getElementById('displayTargetDate');
+
+        // Modal elements
+        const dateTimeModal = document.getElementById('dateTimeModal');
+        const modalContent = dateTimeModal.querySelector('.modal-content');
+        const inputDate = document.getElementById('inputDate');
+        const inputTime = document.getElementById('inputTime');
+        const saveBtn = document.getElementById('saveBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const modalError = document.getElementById('modalError');
+
+        // Initial target date: Monday, June 24, 2025, 12:00 AM (midnight)
+        let targetDate = new Date('June 24, 2025 00:00:00').getTime();
+        let countdownInterval; // Variable to hold the interval ID
+
+        // Function to format numbers with leading zeros (e.g., 5 becomes 05)
+        function formatNumber(num) {
+            return num < 10 ? '0' + num : num;
+        }
+
+        // Function to update the target date display
+        function updateDisplayTargetDate() {
+            const dateObj = new Date(targetDate);
+            displayTargetDateEl.textContent = dateObj.toLocaleDateString('en-US', {
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+            });
+        }
+
+        // Function to update the countdown
+        function updateCountdown() {
+            const now = new Date().getTime(); // Get the current time
+            const distance = targetDate - now; // Calculate the distance between now and the target date
+
+            // Calculate days, hours, minutes, and seconds
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            // If the countdown is still active (distance > 0)
+            if (distance > 0) {
+                // Show countdown elements and hide message
+                countdownContainer.classList.remove('hidden');
+                messageEl.classList.add('hidden');
+
+                // Update the HTML elements with the calculated values
+                daysEl.innerHTML = formatNumber(days);
+                hoursEl.innerHTML = formatNumber(hours);
+                minutesEl.innerHTML = formatNumber(minutes);
+                secondsEl.innerHTML = formatNumber(seconds);
+            } else {
+                // If the countdown has finished (distance <= 0)
+                clearInterval(countdownInterval); // Stop the interval
+                countdownContainer.classList.add('hidden'); // Hide the countdown numbers
+                messageEl.classList.remove('hidden'); // Show the "Countdown finished!" message
+                daysEl.innerHTML = '00'; // Ensure all display 00
+                hoursEl.innerHTML = '00';
+                minutesEl.innerHTML = '00';
+                secondsEl.innerHTML = '00';
+            }
+        }
+
+        // Function to start or restart the countdown interval
+        function startCountdown() {
+            clearInterval(countdownInterval); // Clear any existing interval
+            updateCountdown(); // Run immediately to avoid delay
+            countdownInterval = setInterval(updateCountdown, 1000); // Start new interval
+            updateDisplayTargetDate(); // Update the displayed target date
+        }
+
+        // --- Modal Functions ---
+        function showModal() {
+            // Pre-fill modal inputs with current target date/time
+            const currentTargetDate = new Date(targetDate);
+            const year = currentTargetDate.getFullYear();
+            const month = formatNumber(currentTargetDate.getMonth() + 1); // Month is 0-indexed
+            const day = formatNumber(currentTargetDate.getDate());
+            const hours = formatNumber(currentTargetDate.getHours());
+            const minutes = formatNumber(currentTargetDate.getMinutes());
+
+            inputDate.value = `${year}-${month}-${day}`;
+            inputTime.value = `${hours}:${minutes}`;
+
+            modalError.classList.add('hidden'); // Hide any previous errors
+            dateTimeModal.classList.remove('hidden');
+            // Add a small delay to allow display to update before starting transition
+            setTimeout(() => {
+                modalContent.classList.add('show');
+            }, 10);
+        }
+
+        function hideModal() {
+            modalContent.classList.remove('show');
+            // Add a small delay for transition to complete before hiding fully
+            setTimeout(() => {
+                dateTimeModal.classList.add('hidden');
+            }, 300);
+        }
+
+        // --- Event Listeners ---
+
+        // Listen for Ctrl + S key press
+        document.addEventListener('keydown', function(event) {
+            // Check for Ctrl (or Command on Mac) and 's' key
+            if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+                event.preventDefault(); // Prevent the browser's default save action
+                showModal();
+            }
+        });
+
+        // Save button click in modal
+        saveBtn.addEventListener('click', function() {
+            const dateValue = inputDate.value;
+            const timeValue = inputTime.value;
+
+            if (!dateValue || !timeValue) {
+                modalError.textContent = 'Please select both date and time.';
+                modalError.classList.remove('hidden');
+                return;
+            }
+
+            const newDateTimeString = `${dateValue}T${timeValue}:00`; // Format for ISO 8601
+            const newDate = new Date(newDateTimeString);
+
+            // Check if the parsed date is valid
+            if (isNaN(newDate.getTime())) {
+                modalError.textContent = 'Invalid date or time entered. Please use a valid format.';
+                modalError.classList.remove('hidden');
+                return;
+            }
+
+            targetDate = newDate.getTime(); // Update the global targetDate
+            startCountdown(); // Restart the countdown with the new date
+            hideModal(); // Close the modal
+        });
+
+        // Cancel button click in modal
+        cancelBtn.addEventListener('click', function() {
+            hideModal();
+        });
+
+        // Initial setup
+        startCountdown(); // Start the countdown when the page loads
+    </script>
+</body>
+</html>
