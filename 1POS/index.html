@@ -100,7 +100,7 @@
             display: flex; /* Show active tab (overrides hidden) */
         }
 
-        /* Custom styles for print media (optimized for 80mm receipt printer) */
+        /* Custom styles for print media (optimized for 80mm printer) */
         @media print {
             body * {
                 visibility: hidden;
@@ -482,6 +482,10 @@
                             class="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg shadow-lg transition duration-300 ease-in-out">
                         Print This Receipt
                     </button>
+                    <button id="return-items-button"
+                            class="w-full mt-2 bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-3 rounded-lg shadow-lg transition duration-300 ease-in-out">
+                        Return Items
+                    </button>
                 </div>
             </div>
         </section>
@@ -623,8 +627,16 @@
 
                 <p><strong>Historical Receipt Details (Modal):</strong></p>
                 <ul class="list-disc list-inside ml-4">
-                    <li>Use '<kbd>Tab</kbd>' to navigate the 'Print This Receipt' and 'Close' buttons.</li>
+                    <li>Use '<kbd>Tab</kbd>' to navigate the 'Print This Receipt' and 'Return Items' buttons.</li>
                     <li>Press '<kbd>Enter</kbd>' or '<kbd>Space</kbd>' on your selection.</li>
+                    <li>Press '<kbd>Escape</kbd>' to close this modal.</li>
+                </ul>
+
+                <p><strong>Return Items Dialog:</strong></p>
+                <ul class="list-disc list-inside ml-4">
+                    <li>Use '<kbd>Tab</kbd>' to navigate input fields and buttons.</li>
+                    <li>Use '<kbd>Arrow Up</kbd>' and '<kbd>Arrow Down</kbd>' on number inputs to adjust quantity.</li>
+                    <li>Press '<kbd>Enter</kbd>' or '<kbd>Space</kbd>' on 'Process Return & Print' or 'Cancel Return' buttons.</li>
                     <li>Press '<kbd>Escape</kbd>' to close this modal.</li>
                 </ul>
 
@@ -640,6 +652,63 @@
             <button id="keyboard-instructions-ok-button" class="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg shadow-lg transition duration-300 ease-in-out">
                 Got It!
             </button>
+        </div>
+    </div>
+
+    <!-- Return Items Modal -->
+    <div id="return-items-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-800 p-6 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto relative border border-gray-700">
+            <button id="close-return-items-modal" class="absolute top-3 right-3 text-gray-400 hover:text-gray-100 text-3xl font-bold" aria-label="Close">&times;</button>
+            <h3 class="text-2xl font-bold text-gray-100 mb-4 text-center">Return Items from Receipt <span id="return-original-txn-id"></span></h3>
+
+            <div class="mb-4">
+                <p class="text-sm text-gray-300 mb-2">Original Purchase Date: <span id="return-original-purchase-date"></span></p>
+                <p class="text-sm text-gray-300 mb-2">Original Total: <span id="return-original-total" class="font-bold"></span></p>
+                <p class="text-sm text-gray-300 mb-2">Original Discount: <span id="return-original-discount" class="font-bold text-red-400"></span></p>
+            </div>
+
+            <div class="flex-1 overflow-auto mb-4 border border-gray-600 rounded-lg">
+                <table class="min-w-full divide-y divide-gray-600">
+                    <thead class="bg-gray-700 sticky top-0">
+                        <tr>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Item</th>
+                            <th class="px-4 py-2 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">Price (Paid)</th>
+                            <th class="px-4 py-2 text-center text-xs font-medium text-gray-300 uppercase tracking-wider">Qty Purchased</th>
+                            <th class="px-4 py-2 text-center text-xs font-medium text-gray-300 uppercase tracking-wider">Qty Return</th>
+                        </tr>
+                    </thead>
+                    <tbody id="return-items-list" class="bg-gray-800 divide-y divide-gray-700">
+                        <!-- Returnable items will be dynamically added here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-auto pt-4 border-t border-gray-700">
+                <div class="flex justify-between items-center text-lg font-bold text-gray-100 mb-2">
+                    <span>Estimated Refund Subtotal:</span>
+                    <span id="estimated-refund-subtotal">$0.00</span>
+                </div>
+                <div class="flex justify-between items-center text-lg font-bold text-red-400 mb-2">
+                    <span>Prorated Original Discount:</span>
+                    <span id="prorated-original-discount">-$0.00</span>
+                </div>
+                <div class="flex justify-between items-center text-lg font-bold text-gray-100 mb-2">
+                    <span>Refund Tax (8.00%):</span>
+                    <span id="refund-tax-amount">$0.00</span>
+                </div>
+                <div class="flex justify-between items-center text-xl font-bold text-gray-100">
+                    <span>Total Refund Due:</span>
+                    <span id="total-refund-amount" class="text-green-400">$0.00</span>
+                </div>
+                <button id="process-return-button"
+                        class="w-full mt-4 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg shadow-lg transition duration-300 ease-in-out">
+                    Process Return & Print
+                </button>
+                <button id="cancel-return-button"
+                        class="w-full mt-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 rounded-lg shadow-lg transition duration-300 ease-in-out">
+                    Cancel Return
+                </button>
+            </div>
         </div>
     </div>
 
@@ -670,6 +739,10 @@
             logoUrl: 'https://placehold.co/150x50/1e40af/ffffff?text=Your+Logo', // Default placeholder logo
             receiptFooterMessage: 'Thank you for your purchase! Please come again!' // New default footer message
         };
+
+        // Variables for return functionality
+        let currentReceiptForReturn = null; // Stores the receipt object being returned from
+        let itemsToReturnQuantities = {}; // Stores {barcode: quantity_to_return}
 
         // --- DOM Elements ---
         // Tab Navigation
@@ -719,6 +792,7 @@
         const historicalReceiptContent = document.getElementById('historical-receipt-content');
         const closeHistoricalReceiptModalBtn = document.getElementById('close-historical-receipt-modal');
         const printHistoricalReceiptBtn = document.getElementById('print-historical-receipt');
+        const returnItemsButton = document.getElementById('return-items-button'); // New Return Items button
 
         // Settings
         const storeNameInput = document.getElementById('store-name');
@@ -747,6 +821,22 @@
         const closeKeyboardInstructionsModalBtn = document.getElementById('close-keyboard-instructions-modal');
         const keyboardInstructionsOkButton = document.getElementById('keyboard-instructions-ok-button');
 
+        // Return Items Modal
+        const returnItemsModal = document.getElementById('return-items-modal');
+        const closeReturnItemsModalBtn = document.getElementById('close-return-items-modal');
+        const returnOriginalTxnIdSpan = document.getElementById('return-original-txn-id');
+        const returnOriginalPurchaseDateSpan = document.getElementById('return-original-purchase-date');
+        const returnOriginalTotalSpan = document.getElementById('return-original-total');
+        const returnOriginalDiscountSpan = document.getElementById('return-original-discount');
+        const returnItemsListBody = document.getElementById('return-items-list');
+        const estimatedRefundSubtotalSpan = document.getElementById('estimated-refund-subtotal');
+        const proratedOriginalDiscountSpan = document.getElementById('prorated-original-discount');
+        const refundTaxAmountSpan = document.getElementById('refund-tax-amount');
+        const totalRefundAmountSpan = document.getElementById('total-refund-amount');
+        const processReturnButton = document.getElementById('process-return-button');
+        const cancelReturnButton = document.getElementById('cancel-return-button');
+
+
         let lastFocusedElement = null; // To store the element that had focus before a modal opened
 
         // --- Local Storage Functions ---
@@ -762,7 +852,7 @@
                 localStorage.setItem(LOCAL_STORAGE_KEYS.SETTINGS, JSON.stringify(storeSettings));
             } catch (e) {
                 console.error("Error saving to local storage:", e);
-                showMessageBox("Error: Could not save data to your browser. Please check storage limits or browser settings.");
+                // showMessageBox("Error: Could not save data to your browser. Please check storage limits or browser settings."); // Removed per user request
             }
         }
 
@@ -810,7 +900,7 @@
                 }
             } catch (e) {
                 console.error("Error loading from local storage:", e);
-                showMessageBox("Error: Could not load saved data. Starting with fresh data. Please check storage limits or browser settings.");
+                // showMessageBox("Error: Could not load saved data. Starting with fresh data. Please check storage limits or browser settings."); // Removed per user request
                 // Reset to defaults if load fails
                 products = [];
                 coupons = [];
@@ -947,6 +1037,7 @@
             products.push({ barcode: '1000000001', name: 'Mouse', price: 25.00 });
             products.push({ barcode: '1000000002', name: 'Keyboard', price: 75.00 });
             products.push({ barcode: '1000000003', name: 'Monitor', price: 300.00 });
+            products.push({ barcode: '1000000004', name: 'Coat', price: 12.99 }); // Added for return test case
         }
 
         /**
@@ -1602,6 +1693,8 @@
          * @param {Object} receiptData - The data of the historical receipt.
          */
         function viewHistoricalReceipt(receiptData) {
+            currentReceiptForReturn = receiptData; // Set the global variable for return functionality
+
             // Generate HTML for modal display (not for print)
             historicalReceiptContent.innerHTML = generateReceiptHtml(receiptData, false);
 
@@ -1691,6 +1784,290 @@
                 }
             };
         }
+
+        // --- Return Items Functions ---
+
+        /**
+         * Opens the return items modal for a specific receipt.
+         * @param {Object} receiptData - The original receipt object.
+         */
+        function openReturnItemsModal(receiptData) {
+            lastFocusedElement = document.activeElement; // Store current focus
+            currentReceiptForReturn = receiptData;
+            itemsToReturnQuantities = {}; // Reset return quantities
+
+            // Populate modal header
+            returnOriginalTxnIdSpan.textContent = receiptData.transactionId;
+            returnOriginalPurchaseDateSpan.textContent = new Date(receiptData.timestamp).toLocaleString();
+            returnOriginalTotalSpan.textContent = `$${receiptData.finalTotal.toFixed(2)}`;
+            returnOriginalDiscountSpan.textContent = `-$${receiptData.discountAmount.toFixed(2)}`;
+
+            // Populate items to return list
+            returnItemsListBody.innerHTML = '';
+            receiptData.cartItems.forEach(item => {
+                const row = returnItemsListBody.insertRow();
+                row.className = 'hover:bg-gray-700';
+                row.insertCell().textContent = item.name;
+                row.insertCell().textContent = `$${item.price.toFixed(2)}`;
+                row.cells[1].classList.add('text-right');
+                row.insertCell().textContent = item.quantity;
+                row.cells[2].classList.add('text-center');
+
+                const qtyReturnCell = row.insertCell();
+                qtyReturnCell.classList.add('text-center');
+
+                const qtyReturnInput = document.createElement('input');
+                qtyReturnInput.type = 'number';
+                qtyReturnInput.min = '0';
+                qtyReturnInput.max = item.quantity.toString();
+                qtyReturnInput.value = '0';
+                qtyReturnInput.className = 'w-20 p-1 border border-gray-600 rounded-md bg-gray-700 text-gray-100 text-center focus:outline-none focus:ring-2 focus:ring-yellow-500';
+                qtyReturnInput.dataset.barcode = item.barcode;
+                qtyReturnInput.dataset.originalPrice = item.price.toFixed(2); // Store original price
+                qtyReturnInput.addEventListener('input', updateRefundAmounts);
+                qtyReturnInput.addEventListener('change', (e) => { // Ensure valid number on blur
+                    const val = parseInt(e.target.value);
+                    const max = parseInt(e.target.max);
+                    if (isNaN(val) || val < 0) e.target.value = 0;
+                    else if (val > max) e.target.value = max;
+                    updateRefundAmounts();
+                });
+                qtyReturnCell.appendChild(qtyReturnInput);
+
+                // Initialize itemsToReturnQuantities
+                itemsToReturnQuantities[item.barcode] = 0;
+            });
+
+            updateRefundAmounts(); // Calculate initial refund (should be $0.00)
+            returnItemsModal.classList.remove('hidden');
+            // Focus the first quantity input in the return modal
+            const firstQtyInput = returnItemsListBody.querySelector('input[type="number"]');
+            if (firstQtyInput) {
+                firstQtyInput.focus();
+            } else {
+                closeReturnItemsModalBtn.focus(); // Fallback if no items
+            }
+        }
+
+        /**
+         * Calculates and updates the refund amounts displayed in the return modal.
+         */
+        function updateRefundAmounts() {
+            let totalOriginalPriceOfReturnedItems = 0;
+
+            // Collect quantities to return and calculate subtotal based on original prices
+            returnItemsListBody.querySelectorAll('input[type="number"]').forEach(input => {
+                const barcode = input.dataset.barcode;
+                const qty = parseInt(input.value) || 0; // Default to 0 if not a number
+                const originalPrice = parseFloat(input.dataset.originalPrice);
+
+                itemsToReturnQuantities[barcode] = qty;
+                totalOriginalPriceOfReturnedItems += qty * originalPrice;
+            });
+
+            // Calculate prorated discount and tax
+            const originalReceipt = currentReceiptForReturn;
+            let proratedDiscount = 0;
+            if (originalReceipt.subtotal > 0 && originalReceipt.discountAmount > 0) {
+                const discountProportion = originalReceipt.discountAmount / originalReceipt.subtotal;
+                proratedDiscount = totalOriginalPriceOfReturnedItems * discountProportion;
+            }
+
+            const subtotalAfterProratedDiscount = totalOriginalPriceOfReturnedItems - proratedDiscount;
+            const refundTax = subtotalAfterProratedDiscount * TAX_RATE; // Calculate tax on the refunded subtotal
+            const finalRefund = subtotalAfterProratedDiscount + refundTax;
+
+            estimatedRefundSubtotalSpan.textContent = `$${totalOriginalPriceOfReturnedItems.toFixed(2)}`;
+            proratedOriginalDiscountSpan.textContent = `-$${proratedDiscount.toFixed(2)}`;
+            refundTaxAmountSpan.textContent = `$${refundTax.toFixed(2)}`;
+            totalRefundAmountSpan.textContent = `$${finalRefund.toFixed(2)}`;
+        }
+
+        /**
+         * Generates the HTML content for a return receipt.
+         * @param {Object} returnData - The data for the return receipt.
+         * @returns {string} HTML string of the return receipt.
+         */
+        function generateReturnReceiptHtml(returnData) {
+            const { storeName, storeAddress, storePhone, storeWebsite, logoUrl, receiptFooterMessage } = storeSettings; // Use current store settings
+
+            let receiptHtml = `
+                <div class="receipt-container">
+                    <div class="receipt-header text-center mb-6">
+                        ${logoUrl ? `<img id="receipt-logo" src="${logoUrl}" onerror="this.onerror=null;this.src='https://placehold.co/150x50/1e40af/ffffff?text=Logo+Not+Found';" alt="Store Logo">` : ''}
+                        <h2>${storeName}</h2>
+                        <p>${storeAddress}</p>
+                        <p>${storePhone} | ${storeWebsite}</p>
+                        <div class="dashed-line"></div>
+                        <h3 class="text-xl font-bold">RETURN RECEIPT</h3>
+                        <div class="dashed-line"></div>
+                        <p>Date: ${new Date(returnData.timestamp).toLocaleDateString()}</p>
+                        <p>Time: ${new Date(returnData.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                        <p>Return ID: ${returnData.returnId}</p>
+                        <p>Original Txn ID: ${returnData.originalTransactionId}</p>
+                        <div class="dashed-line"></div>
+                    </div>
+
+                    <table class="receipt-items w-full mb-6">
+                        <thead>
+                            <tr>
+                                <th class="text-left">Item (Returned)</th>
+                                <th class="text-right">Price (Paid)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+            returnData.returnedItems.forEach(item => {
+                receiptHtml += `
+                    <tr>
+                        <td class="text-left">${item.name} x ${item.returnedQuantity}</td>
+                        <td class="text-right">$${item.originalPriceAtPurchase.toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+
+            receiptHtml += `
+                        </tbody>
+                    </table>
+
+                    <div class="dashed-line"></div>
+
+                    <div class="receipt-totals mb-6">
+                        <div>
+                            <span>Refund Subtotal:</span>
+                            <span>$${returnData.refundSubtotal.toFixed(2)}</span>
+                        </div>
+                        ${returnData.proratedOriginalDiscount > 0 ? `
+                            <div class="text-red-600">
+                                <span>Prorated Original Discount:</span>
+                                <span>-$${returnData.proratedOriginalDiscount.toFixed(2)}</span>
+                            </div>
+                        ` : ''}
+                        <div>
+                            <span>Refund Tax (${(TAX_RATE * 100).toFixed(2)}%):</span>
+                            <span>$${returnData.refundTax.toFixed(2)}</span>
+                        </div>
+                        <h3 class="mt-2 pt-2 border-t-2 border-black">
+                            <span>TOTAL REFUND:</span>
+                            <span>$${returnData.finalRefundAmount.toFixed(2)}</span>
+                        </h3>
+                    </div>
+
+                    <div class="dashed-line"></div>
+
+                    <div class="receipt-barcode text-center mb-6">
+                        <p class="font-bold">Return Barcode:</p>
+                        <svg id="return-transaction-barcode" class="w-full"></svg>
+                    </div>
+
+                    <div class="dashed-line"></div>
+
+                    <div class="receipt-footer text-center">
+                        <p class="font-bold">${receiptFooterMessage}</p>
+                        <p class="text-xs">Refunds processed based on original purchase price.</p>
+                    </div>
+                </div>
+            `;
+            return receiptHtml;
+        }
+
+
+        /**
+         * Processes the return, calculates final refund, and prints a return receipt.
+         */
+        function processReturnAndPrint() {
+            const returnedItems = [];
+            let totalOriginalPriceOfReturnedItems = 0;
+
+            // Collect selected items for return
+            currentReceiptForReturn.cartItems.forEach(originalItem => {
+                const qtyToReturn = itemsToReturnQuantities[originalItem.barcode] || 0;
+                if (qtyToReturn > 0) {
+                    returnedItems.push({
+                        barcode: originalItem.barcode,
+                        name: originalItem.name,
+                        originalPriceAtPurchase: originalItem.price, // Use price from original receipt
+                        returnedQuantity: qtyToReturn,
+                        subtotalReturned: originalItem.price * qtyToReturn
+                    });
+                    totalOriginalPriceOfReturnedItems += originalItem.price * qtyToReturn;
+                }
+            });
+
+            if (returnedItems.length === 0) {
+                showMessageBox("No items selected for return.");
+                return;
+            }
+
+            // Calculate prorated discount and tax based on the original receipt
+            const originalReceipt = currentReceiptForReturn;
+            let proratedOriginalDiscount = 0;
+            if (originalReceipt.subtotal > 0 && originalReceipt.discountAmount > 0) {
+                const discountProportion = originalReceipt.discountAmount / originalReceipt.subtotal;
+                proratedOriginalDiscount = totalOriginalPriceOfReturnedItems * discountProportion;
+            }
+
+            const subtotalRefundAfterDiscount = totalOriginalPriceOfReturnedItems - proratedOriginalDiscount;
+            const refundTax = subtotalRefundAfterDiscount * TAX_RATE;
+            const finalRefundAmount = subtotalRefundAfterDiscount + refundTax;
+
+            const returnTransactionId = `RET-${generateRandomBarcodeNumber()}`;
+            const returnTimestamp = new Date().toISOString();
+
+            const returnData = {
+                returnId: returnTransactionId,
+                originalTransactionId: originalReceipt.transactionId,
+                timestamp: returnTimestamp,
+                returnedItems: returnedItems,
+                refundSubtotal: totalOriginalPriceOfReturnedItems,
+                proratedOriginalDiscount: proratedOriginalDiscount,
+                refundTax: refundTax,
+                finalRefundAmount: finalRefundAmount,
+                storeInfo: { ...storeSettings } // Snapshot current store settings for return receipt
+            };
+
+            // Generate HTML for return receipt and print
+            receiptPrintArea.innerHTML = generateReturnReceiptHtml(returnData);
+
+            // Render barcode for return receipt
+            const returnBarcodeElement = receiptPrintArea.querySelector('#return-transaction-barcode');
+            if (returnBarcodeElement) {
+                try {
+                    JsBarcode(returnBarcodeElement, returnTransactionId, {
+                        format: "CODE128",
+                        displayValue: true,
+                        width: 1.5,
+                        height: 50,
+                        margin: 5,
+                        fontSize: 12,
+                        lineColor: "#000",
+                        background: "#fff"
+                    });
+                } catch (e) {
+                    console.error(`Error generating return barcode (${returnTransactionId}):`, e);
+                    returnBarcodeElement.textContent = `Code: ${returnTransactionId}`;
+                }
+            }
+
+            receiptPrintArea.classList.remove('hidden');
+            window.print();
+            receiptPrintArea.classList.add('hidden');
+
+            // Close modals and refocus
+            returnItemsModal.classList.add('hidden');
+            historicalReceiptModal.classList.add('hidden');
+            if (lastFocusedElement) {
+                lastFocusedElement.focus(); // Restore focus to the button that opened the receipt details
+                lastFocusedElement = null;
+            }
+            // After successful return, always refocus the sales terminal barcode input
+            barcodeScannerInput.focus();
+
+            // Notify user of refund amount
+            showMessageBox(`Return processed! Give customer: $${finalRefundAmount.toFixed(2)}`);
+        }
+
 
         // --- Settings Functions ---
 
@@ -1935,6 +2312,7 @@
         closeHistoricalReceiptModalBtn.addEventListener('click', () => {
             historicalReceiptModal.classList.add('hidden');
             historicalReceiptContent.innerHTML = ''; // Clear content
+            currentReceiptForReturn = null; // Clear global variable
             if (lastFocusedElement) {
                 lastFocusedElement.focus(); // Restore focus
                 lastFocusedElement = null;
@@ -1948,11 +2326,59 @@
                 // If focus is on Print button, trigger it. Otherwise, close modal.
                 if (document.activeElement === printHistoricalReceiptBtn) {
                     printHistoricalReceiptBtn.click();
-                } else if (document.activeElement === closeHistoricalReceiptModalBtn) {
-                    closeHistoricalReceiptModalBtn.click();
+                } else if (document.activeElement === returnItemsButton) {
+                    returnItemsButton.click();
+                }
+                // Don't close with enter/space on the close button itself, allow it to be focused but keep it explicit
+            }
+        });
+
+        // NEW: Return Items Button on Historical Receipt Modal
+        returnItemsButton.addEventListener('click', () => {
+            if (currentReceiptForReturn) {
+                historicalReceiptModal.classList.add('hidden'); // Hide original receipt modal
+                openReturnItemsModal(currentReceiptForReturn);
+            }
+        });
+
+        // Return Items Modal: Close button
+        closeReturnItemsModalBtn.addEventListener('click', () => {
+            returnItemsModal.classList.add('hidden');
+            returnItemsListBody.innerHTML = ''; // Clear items
+            currentReceiptForReturn = null; // Clear active return receipt
+            if (lastFocusedElement) {
+                lastFocusedElement.focus(); // Restore focus to the element that opened the return modal (likely 'Return Items' button)
+                lastFocusedElement = null;
+            }
+        });
+        returnItemsModal.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                closeReturnItemsModalBtn.click();
+            }
+            if (event.key === 'Enter' || event.key === 'Space') {
+                 // If focus is on Process button, trigger it. Otherwise, if on Cancel, trigger it.
+                if (document.activeElement === processReturnButton) {
+                    processReturnButton.click();
+                } else if (document.activeElement === cancelReturnButton) {
+                    cancelReturnButton.click();
                 }
             }
         });
+
+        // Return Items Modal: Process Return Button
+        processReturnButton.addEventListener('click', processReturnAndPrint);
+
+        // Return Items Modal: Cancel Return Button
+        cancelReturnButton.addEventListener('click', () => {
+            returnItemsModal.classList.add('hidden');
+            returnItemsListBody.innerHTML = ''; // Clear items
+            currentReceiptForReturn = null; // Clear active return receipt
+            if (lastFocusedElement) {
+                lastFocusedElement.focus(); // Restore focus
+                lastFocusedElement = null;
+            }
+        });
+
 
         // Keyboard Instructions Modal Buttons
         closeKeyboardInstructionsModalBtn.addEventListener('click', hideKeyboardInstructions);
