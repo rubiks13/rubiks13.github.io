@@ -249,6 +249,7 @@
             <button class="tab-button active" data-tab="sales">Sales Terminal</button>
             <button class="tab-button" data-tab="products">Product & Coupon Management</button>
             <button class="tab-button" data-tab="receipts">Receipts History</button>
+            <button class="tab-button" data-tab="reports">Reports</button>
             <button class="tab-button" data-tab="settings">Settings</button>
         </div>
 
@@ -262,6 +263,27 @@
                 <label for="barcode-scanner-input" class="block text-sm font-medium text-gray-300 mb-1">Scan Barcode / Enter Product Barcode</label>
                 <input type="text" id="barcode-scanner-input" placeholder="Scan barcode or type product barcode and press Enter"
                        class="w-full p-3 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400" autofocus>
+            </div>
+
+            <!-- Custom Price Input -->
+            <div class="mb-4 pt-4 border-t border-gray-700">
+                <h3 class="text-xl font-medium mb-3 text-gray-200">Add Custom Priced Item</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="custom-item-description" class="block text-sm font-medium text-gray-300">Description (Optional)</label>
+                        <input type="text" id="custom-item-description" placeholder="e.g., Custom Service Fee"
+                               class="mt-1 block w-full p-2 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400">
+                    </div>
+                    <div>
+                        <label for="custom-item-price" class="block text-sm font-medium text-gray-300">Price ($)</label>
+                        <input type="number" id="custom-item-price" step="0.01" placeholder="e.g., 9.99" required
+                               class="mt-1 block w-full p-2 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400">
+                    </div>
+                </div>
+                <button id="add-custom-item-button"
+                        class="w-full mt-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">
+                    Add Custom Item
+                </button>
             </div>
 
             <!-- Cart Display -->
@@ -490,6 +512,30 @@
             </div>
         </section>
 
+        <!-- Reports Tab -->
+        <section id="reports-tab-content" class="tab-content hidden flex-col flex-1 rounded-xl shadow-lg border border-teal-600">
+            <h2 class="text-2xl font-semibold mb-4 text-gray-100">Sales Reports</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-gray-700 p-6 rounded-lg shadow-md flex flex-col justify-between items-center text-center">
+                    <h3 class="text-xl font-semibold text-gray-200 mb-2">Last Hour Sales</h3>
+                    <p id="report-last-hour" class="text-4xl font-bold text-teal-400">$0.00</p>
+                </div>
+                <div class="bg-gray-700 p-6 rounded-lg shadow-md flex flex-col justify-between items-center text-center">
+                    <h3 class="text-xl font-semibold text-gray-200 mb-2">Last 24 Hours Sales</h3>
+                    <p id="report-last-24-hours" class="text-4xl font-bold text-teal-400">$0.00</p>
+                </div>
+                <div class="bg-gray-700 p-6 rounded-lg shadow-md flex flex-col justify-between items-center text-center">
+                    <h3 class="text-xl font-semibold text-gray-200 mb-2">Last 30 Days Sales</h3>
+                    <p id="report-last-month" class="text-4xl font-bold text-teal-400">$0.00</p>
+                </div>
+                <div class="bg-gray-700 p-6 rounded-lg shadow-md flex flex-col justify-between items-center text-center">
+                    <h3 class="text-xl font-semibold text-gray-200 mb-2">All Time Sales</h3>
+                    <p id="report-total-sales" class="text-4xl font-bold text-teal-400">$0.00</p>
+                </div>
+            </div>
+        </section>
+
         <!-- Settings Tab -->
         <section id="settings-tab-content" class="tab-content hidden flex-col flex-1 rounded-xl shadow-lg border border-yellow-600">
             <h2 class="text-2xl font-semibold mb-4 text-gray-100">Settings</h2>
@@ -600,6 +646,7 @@
                 <p><strong>Sales Terminal:</strong></p>
                 <ul class="list-disc list-inside ml-4">
                     <li><span class="font-semibold">Barcode Input:</span> Type barcode, then press '<kbd>Enter</kbd>' to add the item to the cart.</li>
+                    <li><span class="font-semibold">Custom Item Price:</span> Enter price, press '<kbd>Enter</kbd>' or '<kbd>Tab</kbd>' to 'Add Custom Item' button then '<kbd>Enter</kbd>' / '<kbd>Space</kbd>'.</li>
                     <li><span class="font-semibold">Cart Items:</span> Navigate quantity adjustment buttons ('<kbd>+</kbd>', '<kbd>-</kbd>') and 'Remove' buttons using '<kbd>Tab</kbd>'. Press '<kbd>Enter</kbd>' or '<kbd>Space</kbd>' to activate.</li>
                     <li><span class="font-semibold">Coupon Input:</span> Type coupon code. Press '<kbd>Enter</kbd>' while the input is focused, or '<kbd>Tab</kbd>' to the 'Apply' button and press '<kbd>Enter</kbd>'/<kbd>Space</kbd>'.</li>
                     <li><span class="font-semibold">Checkout Button:</span> Press '<kbd>Enter</kbd>' or '<kbd>Space</kbd>'.</li>
@@ -638,6 +685,11 @@
                     <li>Use '<kbd>Arrow Up</kbd>' and '<kbd>Arrow Down</kbd>' on number inputs to adjust quantity.</li>
                     <li>Press '<kbd>Enter</kbd>' or '<kbd>Space</kbd>' on 'Process Return & Print' or 'Cancel Return' buttons.</li>
                     <li>Press '<kbd>Escape</kbd>' to close this modal.</li>
+                </ul>
+
+                <p><strong>Reports:</strong></p>
+                <ul class="list-disc list-inside ml-4">
+                    <li>This section provides a summary of sales performance. No direct interaction is needed here via keyboard, as it's a display only. You can navigate the tab itself.</li>
                 </ul>
 
                 <p><strong>Settings:</strong></p>
@@ -751,6 +803,10 @@
 
         // Sales Terminal
         const barcodeScannerInput = document.getElementById('barcode-scanner-input');
+        const customItemDescriptionInput = document.getElementById('custom-item-description'); // New custom item description
+        const customItemPriceInput = document.getElementById('custom-item-price');           // New custom item price
+        const addCustomItemButton = document.getElementById('add-custom-item-button');       // New add custom item button
+
         const cartItemsBody = document.getElementById('cart-items');
         const subtotalDisplay = document.getElementById('subtotal-display');
         const grandTotalDisplay = document.getElementById('grand-total-display');
@@ -793,6 +849,13 @@
         const closeHistoricalReceiptModalBtn = document.getElementById('close-historical-receipt-modal');
         const printHistoricalReceiptBtn = document.getElementById('print-historical-receipt');
         const returnItemsButton = document.getElementById('return-items-button'); // New Return Items button
+
+        // Reports
+        const reportLastHourSpan = document.getElementById('report-last-hour');
+        const reportLast24HoursSpan = document.getElementById('report-last-24-hours');
+        const reportLastMonthSpan = document.getElementById('report-last-month'); // renamed from report-last-30-days
+        const reportTotalSalesSpan = document.getElementById('report-total-sales');
+
 
         // Settings
         const storeNameInput = document.getElementById('store-name');
@@ -992,13 +1055,15 @@
                 selectedTabContent.classList.remove('hidden');
                 selectedTabContent.classList.add('active'); // Add active class to content
 
-                // Set initial focus for the active tab
+                // Set initial focus for the active tab and update reports if applicable
                 if (tabId === 'sales') {
                     barcodeScannerInput.focus();
                 } else if (tabId === 'products') {
                     newProductBarcodeInput.focus();
                 } else if (tabId === 'receipts') {
                     receiptSearchInput.focus();
+                } else if (tabId === 'reports') {
+                    updateReports(); // Refresh reports when tab is opened
                 } else if (tabId === 'settings') {
                     storeNameInput.focus();
                 }
@@ -1209,6 +1274,29 @@
             }
             updateCartDisplay();
         }
+
+        /**
+         * Adds a custom item to the cart with a generated barcode.
+         * @param {string} description - The description for the custom item.
+         * @param {number} price - The price of the custom item.
+         */
+        function addCustomItemToCart(description, price) {
+            const customBarcode = `CUSTOM-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+            const itemName = description ? description : "Custom Item";
+
+            cart.push({
+                barcode: customBarcode,
+                name: itemName,
+                price: parseFloat(price.toFixed(2)),
+                quantity: 1,
+                subtotal: parseFloat(price.toFixed(2))
+            });
+            updateCartDisplay();
+            customItemDescriptionInput.value = ''; // Clear description
+            customItemPriceInput.value = ''; // Clear price
+            customItemPriceInput.focus(); // Keep focus for next custom item
+        }
+
 
         /**
          * Updates the quantity of an item in the cart.
@@ -1526,7 +1614,7 @@
                     } else if (appliedCoupon.type === 'fixed') {
                         discountAmount = appliedCoupon.value;
                     }
-                    totalBeforeTax = Math.max(0, subtotal - discountAmount);
+                    totalBeforeTax = Math.max(0, totalBeforeTax - discountAmount);
                 } else {
                     // If coupon became invalid during checkout, clear it for this receipt
                     appliedCoupon = null;
@@ -2064,8 +2152,45 @@
             // After successful return, always refocus the sales terminal barcode input
             barcodeScannerInput.focus();
 
-            // Notify user of refund amount
             showMessageBox(`Return processed! Give customer: $${finalRefundAmount.toFixed(2)}`);
+        }
+
+        // --- Reports Functionality ---
+        /**
+         * Calculates and updates sales reports for various time periods.
+         */
+        function updateReports() {
+            const now = new Date();
+            const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+            const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+            let salesLastHour = 0;
+            let salesLast24Hours = 0;
+            let salesLast30Days = 0;
+            let salesAllTime = 0;
+
+            receipts.forEach(receipt => {
+                const receiptTime = new Date(receipt.timestamp);
+                const finalTotal = receipt.finalTotal;
+
+                salesAllTime += finalTotal;
+
+                if (receiptTime > thirtyDaysAgo) {
+                    salesLast30Days += finalTotal;
+                }
+                if (receiptTime > twentyFourHoursAgo) {
+                    salesLast24Hours += finalTotal;
+                }
+                if (receiptTime > oneHourAgo) {
+                    salesLastHour += finalTotal;
+                }
+            });
+
+            reportLastHourSpan.textContent = `$${salesLastHour.toFixed(2)}`;
+            reportLast24HoursSpan.textContent = `$${salesLast24Hours.toFixed(2)}`;
+            reportLastMonthSpan.textContent = `$${salesLast30Days.toFixed(2)}`;
+            reportTotalSalesSpan.textContent = `$${salesAllTime.toFixed(2)}`;
         }
 
 
@@ -2153,6 +2278,26 @@
                 }
             });
         });
+
+        // Sales Terminal: Custom Item
+        addCustomItemButton.addEventListener('click', () => {
+            const price = parseFloat(customItemPriceInput.value);
+            const description = customItemDescriptionInput.value.trim();
+
+            if (!isNaN(price) && price > 0) {
+                addCustomItemToCart(description, price);
+            } else {
+                showMessageBox('Please enter a valid price for the custom item.');
+            }
+        });
+
+        customItemPriceInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault(); // Prevent default form submission
+                addCustomItemButton.click(); // Trigger the add custom item logic
+            }
+        });
+
 
         // Product Management: Add Product Button
         addProductButton.addEventListener('click', () => {
