@@ -100,6 +100,87 @@
             display: flex; /* Show active tab (overrides hidden) */
         }
 
+        /* Checkout Overlay and Panel */
+        #checkout-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: flex-end; /* Push panel to the right */
+            align-items: center;
+            z-index: 50;
+            opacity: 0;
+            pointer-events: none; /* Allow clicks through when hidden */
+            transition: opacity 0.3s ease;
+        }
+        #checkout-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        #checkout-panel {
+            background-color: #2d3748; /* Darker background for panel */
+            width: 50%; /* Half the screen width */
+            max-width: 500px; /* Max width for larger screens */
+            height: 100%;
+            padding: 2rem;
+            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.4);
+            transform: translateX(100%); /* Start off-screen to the right */
+            transition: transform 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        #checkout-overlay.active #checkout-panel {
+            transform: translateX(0); /* Slide in */
+        }
+
+        @media (max-width: 768px) {
+            #checkout-panel {
+                width: 80%; /* More width on small screens */
+            }
+        }
+
+        #checkout-panel .checkout-step {
+            display: none;
+            width: 100%;
+        }
+        #checkout-panel .checkout-step.active {
+            display: block;
+        }
+        #checkout-panel .checkout-step h3 {
+            font-size: 1.75rem; /* Larger heading */
+            margin-bottom: 1.5rem;
+            color: #f7fafc;
+        }
+        #checkout-panel .checkout-step .amount-display {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #63b3ed; /* Blue for total */
+            margin-bottom: 2rem;
+        }
+        #checkout-panel .checkout-step input[type="number"] {
+            width: 150px; /* Fixed width for number input */
+            text-align: center;
+            font-size: 2rem;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        #checkout-panel .checkout-step button {
+            width: 100%;
+            padding: 1rem;
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            border-radius: 0.75rem;
+        }
+
         /* Custom styles for print media (optimized for 80mm printer) */
         @media print {
             body * {
@@ -595,6 +676,33 @@
 
     </main>
 
+    <!-- Checkout Overlay/Panel -->
+    <div id="checkout-overlay" class="hidden">
+        <div id="checkout-panel">
+            <!-- Step 1: Bag Count -->
+            <div id="bag-count-step" class="checkout-step active">
+                <h3>How many bags were used?</h3>
+                <input type="number" id="bag-count-input" min="0" value="0" class="bg-gray-700 text-gray-100 border-gray-600">
+                <button id="bag-count-continue-button" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold">Continue</button>
+            </div>
+
+            <!-- Step 2: Payment Method -->
+            <div id="payment-method-step" class="checkout-step">
+                <h3>Total Due: <span id="checkout-total-display" class="amount-display">$0.00</span></h3>
+                <button id="checkout-pay-cash-button" class="bg-green-600 hover:bg-green-700 text-white font-semibold">Cash</button>
+                <button id="checkout-pay-card-button" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold">Card</button>
+            </div>
+
+            <!-- Step 3: Receipt Preference -->
+            <div id="receipt-preference-step" class="checkout-step">
+                <h3>Do they want a receipt?</h3>
+                <button id="receipt-yes-button" class="bg-green-600 hover:bg-green-700 text-white font-semibold">Yes, print receipt</button>
+                <button id="receipt-no-button" class="bg-red-600 hover:bg-red-700 text-white font-semibold">No receipt</button>
+            </div>
+        </div>
+    </div>
+
+
     <!-- Receipt Print Area (hidden by default, used for both current and historical printing) -->
     <div id="receipt-print-area" class="hidden fixed top-0 left-0 w-full h-full bg-white z-50 p-4 overflow-auto">
         <!-- Receipt content will be dynamically generated here for printing -->
@@ -605,23 +713,6 @@
         <div class="bg-gray-800 p-6 rounded-lg shadow-xl max-w-sm w-full text-center border border-gray-700">
             <p id="message-content" class="text-lg font-medium text-gray-100 mb-4"></p>
             <button id="message-ok-button" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-300 ease-in-out">OK</button>
-        </div>
-    </div>
-
-    <!-- Payment Method Modal -->
-    <div id="payment-method-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden">
-        <div class="bg-gray-800 p-6 rounded-lg shadow-xl max-w-sm w-full text-center border border-gray-700">
-            <p class="text-lg font-medium text-gray-100 mb-6">Select Payment Method:</p>
-            <div class="flex justify-around gap-4">
-                <button id="pay-cash-button"
-                        class="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out">
-                    Cash
-                </button>
-                <button id="pay-card-button"
-                        class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out">
-                    Card
-                </button>
-            </div>
         </div>
     </div>
 
@@ -647,16 +738,17 @@
                 <ul class="list-disc list-inside ml-4">
                     <li><span class="font-semibold">Barcode Input:</span> Type barcode, then press '<kbd>Enter</kbd>' to add the item to the cart.</li>
                     <li><span class="font-semibold">Custom Item Price:</span> Enter price, press '<kbd>Enter</kbd>' or '<kbd>Tab</kbd>' to 'Add Custom Item' button then '<kbd>Enter</kbd>' / '<kbd>Space</kbd>'.</li>
-                    <li><span class="font-semibold">Cart Items:</span> Navigate quantity adjustment buttons ('<kbd>+</kbd>', '<kbd>-</kbd>') and 'Remove' buttons using '<kbd>Tab</kbd>'. Press '<kbd>Enter</kbd>' or '<kbd>Space</kbd>' to activate.</li>
+                    <li><span class="font-semibold">Cart Items:</span> Navigate quantity adjustment buttons ('<kbd>+</kbd>', '<kbd>-</kbd>') and 'Remove' buttons using '<kbd>Tab</kbd>'. Press '<kbd>Enter</kbd>' or '<kbd>Space</kbd>'.</li>
                     <li><span class="font-semibold">Coupon Input:</span> Type coupon code. Press '<kbd>Enter</kbd>' while the input is focused, or '<kbd>Tab</kbd>' to the 'Apply' button and press '<kbd>Enter</kbd>'/<kbd>Space</kbd>'.</li>
                     <li><span class="font-semibold">Checkout Button:</span> Press '<kbd>Enter</kbd>' or '<kbd>Space</kbd>'.</li>
                 </ul>
 
-                <p><strong>Payment Method Dialog:</strong></p>
+                <p><strong>Checkout Panel:</strong></p>
                 <ul class="list-disc list-inside ml-4">
-                    <li>Use '<kbd>Tab</kbd>' to switch between 'Cash' and 'Card' buttons.</li>
-                    <li>Press '<kbd>Enter</kbd>' or '<kbd>Space</kbd>' on your desired payment selection.</li>
-                    <li>Press '<kbd>Escape</kbd>' to cancel payment and return to the sales terminal.</li>
+                    <li><span class="font-semibold">Bag Count:</span> Enter number, press '<kbd>Enter</kbd>' or click 'Continue'.</li>
+                    <li><span class="font-semibold">Payment Method:</span> Use '<kbd>Tab</kbd>' to switch between 'Cash' and 'Card'. Press '<kbd>Enter</kbd>' or '<kbd>Space</kbd>'.</li>
+                    <li><span class="font-semibold">Receipt Preference:</span> Use '<kbd>Tab</kbd>' to switch between 'Yes, print receipt' and 'No receipt'. Press '<kbd>Enter</kbd>' or '<kbd>Space</kbd>'.</li>
+                    <li>Press '<kbd>Escape</kbd>' at any point to cancel checkout and close the panel.</li>
                 </ul>
 
                 <p><strong>Product & Coupon Management:</strong></p>
@@ -778,6 +870,7 @@
         let coupons = [];
         let appliedCoupon = null; // Stores the currently applied coupon for the transaction
         const TAX_RATE = 0.08; // 8% tax rate
+        const BAG_FEE_PER_BAG = 0.10; // $0.10 per bag
         const NUM_RECOMMENDED_COUPONS_TO_DISPLAY = 5; // Exactly 5 recommended coupons
 
         let storeSettings = {
@@ -793,108 +886,118 @@
         let currentReceiptForReturn = null; // Stores the receipt object being returned from
         let itemsToReturnQuantities = {}; // Stores {barcode: quantity_to_return}
 
+        // Variables for checkout flow
+        let currentFinalTotal = 0; // The calculated final total including tax and discount (but not bags initially)
+        let bagsUsed = 0; // Number of bags entered by cashier
+
+
         // --- DOM Elements ---
-        // Tab Navigation
-        const tabButtons = document.querySelectorAll('.tab-button');
-        const tabContents = document.querySelectorAll('.tab-content');
+        // These will be defined inside window.onload now to ensure DOM is ready.
+        let tabButtons;
+        let tabContents;
 
         // Sales Terminal
-        const barcodeScannerInput = document.getElementById('barcode-scanner-input');
-        const customItemDescriptionInput = document.getElementById('custom-item-description'); // New custom item description
-        const customItemPriceInput = document.getElementById('custom-item-price');           // New custom item price
-        const addCustomItemButton = document.getElementById('add-custom-item-button');       // New add custom item button
+        let barcodeScannerInput;
+        let customItemDescriptionInput;
+        let customItemPriceInput;
+        let addCustomItemButton;
 
-        const cartItemsBody = document.getElementById('cart-items');
-        const subtotalDisplay = document.getElementById('subtotal-display');
-        const grandTotalDisplay = document.getElementById('grand-total-display');
-        const discountDisplayRow = document.getElementById('discount-display-row');
-        const discountDisplay = document.getElementById('discount-display');
-        const taxRateDisplay = document.getElementById('tax-rate-display'); // For displaying the tax rate
-        const taxDisplay = document.getElementById('tax-display'); // For displaying the calculated tax
-        const checkoutButton = document.getElementById('checkout-button');
-        const couponCodeInput = document.getElementById('coupon-code-input');
-        const applyCouponButton = document.getElementById('apply-coupon-button');
-        const couponStatus = document.getElementById('coupon-status');
+        let cartItemsBody;
+        let subtotalDisplay;
+        let grandTotalDisplay;
+        let discountDisplayRow;
+        let discountDisplay;
+        let taxRateDisplay;
+        let taxDisplay;
+        let checkoutButton;
+        let couponCodeInput;
+        let applyCouponButton;
+        let couponStatus;
 
         // Product Management
-        const newProductBarcodeInput = document.getElementById('new-product-barcode');
-        const newProductNameInput = document.getElementById('new-product-name');
-        const newProductPriceInput = document.getElementById('new-product-price');
-        const addProductButton = document.getElementById('add-product-button');
-        const productListBody = document.getElementById('product-list');
+        let newProductBarcodeInput;
+        let newProductNameInput;
+        let newProductPriceInput;
+        let addProductButton;
+        let productListBody;
 
         // Coupon Management
-        const newCouponCodeInput = document.getElementById('new-coupon-code');
-        const generateCouponCodeButton = document.getElementById('generate-coupon-code-button'); // New button
-        const newCouponTitleInput = document.getElementById('new-coupon-title');
-        const newCouponApplicationTypeSelect = document.getElementById('new-coupon-application-type'); // New application type select
-        const minPurchaseAmountDiv = document.getElementById('min-purchase-amount-div');
-        const newCouponMinPurchaseAmountInput = document.getElementById('new-coupon-min-purchase-amount');
-        const targetProductBarcodeDiv = document.getElementById('target-product-barcode-div');
-        const newCouponTargetProductBarcodeInput = document.getElementById('new-coupon-target-product-barcode');
-        const newCouponTypeSelect = document.getElementById('new-coupon-type');
-        const newCouponValueInput = document.getElementById('new-coupon-value');
-        const addCouponButton = document.getElementById('add-coupon-button');
-        const couponListBody = document.getElementById('coupon-list');
+        let newCouponCodeInput;
+        let generateCouponCodeButton;
+        let newCouponTitleInput;
+        let newCouponApplicationTypeSelect;
+        let minPurchaseAmountDiv;
+        let newCouponMinPurchaseAmountInput;
+        let targetProductBarcodeDiv;
+        let newCouponTargetProductBarcodeInput;
+        let newCouponTypeSelect;
+        let newCouponValueInput;
+        let addCouponButton;
+        let couponListBody;
 
         // Receipts History
-        const receiptsListDiv = document.getElementById('receipts-list');
-        const noReceiptsMessage = document.getElementById('no-receipts-message');
-        const receiptSearchInput = document.getElementById('receipt-search-input'); // New search input
-        const historicalReceiptModal = document.getElementById('historical-receipt-modal');
-        const historicalReceiptContent = document.getElementById('historical-receipt-content');
-        const closeHistoricalReceiptModalBtn = document.getElementById('close-historical-receipt-modal');
-        const printHistoricalReceiptBtn = document.getElementById('print-historical-receipt');
-        const returnItemsButton = document.getElementById('return-items-button'); // New Return Items button
+        let receiptsListDiv;
+        let noReceiptsMessage;
+        let receiptSearchInput;
+        let historicalReceiptModal;
+        let historicalReceiptContent;
+        let closeHistoricalReceiptModalBtn;
+        let printHistoricalReceiptBtn;
+        let returnItemsButton;
 
         // Reports
-        const reportLastHourSpan = document.getElementById('report-last-hour');
-        const reportLast24HoursSpan = document.getElementById('report-last-24-hours');
-        const reportLastMonthSpan = document.getElementById('report-last-month'); // renamed from report-last-30-days
-        const reportTotalSalesSpan = document.getElementById('report-total-sales');
+        let reportLastHourSpan;
+        let reportLast24HoursSpan;
+        let reportLastMonthSpan;
+        let reportTotalSalesSpan;
 
 
         // Settings
-        const storeNameInput = document.getElementById('store-name');
-        const storeAddressInput = document.getElementById('store-address');
-        const storePhoneInput = document.getElementById('store-phone');
-        const storeWebsiteInput = document.getElementById('store-website');
-        const receiptFooterMessageInput = document.getElementById('receipt-footer-message'); // New footer message input
-        const logoFileInput = document.getElementById('logo-file-input'); // File input for logo
-        const uploadLogoButton = document.getElementById('upload-logo-button'); // Button to trigger file input
-        const currentLogoPreview = document.getElementById('current-logo-preview');
-        const saveSettingsButton = document.getElementById('save-settings-button');
+        let storeNameInput;
+        let storeAddressInput;
+        let storePhoneInput;
+        let storeWebsiteInput;
+        let receiptFooterMessageInput;
+        let logoFileInput;
+        let uploadLogoButton;
+        let currentLogoPreview;
+        let saveSettingsButton;
 
         // Global Utility
-        const receiptPrintArea = document.getElementById('receipt-print-area');
-        const messageBox = document.getElementById('message-box');
-        const messageContent = document.getElementById('message-content');
-        const messageOkButton = document.getElementById('message-ok-button');
+        let receiptPrintArea;
+        let messageBox;
+        let messageContent;
+        let messageOkButton;
 
-        // Payment Method Modal
-        const paymentMethodModal = document.getElementById('payment-method-modal');
-        const payCashButton = document.getElementById('pay-cash-button');
-        const payCardButton = document.getElementById('pay-card-button');
+        // Checkout Panel Elements
+        let checkoutOverlay;
+        let checkoutPanel;
+        let bagCountStep;
+        let bagCountInput;
+        let bagCountContinueButton;
+        let paymentMethodStep;
+        let checkoutTotalDisplay;
+        let checkoutPayCashButton;
+        let checkoutPayCardButton;
+        let receiptPreferenceStep;
+        let receiptYesButton;
+        let receiptNoButton;
 
-        // Keyboard Instructions Modal
-        const keyboardInstructionsModal = document.getElementById('keyboard-instructions-modal');
-        const closeKeyboardInstructionsModalBtn = document.getElementById('close-keyboard-instructions-modal');
-        const keyboardInstructionsOkButton = document.getElementById('keyboard-instructions-ok-button');
 
         // Return Items Modal
-        const returnItemsModal = document.getElementById('return-items-modal');
-        const closeReturnItemsModalBtn = document.getElementById('close-return-items-modal');
-        const returnOriginalTxnIdSpan = document.getElementById('return-original-txn-id');
-        const returnOriginalPurchaseDateSpan = document.getElementById('return-original-purchase-date');
-        const returnOriginalTotalSpan = document.getElementById('return-original-total');
-        const returnOriginalDiscountSpan = document.getElementById('return-original-discount');
-        const returnItemsListBody = document.getElementById('return-items-list');
-        const estimatedRefundSubtotalSpan = document.getElementById('estimated-refund-subtotal');
-        const proratedOriginalDiscountSpan = document.getElementById('prorated-original-discount');
-        const refundTaxAmountSpan = document.getElementById('refund-tax-amount'); // Kept for internal calculation/return receipt only
-        const totalRefundAmountSpan = document.getElementById('total-refund-amount'); // Now shows pre-tax refund
-        const processReturnButton = document.getElementById('process-return-button');
-        const cancelReturnButton = document.getElementById('cancel-return-button');
+        let returnItemsModal;
+        let closeReturnItemsModalBtn;
+        let returnOriginalTxnIdSpan;
+        let returnOriginalPurchaseDateSpan;
+        let returnOriginalTotalSpan;
+        let returnOriginalDiscountSpan;
+        let returnItemsListBody;
+        let estimatedRefundSubtotalSpan;
+        let proratedOriginalDiscountSpan;
+        let refundTaxAmountSpan;
+        let totalRefundAmountSpan;
+        let processReturnButton;
+        let cancelReturnButton;
 
 
         let lastFocusedElement = null; // To store the element that had focus before a modal opened
@@ -949,7 +1052,8 @@
                     receipts = JSON.parse(storedReceipts).map(receipt => ({
                         ...receipt,
                         recommendedDiscounts: receipt.recommendedDiscounts || [], // Default to empty array for old receipts
-                        paymentMethod: receipt.paymentMethod || 'Unknown' // Default to 'Unknown' for old receipts
+                        paymentMethod: receipt.paymentMethod || 'Unknown', // Default to 'Unknown' for old receipts
+                        numberOfBags: receipt.numberOfBags || 0 // Default to 0 for old receipts
                     }));
                 }
 
@@ -1424,8 +1528,8 @@
             const taxAmount = totalBeforeTax * TAX_RATE;
             taxDisplay.textContent = `$${taxAmount.toFixed(2)}`;
 
-            const finalTotal = totalBeforeTax + taxAmount;
-            grandTotalDisplay.textContent = `$${finalTotal.toFixed(2)}`;
+            currentFinalTotal = totalBeforeTax + taxAmount; // Store this for checkout flow
+            grandTotalDisplay.textContent = `$${currentFinalTotal.toFixed(2)}`;
         }
 
         /**
@@ -1469,12 +1573,14 @@
          * @param {string} receiptData.storeInfo.receiptFooterMessage - Custom footer message for the receipt.
          * @param {Array<Object>} receiptData.recommendedDiscounts - List of recommended coupons to display.
          * @param {string} receiptData.paymentMethod - The payment method used (Cash/Card).
+         * @param {number} receiptData.numberOfBags - Number of bags purchased, for bag fee calculation.
          * @param {boolean} forPrint - If true, generates content suitable for print.
          * @returns {string} HTML string of the receipt.
          */
         function generateReceiptHtml(receiptData, forPrint = true) {
             const { storeName, storeAddress, storePhone, storeWebsite, logoUrl, receiptFooterMessage } = receiptData.storeInfo;
             const recommendedDiscounts = receiptData.recommendedDiscounts; // Use the stored recommended discounts
+            const bagFeeTotal = receiptData.numberOfBags * BAG_FEE_PER_BAG;
 
             let receiptHtml = `
                 <div class="receipt-container ${forPrint ? '' : 'bg-gray-800 text-gray-100 p-4 rounded-lg shadow-lg'}">
@@ -1509,6 +1615,17 @@
                 `;
             });
 
+            // Add bag fee as a line item if applicable
+            if (receiptData.numberOfBags > 0) {
+                receiptHtml += `
+                    <tr>
+                        <td class="text-left">Bag Fee x ${receiptData.numberOfBags}</td>
+                        <td class="text-right">$${bagFeeTotal.toFixed(2)}</td>
+                    </tr>
+                `;
+            }
+
+
             receiptHtml += `
                         </tbody>
                     </table>
@@ -1530,6 +1647,12 @@
                             <span>Tax (${(TAX_RATE * 100).toFixed(2)}%):</span>
                             <span>$${receiptData.taxAmount.toFixed(2)}</span>
                         </div>
+                        ${receiptData.numberOfBags > 0 ? `
+                            <div>
+                                <span>Bag Fee:</span>
+                                <span>$${bagFeeTotal.toFixed(2)}</span>
+                            </div>
+                        ` : ''}
                         <h3 class="mt-2 pt-2 border-t-2 border-black">
                             <span>GRAND TOTAL:</span>
                             <span>$${receiptData.finalTotal.toFixed(2)}</span>
@@ -1579,11 +1702,11 @@
          * Generates and prints the receipt for the current sale.
          * Also saves the receipt to history.
          * @param {string} paymentMethod - The method of payment (Cash or Card).
+         * @param {boolean} printReceipt - Whether to print the receipt or not.
          */
-        function generateReceipt(paymentMethod) {
+        function finalizeSale(paymentMethod, printReceipt) {
             if (cart.length === 0) {
-                // This check should ideally happen before the payment modal is even shown
-                console.error("Attempted to generate receipt for empty cart.");
+                console.error("Attempted to finalize sale for empty cart.");
                 return;
             }
 
@@ -1621,7 +1744,10 @@
             }
 
             const taxAmount = totalBeforeTax * TAX_RATE;
-            const finalTotal = totalBeforeTax + taxAmount;
+            const finalTotalExcludingBags = totalBeforeTax + taxAmount;
+            const bagFeeTotal = bagsUsed * BAG_FEE_PER_BAG;
+            const finalTotalWithBags = finalTotalExcludingBags + bagFeeTotal;
+
 
             // Select recommended discounts for THIS receipt
             const availableCouponsForReceipt = [...coupons];
@@ -1645,7 +1771,8 @@
                 discountAmount: discountAmount,
                 totalAfterDiscount: totalBeforeTax,
                 taxAmount: taxAmount,
-                finalTotal: finalTotal,
+                numberOfBags: bagsUsed, // Store number of bags
+                finalTotal: finalTotalWithBags, // Final total including bags
                 transactionId: transactionId,
                 timestamp: timestamp,
                 storeInfo: { ...storeSettings }, // Deep copy store settings
@@ -1659,67 +1786,69 @@
             saveData(); // Save receipts to local storage
             renderReceiptsHistory(); // Update receipts history view
 
-            // Generate HTML for printing
-            receiptPrintArea.innerHTML = generateReceiptHtml(receiptData, true); // true for print-specific styles
+            if (printReceipt) {
+                // Generate HTML for printing
+                receiptPrintArea.innerHTML = generateReceiptHtml(receiptData, true); // true for print-specific styles
 
-            // Render JsBarcodes for the generated receipt HTML
-            const transactionBarcodeElement = receiptPrintArea.querySelector('#receipt-transaction-barcode');
-            if (transactionBarcodeElement) {
-                try {
-                    JsBarcode(transactionBarcodeElement, transactionId, {
-                        format: "CODE128", // Explicitly Code-128
-                        displayValue: true,
-                        width: 1.5,
-                        height: 50,
-                        margin: 5,
-                        fontSize: 12,
-                        lineColor: "#000", // Ensure black lines for print
-                        background: "#fff" // Ensure white background for print
-                    });
-                } catch (e) {
-                    console.error(`Error generating transaction barcode (${transactionId}):`, e);
-                    transactionBarcodeElement.textContent = `Code: ${transactionId}`;
-                }
-            }
-
-            // Render JsBarcodes for recommended discounts on the generated receipt HTML
-            if (receiptData.recommendedDiscounts && receiptData.recommendedDiscounts.length > 0) {
-                receiptData.recommendedDiscounts.forEach((coupon) => {
-                    const recBarcodeElement = receiptPrintArea.querySelector(`#rec-barcode-${coupon.code}`);
-                    if (recBarcodeElement) {
-                        try {
-                            JsBarcode(recBarcodeElement, coupon.code, { // Use actual coupon code (30-digit)
-                                format: "CODE128", // Explicitly Code-128
-                                displayValue: true,
-                                width: 1.5,
-                                height: 50,
-                                margin: 5,
-                                fontSize: 12,
-                                lineColor: "#000",
-                                background: "#fff"
-                            });
-                        } catch (e) {
-                            console.error(`Error generating recommendation barcode for ${coupon.code}:`, e);
-                            recBarcodeElement.textContent = `Code: ${coupon.code}`; // Fallback text
-                        }
+                // Render JsBarcodes for the generated receipt HTML
+                const transactionBarcodeElement = receiptPrintArea.querySelector('#receipt-transaction-barcode');
+                if (transactionBarcodeElement) {
+                    try {
+                        JsBarcode(transactionBarcodeElement, transactionId, {
+                            format: "CODE128", // Explicitly Code-128
+                            displayValue: true,
+                            width: 1.5,
+                            height: 50,
+                            margin: 5,
+                            fontSize: 12,
+                            lineColor: "#000", // Ensure black lines for print
+                            background: "#fff" // Ensure white background for print
+                        });
+                    } catch (e) {
+                        console.error(`Error generating transaction barcode (${transactionId}):`, e);
+                        transactionBarcodeElement.textContent = `Code: ${transactionId}`;
                     }
-                });
+                }
+
+                // Render JsBarcodes for recommended discounts on the generated receipt HTML
+                if (receiptData.recommendedDiscounts && receiptData.recommendedDiscounts.length > 0) {
+                    receiptData.recommendedDiscounts.forEach((coupon) => {
+                        const recBarcodeElement = receiptPrintArea.querySelector(`#rec-barcode-${coupon.code}`);
+                        if (recBarcodeElement) {
+                            try {
+                                JsBarcode(recBarcodeElement, coupon.code, { // Use actual coupon code (30-digit)
+                                    format: "CODE128", // Explicitly Code-128
+                                    displayValue: true,
+                                    width: 1.5,
+                                    height: 50,
+                                    margin: 5,
+                                    fontSize: 12,
+                                    lineColor: "#000",
+                                    background: "#fff"
+                                });
+                            } catch (e) {
+                                console.error(`Error generating recommendation barcode for ${coupon.code}:`, e);
+                                recBarcodeElement.textContent = `Code: ${coupon.code}`; // Fallback text
+                            }
+                        }
+                    });
+                }
+
+
+                // Show receipt area and print
+                receiptPrintArea.classList.remove('hidden');
+                window.print();
+                // Hide after print to restore normal view
+                receiptPrintArea.classList.add('hidden');
             }
-
-
-            // Show receipt area and print
-            receiptPrintArea.classList.remove('hidden');
-            window.print();
-            // Hide after print to restore normal view
-            receiptPrintArea.classList.add('hidden');
 
             // Clear cart and applied coupon after successful transaction
             cart = [];
             appliedCoupon = null;
+            bagsUsed = 0; // Reset bags
             couponCodeInput.value = '';
             couponStatus.textContent = '';
             updateCartDisplay();
-            // Removed: showMessageBox('Sale completed and receipt printed!'); // Removed as per user request
 
             // IMPORTANT: Auto-focus on the barcode scanner input after printing
             barcodeScannerInput.focus();
@@ -1959,14 +2088,14 @@
                 proratedDiscount = totalOriginalPriceOfReturnedItems * discountProportion;
             }
 
-            const subtotalAfterProratedDiscount = totalOriginalPriceOfReturnedItems - proratedDiscount;
-            const refundTax = subtotalAfterProratedDiscount * TAX_RATE; // Calculate tax on the refunded subtotal for the receipt
+            const subtotalRefundAfterDiscount = totalOriginalPriceOfReturnedItems - proratedDiscount;
+            const refundTax = subtotalRefundAfterDiscount * TAX_RATE; // Calculate tax on the refunded subtotal for the receipt
 
             // Update display. Total Refund Due is now pre-tax.
             estimatedRefundSubtotalSpan.textContent = `$${totalOriginalPriceOfReturnedItems.toFixed(2)}`;
             proratedOriginalDiscountSpan.textContent = `-$${proratedDiscount.toFixed(2)}`;
             // refundTaxAmountSpan.textContent = `$${refundTax.toFixed(2)}`; // This span is now hidden from the user, but calculation is kept
-            totalRefundAmountSpan.textContent = `$${subtotalAfterProratedDiscount.toFixed(2)}`;
+            totalRefundAmountSpan.textContent = `$${subtotalRefundAfterDiscount.toFixed(2)}`;
         }
 
         /**
@@ -2142,15 +2271,22 @@
 
             // --- Handle Original Receipt Deletion (if applicable) ---
             // If all items from a single-item original receipt are returned, delete the original receipt.
-            if (returnedItems.length === originalReceipt.cartItems.length && originalReceipt.cartItems.length === 1) {
+            // Check if all *quantities* from the original receipt are being returned
+            const allItemsReturned = originalReceipt.cartItems.every(originalCartItem => {
+                const returnedQty = itemsToReturnQuantities[originalCartItem.barcode] || 0;
+                return returnedQty === originalCartItem.quantity;
+            });
+
+            if (allItemsReturned && originalReceipt.cartItems.length > 0) { // Ensure there was at least one item
                 const receiptIndex = receipts.findIndex(r => r.transactionId === originalReceipt.transactionId);
                 if (receiptIndex > -1) {
                     receipts.splice(receiptIndex, 1);
                     saveData(); // Save updated receipts array
                     renderReceiptsHistory(); // Re-render receipts list
-                    console.log(`Original receipt ${originalReceipt.transactionId} deleted as all items from a single-item purchase were returned.`);
+                    console.log(`Original receipt ${originalReceipt.transactionId} deleted as all items were returned.`);
                 }
             }
+
 
             // Close modals and refocus
             returnItemsModal.classList.add('hidden');
@@ -2268,314 +2404,105 @@
 
         // --- Event Listeners ---
 
-        // Tab Switching
-        tabButtons.forEach(button => {
-            button.addEventListener('click', (event) => {
-                switchTab(button.dataset.tab);
-            });
-            // Add keydown listener for arrow keys on tab buttons
-            button.addEventListener('keydown', (event) => {
-                if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
-                    event.preventDefault(); // Prevent default browser behavior (e.g., scrolling)
-                    const currentTabIndex = Array.from(tabButtons).indexOf(event.target);
-                    let nextTabIndex;
-
-                    if (event.key === 'ArrowRight') {
-                        nextTabIndex = (currentTabIndex + 1) % tabButtons.length;
-                    } else { // ArrowLeft
-                        nextTabIndex = (currentTabIndex - 1 + tabButtons.length) % tabButtons.length;
-                    }
-                    switchTab(tabButtons[nextTabIndex].dataset.tab);
-                }
-            });
-        });
-
-        // Sales Terminal: Custom Item
-        addCustomItemButton.addEventListener('click', () => {
-            const price = parseFloat(customItemPriceInput.value);
-            const description = customItemDescriptionInput.value.trim();
-
-            if (!isNaN(price) && price > 0) {
-                addCustomItemToCart(description, price);
-            } else {
-                showMessageBox('Please enter a valid price for the custom item.');
-            }
-        });
-
-        customItemPriceInput.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter') {
-                event.preventDefault(); // Prevent default form submission
-                addCustomItemButton.click(); // Trigger the add custom item logic
-            }
-        });
-
-
-        // Product Management: Add Product Button
-        addProductButton.addEventListener('click', () => {
-            const barcode = newProductBarcodeInput.value.trim();
-            const name = newProductNameInput.value.trim();
-            const price = parseFloat(newProductPriceInput.value);
-
-            if (barcode && name && !isNaN(price) && price > 0) {
-                if (addProduct(barcode, name, price)) {
-                    newProductBarcodeInput.value = '';
-                    newProductNameInput.value = '';
-                    newProductPriceInput.value = '';
-                    showMessageBox('Product added successfully!');
-                }
-            } else {
-                showMessageBox('Please enter a unique barcode, valid product name, and price.');
-            }
-        });
-
-        // Coupon Management: Generate Coupon Code Button
-        generateCouponCodeButton.addEventListener('click', () => {
-            newCouponCodeInput.value = generate30DigitCode();
-        });
-
-        // Coupon Management: Dynamic fields based on application type
-        newCouponApplicationTypeSelect.addEventListener('change', () => {
-            minPurchaseAmountDiv.classList.add('hidden');
-            newCouponMinPurchaseAmountInput.removeAttribute('required');
-            targetProductBarcodeDiv.classList.add('hidden');
-            newCouponTargetProductBarcodeInput.removeAttribute('required');
-
-            const selectedType = newCouponApplicationTypeSelect.value;
-            if (selectedType === 'min-purchase') {
-                minPurchaseAmountDiv.classList.remove('hidden');
-                newCouponMinPurchaseAmountInput.setAttribute('required', 'required');
-            } else if (selectedType === 'by-product') {
-                targetProductBarcodeDiv.classList.remove('hidden');
-                newCouponTargetProductBarcodeInput.setAttribute('required', 'required');
-            }
-        });
-
-        // Coupon Management: Add Coupon Button
-        addCouponButton.addEventListener('click', () => {
-            const code = newCouponCodeInput.value.trim(); // Code is already generated
-            const title = newCouponTitleInput.value.trim();
-            const applicationType = newCouponApplicationTypeSelect.value;
-            const discountType = newCouponTypeSelect.value;
-            const discountValue = parseFloat(newCouponValueInput.value);
-            let minPurchaseAmount = 0;
-            let targetProductBarcode = '';
-
-            let isValid = true;
-            let errorMessage = '';
-
-            if (!code || !title || isNaN(discountValue) || discountValue < 0) {
-                isValid = false;
-                errorMessage = 'Please ensure a code is generated, and fill in coupon title and valid discount value.';
-            }
-
-            if (applicationType === 'min-purchase') {
-                minPurchaseAmount = parseFloat(newCouponMinPurchaseAmountInput.value);
-                if (isNaN(minPurchaseAmount) || minPurchaseAmount < 0) {
-                    isValid = false;
-                    errorMessage = 'Please enter a valid minimum purchase amount.';
-                }
-            } else if (applicationType === 'by-product') {
-                targetProductBarcode = newCouponTargetProductBarcodeInput.value.trim();
-                if (!targetProductBarcode) {
-                    isValid = false;
-                    errorMessage = 'Please enter a target product barcode for "By Product" coupons.';
-                } else if (!products.some(p => p.barcode === targetProductBarcode)) {
-                    isValid = false;
-                    errorMessage = `Product with barcode "${targetProductBarcode}" does not exist. Please add it first.`;
-                }
-            }
-
-            if (isValid) {
-                const newCoupon = {
-                    code: code,
-                    title: title,
-                    applicationType: applicationType,
-                    type: discountType,
-                    value: discountValue,
-                    minPurchaseAmount: minPurchaseAmount,
-                    targetProductBarcode: targetProductBarcode
-                };
-                if (addCoupon(newCoupon)) {
-                    newCouponCodeInput.value = generate30DigitCode(); // Generate new code for next entry
-                    newCouponTitleInput.value = '';
-                    newCouponApplicationTypeSelect.value = 'full-total'; // Reset dropdown
-                    newCouponMinPurchaseAmountInput.value = ''; // Clear conditionally hidden fields
-                    newCouponTargetProductBarcodeInput.value = '';
-                    minPurchaseAmountDiv.classList.add('hidden'); // Hide them
-                    targetProductBarcodeDiv.classList.add('hidden');
-                    newCouponMinPurchaseAmountInput.removeAttribute('required');
-                    newCouponTargetProductBarcodeInput.removeAttribute('required');
-                    newCouponTypeSelect.value = 'percentage'; // Reset discount type
-                    newCouponValueInput.value = '';
-                    showMessageBox('Coupon added successfully!');
-                }
-            } else {
-                showMessageBox(errorMessage);
-            }
-        });
-
-
-        // Sales Terminal: Barcode Scanner Input (for adding to cart)
-        barcodeScannerInput.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter') {
-                const barcode = barcodeScannerInput.value.trim();
-                if (barcode) {
-                    addProductToCart(barcode);
-                    barcodeScannerInput.value = ''; // Clear input after "scan"
-                    barcodeScannerInput.focus(); // Keep focus for next scan
-                } else {
-                    showMessageBox('Please enter a barcode to add to cart.');
-                }
-            }
-        });
-
-        // Sales Terminal: Apply Coupon Button
-        applyCouponButton.addEventListener('click', applyCoupon);
-
-        // Checkout Button - show payment method modal instead of direct print
-        checkoutButton.addEventListener('click', () => {
-            if (cart.length === 0) {
-                showMessageBox('Cart is empty. Please add items before checking out.');
-                return;
-            }
-            lastFocusedElement = document.activeElement; // Store current focus before opening modal
-            paymentMethodModal.classList.remove('hidden');
-            payCashButton.focus(); // Focus on the first button in the modal
-        });
-
-        // Payment Method Modal Buttons
-        payCashButton.addEventListener('click', () => {
-            paymentMethodModal.classList.add('hidden');
-            generateReceipt('Cash');
-            // Focus will be handled by generateReceipt now
-        });
-
-        payCardButton.addEventListener('click', () => {
-            paymentMethodModal.classList.add('hidden');
-            generateReceipt('Card');
-            // Focus will be handled by generateReceipt now
-        });
-
-        // Message box OK button
-        messageOkButton.addEventListener('click', hideMessageBox);
-        messageBox.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape' || event.key === 'Enter' || event.key === 'Space') { // Also allow Enter/Space to dismiss
-                hideMessageBox();
-            }
-        });
-
-        // Close Historical Receipt Modal
-        closeHistoricalReceiptModalBtn.addEventListener('click', () => {
-            historicalReceiptModal.classList.add('hidden');
-            historicalReceiptContent.innerHTML = ''; // Clear content
-            currentReceiptForReturn = null; // Clear global variable
-            if (lastFocusedElement) {
-                lastFocusedElement.focus(); // Restore focus
-                lastFocusedElement = null;
-            }
-        });
-        historicalReceiptModal.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape') {
-                closeHistoricalReceiptModalBtn.click(); // Trigger click to use the existing close logic
-            }
-             if (event.key === 'Enter' || event.key === 'Space') {
-                // If focus is on Print button, trigger it. Otherwise, close modal.
-                if (document.activeElement === printHistoricalReceiptBtn) {
-                    printHistoricalReceiptBtn.click();
-                } else if (document.activeElement === returnItemsButton) {
-                    returnItemsButton.click();
-                }
-                // Don't close with enter/space on the close button itself, allow it to be focused but keep it explicit
-            }
-        });
-
-        // NEW: Return Items Button on Historical Receipt Modal
-        returnItemsButton.addEventListener('click', () => {
-            if (currentReceiptForReturn) {
-                historicalReceiptModal.classList.add('hidden'); // Hide original receipt modal
-                openReturnItemsModal(currentReceiptForReturn);
-            }
-        });
-
-        // Return Items Modal: Close button
-        closeReturnItemsModalBtn.addEventListener('click', () => {
-            returnItemsModal.classList.add('hidden');
-            returnItemsListBody.innerHTML = ''; // Clear items
-            currentReceiptForReturn = null; // Clear active return receipt
-            if (lastFocusedElement) {
-                lastFocusedElement.focus(); // Restore focus to the element that opened the return modal (likely 'Return Items' button)
-                lastFocusedElement = null;
-            }
-        });
-        returnItemsModal.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape') {
-                closeReturnItemsModalBtn.click();
-            }
-            if (event.key === 'Enter' || event.key === 'Space') {
-                 // If focus is on Process button, trigger it. Otherwise, if on Cancel, trigger it.
-                if (document.activeElement === processReturnButton) {
-                    processReturnButton.click();
-                } else if (document.activeElement === cancelReturnButton) {
-                    cancelReturnButton.click();
-                }
-            }
-        });
-
-        // Return Items Modal: Process Return Button
-        processReturnButton.addEventListener('click', processReturnAndPrint);
-
-        // Return Items Modal: Cancel Return Button
-        cancelReturnButton.addEventListener('click', () => {
-            returnItemsModal.classList.add('hidden');
-            returnItemsListBody.innerHTML = ''; // Clear items
-            currentReceiptForReturn = null; // Clear active return receipt
-            if (lastFocusedElement) {
-                lastFocusedElement.focus(); // Restore focus
-                lastFocusedElement = null;
-            }
-        });
-
-
-        // Keyboard Instructions Modal Buttons
-        closeKeyboardInstructionsModalBtn.addEventListener('click', hideKeyboardInstructions);
-        keyboardInstructionsOkButton.addEventListener('click', hideKeyboardInstructions);
-        keyboardInstructionsModal.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape' || event.key === 'Enter' || event.key === 'Space') { // Allow Enter/Space to dismiss
-                hideKeyboardInstructions();
-            }
-        });
-
-        // Receipts History Search Input
-        receiptSearchInput.addEventListener('keyup', (event) => {
-            renderReceiptsHistory(event.target.value);
-        });
-
-        // Settings: Save All Settings Button
-        saveSettingsButton.addEventListener('click', saveSettings);
-
-        // Settings: Logo Upload related event listeners
-        uploadLogoButton.addEventListener('click', () => logoFileInput.click());
-        logoFileInput.addEventListener('change', handleLogoUpload);
-
-        // Global hotkey listener for Ctrl + I
-        document.addEventListener('keydown', (event) => {
-            // Check for Ctrl (or Command on Mac) + I
-            if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'i') {
-                event.preventDefault(); // Prevent browser default action for Ctrl+I
-                showKeyboardInstructions();
-            }
-            // Allow Escape to close payment modal if open
-            if (event.key === 'Escape' && !paymentMethodModal.classList.contains('hidden')) {
-                paymentMethodModal.classList.add('hidden');
-                if (lastFocusedElement) {
-                    lastFocusedElement.focus(); // Restore focus
-                    lastFocusedElement = null;
-                }
-            }
-        });
-
         // --- Initial setup ---
         window.onload = () => {
+            // Assign DOM elements AFTER the document is loaded
+            tabButtons = document.querySelectorAll('.tab-button');
+            tabContents = document.querySelectorAll('.tab-content');
+
+            barcodeScannerInput = document.getElementById('barcode-scanner-input');
+            customItemDescriptionInput = document.getElementById('custom-item-description');
+            customItemPriceInput = document.getElementById('custom-item-price');
+            addCustomItemButton = document.getElementById('add-custom-item-button');
+
+            cartItemsBody = document.getElementById('cart-items');
+            subtotalDisplay = document.getElementById('subtotal-display');
+            grandTotalDisplay = document.getElementById('grand-total-display');
+            discountDisplayRow = document.getElementById('discount-display-row');
+            discountDisplay = document.getElementById('discount-display');
+            taxRateDisplay = document.getElementById('tax-rate-display');
+            taxDisplay = document.getElementById('tax-display');
+            checkoutButton = document.getElementById('checkout-button');
+            couponCodeInput = document.getElementById('coupon-code-input');
+            applyCouponButton = document.getElementById('apply-coupon-button');
+            couponStatus = document.getElementById('coupon-status');
+
+            newProductBarcodeInput = document.getElementById('new-product-barcode');
+            newProductNameInput = document.getElementById('new-product-name');
+            newProductPriceInput = document.getElementById('new-product-price');
+            addProductButton = document.getElementById('add-product-button');
+            productListBody = document.getElementById('product-list');
+
+            newCouponCodeInput = document.getElementById('new-coupon-code');
+            generateCouponCodeButton = document.getElementById('generate-coupon-code-button');
+            newCouponTitleInput = document.getElementById('new-coupon-title');
+            newCouponApplicationTypeSelect = document.getElementById('new-coupon-application-type');
+            minPurchaseAmountDiv = document.getElementById('min-purchase-amount-div');
+            newCouponMinPurchaseAmountInput = document.getElementById('new-coupon-min-purchase-amount');
+            targetProductBarcodeDiv = document.getElementById('target-product-barcode-div');
+            newCouponTargetProductBarcodeInput = document.getElementById('new-coupon-target-product-barcode');
+            newCouponTypeSelect = document.getElementById('new-coupon-type');
+            newCouponValueInput = document.getElementById('new-coupon-value');
+            addCouponButton = document.getElementById('add-coupon-button');
+            couponListBody = document.getElementById('coupon-list');
+
+            receiptsListDiv = document.getElementById('receipts-list');
+            noReceiptsMessage = document.getElementById('no-receipts-message');
+            receiptSearchInput = document.getElementById('receipt-search-input');
+            historicalReceiptModal = document.getElementById('historical-receipt-modal');
+            historicalReceiptContent = document.getElementById('historical-receipt-content');
+            closeHistoricalReceiptModalBtn = document.getElementById('close-historical-receipt-modal');
+            printHistoricalReceiptBtn = document.getElementById('print-historical-receipt');
+            returnItemsButton = document.getElementById('return-items-button');
+
+            reportLastHourSpan = document.getElementById('report-last-hour');
+            reportLast24HoursSpan = document.getElementById('report-last-24-hours');
+            reportLastMonthSpan = document.getElementById('report-last-month');
+            reportTotalSalesSpan = document.getElementById('report-total-sales');
+
+            storeNameInput = document.getElementById('store-name');
+            storeAddressInput = document.getElementById('store-address');
+            storePhoneInput = document.getElementById('store-phone');
+            storeWebsiteInput = document.getElementById('store-website');
+            receiptFooterMessageInput = document.getElementById('receipt-footer-message');
+            logoFileInput = document.getElementById('logo-file-input');
+            uploadLogoButton = document.getElementById('upload-logo-button');
+            currentLogoPreview = document.getElementById('current-logo-preview');
+            saveSettingsButton = document.getElementById('save-settings-button');
+
+            receiptPrintArea = document.getElementById('receipt-print-area');
+            messageBox = document.getElementById('message-box');
+            messageContent = document.getElementById('message-content');
+            messageOkButton = document.getElementById('message-ok-button');
+
+            checkoutOverlay = document.getElementById('checkout-overlay');
+            checkoutPanel = document.getElementById('checkout-panel');
+            bagCountStep = document.getElementById('bag-count-step');
+            bagCountInput = document.getElementById('bag-count-input');
+            bagCountContinueButton = document.getElementById('bag-count-continue-button');
+            paymentMethodStep = document.getElementById('payment-method-step');
+            checkoutTotalDisplay = document.getElementById('checkout-total-display');
+            checkoutPayCashButton = document.getElementById('checkout-pay-cash-button');
+            checkoutPayCardButton = document.getElementById('checkout-pay-card-button');
+            receiptPreferenceStep = document.getElementById('receipt-preference-step');
+            receiptYesButton = document.getElementById('receipt-yes-button');
+            receiptNoButton = document.getElementById('receipt-no-button');
+
+            returnItemsModal = document.getElementById('return-items-modal');
+            closeReturnItemsModalBtn = document.getElementById('close-return-items-modal');
+            returnOriginalTxnIdSpan = document.getElementById('return-original-txn-id');
+            returnOriginalPurchaseDateSpan = document.getElementById('return-original-purchase-date');
+            returnOriginalTotalSpan = document.getElementById('return-original-total');
+            returnOriginalDiscountSpan = document.getElementById('return-original-discount');
+            returnItemsListBody = document.getElementById('return-items-list');
+            estimatedRefundSubtotalSpan = document.getElementById('estimated-refund-subtotal');
+            proratedOriginalDiscountSpan = document.getElementById('prorated-original-discount');
+            refundTaxAmountSpan = document.getElementById('refund-tax-amount');
+            totalRefundAmountSpan = document.getElementById('total-refund-amount');
+            processReturnButton = document.getElementById('process-return-button');
+            cancelReturnButton = document.getElementById('cancel-return-button');
+
+
             loadData(); // Load all data from local storage first
             updateCartDisplay(); // Initialize empty cart display
             loadSettingsIntoForm(); // Populate settings form with loaded data
@@ -2591,6 +2518,353 @@
                 } else {
                     button.setAttribute('tabindex', '-1');
                     button.setAttribute('aria-selected', 'false');
+                }
+            });
+
+            // Re-attach all event listeners here inside window.onload
+            tabButtons.forEach(button => {
+                button.addEventListener('click', (event) => {
+                    switchTab(button.dataset.tab);
+                });
+                button.addEventListener('keydown', (event) => {
+                    if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+                        event.preventDefault();
+                        const currentTabIndex = Array.from(tabButtons).indexOf(event.target);
+                        let nextTabIndex;
+
+                        if (event.key === 'ArrowRight') {
+                            nextTabIndex = (currentTabIndex + 1) % tabButtons.length;
+                        } else {
+                            nextTabIndex = (currentTabIndex - 1 + tabButtons.length) % tabButtons.length;
+                        }
+                        switchTab(tabButtons[nextTabIndex].dataset.tab);
+                    }
+                });
+            });
+
+            addCustomItemButton.addEventListener('click', () => {
+                const price = parseFloat(customItemPriceInput.value);
+                const description = customItemDescriptionInput.value.trim();
+
+                if (!isNaN(price) && price > 0) {
+                    addCustomItemToCart(description, price);
+                } else {
+                    showMessageBox('Please enter a valid price for the custom item.');
+                }
+            });
+
+            customItemPriceInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    addCustomItemButton.click();
+                }
+            });
+
+            addProductButton.addEventListener('click', () => {
+                const barcode = newProductBarcodeInput.value.trim();
+                const name = newProductNameInput.value.trim();
+                const price = parseFloat(newProductPriceInput.value);
+
+                if (barcode && name && !isNaN(price) && price > 0) {
+                    if (addProduct(barcode, name, price)) {
+                        newProductBarcodeInput.value = '';
+                        newProductNameInput.value = '';
+                        newProductPriceInput.value = '';
+                        showMessageBox('Product added successfully!');
+                    }
+                } else {
+                    showMessageBox('Please enter a unique barcode, valid product name, and price.');
+                }
+            });
+
+            generateCouponCodeButton.addEventListener('click', () => {
+                newCouponCodeInput.value = generate30DigitCode();
+            });
+
+            newCouponApplicationTypeSelect.addEventListener('change', () => {
+                minPurchaseAmountDiv.classList.add('hidden');
+                newCouponMinPurchaseAmountInput.removeAttribute('required');
+                targetProductBarcodeDiv.classList.add('hidden');
+                newCouponTargetProductBarcodeInput.removeAttribute('required');
+
+                const selectedType = newCouponApplicationTypeSelect.value;
+                if (selectedType === 'min-purchase') {
+                    minPurchaseAmountDiv.classList.remove('hidden');
+                    newCouponMinPurchaseAmountInput.setAttribute('required', 'required');
+                } else if (selectedType === 'by-product') {
+                    targetProductBarcodeDiv.classList.remove('hidden');
+                    newCouponTargetProductBarcodeInput.setAttribute('required', 'required');
+                }
+            });
+
+            addCouponButton.addEventListener('click', () => {
+                const code = newCouponCodeInput.value.trim();
+                const title = newCouponTitleInput.value.trim();
+                const applicationType = newCouponApplicationTypeSelect.value;
+                const discountType = newCouponTypeSelect.value;
+                const discountValue = parseFloat(newCouponValueInput.value);
+                let minPurchaseAmount = 0;
+                let targetProductBarcode = '';
+
+                let isValid = true;
+                let errorMessage = '';
+
+                if (!code || !title || isNaN(discountValue) || discountValue < 0) {
+                    isValid = false;
+                    errorMessage = 'Please ensure a code is generated, and fill in coupon title and valid discount value.';
+                }
+
+                if (applicationType === 'min-purchase') {
+                    minPurchaseAmount = parseFloat(newCouponMinPurchaseAmountInput.value);
+                    if (isNaN(minPurchaseAmount) || minPurchaseAmount < 0) {
+                        isValid = false;
+                        errorMessage = 'Please enter a valid minimum purchase amount.';
+                    }
+                } else if (applicationType === 'by-product') {
+                    targetProductBarcode = newCouponTargetProductBarcodeInput.value.trim();
+                    if (!targetProductBarcode) {
+                        isValid = false;
+                        errorMessage = 'Please enter a target product barcode for "By Product" coupons.';
+                    } else if (!products.some(p => p.barcode === targetProductBarcode)) {
+                        isValid = false;
+                        errorMessage = `Product with barcode "${targetProductBarcode}" does not exist. Please add it first.`;
+                    }
+                }
+
+                if (isValid) {
+                    const newCoupon = {
+                        code: code,
+                        title: title,
+                        applicationType: applicationType,
+                        type: discountType,
+                        value: discountValue,
+                        minPurchaseAmount: minPurchaseAmount,
+                        targetProductBarcode: targetProductBarcode
+                    };
+                    if (addCoupon(newCoupon)) {
+                        newCouponCodeInput.value = generate30DigitCode();
+                        newCouponTitleInput.value = '';
+                        newCouponApplicationTypeSelect.value = 'full-total';
+                        newCouponMinPurchaseAmountInput.value = '';
+                        newCouponTargetProductBarcodeInput.value = '';
+                        minPurchaseAmountDiv.classList.add('hidden');
+                        targetProductBarcodeDiv.classList.add('hidden');
+                        newCouponMinPurchaseAmountInput.removeAttribute('required');
+                        newCouponTargetProductBarcodeInput.removeAttribute('required');
+                        newCouponTypeSelect.value = 'percentage';
+                        newCouponValueInput.value = '';
+                        showMessageBox('Coupon added successfully!');
+                    }
+                } else {
+                    showMessageBox(errorMessage);
+                }
+            });
+
+            barcodeScannerInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    const barcode = barcodeScannerInput.value.trim();
+                    if (barcode) {
+                        addProductToCart(barcode);
+                        barcodeScannerInput.value = '';
+                        barcodeScannerInput.focus();
+                    } else {
+                        showMessageBox('Please enter a barcode to add to cart.');
+                    }
+                }
+            });
+
+            applyCouponButton.addEventListener('click', applyCoupon);
+
+            checkoutButton.addEventListener('click', () => {
+                if (cart.length === 0) {
+                    showMessageBox('Cart is empty. Please add items before checking out.');
+                    return;
+                }
+                lastFocusedElement = document.activeElement;
+                checkoutOverlay.classList.remove('hidden');
+                checkoutOverlay.classList.add('active');
+                bagCountStep.classList.add('active');
+                paymentMethodStep.classList.remove('active');
+                receiptPreferenceStep.classList.remove('active');
+                bagCountInput.value = '0';
+                bagCountInput.focus();
+            });
+
+            bagCountContinueButton.addEventListener('click', () => {
+                const count = parseInt(bagCountInput.value);
+                if (isNaN(count) || count < 0) {
+                    showMessageBox('Please enter a valid number of bags (0 or more).');
+                    bagCountInput.focus();
+                    return;
+                }
+                bagsUsed = count;
+                const totalWithBagFee = currentFinalTotal + (bagsUsed * BAG_FEE_PER_BAG);
+                checkoutTotalDisplay.textContent = `$${totalWithBagFee.toFixed(2)}`;
+
+                bagCountStep.classList.remove('active');
+                paymentMethodStep.classList.add('active');
+                checkoutPayCashButton.focus();
+            });
+
+            bagCountInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    bagCountContinueButton.click();
+                }
+            });
+
+            checkoutPayCashButton.addEventListener('click', () => {
+                paymentMethodStep.classList.remove('active');
+                receiptPreferenceStep.classList.add('active');
+                receiptYesButton.focus();
+                sessionStorage.setItem('currentPaymentMethod', 'Cash');
+            });
+
+            checkoutPayCardButton.addEventListener('click', () => {
+                paymentMethodStep.classList.remove('active');
+                receiptPreferenceStep.classList.add('active');
+                receiptYesButton.focus();
+                sessionStorage.setItem('currentPaymentMethod', 'Card');
+            });
+
+            receiptYesButton.addEventListener('click', () => {
+                const paymentMethod = sessionStorage.getItem('currentPaymentMethod');
+                checkoutOverlay.classList.remove('active');
+                checkoutOverlay.classList.add('hidden');
+                finalizeSale(paymentMethod, true);
+                sessionStorage.removeItem('currentPaymentMethod');
+            });
+
+            receiptNoButton.addEventListener('click', () => {
+                const paymentMethod = sessionStorage.getItem('currentPaymentMethod');
+                checkoutOverlay.classList.remove('active');
+                checkoutOverlay.classList.add('hidden');
+                finalizeSale(paymentMethod, false);
+                sessionStorage.removeItem('currentPaymentMethod');
+            });
+
+            checkoutOverlay.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape') {
+                    checkoutOverlay.classList.remove('active');
+                    checkoutOverlay.classList.add('hidden');
+                    if (lastFocusedElement) {
+                        lastFocusedElement.focus();
+                        lastFocusedElement = null;
+                    }
+                }
+            });
+
+            messageOkButton.addEventListener('click', hideMessageBox);
+            messageBox.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape' || event.key === 'Enter' || event.key === 'Space') {
+                    hideMessageBox();
+                }
+            });
+
+            closeHistoricalReceiptModalBtn.addEventListener('click', () => {
+                historicalReceiptModal.classList.add('hidden');
+                historicalReceiptContent.innerHTML = '';
+                currentReceiptForReturn = null;
+                if (lastFocusedElement) {
+                    lastFocusedElement.focus();
+                    lastFocusedElement = null;
+                }
+            });
+            historicalReceiptModal.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape') {
+                    closeHistoricalReceiptModalBtn.click();
+                }
+                if (event.key === 'Enter' || event.key === 'Space') {
+                    if (document.activeElement === printHistoricalReceiptBtn) {
+                        printHistoricalReceiptBtn.click();
+                    } else if (document.activeElement === returnItemsButton) {
+                        returnItemsButton.click();
+                    }
+                }
+            });
+
+            returnItemsButton.addEventListener('click', () => {
+                if (currentReceiptForReturn) {
+                    historicalReceiptModal.classList.add('hidden');
+                    openReturnItemsModal(currentReceiptForReturn);
+                }
+            });
+
+            closeReturnItemsModalBtn.addEventListener('click', () => {
+                returnItemsModal.classList.add('hidden');
+                returnItemsListBody.innerHTML = '';
+                currentReceiptForReturn = null;
+                if (lastFocusedElement) {
+                    lastFocusedElement.focus();
+                    lastFocusedElement = null;
+                }
+            });
+            returnItemsModal.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape') {
+                    closeReturnItemsModalBtn.click();
+                }
+                if (event.key === 'Enter' || event.key === 'Space') {
+                    if (document.activeElement === processReturnButton) {
+                        processReturnButton.click();
+                    } else if (document.activeElement === cancelReturnButton) {
+                        cancelReturnButton.click();
+                    }
+                }
+            });
+
+            processReturnButton.addEventListener('click', processReturnAndPrint);
+
+            cancelReturnButton.addEventListener('click', () => {
+                returnItemsModal.classList.add('hidden');
+                returnItemsListBody.innerHTML = '';
+                currentReceiptForReturn = null;
+                if (lastFocusedElement) {
+                    lastFocusedElement.focus();
+                    lastFocusedElement = null;
+                }
+            });
+
+            // Keyboard Instructions Modal Buttons
+            // keyboardInstructionsModal references here
+            const keyboardInstructionsModal = document.getElementById('keyboard-instructions-modal');
+            const closeKeyboardInstructionsModalBtn = document.getElementById('close-keyboard-instructions-modal');
+            const keyboardInstructionsOkButton = document.getElementById('keyboard-instructions-ok-button');
+
+            if (closeKeyboardInstructionsModalBtn) {
+                closeKeyboardInstructionsModalBtn.addEventListener('click', hideKeyboardInstructions);
+            }
+            if (keyboardInstructionsOkButton) {
+                keyboardInstructionsOkButton.addEventListener('click', hideKeyboardInstructions);
+            }
+            if (keyboardInstructionsModal) {
+                 keyboardInstructionsModal.addEventListener('keydown', (event) => {
+                    if (event.key === 'Escape' || event.key === 'Enter' || event.key === 'Space') {
+                        hideKeyboardInstructions();
+                    }
+                });
+            }
+
+            receiptSearchInput.addEventListener('keyup', (event) => {
+                renderReceiptsHistory(event.target.value);
+            });
+
+            saveSettingsButton.addEventListener('click', saveSettings);
+
+            uploadLogoButton.addEventListener('click', () => logoFileInput.click());
+            logoFileInput.addEventListener('change', handleLogoUpload);
+
+            document.addEventListener('keydown', (event) => {
+                if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'i') {
+                    event.preventDefault();
+                    showKeyboardInstructions();
+                }
+                if (event.key === 'Escape' && checkoutOverlay.classList.contains('active')) {
+                    checkoutOverlay.classList.remove('active');
+                    checkoutOverlay.classList.add('hidden');
+                    if (lastFocusedElement) {
+                        lastFocusedElement.focus();
+                        lastFocusedElement = null;
+                    }
                 }
             });
         };
