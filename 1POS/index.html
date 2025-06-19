@@ -1329,7 +1329,10 @@
         function showKeyboardInstructions() {
             lastFocusedElement = document.activeElement; // Store current focus
             keyboardInstructionsModal.classList.remove('hidden');
-            closeKeyboardInstructionsModalBtn.focus(); // Focus close button initially
+            // Ensure closeKeyboardInstructionsModalBtn is defined before focusing
+            if (closeKeyboardInstructionsModalBtn) {
+                closeKeyboardInstructionsModalBtn.focus(); // Focus close button initially
+            }
         }
 
         /**
@@ -2152,7 +2155,7 @@
             const shuffledCoupons = [...coupons]; // Create a shallow copy to avoid modifying original array
             for (let i = shuffledCoupons.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
-                [shuffledCoupons[i], shuffledCoupons[j]] = [shuffledCoupons[j], shuffledCoubledCoupons[i]];
+                [shuffledCoupons[i], shuffledCoupons[j]] = [shuffledCoupons[j], shuffledCoupons[i]];
             }
             return shuffledCoupons.slice(0, NUM_RECOMMENDED_COUPONS_TO_DISPLAY);
         }
@@ -3318,6 +3321,7 @@
 
             // Checkout Flow: Receipt Preference Step
             receiptYesButton.addEventListener('click', () => {
+                console.log("Yes receipt button clicked.");
                 const paymentMethod = sessionStorage.getItem('currentPaymentMethod');
                 finalizeSale(paymentMethod, true); // Call finalizeSale first
                 sessionStorage.removeItem('currentPaymentMethod');
@@ -3325,6 +3329,7 @@
             });
 
             receiptNoButton.addEventListener('click', () => {
+                console.log("No receipt button clicked.");
                 const paymentMethod = sessionStorage.getItem('currentPaymentMethod');
                 finalizeSale(paymentMethod, false); // Call finalizeSale first
                 sessionStorage.removeItem('currentPaymentMethod');
