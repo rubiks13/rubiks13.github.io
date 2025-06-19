@@ -165,7 +165,8 @@
             color: #63b3ed; /* Blue for total */
             margin-bottom: 2rem;
         }
-        #checkout-panel .checkout-step input[type="number"] {
+        #checkout-panel .checkout-step input[type="number"],
+        #checkout-panel .checkout-step input[type="tel"] {
             width: 150px; /* Fixed width for number input */
             text-align: center;
             font-size: 2rem;
@@ -180,6 +181,72 @@
             margin-bottom: 1rem;
             border-radius: 0.75rem;
         }
+
+        #loyalty-deals-container {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #4a5568;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+            padding: 0.5rem;
+            width: 100%;
+            background-color: #1a202c;
+        }
+        .loyalty-deal-item {
+            background-color: #2d3748;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            border-radius: 0.5rem;
+            text-align: left;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .loyalty-deal-item:hover {
+            background-color: #4a5568;
+        }
+        .loyalty-deal-item.redeemed {
+            background-color: #166534; /* Dark green */
+            cursor: default;
+            opacity: 0.7;
+        }
+        .loyalty-deal-item span {
+            font-weight: bold;
+            color: #f7fafc;
+        }
+        .loyalty-deal-item button {
+            width: auto;
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            margin-bottom: 0; /* Override default button margin */
+        }
+
+        #processing-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            color: white;
+            font-size: 3rem;
+            font-weight: bold;
+            transition: opacity 0.3s ease;
+            opacity: 0;
+            pointer-events: none;
+        }
+        #processing-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
 
         /* Custom styles for print media (optimized for 80mm printer) */
         @media print {
@@ -667,11 +734,70 @@
                     <p class="text-gray-300">Current Logo Preview:</p>
                     <img id="current-logo-preview" src="" alt="Current Logo" class="max-w-[150px] mt-2 rounded-lg shadow-md">
                 </div>
-                <button id="save-settings-button"
-                        class="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">
-                    Save All Settings
-                </button>
             </div>
+
+            <!-- Loyalty Program Settings (NEW) -->
+            <div class="mb-6 pb-4 border-t pt-4 border-gray-700">
+                <h3 class="text-xl font-medium mb-3 text-gray-200">Loyalty Program Settings</h3>
+                <div class="mb-6">
+                    <h4 class="text-lg font-medium mb-2 text-gray-300">Add New Loyalty Deal</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="new-loyalty-deal-name" class="block text-sm font-medium text-gray-300">Deal Name</label>
+                            <input type="text" id="new-loyalty-deal-name" placeholder="e.g., $5 Off Next Purchase"
+                                   class="mt-1 block w-full p-2 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-yellow-500 placeholder-gray-400">
+                        </div>
+                        <div>
+                            <label for="new-loyalty-deal-type" class="block text-sm font-medium text-gray-300">Discount Type</label>
+                            <select id="new-loyalty-deal-type"
+                                    class="mt-1 block w-full p-2 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                                <option value="percentage">Percentage (%)</option>
+                                <option value="fixed">Fixed Amount ($)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="new-loyalty-deal-value" class="block text-sm font-medium text-gray-300">Discount Value</label>
+                            <input type="number" id="new-loyalty-deal-value" step="0.01" placeholder="e.g., 5 (for $5 or 5%)"
+                                   class="mt-1 block w-full p-2 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-yellow-500 placeholder-gray-400">
+                        </div>
+                        <div>
+                            <label for="new-loyalty-deal-points-required" class="block text-sm font-medium text-gray-300">Points Required</label>
+                            <input type="number" id="new-loyalty-deal-points-required" min="0" step="1" placeholder="e.g., 300"
+                                   class="mt-1 block w-full p-2 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-yellow-500 placeholder-gray-400">
+                        </div>
+                    </div>
+                    <button id="add-loyalty-deal-button"
+                            class="w-full mt-4 bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">
+                        Add Loyalty Deal
+                    </button>
+                </div>
+
+                <!-- Existing Loyalty Deals List -->
+                <div>
+                    <h4 class="text-lg font-medium mb-3 text-gray-300">Existing Loyalty Deals</h4>
+                    <div class="overflow-y-auto max-h-80 border border-gray-600 rounded-lg">
+                        <table class="min-w-full divide-y divide-gray-700">
+                            <thead class="bg-gray-700 sticky top-0">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Deal Name</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Type</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Value</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Points Req.</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="loyalty-deal-list" class="bg-gray-800 divide-y divide-gray-700">
+                                <!-- Loyalty deals will be dynamically added here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <button id="save-settings-button"
+                    class="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">
+                Save All Settings
+            </button>
         </section>
 
     </main>
@@ -686,14 +812,53 @@
                 <button id="bag-count-continue-button" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold">Continue</button>
             </div>
 
-            <!-- Step 2: Payment Method -->
+            <!-- Step 2: Loyalty Step -->
+            <div id="loyalty-step" class="checkout-step">
+                <h3>Enter Customer Phone Number:</h3>
+                <input type="tel" id="customer-phone-input" placeholder="(XXX)-XXX-XXXX" maxlength="14"
+                       class="w-64 p-3 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400 text-center">
+                <p id="customer-info-display" class="text-md text-gray-300 mt-2 mb-4"></p>
+
+                <div id="loyalty-deals-display-area" class="w-full text-left text-gray-300 mb-4 hidden">
+                    <p class="font-bold text-lg mb-2">Redeem Points for:</p>
+                    <div id="loyalty-deals-container">
+                        <!-- Loyalty deals will be dynamically added here -->
+                        <p id="no-loyalty-deals-message" class="text-center text-gray-500 py-4">No deals available or not enough points.</p>
+                    </div>
+                </div>
+
+                <button id="loyalty-continue-button" class="bg-green-600 hover:bg-green-700 text-white font-semibold mb-2">Continue</button>
+                <button id="loyalty-signup-button" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold mb-2">Sign Up</button>
+                <button id="loyalty-skip-button" class="bg-gray-600 hover:bg-gray-700 text-white font-semibold">Skip</button>
+            </div>
+
+            <!-- Step 2a: Sign Up Form -->
+            <div id="sign-up-step" class="checkout-step">
+                <h3>Sign Up for Loyalty Program</h3>
+                <label for="signup-phone" class="block text-sm font-medium text-gray-300 mt-4 mb-1">Phone Number</label>
+                <input type="tel" id="signup-phone" placeholder="(XXX)-XXX-XXXX" maxlength="14" class="w-full p-3 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500">
+
+                <label for="signup-name" class="block text-sm font-medium text-gray-300 mb-1">Name</label>
+                <input type="text" id="signup-name" placeholder="Customer's Name"
+                       class="w-full p-3 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500">
+
+                <label for="signup-email" class="block text-sm font-medium text-gray-300 mb-1">Email (Optional)</label>
+                <input type="email" id="signup-email" placeholder="customer@example.com"
+                       class="w-full p-3 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 mb-6 focus:outline-none focus:ring-2 focus:ring-blue-500">
+
+                <button id="complete-signup-button" class="bg-green-600 hover:bg-green-700 text-white font-semibold mb-2">Complete Sign Up</button>
+                <button id="cancel-signup-button" class="bg-gray-600 hover:bg-gray-700 text-white font-semibold">Cancel</button>
+            </div>
+
+
+            <!-- Step 3: Payment Method -->
             <div id="payment-method-step" class="checkout-step">
                 <h3>Total Due: <span id="checkout-total-display" class="amount-display">$0.00</span></h3>
                 <button id="checkout-pay-cash-button" class="bg-green-600 hover:bg-green-700 text-white font-semibold">Cash</button>
                 <button id="checkout-pay-card-button" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold">Card</button>
             </div>
 
-            <!-- Step 3: Receipt Preference -->
+            <!-- Step 4: Receipt Preference -->
             <div id="receipt-preference-step" class="checkout-step">
                 <h3>Do they want a receipt?</h3>
                 <button id="receipt-yes-button" class="bg-green-600 hover:bg-green-700 text-white font-semibold">Yes, print receipt</button>
@@ -702,6 +867,10 @@
         </div>
     </div>
 
+    <!-- Processing Overlay (for card payments) -->
+    <div id="processing-overlay" class="hidden">
+        <p>Processing...</p>
+    </div>
 
     <!-- Receipt Print Area (hidden by default, used for both current and historical printing) -->
     <div id="receipt-print-area" class="hidden fixed top-0 left-0 w-full h-full bg-white z-50 p-4 overflow-auto">
@@ -746,6 +915,9 @@
                 <p><strong>Checkout Panel:</strong></p>
                 <ul class="list-disc list-inside ml-4">
                     <li><span class="font-semibold">Bag Count:</span> Enter number, press '<kbd>Enter</kbd>' or click 'Continue'.</li>
+                    <li><span class="font-semibold">Phone Number:</span> Enter number, press '<kbd>Enter</kbd>' for 'Continue' (default). Use '<kbd>Tab</kbd>' to switch between 'Sign Up', 'Continue', 'Skip'. Press '<kbd>Enter</kbd>' or '<kbd>Space</kbd>'.</li>
+                    <li><span class="font-semibold">Loyalty Deals:</span> If deals are shown, navigate them with '<kbd>Tab</kbd>' and activate with '<kbd>Enter</kbd>' or '<kbd>Space</kbd>'.</li>
+                    <li><span class="font-semibold">Sign Up Form:</span> Navigate fields and buttons with '<kbd>Tab</kbd>'. Press '<kbd>Enter</kbd>' or '<kbd>Space</kbd>' on 'Complete Sign Up' or 'Cancel'.</li>
                     <li><span class="font-semibold">Payment Method:</span> Use '<kbd>Tab</kbd>' to switch between 'Cash' and 'Card'. Press '<kbd>Enter</kbd>' or '<kbd>Space</kbd>'.</li>
                     <li><span class="font-semibold">Receipt Preference:</span> Use '<kbd>Tab</kbd>' to switch between 'Yes, print receipt' and 'No receipt'. Press '<kbd>Enter</kbd>' or '<kbd>Space</kbd>'.</li>
                     <li>Press '<kbd>Escape</kbd>' at any point to cancel checkout and close the panel.</li>
@@ -787,7 +959,7 @@
                 <p><strong>Settings:</strong></p>
                 <ul class="list-disc list-inside ml-4">
                     <li>Navigate input fields and buttons with '<kbd>Tab</kbd>'.</li>
-                    <li>Press '<kbd>Enter</kbd>' or '<kbd>Space</kbd>' on focused 'Upload Logo' or 'Save All Settings' buttons.</li>
+                    <li>Press '<kbd>Enter</kbd>' or '<kbd>Space</kbd>' on focused 'Upload Logo', 'Add Loyalty Deal', or 'Save All Settings' buttons.</li>
                 </ul>
 
                 <p class="mt-4 text-center"><strong>Special Hotkey:</strong></p>
@@ -860,7 +1032,8 @@
             PRODUCTS: 'pos_products',
             COUPONS: 'pos_coupons',
             RECEIPTS: 'pos_receipts',
-            SETTINGS: 'pos_settings'
+            SETTINGS: 'pos_settings',
+            CUSTOMERS: 'pos_customers' // New key for customer data
         };
 
         // Global variables for products, cart, receipts, coupons and store settings
@@ -868,7 +1041,9 @@
         let cart = []; // Cart items will store barcode, name, price, quantity, subtotal
         let receipts = [];
         let coupons = [];
+        let customers = []; // New array for customer data
         let appliedCoupon = null; // Stores the currently applied coupon for the transaction
+        let currentCustomer = null; // Stores the customer object if logged in via phone number
         const TAX_RATE = 0.08; // 8% tax rate
         const BAG_FEE_PER_BAG = 0.10; // $0.10 per bag
         const NUM_RECOMMENDED_COUPONS_TO_DISPLAY = 5; // Exactly 5 recommended coupons
@@ -879,7 +1054,8 @@
             storePhone: '(123) 456-7890',
             storeWebsite: 'www.yourstore.com',
             logoUrl: 'https://placehold.co/150x50/1e40af/ffffff?text=Your+Logo', // Default placeholder logo
-            receiptFooterMessage: 'Thank you for your purchase! Please come again!' // New default footer message
+            receiptFooterMessage: 'Thank you for your purchase! Please come again!',
+            loyaltyOffers: [] // New array for loyalty redemption offers
         };
 
         // Variables for return functionality
@@ -887,16 +1063,22 @@
         let itemsToReturnQuantities = {}; // Stores {barcode: quantity_to_return}
 
         // Variables for checkout flow
-        let currentFinalTotal = 0; // The calculated final total including tax and discount (but not bags initially)
-        let bagsUsed = 0; // Number of bags entered by cashier
+        let currentTransaction = { // Consolidate transaction details
+            subtotal: 0,
+            discountAmount: 0, // from coupons
+            totalAfterCouponDiscount: 0, // subtotal - couponDiscount
+            taxAmount: 0,
+            bagFee: 0,
+            loyaltyDiscount: 0, // New: from loyalty points redemption
+            finalTotal: 0, // overall final total
+            loyaltyPointsEarned: 0 // points earned in this specific transaction
+        };
 
 
-        // --- DOM Elements ---
-        // These will be defined inside window.onload now to ensure DOM is ready.
+        // --- DOM Elements (Declared globally, assigned in window.onload) ---
         let tabButtons;
         let tabContents;
 
-        // Sales Terminal
         let barcodeScannerInput;
         let customItemDescriptionInput;
         let customItemPriceInput;
@@ -914,14 +1096,12 @@
         let applyCouponButton;
         let couponStatus;
 
-        // Product Management
         let newProductBarcodeInput;
         let newProductNameInput;
         let newProductPriceInput;
         let addProductButton;
         let productListBody;
 
-        // Coupon Management
         let newCouponCodeInput;
         let generateCouponCodeButton;
         let newCouponTitleInput;
@@ -935,7 +1115,13 @@
         let addCouponButton;
         let couponListBody;
 
-        // Receipts History
+        let newLoyaltyDealNameInput;
+        let newLoyaltyDealTypeSelect;
+        let newLoyaltyDealValueInput;
+        let newLoyaltyDealPointsRequiredInput;
+        let addLoyaltyDealButton;
+        let loyaltyDealListBody;
+
         let receiptsListDiv;
         let noReceiptsMessage;
         let receiptSearchInput;
@@ -945,14 +1131,12 @@
         let printHistoricalReceiptBtn;
         let returnItemsButton;
 
-        // Reports
         let reportLastHourSpan;
         let reportLast24HoursSpan;
         let reportLastMonthSpan;
         let reportTotalSalesSpan;
 
 
-        // Settings
         let storeNameInput;
         let storeAddressInput;
         let storePhoneInput;
@@ -963,28 +1147,45 @@
         let currentLogoPreview;
         let saveSettingsButton;
 
-        // Global Utility
         let receiptPrintArea;
         let messageBox;
         let messageContent;
         let messageOkButton;
 
-        // Checkout Panel Elements
         let checkoutOverlay;
         let checkoutPanel;
         let bagCountStep;
         let bagCountInput;
         let bagCountContinueButton;
+
+        let loyaltyStep;
+        let customerPhoneInput;
+        let customerInfoDisplay;
+        let loyaltyDealsDisplayArea;
+        let loyaltyDealsContainer;
+        let noLoyaltyDealsMessage;
+        let loyaltyContinueButton;
+        let loyaltySignupButton;
+        let loyaltySkipButton;
+
+        let signUpStep;
+        let signupPhoneInput;
+        let signupNameInput;
+        let signupEmailInput;
+        let completeSignupButton;
+        let cancelSignupButton;
+
         let paymentMethodStep;
         let checkoutTotalDisplay;
         let checkoutPayCashButton;
         let checkoutPayCardButton;
+
         let receiptPreferenceStep;
         let receiptYesButton;
         let receiptNoButton;
 
+        let processingOverlay;
 
-        // Return Items Modal
         let returnItemsModal;
         let closeReturnItemsModalBtn;
         let returnOriginalTxnIdSpan;
@@ -999,13 +1200,17 @@
         let processReturnButton;
         let cancelReturnButton;
 
+        let keyboardInstructionsModal; // Added this
+        let closeKeyboardInstructionsModalBtn; // Added this
+        let keyboardInstructionsOkButton; // Added this
 
         let lastFocusedElement = null; // To store the element that had focus before a modal opened
+
 
         // --- Local Storage Functions ---
 
         /**
-         * Saves current state of data (products, coupons, receipts, settings) to local storage.
+         * Saves current state of data (products, coupons, receipts, settings, customers) to local storage.
          */
         function saveData() {
             try {
@@ -1013,9 +1218,9 @@
                 localStorage.setItem(LOCAL_STORAGE_KEYS.COUPONS, JSON.stringify(coupons));
                 localStorage.setItem(LOCAL_STORAGE_KEYS.RECEIPTS, JSON.stringify(receipts));
                 localStorage.setItem(LOCAL_STORAGE_KEYS.SETTINGS, JSON.stringify(storeSettings));
+                localStorage.setItem(LOCAL_STORAGE_KEYS.CUSTOMERS, JSON.stringify(customers)); // Save customer data
             } catch (e) {
                 console.error("Error saving to local storage:", e);
-                // showMessageBox("Error: Could not save data to your browser. Please check storage limits or browser settings."); // Removed per user request
             }
         }
 
@@ -1033,47 +1238,60 @@
 
                 const storedCoupons = localStorage.getItem(LOCAL_STORAGE_KEYS.COUPONS);
                 if (storedCoupons) {
-                    // Important: Ensure old coupon data without new fields get defaults
                     coupons = JSON.parse(storedCoupons).map(coupon => ({
                         ...coupon,
                         title: coupon.title || `${coupon.type === 'percentage' ? coupon.value + '%' : '$' + coupon.value.toFixed(2)} Off`,
-                        applicationType: coupon.applicationType || 'full-total', // Default for old coupons
-                        minPurchaseAmount: coupon.minPurchaseAmount || 0, // Default to 0
-                        targetProductBarcode: coupon.targetProductBarcode || '' // Default to empty string
+                        applicationType: coupon.applicationType || 'full-total',
+                        minPurchaseAmount: coupon.minPurchaseAmount || 0,
+                        targetProductBarcode: coupon.targetProductBarcode || ''
                     }));
                 } else {
                     addSampleCoupons();
                 }
 
+                const storedCustomers = localStorage.getItem(LOCAL_STORAGE_KEYS.CUSTOMERS); // Load customers
+                if (storedCustomers) {
+                    customers = JSON.parse(storedCustomers);
+                } else {
+                    // No default customers, they sign up
+                }
+
                 const storedReceipts = localStorage.getItem(LOCAL_STORAGE_KEYS.RECEIPTS);
                 if (storedReceipts) {
-                    // Ensure historical receipts have recommendedDiscounts array, even if empty, for consistent handling
-                    // Also ensure paymentMethod is present, defaulting for old receipts
                     receipts = JSON.parse(storedReceipts).map(receipt => ({
                         ...receipt,
-                        recommendedDiscounts: receipt.recommendedDiscounts || [], // Default to empty array for old receipts
-                        paymentMethod: receipt.paymentMethod || 'Unknown', // Default to 'Unknown' for old receipts
-                        numberOfBags: receipt.numberOfBags || 0 // Default to 0 for old receipts
+                        recommendedDiscounts: receipt.recommendedDiscounts || [],
+                        paymentMethod: receipt.paymentMethod || 'Unknown',
+                        numberOfBags: receipt.numberOfBags || 0
                     }));
                 }
 
                 const storedSettings = localStorage.getItem(LOCAL_STORAGE_KEYS.SETTINGS);
                 if (storedSettings) {
-                    // Merge loaded settings with default, so new properties in defaults don't break old data
-                    storeSettings = { ...storeSettings, ...JSON.parse(storedSettings) };
+                    const parsedSettings = JSON.parse(storedSettings);
+                    storeSettings = { ...storeSettings, ...parsedSettings };
+                    // Ensure loyaltyOffers array exists and has correct structure
+                    storeSettings.loyaltyOffers = parsedSettings.loyaltyOffers ? parsedSettings.loyaltyOffers.map(offer => ({
+                        id: offer.id || crypto.randomUUID(), // Ensure ID for old offers
+                        name: offer.name,
+                        type: offer.type,
+                        value: offer.value,
+                        pointsRequired: offer.pointsRequired
+                    })) : [];
                 }
             } catch (e) {
                 console.error("Error loading from local storage:", e);
-                // showMessageBox("Error: Could not load saved data. Starting with fresh data. Please check storage limits or browser settings."); // Removed per user request
                 // Reset to defaults if load fails
                 products = [];
                 coupons = [];
                 receipts = [];
+                customers = [];
                 storeSettings = {
                     storeName: 'Your Store Name', storeAddress: '123 Main St, Anytown, USA',
                     storePhone: '(123) 456-7890', storeWebsite: 'www.yourstore.com',
                     logoUrl: 'https://placehold.co/150x50/1e40af/ffffff?text=Your+Logo',
-                    receiptFooterMessage: 'Thank you for your purchase! Please come again!'
+                    receiptFooterMessage: 'Thank you for your purchase! Please come again!',
+                    loyaltyOffers: []
                 };
                 addSampleProducts();
                 addSampleCoupons();
@@ -1166,6 +1384,7 @@
                 } else if (tabId === 'reports') {
                     updateReports(); // Refresh reports when tab is opened
                 } else if (tabId === 'settings') {
+                    loadSettingsIntoForm(); // Ensure settings form is loaded
                     storeNameInput.focus();
                 }
             }
@@ -1192,13 +1411,62 @@
             return code;
         }
 
+        // --- Phone Number Formatting ---
+        /**
+         * Formats a raw 10-digit phone number into (XXX)-XXX-XXXX.
+         * @param {string} phoneNumber - The raw phone number string.
+         * @returns {string} Formatted phone number.
+         */
+        function formatPhoneNumber(phoneNumber) {
+            const cleaned = ('' + phoneNumber).replace(/\D/g, ''); // Remove non-digits
+            const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/);
+            if (match) {
+                return `(${match[1]})-` + `${match[2]}-${match[3]}`;
+            }
+            return phoneNumber; // Return original if not 10 digits
+        }
+
+        /**
+         * Cleans a formatted phone number to get only digits.
+         * @param {string} formattedPhoneNumber - The formatted phone number string.
+         * @returns {string} Cleaned phone number.
+         */
+        function cleanPhoneNumber(formattedPhoneNumber) {
+            return formattedPhoneNumber.replace(/\D/g, ''); // Remove all non-digit characters
+        }
+
+        // --- Customer Management Functions (NEW) ---
+
+        /**
+         * Finds a customer by their phone number.
+         * @param {string} phoneNumber - The formatted phone number.
+         * @returns {Object|null} The customer object or null if not found.
+         */
+        function getCustomerByPhone(phoneNumber) {
+            const cleanedPhone = cleanPhoneNumber(phoneNumber);
+            return customers.find(c => cleanPhoneNumber(c.phoneNumber) === cleanedPhone);
+        }
+
+        /**
+         * Adds or updates a customer in the customers array.
+         * @param {Object} customerData - Customer object with at least phoneNumber.
+         */
+        function saveCustomer(customerData) {
+            const existingIndex = customers.findIndex(c => cleanPhoneNumber(c.phoneNumber) === cleanPhoneNumber(customerData.phoneNumber));
+            if (existingIndex > -1) {
+                customers[existingIndex] = { ...customers[existingIndex], ...customerData }; // Merge existing with new data
+            } else {
+                customers.push(customerData);
+            }
+            saveData();
+        }
+
         // --- Product Management Functions ---
 
         /**
          * Adds initial sample products to the system.
          */
         function addSampleProducts() {
-            // Using specific barcodes for samples
             products.push({ barcode: '1000000000', name: 'Laptop', price: 1200.00 });
             products.push({ barcode: '1000000001', name: 'Mouse', price: 25.00 });
             products.push({ barcode: '1000000002', name: 'Keyboard', price: 75.00 });
@@ -1476,11 +1744,11 @@
                 });
             }
 
-            subtotalDisplay.textContent = `$${currentSubtotal.toFixed(2)}`;
-            taxRateDisplay.textContent = `${(TAX_RATE * 100).toFixed(2)}`; // Display tax rate percentage
+            // Update transactionSummary object based on current cart
+            currentTransaction.subtotal = currentSubtotal;
 
-            let discountAmount = 0;
-            let totalBeforeTax = currentSubtotal;
+            let couponDiscountAmount = 0;
+            let totalBeforeTaxAndLoyalty = currentSubtotal;
 
             if (appliedCoupon) {
                 let canApply = true;
@@ -1500,14 +1768,13 @@
 
                 if (canApply) {
                     if (appliedCoupon.type === 'percentage') {
-                        discountAmount = totalBeforeTax * (appliedCoupon.value / 100);
+                        couponDiscountAmount = totalBeforeTaxAndLoyalty * (appliedCoupon.value / 100);
                     } else if (appliedCoupon.type === 'fixed') {
-                        discountAmount = appliedCoupon.value;
+                        couponDiscountAmount = appliedCoupon.value;
                     }
-                    // Ensure discount doesn't make total negative
-                    totalBeforeTax = Math.max(0, totalBeforeTax - discountAmount);
+                    totalBeforeTaxAndLoyalty = Math.max(0, totalBeforeTaxAndLoyalty - couponDiscountAmount);
 
-                    discountDisplay.textContent = `-$${discountAmount.toFixed(2)}`;
+                    discountDisplay.textContent = `-$${couponDiscountAmount.toFixed(2)}`;
                     discountDisplayRow.classList.remove('hidden');
                     couponStatus.textContent = `Coupon "${appliedCoupon.code}" applied: ${appliedCoupon.title}.`;
                     couponStatus.classList.remove('text-red-400');
@@ -1525,11 +1792,24 @@
                 couponStatus.textContent = '';
             }
 
-            const taxAmount = totalBeforeTax * TAX_RATE;
-            taxDisplay.textContent = `$${taxAmount.toFixed(2)}`;
+            currentTransaction.discountAmount = couponDiscountAmount;
+            currentTransaction.totalAfterCouponDiscount = totalBeforeTaxAndLoyalty; // Base for tax and loyalty
 
-            currentFinalTotal = totalBeforeTax + taxAmount; // Store this for checkout flow
-            grandTotalDisplay.textContent = `$${currentFinalTotal.toFixed(2)}`;
+            const taxAmount = currentTransaction.totalAfterCouponDiscount * TAX_RATE;
+            currentTransaction.taxAmount = taxAmount;
+
+            // Grand Total calculation for display on sales terminal (doesn't include bag fee or loyalty discount yet)
+            const salesTerminalGrandTotal = currentTransaction.totalAfterCouponDiscount + currentTransaction.taxAmount;
+
+            subtotalDisplay.textContent = `$${currentTransaction.subtotal.toFixed(2)}`;
+            taxRateDisplay.textContent = `${(TAX_RATE * 100).toFixed(2)}`; // Display tax rate percentage
+            taxDisplay.textContent = `$${currentTransaction.taxAmount.toFixed(2)}`;
+            grandTotalDisplay.textContent = `$${salesTerminalGrandTotal.toFixed(2)}`;
+
+            // Reset loyalty discount for cart display, it's applied in checkout flow
+            currentTransaction.loyaltyDiscount = 0;
+            currentTransaction.bagFee = 0; // Reset bag fee for cart display
+            currentTransaction.finalTotal = salesTerminalGrandTotal; // Initial final total for checkout flow
         }
 
         /**
@@ -1553,27 +1833,84 @@
             updateCartDisplay(); // This will re-evaluate and display status/error
         }
 
+        // --- Checkout Flow Functions ---
+
+        /**
+         * Shows a specific step in the checkout panel and hides others.
+         * @param {HTMLElement} stepToShow - The step element to display.
+         */
+        function showCheckoutStep(stepToShow) {
+            document.querySelectorAll('.checkout-step').forEach(step => {
+                step.classList.remove('active');
+            });
+            stepToShow.classList.add('active');
+
+            // Set specific focus for each step
+            if (stepToShow === bagCountStep) {
+                bagCountInput.focus();
+            } else if (stepToShow === loyaltyStep) {
+                customerPhoneInput.value = ''; // Clear previous phone
+                customerPhoneInput.focus();
+                customerInfoDisplay.textContent = 'Enter phone number to check loyalty.';
+                loyaltyDealsDisplayArea.classList.add('hidden'); // Hide deals area initially
+            } else if (stepToShow === signUpStep) {
+                // Focus phone input first, as it's now editable
+                signupPhoneInput.focus();
+            }
+            else if (stepToShow === paymentMethodStep) {
+                checkoutPayCashButton.focus();
+            } else if (stepToShow === receiptPreferenceStep) {
+                receiptYesButton.focus();
+            }
+        }
+
+        /**
+         * Closes the checkout overlay and resets the state.
+         */
+        function closeCheckoutOverlay() {
+            checkoutOverlay.classList.remove('active');
+            // Use a small delay to allow animation to play before hiding completely
+            setTimeout(() => {
+                checkoutOverlay.classList.add('hidden');
+                // Reset state
+                currentTransaction.bagFee = 0;
+                currentTransaction.loyaltyDiscount = 0;
+                currentCustomer = null; // Clear active customer
+                bagsUsed = 0; // Reset for next transaction
+                // Restore focus to original element
+                if (lastFocusedElement) {
+                    lastFocusedElement.focus();
+                    lastFocusedElement = null;
+                } else {
+                    barcodeScannerInput.focus(); // Default fallback
+                }
+            }, 300); // Match CSS transition duration
+        }
+
+
+        /**
+         * Handles the card processing animation.
+         * @param {string} paymentMethod - The payment method used.
+         */
+        function handleCardProcessing(paymentMethod) {
+            processingOverlay.classList.remove('hidden');
+            processingOverlay.classList.add('active');
+
+            setTimeout(() => {
+                processingOverlay.classList.remove('active');
+                processingOverlay.classList.add('hidden');
+                // Proceed to the next step (receipt preference)
+                sessionStorage.setItem('currentPaymentMethod', paymentMethod);
+                showCheckoutStep(receiptPreferenceStep);
+            }, 3000); // 3 seconds processing
+        }
+
+
         // --- Receipt Generation & History Functions ---
 
         /**
          * Generates the HTML content for a receipt based on provided data.
-         * This function is used by both `generateReceipt` (for current sale)
-         * and `viewHistoricalReceipt` (for past sales).
          * @param {Object} receiptData - The data for the receipt.
-         * @param {Array} receiptData.cartItems - Array of cart items for the receipt.
-         * @param {number} receiptData.subtotal - The subtotal amount.
-         * @param {number} receiptData.discountAmount - The discount amount applied.
-         * @param {number} receiptData.totalAfterDiscount - Subtotal minus discount.
-         * @param {number} receiptData.taxAmount - The tax amount.
-         * @param {number} receiptData.finalTotal - The final total amount.
-         * @param {string} receiptData.transactionId - The unique transaction ID.
-         * @param {string} receiptData.timestamp - The timestamp of the transaction.
-         * @param {Object} receiptData.storeInfo - Store information (name, address, etc.).
-         * @param {string} receiptData.storeInfo.logoUrl - URL for the store logo.
-         * @param {string} receiptData.storeInfo.receiptFooterMessage - Custom footer message for the receipt.
-         * @param {Array<Object>} receiptData.recommendedDiscounts - List of recommended coupons to display.
-         * @param {string} receiptData.paymentMethod - The payment method used (Cash/Card).
-         * @param {number} receiptData.numberOfBags - Number of bags purchased, for bag fee calculation.
          * @param {boolean} forPrint - If true, generates content suitable for print.
          * @returns {string} HTML string of the receipt.
          */
@@ -1639,8 +1976,14 @@
                         </div>
                         ${receiptData.discountAmount > 0 ? `
                             <div class="text-red-600">
-                                <span>Discount:</span>
+                                <span>Coupon Discount:</span>
                                 <span>-$${receiptData.discountAmount.toFixed(2)}</span>
+                            </div>
+                        ` : ''}
+                        ${receiptData.loyaltyDiscount > 0 ? `
+                            <div class="text-green-600">
+                                <span>Loyalty Discount:</span>
+                                <span>-$${receiptData.loyaltyDiscount.toFixed(2)}</span>
                             </div>
                         ` : ''}
                         <div>
@@ -1699,8 +2042,7 @@
         }
 
         /**
-         * Generates and prints the receipt for the current sale.
-         * Also saves the receipt to history.
+         * Finalizes the sale after all checkout steps are completed.
          * @param {string} paymentMethod - The method of payment (Cash or Card).
          * @param {boolean} printReceipt - Whether to print the receipt or not.
          */
@@ -1712,73 +2054,35 @@
 
             const transactionId = `TXN-${generateRandomBarcodeNumber()}`;
             const timestamp = new Date().toISOString();
-            const subtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
-            let discountAmount = 0;
-            let totalBeforeTax = subtotal;
 
-            // Re-evaluate discount conditions one last time before finalizing receipt data
-            if (appliedCoupon) {
-                let canApply = true;
-                if (appliedCoupon.applicationType === 'min-purchase') {
-                    if (subtotal < appliedCoupon.minPurchaseAmount) {
-                        canApply = false;
-                    }
-                } else if (appliedCoupon.applicationType === 'by-product') {
-                    if (!cart.some(item => item.barcode === appliedCoupon.targetProductBarcode)) {
-                        canApply = false;
-                    }
-                }
+            // Calculate loyalty points earned for this transaction
+            // Points are earned on totalAfterCouponDiscount (subtotal - coupon discount), before tax and loyalty redemption
+            const pointsEarned = Math.floor(currentTransaction.totalAfterCouponDiscount / 10) * 5;
+            currentTransaction.loyaltyPointsEarned = pointsEarned;
 
-                if (canApply) {
-                    if (appliedCoupon.type === 'percentage') {
-                        discountAmount = subtotal * (appliedCoupon.value / 100);
-                    } else if (appliedCoupon.type === 'fixed') {
-                        discountAmount = appliedCoupon.value;
-                    }
-                    totalBeforeTax = Math.max(0, totalBeforeTax - discountAmount);
-                } else {
-                    // If coupon became invalid during checkout, clear it for this receipt
-                    appliedCoupon = null;
-                    discountAmount = 0;
-                }
-            }
-
-            const taxAmount = totalBeforeTax * TAX_RATE;
-            const finalTotalExcludingBags = totalBeforeTax + taxAmount;
-            const bagFeeTotal = bagsUsed * BAG_FEE_PER_BAG;
-            const finalTotalWithBags = finalTotalExcludingBags + bagFeeTotal;
-
-
-            // Select recommended discounts for THIS receipt
-            const availableCouponsForReceipt = [...coupons];
-            const recommendedDiscountsForThisReceipt = [];
-
-            // Shuffle the available coupons
-            for (let i = availableCouponsForReceipt.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [availableCouponsForReceipt[i], availableCouponsForReceipt[j]] = [availableCouponsForReceipt[j], availableCouponsForReceipt[i]];
-            }
-
-            // Pick exactly NUM_RECOMMENDED_COUPONS_TO_DISPLAY or all if fewer are available
-            const numToPickForThisReceipt = Math.min(NUM_RECOMMENDED_COUPONS_TO_DISPLAY, availableCouponsForReceipt.length);
-            for (let i = 0; i < numToPickForThisReceipt; i++) {
-                recommendedDiscountsForThisReceipt.push(availableCouponsForReceipt[i]);
+            // If a customer is active, update their points
+            if (currentCustomer) {
+                currentCustomer.points = (currentCustomer.points || 0) + currentTransaction.loyaltyPointsEarned;
+                saveCustomer(currentCustomer); // Save updated customer data
             }
 
             const receiptData = {
                 cartItems: JSON.parse(JSON.stringify(cart)), // Deep copy cart items
-                subtotal: subtotal,
-                discountAmount: discountAmount,
-                totalAfterDiscount: totalBeforeTax,
-                taxAmount: taxAmount,
-                numberOfBags: bagsUsed, // Store number of bags
-                finalTotal: finalTotalWithBags, // Final total including bags
+                subtotal: currentTransaction.subtotal,
+                discountAmount: currentTransaction.discountAmount, // coupon discount
+                loyaltyDiscount: currentTransaction.loyaltyDiscount, // loyalty redemption discount
+                totalAfterDiscount: currentTransaction.totalAfterCouponDiscount, // subtotal minus coupon discount
+                taxAmount: currentTransaction.taxAmount,
+                numberOfBags: bagsUsed,
+                finalTotal: currentTransaction.finalTotal, // This now includes bag fee and loyalty discount
                 transactionId: transactionId,
                 timestamp: timestamp,
                 storeInfo: { ...storeSettings }, // Deep copy store settings
                 appliedCoupon: appliedCoupon ? { ...appliedCoupon } : null, // Copy applied coupon data
-                recommendedDiscounts: recommendedDiscountsForThisReceipt, // Store selected recommended discounts
-                paymentMethod: paymentMethod // Store payment method
+                recommendedDiscounts: getRandomRecommendedCoupons(), // Generate new recommendations for this receipt
+                paymentMethod: paymentMethod,
+                customerPhone: currentCustomer ? currentCustomer.phoneNumber : null, // Store customer phone if logged in
+                pointsEarned: currentTransaction.loyaltyPointsEarned // Points earned in this purchase
             };
 
             // Add receipt to history
@@ -1787,71 +2091,56 @@
             renderReceiptsHistory(); // Update receipts history view
 
             if (printReceipt) {
-                // Generate HTML for printing
-                receiptPrintArea.innerHTML = generateReceiptHtml(receiptData, true); // true for print-specific styles
+                receiptPrintArea.innerHTML = generateReceiptHtml(receiptData, true);
 
-                // Render JsBarcodes for the generated receipt HTML
                 const transactionBarcodeElement = receiptPrintArea.querySelector('#receipt-transaction-barcode');
                 if (transactionBarcodeElement) {
                     try {
-                        JsBarcode(transactionBarcodeElement, transactionId, {
-                            format: "CODE128", // Explicitly Code-128
-                            displayValue: true,
-                            width: 1.5,
-                            height: 50,
-                            margin: 5,
-                            fontSize: 12,
-                            lineColor: "#000", // Ensure black lines for print
-                            background: "#fff" // Ensure white background for print
-                        });
+                        JsBarcode(transactionBarcodeElement, transactionId, { format: "CODE128", displayValue: true, width: 1.5, height: 50, margin: 5, fontSize: 12, lineColor: "#000", background: "#fff" });
                     } catch (e) {
                         console.error(`Error generating transaction barcode (${transactionId}):`, e);
                         transactionBarcodeElement.textContent = `Code: ${transactionId}`;
                     }
                 }
 
-                // Render JsBarcodes for recommended discounts on the generated receipt HTML
                 if (receiptData.recommendedDiscounts && receiptData.recommendedDiscounts.length > 0) {
                     receiptData.recommendedDiscounts.forEach((coupon) => {
                         const recBarcodeElement = receiptPrintArea.querySelector(`#rec-barcode-${coupon.code}`);
                         if (recBarcodeElement) {
                             try {
-                                JsBarcode(recBarcodeElement, coupon.code, { // Use actual coupon code (30-digit)
-                                    format: "CODE128", // Explicitly Code-128
-                                    displayValue: true,
-                                    width: 1.5,
-                                    height: 50,
-                                    margin: 5,
-                                    fontSize: 12,
-                                    lineColor: "#000",
-                                    background: "#fff"
-                                });
+                                JsBarcode(recBarcodeElement, coupon.code, { format: "CODE128", displayValue: true, width: 1.5, height: 50, margin: 5, fontSize: 12, lineColor: "#000", background: "#fff" });
                             } catch (e) {
                                 console.error(`Error generating recommendation barcode for ${coupon.code}:`, e);
-                                recBarcodeElement.textContent = `Code: ${coupon.code}`; // Fallback text
+                                recBarcodeElement.textContent = `Code: ${coupon.code}`;
                             }
                         }
                     });
                 }
 
-
-                // Show receipt area and print
                 receiptPrintArea.classList.remove('hidden');
                 window.print();
-                // Hide after print to restore normal view
                 receiptPrintArea.classList.add('hidden');
             }
 
-            // Clear cart and applied coupon after successful transaction
+            // Reset for next transaction
             cart = [];
             appliedCoupon = null;
-            bagsUsed = 0; // Reset bags
-            couponCodeInput.value = '';
-            couponStatus.textContent = '';
-            updateCartDisplay();
-
-            // IMPORTANT: Auto-focus on the barcode scanner input after printing
+            currentCustomer = null;
+            updateCartDisplay(); // Clear display
             barcodeScannerInput.focus();
+        }
+
+        /**
+         * Gets a random selection of recommended coupons.
+         * @returns {Array<Object>} A subset of coupons for recommendations.
+         */
+        function getRandomRecommendedCoupons() {
+            const shuffledCoupons = [...coupons]; // Create a shallow copy to avoid modifying original array
+            for (let i = shuffledCoupled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffledCoupons[i], shuffledCoupons[j]] = [shuffledCoupons[j], shuffledCoupons[i]];
+            }
+            return shuffledCoupons.slice(0, NUM_RECOMMENDED_COUPONS_TO_DISPLAY);
         }
 
         /**
@@ -1884,7 +2173,8 @@
                     receiptCard.innerHTML = `
                         <h4 class="text-lg font-bold text-gray-100 mb-2">Transaction: ${receipt.transactionId}</h4>
                         <p class="text-sm text-gray-300">Date: ${new Date(receipt.timestamp).toLocaleString()}</p>
-                        ${receipt.discountAmount > 0 ? `<p class="text-sm text-red-400">Discount: -$${receipt.discountAmount.toFixed(2)}</p>` : ''}
+                        ${receipt.discountAmount > 0 ? `<p class="text-sm text-red-400">Coupon Disc: -$${receipt.discountAmount.toFixed(2)}</p>` : ''}
+                        ${receipt.loyaltyDiscount > 0 ? `<p class="text-sm text-green-400">Loyalty Disc: -$${receipt.loyaltyDiscount.toFixed(2)}</p>` : ''}
                         <p class="text-xl font-semibold text-blue-400 mt-2">Total: $${receipt.finalTotal.toFixed(2)}</p>
                         <button class="view-receipt-details-btn bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md mt-4 transition duration-300 ease-in-out"
                                 data-receipt-index="${receipts.indexOf(receipt)}" tabindex="0">View Details</button>
@@ -2015,7 +2305,7 @@
             returnOriginalTxnIdSpan.textContent = receiptData.transactionId;
             returnOriginalPurchaseDateSpan.textContent = new Date(receiptData.timestamp).toLocaleString();
             returnOriginalTotalSpan.textContent = `$${receiptData.finalTotal.toFixed(2)}`;
-            returnOriginalDiscountSpan.textContent = `-$${receiptData.discountAmount.toFixed(2)}`;
+            returnOriginalDiscountSpan.textContent = `-$${(receiptData.discountAmount + receiptData.loyaltyDiscount).toFixed(2)}`; // Show combined discount
 
             // Populate items to return list
             returnItemsListBody.innerHTML = '';
@@ -2082,19 +2372,28 @@
 
             // Calculate prorated discount and tax
             const originalReceipt = currentReceiptForReturn;
-            let proratedDiscount = 0;
+            let proratedOriginalCouponDiscount = 0;
             if (originalReceipt.subtotal > 0 && originalReceipt.discountAmount > 0) {
-                const discountProportion = originalReceipt.discountAmount / originalReceipt.subtotal;
-                proratedDiscount = totalOriginalPriceOfReturnedItems * discountProportion;
+                const couponDiscountProportion = originalReceipt.discountAmount / originalReceipt.subtotal;
+                proratedOriginalCouponDiscount = totalOriginalPriceOfReturnedItems * couponDiscountProportion;
             }
 
-            const subtotalRefundAfterDiscount = totalOriginalPriceOfReturnedItems - proratedDiscount;
+            let proratedOriginalLoyaltyDiscount = 0;
+            // The loyalty discount was applied to the totalAfterCouponDiscount, so calculate proportion from there
+            if (originalReceipt.totalAfterCouponDiscount > 0 && originalReceipt.loyaltyDiscount > 0) {
+                const loyaltyDiscountProportion = originalReceipt.loyaltyDiscount / originalReceipt.totalAfterCouponDiscount;
+                // Apply this proportion to the total price of returned items AFTER coupon discount
+                proratedOriginalLoyaltyDiscount = (totalOriginalPriceOfReturnedItems - proratedOriginalCouponDiscount) * loyaltyDiscountProportion;
+            }
+
+            const totalProratedDiscount = proratedOriginalCouponDiscount + proratedOriginalLoyaltyDiscount;
+
+            const subtotalRefundAfterDiscount = totalOriginalPriceOfReturnedItems - totalProratedDiscount;
             const refundTax = subtotalRefundAfterDiscount * TAX_RATE; // Calculate tax on the refunded subtotal for the receipt
 
             // Update display. Total Refund Due is now pre-tax.
             estimatedRefundSubtotalSpan.textContent = `$${totalOriginalPriceOfReturnedItems.toFixed(2)}`;
-            proratedOriginalDiscountSpan.textContent = `-$${proratedDiscount.toFixed(2)}`;
-            // refundTaxAmountSpan.textContent = `$${refundTax.toFixed(2)}`; // This span is now hidden from the user, but calculation is kept
+            proratedOriginalDiscountSpan.textContent = `-$${totalProratedDiscount.toFixed(2)}`;
             totalRefundAmountSpan.textContent = `$${subtotalRefundAfterDiscount.toFixed(2)}`;
         }
 
@@ -2217,13 +2516,21 @@
 
             // Calculate prorated discount and tax based on the original receipt
             const originalReceipt = currentReceiptForReturn;
-            let proratedOriginalDiscount = 0;
+            let proratedOriginalCouponDiscount = 0;
             if (originalReceipt.subtotal > 0 && originalReceipt.discountAmount > 0) {
-                const discountProportion = originalReceipt.discountAmount / originalReceipt.subtotal;
-                proratedOriginalDiscount = totalOriginalPriceOfReturnedItems * discountProportion;
+                const couponDiscountProportion = originalReceipt.discountAmount / originalReceipt.subtotal;
+                proratedOriginalCouponDiscount = totalOriginalPriceOfReturnedItems * couponDiscountProportion;
             }
 
-            const subtotalRefundAfterDiscount = totalOriginalPriceOfReturnedItems - proratedOriginalDiscount;
+            let proratedOriginalLoyaltyDiscount = 0;
+            if (originalReceipt.totalAfterCouponDiscount > 0 && originalReceipt.loyaltyDiscount > 0) {
+                const loyaltyDiscountProportion = originalReceipt.loyaltyDiscount / originalReceipt.totalAfterCouponDiscount;
+                proratedOriginalLoyaltyDiscount = (totalOriginalPriceOfReturnedItems - proratedOriginalCouponDiscount) * loyaltyDiscountProportion;
+            }
+
+            const totalProratedDiscount = proratedOriginalCouponDiscount + proratedOriginalLoyaltyDiscount;
+
+            const subtotalRefundAfterDiscount = totalOriginalPriceOfReturnedItems - totalProratedDiscount;
             const refundTax = subtotalRefundAfterDiscount * TAX_RATE;
             const finalRefundAmountTotal = subtotalRefundAfterDiscount + refundTax; // This is the actual total refund including tax for accounting
 
@@ -2236,7 +2543,7 @@
                 timestamp: returnTimestamp,
                 returnedItems: returnedItems,
                 refundSubtotal: totalOriginalPriceOfReturnedItems,
-                proratedOriginalDiscount: proratedOriginalDiscount,
+                proratedOriginalDiscount: totalProratedDiscount, // Combined discount
                 refundTax: refundTax,
                 finalRefundAmount: finalRefundAmountTotal, // Pass the full amount for printing on receipt
                 storeInfo: { ...storeSettings } // Snapshot current store settings for return receipt
@@ -2360,6 +2667,7 @@
              if (!storeSettings.logoUrl) {
                 currentLogoPreview.src = 'https://placehold.co/150x50/1e40af/ffffff?text=Your+Logo'; // Set default if empty
             }
+            renderLoyaltyDealList(); // Also render loyalty deals
         }
 
         /**
@@ -2371,7 +2679,7 @@
             storeSettings.storePhone = storePhoneInput.value.trim();
             storeSettings.storeWebsite = storeWebsiteInput.value.trim();
             storeSettings.receiptFooterMessage = receiptFooterMessageInput.value.trim(); // Save footer message
-            // logoUrl is updated directly by handleLogoUpload and saveData() is called there
+            // loyaltyOffers handled by addLoyaltyDeal and deleteLoyaltyDeal
             saveData(); // Save other settings changes
             showMessageBox('Settings saved successfully!');
         }
@@ -2401,12 +2709,66 @@
             }
         }
 
+        /**
+         * Renders the list of loyalty deals in the settings tab.
+         */
+        function renderLoyaltyDealList() {
+            loyaltyDealListBody.innerHTML = '';
+            if (storeSettings.loyaltyOffers.length === 0) {
+                const row = loyaltyDealListBody.insertRow();
+                const cell = row.insertCell();
+                cell.colSpan = 5;
+                cell.textContent = 'No loyalty deals defined yet.';
+                cell.className = 'text-center py-4 text-gray-500';
+            } else {
+                storeSettings.loyaltyOffers.forEach(deal => {
+                    const row = loyaltyDealListBody.insertRow();
+                    row.className = 'hover:bg-gray-700';
+                    row.insertCell().textContent = deal.name;
+                    row.insertCell().textContent = deal.type === 'percentage' ? 'Percentage' : 'Fixed';
+                    row.insertCell().textContent = deal.type === 'percentage' ? `${deal.value}%` : `$${deal.value.toFixed(2)}`;
+                    row.insertCell().textContent = deal.pointsRequired;
+                    const actionsCell = row.insertCell();
+                    actionsCell.className = 'flex gap-2 py-2';
 
-        // --- Event Listeners ---
+                    const deleteButton = document.createElement('button');
+                    deleteButton.textContent = 'Delete';
+                    deleteButton.className = 'bg-red-500 hover:bg-red-600 text-white text-xs font-semibold py-1 px-2 rounded-lg';
+                    deleteButton.onclick = () => deleteLoyaltyDeal(deal.id);
+                    deleteButton.tabIndex = 0;
+                    actionsCell.appendChild(deleteButton);
+                });
+            }
+        }
 
-        // --- Initial setup ---
+        /**
+         * Adds a new loyalty deal to store settings.
+         * @param {Object} dealData - The deal data.
+         */
+        function addLoyaltyDeal(dealData) {
+            dealData.id = crypto.randomUUID(); // Assign a unique ID
+            storeSettings.loyaltyOffers.push(dealData);
+            renderLoyaltyDealList();
+            saveData();
+            showMessageBox('Loyalty deal added!');
+        }
+
+        /**
+         * Deletes a loyalty deal from store settings.
+         * @param {string} dealId - The ID of the deal to delete.
+         */
+        function deleteLoyaltyDeal(dealId) {
+            storeSettings.loyaltyOffers = storeSettings.loyaltyOffers.filter(deal => deal.id !== dealId);
+            renderLoyaltyDealList();
+            saveData();
+            showMessageBox('Loyalty deal deleted!');
+        }
+
+
+        // --- Event Listeners (Assigned inside window.onload) ---
+
         window.onload = () => {
-            // Assign DOM elements AFTER the document is loaded
+            // Assign DOM elements
             tabButtons = document.querySelectorAll('.tab-button');
             tabContents = document.querySelectorAll('.tab-content');
 
@@ -2446,6 +2808,13 @@
             addCouponButton = document.getElementById('add-coupon-button');
             couponListBody = document.getElementById('coupon-list');
 
+            newLoyaltyDealNameInput = document.getElementById('new-loyalty-deal-name');
+            newLoyaltyDealTypeSelect = document.getElementById('new-loyalty-deal-type');
+            newLoyaltyDealValueInput = document.getElementById('new-loyalty-deal-value');
+            newLoyaltyDealPointsRequiredInput = document.getElementById('new-loyalty-deal-points-required');
+            addLoyaltyDealButton = document.getElementById('add-loyalty-deal-button');
+            loyaltyDealListBody = document.getElementById('loyalty-deal-list');
+
             receiptsListDiv = document.getElementById('receipts-list');
             noReceiptsMessage = document.getElementById('no-receipts-message');
             receiptSearchInput = document.getElementById('receipt-search-input');
@@ -2480,13 +2849,34 @@
             bagCountStep = document.getElementById('bag-count-step');
             bagCountInput = document.getElementById('bag-count-input');
             bagCountContinueButton = document.getElementById('bag-count-continue-button');
+
+            loyaltyStep = document.getElementById('loyalty-step');
+            customerPhoneInput = document.getElementById('customer-phone-input');
+            customerInfoDisplay = document.getElementById('customer-info-display');
+            loyaltyDealsDisplayArea = document.getElementById('loyalty-deals-display-area');
+            loyaltyDealsContainer = document.getElementById('loyalty-deals-container');
+            noLoyaltyDealsMessage = document.getElementById('no-loyalty-deals-message');
+            loyaltyContinueButton = document.getElementById('loyalty-continue-button');
+            loyaltySignupButton = document.getElementById('loyalty-signup-button');
+            loyaltySkipButton = document.getElementById('loyalty-skip-button');
+
+            signUpStep = document.getElementById('sign-up-step');
+            signupPhoneInput = document.getElementById('signup-phone');
+            signupNameInput = document.getElementById('signup-name');
+            signupEmailInput = document.getElementById('signup-email');
+            completeSignupButton = document.getElementById('complete-signup-button');
+            cancelSignupButton = document.getElementById('cancel-signup-button');
+
             paymentMethodStep = document.getElementById('payment-method-step');
             checkoutTotalDisplay = document.getElementById('checkout-total-display');
             checkoutPayCashButton = document.getElementById('checkout-pay-cash-button');
             checkoutPayCardButton = document.getElementById('checkout-pay-card-button');
+
             receiptPreferenceStep = document.getElementById('receipt-preference-step');
             receiptYesButton = document.getElementById('receipt-yes-button');
             receiptNoButton = document.getElementById('receipt-no-button');
+
+            processingOverlay = document.getElementById('processing-overlay');
 
             returnItemsModal = document.getElementById('return-items-modal');
             closeReturnItemsModalBtn = document.getElementById('close-return-items-modal');
@@ -2501,6 +2891,11 @@
             totalRefundAmountSpan = document.getElementById('total-refund-amount');
             processReturnButton = document.getElementById('process-return-button');
             cancelReturnButton = document.getElementById('cancel-return-button');
+
+            // Assign Keyboard Instructions Modal Elements
+            keyboardInstructionsModal = document.getElementById('keyboard-instructions-modal');
+            closeKeyboardInstructionsModalBtn = document.getElementById('close-keyboard-instructions-modal');
+            keyboardInstructionsOkButton = document.getElementById('keyboard-instructions-ok-button');
 
 
             loadData(); // Load all data from local storage first
@@ -2521,9 +2916,11 @@
                 }
             });
 
-            // Re-attach all event listeners here inside window.onload
+            // --- ALL EVENT LISTENERS ---
+
+            // Tab Switching
             tabButtons.forEach(button => {
-                button.addEventListener('click', (event) => {
+                button.addEventListener('click', () => {
                     switchTab(button.dataset.tab);
                 });
                 button.addEventListener('keydown', (event) => {
@@ -2542,6 +2939,7 @@
                 });
             });
 
+            // Sales Terminal: Custom Item
             addCustomItemButton.addEventListener('click', () => {
                 const price = parseFloat(customItemPriceInput.value);
                 const description = customItemDescriptionInput.value.trim();
@@ -2560,6 +2958,7 @@
                 }
             });
 
+            // Product Management: Add Product Button
             addProductButton.addEventListener('click', () => {
                 const barcode = newProductBarcodeInput.value.trim();
                 const name = newProductNameInput.value.trim();
@@ -2577,10 +2976,12 @@
                 }
             });
 
+            // Coupon Management: Generate Coupon Code Button
             generateCouponCodeButton.addEventListener('click', () => {
                 newCouponCodeInput.value = generate30DigitCode();
             });
 
+            // Coupon Management: Dynamic fields based on application type
             newCouponApplicationTypeSelect.addEventListener('change', () => {
                 minPurchaseAmountDiv.classList.add('hidden');
                 newCouponMinPurchaseAmountInput.removeAttribute('required');
@@ -2597,6 +2998,7 @@
                 }
             });
 
+            // Coupon Management: Add Coupon Button
             addCouponButton.addEventListener('click', () => {
                 const code = newCouponCodeInput.value.trim();
                 const title = newCouponTitleInput.value.trim();
@@ -2660,6 +3062,7 @@
                 }
             });
 
+            // Sales Terminal: Barcode Scanner Input (for adding to cart)
             barcodeScannerInput.addEventListener('keydown', (event) => {
                 if (event.key === 'Enter') {
                     const barcode = barcodeScannerInput.value.trim();
@@ -2673,8 +3076,10 @@
                 }
             });
 
+            // Sales Terminal: Apply Coupon Button
             applyCouponButton.addEventListener('click', applyCoupon);
 
+            // Checkout Button - trigger the new checkout flow
             checkoutButton.addEventListener('click', () => {
                 if (cart.length === 0) {
                     showMessageBox('Cart is empty. Please add items before checking out.');
@@ -2683,13 +3088,10 @@
                 lastFocusedElement = document.activeElement;
                 checkoutOverlay.classList.remove('hidden');
                 checkoutOverlay.classList.add('active');
-                bagCountStep.classList.add('active');
-                paymentMethodStep.classList.remove('active');
-                receiptPreferenceStep.classList.remove('active');
-                bagCountInput.value = '0';
-                bagCountInput.focus();
+                showCheckoutStep(bagCountStep); // Start with bag count
             });
 
+            // Checkout Flow: Bag Count Step
             bagCountContinueButton.addEventListener('click', () => {
                 const count = parseInt(bagCountInput.value);
                 if (isNaN(count) || count < 0) {
@@ -2698,12 +3100,12 @@
                     return;
                 }
                 bagsUsed = count;
-                const totalWithBagFee = currentFinalTotal + (bagsUsed * BAG_FEE_PER_BAG);
-                checkoutTotalDisplay.textContent = `$${totalWithBagFee.toFixed(2)}`;
+                currentTransaction.bagFee = bagsUsed * BAG_FEE_PER_BAG;
+                // Update final total for display in checkout (incl. bag fee)
+                currentTransaction.finalTotal = currentTransaction.totalAfterCouponDiscount + currentTransaction.taxAmount + currentTransaction.bagFee;
+                checkoutTotalDisplay.textContent = `$${currentTransaction.finalTotal.toFixed(2)}`;
 
-                bagCountStep.classList.remove('active');
-                paymentMethodStep.classList.add('active');
-                checkoutPayCashButton.focus();
+                showCheckoutStep(loyaltyStep); // Move to loyalty step
             });
 
             bagCountInput.addEventListener('keydown', (event) => {
@@ -2713,47 +3115,216 @@
                 }
             });
 
+            // Checkout Flow: Loyalty Step
+            customerPhoneInput.addEventListener('input', (event) => {
+                const rawPhone = event.target.value.replace(/\D/g, ''); // Remove non-digits
+                event.target.value = formatPhoneNumber(rawPhone);
+                if (rawPhone.length === 10) {
+                    const customer = getCustomerByPhone(event.target.value);
+                    if (customer) {
+                        customerInfoDisplay.textContent = `Welcome ${customer.name || 'Loyalty Member'}! Points: ${customer.points || 0}`;
+                        currentCustomer = customer;
+                        displayLoyaltyDeals(customer);
+                    } else {
+                        customerInfoDisplay.textContent = 'New customer or phone not found. Sign Up to earn points!';
+                        currentCustomer = null;
+                        loyaltyDealsDisplayArea.classList.add('hidden'); // Hide deals if no customer
+                    }
+                } else {
+                    customerInfoDisplay.textContent = 'Enter phone number to check loyalty.';
+                    currentCustomer = null;
+                    loyaltyDealsDisplayArea.classList.add('hidden');
+                }
+            });
+
+            customerPhoneInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    loyaltyContinueButton.click(); // Trigger continue if phone input is focused
+                }
+            });
+
+            loyaltyContinueButton.addEventListener('click', () => {
+                showCheckoutStep(paymentMethodStep); // Proceed to payment method
+            });
+
+            loyaltySignupButton.addEventListener('click', () => {
+                signupPhoneInput.value = customerPhoneInput.value; // Pre-fill phone if any was entered
+                signupNameInput.value = '';
+                signupEmailInput.value = '';
+                showCheckoutStep(signUpStep); // Show sign-up form
+            });
+
+            loyaltySkipButton.addEventListener('click', () => {
+                currentCustomer = null; // Ensure no customer is active for this transaction
+                currentTransaction.loyaltyDiscount = 0; // Reset any loyalty discount if skip
+                currentTransaction.finalTotal = currentTransaction.totalAfterCouponDiscount + currentTransaction.taxAmount + currentTransaction.bagFee; // Revert total
+                checkoutTotalDisplay.textContent = `$${currentTransaction.finalTotal.toFixed(2)}`;
+
+                showCheckoutStep(paymentMethodStep); // Skip to payment method
+            });
+
+            // Sign Up Step Buttons
+            completeSignupButton.addEventListener('click', () => {
+                const phone = cleanPhoneNumber(signupPhoneInput.value);
+                const name = signupNameInput.value.trim();
+                const email = signupEmailInput.value.trim();
+
+                if (!phone || phone.length !== 10) {
+                    showMessageBox('Please enter a valid 10-digit phone number.');
+                    return;
+                }
+                if (!name) {
+                    showMessageBox('Please enter the customer\'s name.');
+                    return;
+                }
+
+                // Check if phone number already exists
+                const existingCustomerCheck = getCustomerByPhone(phone);
+                if (existingCustomerCheck) {
+                    showMessageBox('A customer with this phone number already exists.');
+                    // Optionally, you could set currentCustomer to this existing one and go back to loyalty step
+                    currentCustomer = existingCustomerCheck;
+                    customerPhoneInput.value = existingCustomerCheck.phoneNumber;
+                    customerInfoDisplay.textContent = `Welcome ${existingCustomerCheck.name || 'Loyalty Member'}! Points: ${existingCustomerCheck.points || 0}`;
+                    displayLoyaltyDeals(existingCustomerCheck); // show deals for existing
+                    showCheckoutStep(loyaltyStep);
+                    return;
+                }
+
+                const newCustomer = {
+                    phoneNumber: formatPhoneNumber(phone),
+                    name: name,
+                    email: email,
+                    points: 0 // New customers start with 0 points
+                };
+                saveCustomer(newCustomer);
+                currentCustomer = newCustomer; // Set newly signed up customer as active
+                customerPhoneInput.value = newCustomer.phoneNumber; // Update phone input in loyalty step
+                customerInfoDisplay.textContent = `Welcome ${newCustomer.name}! Points: ${newCustomer.points}`;
+                loyaltyDealsDisplayArea.classList.add('hidden'); // Hide deals for new customer with 0 points
+                showMessageBox('Customer signed up successfully! They can start earning points.');
+                showCheckoutStep(loyaltyStep); // Go back to loyalty check step
+            });
+
+            cancelSignupButton.addEventListener('click', () => {
+                showCheckoutStep(loyaltyStep); // Go back to loyalty check step
+            });
+
+            // Function to display loyalty deals based on customer points
+            function displayLoyaltyDeals(customer) {
+                loyaltyDealsContainer.innerHTML = '';
+                const availableDeals = storeSettings.loyaltyOffers.filter(deal => customer.points >= deal.pointsRequired);
+
+                if (availableDeals.length > 0) {
+                    loyaltyDealsDisplayArea.classList.remove('hidden');
+                    availableDeals.forEach(deal => {
+                        const dealItem = document.createElement('div');
+                        dealItem.className = 'loyalty-deal-item cursor-pointer p-3 mb-2 rounded-lg bg-gray-700 hover:bg-gray-600 flex justify-between items-center';
+                        dealItem.innerHTML = `
+                            <span>${deal.name} (Cost: ${deal.pointsRequired} points)</span>
+                            <button class="redeem-loyalty-deal-button bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-semibold py-1 px-3 rounded-lg"
+                                    data-deal-id="${deal.id}" tabindex="0">Redeem</button>
+                        `;
+                        loyaltyDealsContainer.appendChild(dealItem);
+                    });
+
+                    // Attach event listener for redeem buttons
+                    loyaltyDealsContainer.querySelectorAll('.redeem-loyalty-deal-button').forEach(button => {
+                        button.addEventListener('click', (event) => {
+                            const dealId = event.target.dataset.dealId;
+                            redeemLoyaltyDeal(dealId);
+                        });
+                    });
+                } else {
+                    loyaltyDealsDisplayArea.classList.remove('hidden'); // Still show area but with message
+                    noLoyaltyDealsMessage.classList.remove('hidden'); // Ensure message is visible if no deals
+                }
+            }
+
+            // Function to apply loyalty deal discount
+            function redeemLoyaltyDeal(dealId) {
+                if (!currentCustomer) {
+                    showMessageBox('No customer active for loyalty redemption.');
+                    return;
+                }
+
+                const deal = storeSettings.loyaltyOffers.find(d => d.id === dealId);
+                if (!deal) {
+                    showMessageBox('Loyalty deal not found.');
+                    return;
+                }
+
+                if (currentCustomer.points < deal.pointsRequired) {
+                    showMessageBox('Not enough points to redeem this deal.');
+                    return;
+                }
+
+                // Apply discount
+                let discountValue = 0;
+                if (deal.type === 'percentage') {
+                    // Apply percentage discount to the total AFTER coupon discount, before tax and bag fee
+                    discountValue = currentTransaction.totalAfterCouponDiscount * (deal.value / 100);
+                } else if (deal.type === 'fixed') {
+                    discountValue = deal.value;
+                }
+                // Ensure loyalty discount doesn't make total negative or exceed purchase total
+                discountValue = Math.min(discountValue, currentTransaction.totalAfterCouponDiscount); // Cap fixed discount at subtotal after coupon
+
+                currentTransaction.loyaltyDiscount = discountValue;
+                currentTransaction.finalTotal = currentTransaction.totalAfterCouponDiscount + currentTransaction.taxAmount + currentTransaction.bagFee - currentTransaction.loyaltyDiscount;
+                currentTransaction.finalTotal = Math.max(0, currentTransaction.finalTotal); // Ensure total doesn't go below 0
+
+                // Deduct points
+                currentCustomer.points -= deal.pointsRequired;
+                saveCustomer(currentCustomer); // Update customer points in storage
+
+                // Update UI
+                checkoutTotalDisplay.textContent = `$${currentTransaction.finalTotal.toFixed(2)}`;
+                customerInfoDisplay.textContent = `Welcome ${currentCustomer.name || 'Loyalty Member'}! Points: ${currentCustomer.points}`;
+                showMessageBox(`Loyalty deal "${deal.name}" applied! Points deducted.`);
+
+                // Disable redeemed deal button and other deals (only one loyalty deal per transaction)
+                loyaltyDealsContainer.querySelectorAll('.redeem-loyalty-deal-button').forEach(button => {
+                    button.disabled = true;
+                    button.parentElement.classList.add('redeemed'); // Add visual indicator
+                    button.textContent = 'Redeemed';
+                });
+            }
+
+            // Checkout Flow: Payment Method Step
             checkoutPayCashButton.addEventListener('click', () => {
-                paymentMethodStep.classList.remove('active');
-                receiptPreferenceStep.classList.add('active');
-                receiptYesButton.focus();
                 sessionStorage.setItem('currentPaymentMethod', 'Cash');
+                showCheckoutStep(receiptPreferenceStep);
             });
 
             checkoutPayCardButton.addEventListener('click', () => {
-                paymentMethodStep.classList.remove('active');
-                receiptPreferenceStep.classList.add('active');
-                receiptYesButton.focus();
-                sessionStorage.setItem('currentPaymentMethod', 'Card');
+                handleCardProcessing('Card');
             });
 
+            // Checkout Flow: Receipt Preference Step
             receiptYesButton.addEventListener('click', () => {
                 const paymentMethod = sessionStorage.getItem('currentPaymentMethod');
-                checkoutOverlay.classList.remove('active');
-                checkoutOverlay.classList.add('hidden');
+                closeCheckoutOverlay();
                 finalizeSale(paymentMethod, true);
                 sessionStorage.removeItem('currentPaymentMethod');
             });
 
             receiptNoButton.addEventListener('click', () => {
                 const paymentMethod = sessionStorage.getItem('currentPaymentMethod');
-                checkoutOverlay.classList.remove('active');
-                checkoutOverlay.classList.add('hidden');
+                closeCheckoutOverlay();
                 finalizeSale(paymentMethod, false);
                 sessionStorage.removeItem('currentPaymentMethod');
             });
 
+            // Handle Escape key to close checkout panel from any step
             checkoutOverlay.addEventListener('keydown', (event) => {
                 if (event.key === 'Escape') {
-                    checkoutOverlay.classList.remove('active');
-                    checkoutOverlay.classList.add('hidden');
-                    if (lastFocusedElement) {
-                        lastFocusedElement.focus();
-                        lastFocusedElement = null;
-                    }
+                    closeCheckoutOverlay();
                 }
             });
 
+            // Message box OK button
             messageOkButton.addEventListener('click', hideMessageBox);
             messageBox.addEventListener('keydown', (event) => {
                 if (event.key === 'Escape' || event.key === 'Enter' || event.key === 'Space') {
@@ -2761,6 +3332,7 @@
                 }
             });
 
+            // Close Historical Receipt Modal
             closeHistoricalReceiptModalBtn.addEventListener('click', () => {
                 historicalReceiptModal.classList.add('hidden');
                 historicalReceiptContent.innerHTML = '';
@@ -2783,6 +3355,7 @@
                 }
             });
 
+            // NEW: Return Items Button on Historical Receipt Modal
             returnItemsButton.addEventListener('click', () => {
                 if (currentReceiptForReturn) {
                     historicalReceiptModal.classList.add('hidden');
@@ -2790,6 +3363,7 @@
                 }
             });
 
+            // Return Items Modal: Close button
             closeReturnItemsModalBtn.addEventListener('click', () => {
                 returnItemsModal.classList.add('hidden');
                 returnItemsListBody.innerHTML = '';
@@ -2812,8 +3386,10 @@
                 }
             });
 
+            // Return Items Modal: Process Return Button
             processReturnButton.addEventListener('click', processReturnAndPrint);
 
+            // Return Items Modal: Cancel Return Button
             cancelReturnButton.addEventListener('click', () => {
                 returnItemsModal.classList.add('hidden');
                 returnItemsListBody.innerHTML = '';
@@ -2824,12 +3400,8 @@
                 }
             });
 
-            // Keyboard Instructions Modal Buttons
-            // keyboardInstructionsModal references here
-            const keyboardInstructionsModal = document.getElementById('keyboard-instructions-modal');
-            const closeKeyboardInstructionsModalBtn = document.getElementById('close-keyboard-instructions-modal');
-            const keyboardInstructionsOkButton = document.getElementById('keyboard-instructions-ok-button');
 
+            // Keyboard Instructions Modal Buttons Event Listeners (Moved here)
             if (closeKeyboardInstructionsModalBtn) {
                 closeKeyboardInstructionsModalBtn.addEventListener('click', hideKeyboardInstructions);
             }
@@ -2844,28 +3416,46 @@
                 });
             }
 
+            // Receipts History Search Input
             receiptSearchInput.addEventListener('keyup', (event) => {
                 renderReceiptsHistory(event.target.value);
             });
 
+            // Settings: Save All Settings Button
             saveSettingsButton.addEventListener('click', saveSettings);
 
+            // Settings: Logo Upload related event listeners
             uploadLogoButton.addEventListener('click', () => logoFileInput.click());
             logoFileInput.addEventListener('change', handleLogoUpload);
 
+            // Settings: Add Loyalty Deal Button (NEW)
+            addLoyaltyDealButton.addEventListener('click', () => {
+                const name = newLoyaltyDealNameInput.value.trim();
+                const type = newLoyaltyDealTypeSelect.value;
+                const value = parseFloat(newLoyaltyDealValueInput.value);
+                const pointsRequired = parseInt(newLoyaltyDealPointsRequiredInput.value);
+
+                if (!name || isNaN(value) || value <= 0 || isNaN(pointsRequired) || pointsRequired < 0) {
+                    showMessageBox('Please fill in all loyalty deal fields with valid values.');
+                    return;
+                }
+
+                addLoyaltyDeal({ name, type, value, pointsRequired });
+
+                // Clear form
+                newLoyaltyDealNameInput.value = '';
+                newLoyaltyDealTypeSelect.value = 'percentage';
+                newLoyaltyDealValueInput.value = '';
+                newLoyaltyDealPointsRequiredInput.value = '';
+            });
+
+            // Global hotkey listener for Ctrl + I
             document.addEventListener('keydown', (event) => {
                 if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'i') {
                     event.preventDefault();
                     showKeyboardInstructions();
                 }
-                if (event.key === 'Escape' && checkoutOverlay.classList.contains('active')) {
-                    checkoutOverlay.classList.remove('active');
-                    checkoutOverlay.classList.add('hidden');
-                    if (lastFocusedElement) {
-                        lastFocusedElement.focus();
-                        lastFocusedElement = null;
-                    }
-                }
+                // Allow Escape to close checkout overlay if open (handled by specific overlay listener now)
             });
         };
     </script>
