@@ -1047,6 +1047,7 @@
         const TAX_RATE = 0.08; // 8% tax rate
         const BAG_FEE_PER_BAG = 0.10; // $0.10 per bag
         const NUM_RECOMMENDED_COUPONS_TO_DISPLAY = 5; // Exactly 5 recommended coupons
+        let bagsUsed = 0; // Global variable to store bag count
 
         let storeSettings = {
             storeName: 'Your Store Name',
@@ -1200,11 +1201,12 @@
         let processReturnButton;
         let cancelReturnButton;
 
-        let keyboardInstructionsModal; // Added this
-        let closeKeyboardInstructionsModalBtn; // Added this
-        let keyboardInstructionsOkButton; // Added this
-
         let lastFocusedElement = null; // To store the element that had focus before a modal opened
+
+        // Keyboard instructions modal elements, must be declared globally for use in functions
+        let keyboardInstructionsModal;
+        let closeKeyboardInstructionsModalBtn;
+        let keyboardInstructionsOkButton;
 
 
         // --- Local Storage Functions ---
@@ -1854,7 +1856,8 @@
                 customerInfoDisplay.textContent = 'Enter phone number to check loyalty.';
                 loyaltyDealsDisplayArea.classList.add('hidden'); // Hide deals area initially
             } else if (stepToShow === signUpStep) {
-                // Focus phone input first, as it's now editable
+                // Pre-fill signup phone if a value was already entered in loyaltyStep
+                signupPhoneInput.value = customerPhoneInput.value;
                 signupPhoneInput.focus();
             }
             else if (stepToShow === paymentMethodStep) {
@@ -2136,7 +2139,7 @@
          */
         function getRandomRecommendedCoupons() {
             const shuffledCoupons = [...coupons]; // Create a shallow copy to avoid modifying original array
-            for (let i = shuffledCoupled.length - 1; i > 0; i--) {
+            for (let i = shuffledCoupons.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [shuffledCoupons[i], shuffledCoupons[j]] = [shuffledCoupons[j], shuffledCoupons[i]];
             }
@@ -2892,7 +2895,7 @@
             processReturnButton = document.getElementById('process-return-button');
             cancelReturnButton = document.getElementById('cancel-return-button');
 
-            // Assign Keyboard Instructions Modal Elements
+            // Assign keyboard instruction modal elements here, BEFORE any event listeners use them
             keyboardInstructionsModal = document.getElementById('keyboard-instructions-modal');
             closeKeyboardInstructionsModalBtn = document.getElementById('close-keyboard-instructions-modal');
             keyboardInstructionsOkButton = document.getElementById('keyboard-instructions-ok-button');
