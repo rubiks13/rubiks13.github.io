@@ -1,0 +1,32 @@
+{
+  "name": "1POS",
+  "short_name": "POS",
+  "description": "A POS system",
+  "start_url": "/1POS",
+  "display": "standalone",
+  "background_color": "#ffffff",  // Background color of the app
+  "theme_color": "#1E40AF",       // Theme color for the app (used for the browser's address bar)
+  "icons": [
+    {
+      "src": "16.png",
+      "sizes": "16x16,
+      "type": "image/png"
+    },
+    {
+      "src": "32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "1024.png",
+      "sizes": "1024x1024",
+      "type": "image/png"
+    }
+    
+  ]
+}
