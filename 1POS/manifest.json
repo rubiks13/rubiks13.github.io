@@ -4,8 +4,8 @@
   "description": "A POS system",
   "start_url": "/1POS",
   "display": "standalone",
-  "background_color": "#ffffff",  // Background color of the app
-  "theme_color": "#1E40AF",       // Theme color for the app (used for the browser's address bar)
+  "background_color": "#ffffff",  
+  "theme_color": "#1E40AF",       
   "icons": [
     {
       "src": "16.png",
