@@ -2709,7 +2709,7 @@
             currentLogoPreview.src = storeSettings.logoUrl;
             // Add fallback for logo if URL is broken or not set
             currentLogoPreview.onerror = function() {
-                this.src = 'https://placehold.co/150x50/1e40af/ffffff?text=Logo+Not+Found';
+                this.src = 'https://placehold.com/150x50/1e40af/ffffff?text=Logo+Not+Found';
             };
              if (!storeSettings.logoUrl) {
                 currentLogoPreview.src = 'https://placehold.co/150x50/1e40af/ffffff?text=Your+Logo'; // Set default if empty
