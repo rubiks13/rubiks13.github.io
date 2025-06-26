@@ -2111,38 +2111,20 @@
             renderReceiptsHistory();
             console.log("Receipt added to history and saved.");
 
-     if (printReceipt) {
-    console.log("Attempting to print receipt...");
-    receiptPrintArea.innerHTML = generateReceiptHtml(receiptData, true);
+            if (printReceipt) {
+                console.log("Attempting to print receipt...");
+                receiptPrintArea.innerHTML = generateReceiptHtml(receiptData, true);
 
-    const transactionBarcodeElement = receiptPrintArea.querySelector('#receipt-transaction-barcode');
-    if (transactionBarcodeElement) {
-        try {
-            JsBarcode(transactionBarcodeElement, transactionId, { format: "CODE128", displayValue: true, width: 1.5, height: 50, margin: 5, fontSize: 12, lineColor: "#000", background: "#fff" });
-            console.log("Transaction barcode generated for print area.");
-        } catch (e) {
-            console.error(`Error generating transaction barcode (${transactionId}) for print:`, e);
-            transactionBarcodeElement.textContent = `Code: ${transactionId}`;
-        }
-    }
-
-    // Send receipt HTML to backend for printing
-    fetch('http://localhost:3000/print-receipt', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ html: receiptPrintArea.innerHTML })
-    })
-    .then(res => {
-        if (!res.ok) throw new Error("Failed to send receipt to printer.");
-        console.log("Receipt sent to printer via backend.");
-    })
-    .catch(err => {
-        console.error("Error sending receipt to backend:", err);
-    });
-
-    // Optionally hide or clear receiptPrintArea here if you want
-}
-
+                const transactionBarcodeElement = receiptPrintArea.querySelector('#receipt-transaction-barcode');
+                if (transactionBarcodeElement) {
+                    try {
+                        JsBarcode(transactionBarcodeElement, transactionId, { format: "CODE128", displayValue: true, width: 1.5, height: 50, margin: 5, fontSize: 12, lineColor: "#000", background: "#fff" });
+                        console.log("Transaction barcode generated for print area.");
+                    } catch (e) {
+                        console.error(`Error generating transaction barcode (${transactionId}) for print:`, e);
+                        transactionBarcodeElement.textContent = `Code: ${transactionId}`;
+                    }
+                }
 
                 if (receiptData.recommendedDiscounts && receiptData.recommendedDiscounts.length > 0) {
                     receiptData.recommendedDiscounts.forEach((coupon) => {
