@@ -2065,102 +2065,118 @@
          * @param {string} paymentMethod - The method of payment (Cash or Card).
          * @param {boolean} printReceipt - Whether to print the receipt or not.
          */
-        function finalizeSale(paymentMethod, printReceipt) {
-            console.log("finalizeSale started.");
-            if (cart.length === 0) {
-                console.error("Attempted to finalize sale for empty cart. Exiting finalizeSale.");
-                return;
+     function finalizeSale(paymentMethod, printReceipt) {
+    console.log("finalizeSale started.");
+    if (cart.length === 0) {
+        console.error("Attempted to finalize sale for empty cart. Exiting finalizeSale.");
+        return;
+    }
+
+    const transactionId = `TXN-${generateRandomBarcodeNumber()}`;
+    const timestamp = new Date().toISOString();
+
+    // Calculate loyalty points earned and update customer
+    const pointsEarned = Math.floor(currentTransaction.totalAfterCouponDiscount / 10) * 5;
+    currentTransaction.loyaltyPointsEarned = pointsEarned;
+    if (currentCustomer) {
+        currentCustomer.points = (currentCustomer.points || 0) + currentTransaction.loyaltyPointsEarned;
+        saveCustomer(currentCustomer);
+        console.log(`Customer ${currentCustomer.name} now has ${currentCustomer.points} points.`);
+    }
+
+    // Prepare receipt data
+    const receiptData = {
+        cartItems: JSON.parse(JSON.stringify(cart)), // Deep copy cart items
+        subtotal: currentTransaction.subtotal,
+        discountAmount: currentTransaction.discountAmount,
+        loyaltyDiscount: currentTransaction.loyaltyDiscount,
+        totalAfterDiscount: currentTransaction.totalAfterCouponDiscount,
+        taxAmount: currentTransaction.taxAmount,
+        numberOfBags: bagsUsed,
+        finalTotal: currentTransaction.finalTotal,
+        transactionId: transactionId,
+        timestamp: timestamp,
+        storeInfo: { ...storeSettings },
+        appliedCoupon: appliedCoupon ? { ...appliedCoupon } : null,
+        recommendedDiscounts: getRandomRecommendedCoupons(),
+        paymentMethod: paymentMethod,
+        customerPhone: currentCustomer ? currentCustomer.phoneNumber : null,
+        pointsEarned: currentTransaction.loyaltyPointsEarned
+    };
+    console.log("Receipt Data prepared:", receiptData);
+
+    // Add receipt to history
+    receipts.unshift(receiptData);
+    saveData();
+    renderReceiptsHistory();
+    console.log("Receipt added to history and saved.");
+
+    if (printReceipt) {
+        console.log("Attempting to send receipt to backend printer...");
+        receiptPrintArea.innerHTML = generateReceiptHtml(receiptData, true);
+
+        // Generate transaction barcode SVG
+        const transactionBarcodeElement = receiptPrintArea.querySelector('#receipt-transaction-barcode');
+        if (transactionBarcodeElement) {
+            try {
+                JsBarcode(transactionBarcodeElement, transactionId, {
+                    format: "CODE128", displayValue: true, width: 1.5, height: 50,
+                    margin: 5, fontSize: 12, lineColor: "#000", background: "#fff"
+                });
+                console.log("Transaction barcode generated for print area.");
+            } catch (e) {
+                console.error(`Error generating transaction barcode (${transactionId}) for print:`, e);
+                transactionBarcodeElement.textContent = `Code: ${transactionId}`;
             }
-
-            const transactionId = `TXN-${generateRandomBarcodeNumber()}`;
-            const timestamp = new Date().toISOString();
-
-            // Calculate loyalty points earned and update customer
-            const pointsEarned = Math.floor(currentTransaction.totalAfterCouponDiscount / 10) * 5;
-            currentTransaction.loyaltyPointsEarned = pointsEarned;
-            if (currentCustomer) {
-                currentCustomer.points = (currentCustomer.points || 0) + currentTransaction.loyaltyPointsEarned;
-                saveCustomer(currentCustomer);
-                console.log(`Customer ${currentCustomer.name} now has ${currentCustomer.points} points.`);
-            }
-
-            // Prepare receipt data
-            const receiptData = {
-                cartItems: JSON.parse(JSON.stringify(cart)), // Deep copy cart items
-                subtotal: currentTransaction.subtotal,
-                discountAmount: currentTransaction.discountAmount,
-                loyaltyDiscount: currentTransaction.loyaltyDiscount,
-                totalAfterDiscount: currentTransaction.totalAfterCouponDiscount,
-                taxAmount: currentTransaction.taxAmount,
-                numberOfBags: bagsUsed,
-                finalTotal: currentTransaction.finalTotal,
-                transactionId: transactionId,
-                timestamp: timestamp,
-                storeInfo: { ...storeSettings },
-                appliedCoupon: appliedCoupon ? { ...appliedCoupon } : null,
-                recommendedDiscounts: getRandomRecommendedCoupons(),
-                paymentMethod: paymentMethod,
-                customerPhone: currentCustomer ? currentCustomer.phoneNumber : null,
-                pointsEarned: currentTransaction.loyaltyPointsEarned
-            };
-            console.log("Receipt Data prepared:", receiptData);
-
-            // Add receipt to history
-            receipts.unshift(receiptData);
-            saveData();
-            renderReceiptsHistory();
-            console.log("Receipt added to history and saved.");
-
-            if (printReceipt) {
-                console.log("Attempting to print receipt...");
-                receiptPrintArea.innerHTML = generateReceiptHtml(receiptData, true);
-
-                const transactionBarcodeElement = receiptPrintArea.querySelector('#receipt-transaction-barcode');
-                if (transactionBarcodeElement) {
-                    try {
-                        JsBarcode(transactionBarcodeElement, transactionId, { format: "CODE128", displayValue: true, width: 1.5, height: 50, margin: 5, fontSize: 12, lineColor: "#000", background: "#fff" });
-                        console.log("Transaction barcode generated for print area.");
-                    } catch (e) {
-                        console.error(`Error generating transaction barcode (${transactionId}) for print:`, e);
-                        transactionBarcodeElement.textContent = `Code: ${transactionId}`;
-                    }
-                }
-
-                if (receiptData.recommendedDiscounts && receiptData.recommendedDiscounts.length > 0) {
-                    receiptData.recommendedDiscounts.forEach((coupon) => {
-                        const recBarcodeElement = receiptPrintArea.querySelector(`#rec-barcode-${coupon.code}`);
-                        if (recBarcodeElement) {
-                            try {
-                                JsBarcode(recBarcodeElement, coupon.code, { format: "CODE128", displayValue: true, width: 1.5, height: 50, margin: 5, fontSize: 12, lineColor: "#000", background: "#fff" });
-                                console.log(`Recommended barcode ${coupon.code} generated for print area.`);
-                            } catch (e) {
-                                console.error(`Error generating recommendation barcode for ${coupon.code} for print:`, e);
-                                recBarcodeElement.textContent = `Code: ${coupon.code}`;
-                            }
-                        }
-                    });
-                }
-
-                receiptPrintArea.classList.remove('hidden'); // Make the print area visible
-                console.log("receiptPrintArea visibility set to true, calling window.print()...");
-                window.print(); // Trigger the browser's print dialog
-                console.log("window.print() called.");
-                receiptPrintArea.classList.add('hidden'); // Hide the print area again
-                receiptPrintArea.innerHTML = ''; // Clear the print area content
-            } else {
-                console.log("Receipt not requested to be printed.");
-            }
-
-            // Reset for next transaction
-            cart = [];
-            appliedCoupon = null;
-            currentCustomer = null;
-            bagsUsed = 0; // Explicitly reset bagsUsed
-            updateCartDisplay(); // Clear display
-            barcodeScannerInput.focus();
-            console.log("Cart cleared, state reset, and focus returned to barcode input. finalizeSale finished.");
         }
 
+        // Generate recommended discount barcodes
+        if (receiptData.recommendedDiscounts && receiptData.recommendedDiscounts.length > 0) {
+            receiptData.recommendedDiscounts.forEach((coupon) => {
+                const recBarcodeElement = receiptPrintArea.querySelector(`#rec-barcode-${coupon.code}`);
+                if (recBarcodeElement) {
+                    try {
+                        JsBarcode(recBarcodeElement, coupon.code, {
+                            format: "CODE128", displayValue: true, width: 1.5, height: 50,
+                            margin: 5, fontSize: 12, lineColor: "#000", background: "#fff"
+                        });
+                        console.log(`Recommended barcode ${coupon.code} generated for print area.`);
+                    } catch (e) {
+                        console.error(`Error generating recommendation barcode for ${coupon.code} for print:`, e);
+                        recBarcodeElement.textContent = `Code: ${coupon.code}`;
+                    }
+                }
+            });
+        }
+
+        // Send HTML to backend printer server
+        fetch('http://192.168.1.15:3000/print-receipt', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ html: receiptPrintArea.innerHTML }),
+        })
+        .then(res => {
+            if (!res.ok) throw new Error('Failed to send receipt to printer.');
+            console.log('Receipt sent to printer backend successfully.');
+        })
+        .catch(err => {
+            console.error('Error sending receipt to backend:', err);
+        });
+
+        receiptPrintArea.innerHTML = ''; // clear temp content
+    } else {
+        console.log("Receipt not requested to be printed.");
+    }
+
+    // Reset for next transaction
+    cart = [];
+    appliedCoupon = null;
+    currentCustomer = null;
+    bagsUsed = 0;
+    updateCartDisplay();
+    barcodeScannerInput.focus();
+    console.log("Cart cleared, state reset, and focus returned to barcode input. finalizeSale finished.");
+}
         /**
          * Gets a random selection of recommended coupons.
          * @returns {Array<Object>} A subset of coupons for recommendations.
