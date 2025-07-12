@@ -226,6 +226,9 @@
         </div>
         <div id="overlay" class="overlay"></div>
 
+        <!-- Audio element for timer completion sound -->
+        <audio id="timerEndSound" src="https://www.soundjay.com/buttons/button-2.mp3" preload="auto"></audio>
+
         <!-- Initial Setup View -->
         <div id="setup-view" class="view active">
             <h2 class="text-center">Welcome!</h2>
@@ -441,6 +444,8 @@
         const messageBoxOk = document.getElementById('messageBoxOk');
         const overlay = document.getElementById('overlay');
 
+        const timerEndSound = document.getElementById('timerEndSound'); // Get the audio element
+
         /**
          * Adds a ripple effect to a clicked button.
          * @param {Event} event - The click event.
@@ -479,6 +484,16 @@
         function hideMessageBox() {
             messageBox.classList.remove('active');
             overlay.classList.remove('active');
+        }
+
+        /**
+         * Plays the timer end sound.
+         */
+        function playTimerEndSound() {
+            if (timerEndSound) {
+                timerEndSound.currentTime = 0; // Rewind to start
+                timerEndSound.play().catch(e => console.error("Error playing sound:", e));
+            }
         }
 
         /**
@@ -610,7 +625,7 @@
                     exerciseDetails.textContent = `Click 'Continue' to start Round ${currentRound}.`;
                     timerDisplay.textContent = ""; // Clear timer
                     exerciseActionBtn.textContent = `Continue to Round ${currentRound}`;
-                    exerciseActionBtn.onclick = () => { addRippleEffect(event); loadExercise(); }; // Set handler for continue
+                    exerciseActionBtn.onclick = (event) => { addRippleEffect(event); loadExercise(); }; // Set handler for continue
                     nextExerciseHint.textContent = ""; // Clear hint
                     updateSessionUI();
                     return;
@@ -632,7 +647,7 @@
                 timerSeconds = exercise.time;
                 exerciseDetails.textContent = `Time: ${exercise.time}s | Points: ${exercise.time} (1 point/sec)`;
                 exerciseActionBtn.textContent = "Start Timer";
-                exerciseActionBtn.onclick = () => { addRippleEffect(event); startTimer(); };
+                exerciseActionBtn.onclick = (event) => { addRippleEffect(event); startTimer(); };
                 updateTimerDisplay();
                 nextExerciseHint.textContent = "Next: " + (exercises[currentExerciseIndex + 1] ? exercises[currentExerciseIndex + 1].name : (currentRound < totalRounds ? `Round ${currentRound + 1}` : "Session End"));
             } else if (exercise.type === "done") {
@@ -640,7 +655,7 @@
                 exerciseDetails.textContent = `Points: ${exercise.points}`;
                 timerDisplay.textContent = "Manual";
                 exerciseActionBtn.textContent = "Done";
-                exerciseActionBtn.onclick = () => { addRippleEffect(event); completeManualExercise(); };
+                exerciseActionBtn.onclick = (event) => { addRippleEffect(event); completeManualExercise(); };
                 nextExerciseHint.textContent = "Next: " + (exercises[currentExerciseIndex + 1] ? exercises[currentExerciseIndex + 1].name : (currentRound < totalRounds ? `Round ${currentRound + 1}` : "Session End"));
             }
         }
@@ -660,6 +675,7 @@
                     endSessionPoints.textContent = currentSessionPoints;
                 } else {
                     clearInterval(timerInterval);
+                    playTimerEndSound(); // Play sound when timer ends
                     completeTimedExercise();
                 }
             }, 1000);
