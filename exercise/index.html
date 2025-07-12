@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fitness Points Tracker</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(to bottom right, #e0f7fa, #b3e5fc); /* Lighter, more vibrant blue gradient */
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            color: #334155; /* Default text color */
+        }
+        #app-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center; /* Center content vertically */
+            padding: 1.5rem; /* Increased padding */
+            padding-bottom: 6rem; /* Space for fixed footer */
+        }
+        .view {
+            display: none;
+            flex-grow: 1; /* Allow views to take available space */
+            width: 100%;
+            max-width: 420px; /* Slightly wider max-width */
+            padding: 1rem;
+            box-sizing: border-box;
+            overflow-y: auto; /* Enable scrolling for content */
+            animation: fadeIn 0.6s ease-out forwards; /* Slightly longer fade in animation */
+            min-height: 70vh; /* Ensure views have enough height */
+            justify-content: center; /* Center content within view */
+            align-items: center;
+            flex-direction: column;
+            position: relative; /* For potential absolute positioning of elements inside */
+        }
+        .view.active {
+            display: flex;
+        }
+
+        /* Keyframe for fade in animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .footer-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: #ffffff;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-around;
+            padding: 0.85rem 0; /* Increased padding */
+            box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.15); /* Stronger, softer shadow */
+            z-index: 1000;
+        }
+        .footer-nav button {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0.6rem 0.8rem; /* More padding for touch targets */
+            font-size: 0.85rem; /* Slightly larger font */
+            color: #64748b;
+            transition: color 0.3s ease-in-out, transform 0.3s ease-in-out, background-color 0.3s ease-in-out;
+            border-radius: 1rem; /* More rounded */
+            min-width: 75px; /* Wider buttons */
+            font-weight: 600; /* Bolder text */
+            position: relative;
+            overflow: hidden; /* For ripple effect */
+        }
+        .footer-nav button.active {
+            color: #2563eb; /* Darker blue for active state */
+            transform: translateY(-5px); /* More pronounced lift */
+            background-color: #e0f2fe; /* Light blue background for active */
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        .footer-nav button svg {
+            width: 30px; /* Larger icons */
+            height: 30px;
+            margin-bottom: 0.3rem;
+        }
+
+        /* Custom Button Styles */
+        .btn-primary {
+            background: linear-gradient(to right, #3b82f6, #2563eb); /* Blue gradient */
+            @apply text-white py-3.5 px-7 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300 font-bold text-lg;
+            border: none; /* Remove default border */
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-secondary {
+            background: linear-gradient(to right, #cbd5e1, #94a3b8); /* Gray gradient */
+            @apply text-gray-800 py-3.5 px-7 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-gray-300 font-semibold text-lg;
+            border: none;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-danger {
+            background: linear-gradient(to right, #ef4444, #dc2626); /* Red gradient */
+            @apply text-white p-2.5 rounded-lg hover:shadow-md transition-all duration-200 ease-in-out transform hover:scale-105;
+            border: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Ripple effect for buttons */
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.7);
+            animation: ripple-animation 0.6s linear forwards;
+            transform: scale(0);
+            pointer-events: none;
+            opacity: 0;
+        }
+
+        @keyframes ripple-animation {
+            from { transform: scale(0); opacity: 1; }
+            to { transform: scale(4); opacity: 0; }
+        }
+
+        .input-field {
+            @apply w-full p-3.5 border border-gray-300 rounded-xl focus:ring-3 focus:ring-blue-400 focus:border-transparent transition-all duration-200 ease-in-out text-gray-800 shadow-sm; /* More padding, stronger focus ring, shadow */
+        }
+        .card {
+            background-color: #ffffff;
+            @apply rounded-3xl shadow-2xl p-7 mb-8 border border-blue-100; /* Even more rounded, stronger shadow, subtle border */
+            width: 100%; /* Ensure cards take full width of their container */
+            box-sizing: border-box;
+            animation: cardPopIn 0.5s ease-out forwards;
+        }
+
+        @keyframes cardPopIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .message-box {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(to bottom right, #ffffff, #f0f9ff); /* White to light blue gradient */
+            padding: 3rem; /* More padding */
+            border-radius: 2rem; /* Even more rounded */
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.3); /* Deeper shadow */
+            z-index: 1001;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            max-width: 90%;
+            border: 3px solid #3b82f6; /* Thicker blue border */
+            animation: popIn 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards; /* Bouncier popIn */
+        }
+        .message-box.active {
+            display: flex;
+        }
+
+        @keyframes popIn {
+            from { opacity: 0; transform: translate(-50%, -50%) scale(0.7); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7); /* Darker overlay */
+            z-index: 1000;
+            display: none;
+        }
+        .overlay.active {
+            display: block;
+        }
+
+        /* Specific text styling */
+        h2 {
+            @apply text-5xl font-extrabold text-blue-800 mb-12; /* Larger, bolder titles, more margin */
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.15);
+            letter-spacing: -0.025em; /* Slightly tighter letter spacing */
+        }
+        h3 {
+            @apply text-2xl font-bold text-gray-800 mb-4;
+        }
+        p {
+            @apply text-gray-700;
+        }
+        .text-blue-600 { /* For points display */
+            color: #2563eb; /* Darker blue for contrast */
+        }
+        .text-5xl { /* For large point numbers */
+            font-size: 4.5rem; /* Even larger */
+        }
+        .text-6xl { /* For timer display */
+            font-size: 5.5rem; /* Even larger */
+            font-weight: 900; /* Extra bold */
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+        }
+        #helloGreeting {
+            @apply text-2xl font-semibold text-gray-700 mb-4;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div id="app-container" class="flex flex-col items-center justify-center p-4">
+        <!-- Message Box for alerts/confirmations -->
+        <div id="messageBox" class="message-box">
+            <p id="messageText" class="text-xl font-semibold mb-8"></p>
+            <button id="messageBoxOk" class="btn-primary">Got It!</button>
+        </div>
+        <div id="overlay" class="overlay"></div>
+
+        <!-- Initial Setup View -->
+        <div id="setup-view" class="view active">
+            <h2 class="text-center">Welcome!</h2>
+            <p class="text-center text-gray-600 mb-10">Let's get you set up. This will only happen once.</p>
+            <div class="card">
+                <div class="mb-5">
+                    <label for="userNameInput" class="block text-gray-700 text-base font-bold mb-2">Your Name:</label>
+                    <input type="text" id="userNameInput" class="input-field" placeholder="Enter your name">
+                </div>
+                <div class="mb-7">
+                    <label for="parentPasswordInput" class="block text-gray-700 text-base font-bold mb-2">Parent Password:</label>
+                    <input type="password" id="parentPasswordInput" class="input-field" placeholder="Create a password for parents">
+                </div>
+                <button id="setupSaveBtn" class="btn-primary w-full">Get Started</button>
+            </div>
+        </div>
+
+        <!-- Home View -->
+        <div id="home-view" class="view">
+            <h2 class="text-center">Home</h2>
+            <p id="helloGreeting" class="text-center"></p>
+            <div class="card text-center mb-10">
+                <p class="text-xl text-gray-600 mb-3">Current Points:</p>
+                <p id="totalPointsDisplay" class="text-5xl font-extrabold text-blue-600">0</p>
+            </div>
+            <button id="startNewSessionBtnHome" class="btn-primary w-full">Start New Session</button>
+        </div>
+
+        <!-- Session View -->
+        <div id="session-view" class="view">
+            <h2 class="text-center">Session</h2>
+            <div id="session-intro" class="card text-center">
+                <p class="text-xl text-gray-600 mb-6">Ready to earn some points?</p>
+                <button id="startSessionBtn" class="btn-primary w-full">Start New Session</button>
+            </div>
+
+            <div id="session-active" class="hidden flex flex-col items-center w-full">
+                <div class="card w-full text-center mb-8">
+                    <p class="text-xl text-gray-600 mb-2">Current Round: <span id="currentRoundDisplay" class="font-bold text-blue-600">1</span></p>
+                    <p class="text-xl text-gray-600 mb-2">Points This Session: <span id="sessionPointsDisplay" class="font-bold text-blue-600">0</span></p>
+                </div>
+
+                <div id="exerciseCard" class="card w-full text-center">
+                    <h3 id="exerciseName" class="text-2xl font-bold text-gray-800 mb-4">Exercise Name</h3>
+                    <p id="exerciseDetails" class="text-lg text-gray-600 mb-4">Time: 0s | Points: 0</p>
+                    <div id="timerDisplay" class="text-6xl font-extrabold text-blue-600 mb-6">00:00</div>
+                    <button id="exerciseActionBtn" class="btn-primary w-full mb-4">Start</button>
+                    <p id="nextExerciseHint" class="text-sm text-gray-500 mt-2"></p>
+                </div>
+
+                <button id="endSessionNowBtn" class="btn-secondary w-full mt-8">End Session Now and Earn <span id="endSessionPoints">0</span> Points</button>
+            </div>
+
+            <div id="session-complete" class="hidden card text-center w-full">
+                <h3 class="text-2xl font-bold text-gray-800 mb-4">Session Complete!</h3>
+                <p class="text-xl text-gray-600 mb-3">You've earned:</p>
+                <p id="finalSessionPoints" class="text-5xl font-extrabold text-blue-600 mb-8">0</p>
+                <button id="backToHomeBtn" class="btn-primary w-full">Back to Home</button>
+            </div>
+        </div>
+
+        <!-- Redeem View -->
+        <div id="redeem-view" class="view">
+            <h2 class="text-center">Redeem Points</h2>
+            <div id="redeemableItemsList" class="flex flex-col gap-5 w-full">
+                <!-- Redeemable items will be dynamically loaded here -->
+                <p id="noRedeemablesMessage" class="text-center text-gray-500 card py-10">No redeemable items added yet. Ask a parent to add some!</p>
+            </div>
+        </div>
+
+        <!-- Parent View -->
+        <div id="parent-view" class="view">
+            <h2 class="text-center">Parent Zone</h2>
+            <div id="parent-login" class="card">
+                <div class="mb-6">
+                    <label for="parentPasswordLogin" class="block text-gray-700 text-base font-bold mb-2">Parent Password:</label>
+                    <input type="password" id="parentPasswordLogin" class="input-field" placeholder="Enter parent password">
+                </div>
+                <button id="parentLoginBtn" class="btn-primary w-full">Login</button>
+            </div>
+
+            <div id="parent-dashboard" class="hidden flex flex-col w-full">
+                <div class="card mb-8">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Add New Redeemable Item</h3>
+                    <div class="mb-5">
+                        <label for="redeemItemName" class="block text-gray-700 text-base font-bold mb-2">Item Name:</label>
+                        <input type="text" id="redeemItemName" class="input-field" placeholder="e.g., 30 mins screen time">
+                    </div>
+                    <div class="mb-7">
+                        <label for="redeemItemCost" class="block text-gray-700 text-base font-bold mb-2">Point Cost:</label>
+                        <input type="number" id="redeemItemCost" class="input-field" placeholder="e.g., 100" min="1">
+                    </div>
+                    <button id="addRedeemableBtn" class="btn-primary w-full">Add Item</button>
+                </div>
+
+                <div class="card">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Existing Redeemable Items</h3>
+                    <div id="parentRedeemableList" class="flex flex-col gap-4">
+                        <p id="noParentRedeemablesMessage" class="text-center text-gray-500 py-6">No redeemable items added yet.</p>
+                        <!-- Existing redeemable items will be listed here with delete buttons -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer Navigation -->
+    <nav class="footer-nav">
+        <button id="navHomeBtn" class="active">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
+                <path d="M11.47 3.84a.75.75 0 0 1 1.06 0l8.69 8.69a1.5 1.5 0 0 0 2.12 0.049l-1.49-1.49c-.272-.271-.497-.56-.676-.864l-4.935-4.935a.75.75 0 0 0-1.06 0L9.47 9.16a.75.75 0 1 1-1.06-1.06l7.16-7.16Z" />
+                <path fill-rule="evenodd" d="M12.53 16.22a.75.75 0 0 0-1.06 0l-7.5 7.5a.75.75 0 0 0 1.06 1.06L12 17.78l6.97 6.97a.75.75 0 1 0 1.06-1.06l-7.5-7.5Z" clip-rule="evenodd" />
+                <path fill-rule="evenodd" d="M12 1.5a.75.75 0 0 1 .75.75V4.5a.75.75 0 0 1-1.5 0V2.25A.75.75 0 0 1 12 1.5Z" clip-rule="evenodd" />
+            </svg>
+            Home
+        </button>
+        <button id="navSessionBtn">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
+                <path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12.75 6a.75.75 0 0 0-1.5 0v6c0 .414.336.75.75.75h4.5a.75.75 0 0 0 0-1.5h-3.75V6Z" clip-rule="evenodd" />
+            </svg>
+            Session
+        </button>
+        <button id="navRedeemBtn">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
+                <path d="M12 9a3.75 3.75 0 1 0 0 7.5A3.75 3.75 0 0 0 12 9Z" />
+                <path fill-rule="evenodd" d="M9.344 3.071a49.52 49.52 0 0 0-1.05 1.954A9.755 9.755 0 0 0 12 21.75c3.218 0 6.355-.676 9.205-1.954.38-.165.657-.439.757-.776l.004-.01c.041-.12.029-.25-.022-.363-.01-.02-.023-.038-.037-.056A49.953 49.953 0 0 0 12 3.071ZM12 2.25c-1.074 0-2.09-.07-3.071-.204A50.363 50.363 0 0 1 12 2.25Z" clip-rule="evenodd" />
+            </svg>
+            Redeem
+        </button>
+        <button id="navParentBtn">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
+                <path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.438-.695Z" clip-rule="evenodd" />
+            </svg>
+            Parent
+        </button>
+    </nav>
+
+    <script>
+        // Global state variables
+        let userName = '';
+        let parentPassword = '';
+        let totalPoints = 0;
+        let redeemableItems = []; // { name: "Item Name", cost: 100, id: "unique-id" }
+
+        // Session specific state
+        let currentSessionPoints = 0;
+        let currentRound = 1;
+        let currentExerciseIndex = 0;
+        let timerInterval = null;
+        let timerSeconds = 0;
+        let isSessionActive = false;
+
+        // Exercise definitions
+        const exercises = [
+            { name: "Front Plank", time: 90, pointsPerSecond: 1, type: "timed" },
+            { name: "Hollow Hold", time: 40, pointsPerSecond: 1, type: "timed" },
+            { name: "Pushups", time: 0, points: 5, type: "done" },
+            { name: "Wall Sit", time: 90, pointsPerSecond: 1, type: "timed" }
+        ];
+        const totalRounds = 3;
+
+        // DOM Elements
+        const setupView = document.getElementById('setup-view');
+        const userNameInput = document.getElementById('userNameInput');
+        const parentPasswordInput = document.getElementById('parentPasswordInput');
+        const setupSaveBtn = document.getElementById('setupSaveBtn');
+
+        const homeView = document.getElementById('home-view');
+        const helloGreeting = document.getElementById('helloGreeting'); // New element for greeting
+        const totalPointsDisplay = document.getElementById('totalPointsDisplay');
+        const startNewSessionBtnHome = document.getElementById('startNewSessionBtnHome');
+
+        const sessionView = document.getElementById('session-view');
+        const sessionIntro = document.getElementById('session-intro');
+        const startSessionBtn = document.getElementById('startSessionBtn');
+        const sessionActive = document.getElementById('session-active');
+        const currentRoundDisplay = document.getElementById('currentRoundDisplay');
+        const sessionPointsDisplay = document.getElementById('sessionPointsDisplay');
+        const exerciseCard = document.getElementById('exerciseCard');
+        const exerciseName = document.getElementById('exerciseName');
+        const exerciseDetails = document.getElementById('exerciseDetails');
+        const timerDisplay = document.getElementById('timerDisplay');
+        const exerciseActionBtn = document.getElementById('exerciseActionBtn');
+        const nextExerciseHint = document.getElementById('nextExerciseHint');
+        const endSessionNowBtn = document.getElementById('endSessionNowBtn');
+        const endSessionPoints = document.getElementById('endSessionPoints');
+        const sessionComplete = document.getElementById('session-complete');
+        const finalSessionPoints = document.getElementById('finalSessionPoints');
+        const backToHomeBtn = document.getElementById('backToHomeBtn');
+
+        const redeemView = document.getElementById('redeem-view');
+        const redeemableItemsList = document.getElementById('redeemableItemsList');
+        const noRedeemablesMessage = document.getElementById('noRedeemablesMessage');
+
+        const parentView = document.getElementById('parent-view');
+        const parentLogin = document.getElementById('parent-login');
+        const parentPasswordLogin = document.getElementById('parentPasswordLogin');
+        const parentLoginBtn = document.getElementById('parentLoginBtn');
+        const parentDashboard = document.getElementById('parent-dashboard');
+        const redeemItemName = document.getElementById('redeemItemName');
+        const redeemItemCost = document.getElementById('redeemItemCost');
+        const addRedeemableBtn = document.getElementById('addRedeemableBtn');
+        const parentRedeemableList = document.getElementById('parentRedeemableList');
+        const noParentRedeemablesMessage = document.getElementById('noParentRedeemablesMessage');
+
+        const navHomeBtn = document.getElementById('navHomeBtn');
+        const navSessionBtn = document.getElementById('navSessionBtn');
+        const navRedeemBtn = document.getElementById('navRedeemBtn');
+        const navParentBtn = document.getElementById('navParentBtn');
+
+        const messageBox = document.getElementById('messageBox');
+        const messageText = document.getElementById('messageText');
+        const messageBoxOk = document.getElementById('messageBoxOk');
+        const overlay = document.getElementById('overlay');
+
+        /**
+         * Adds a ripple effect to a clicked button.
+         * @param {Event} event - The click event.
+         */
+        function addRippleEffect(event) {
+            const button = event.currentTarget;
+            const ripple = document.createElement('span');
+            const diameter = Math.max(button.clientWidth, button.clientHeight);
+            const radius = diameter / 2;
+
+            ripple.style.width = ripple.style.height = `${diameter}px`;
+            ripple.style.left = `${event.clientX - (button.getBoundingClientRect().left + radius)}px`;
+            ripple.style.top = `${event.clientY - (button.getBoundingClientRect().top + radius)}px`;
+            ripple.classList.add('ripple');
+
+            const existingRipple = button.querySelector('.ripple');
+            if (existingRipple) {
+                existingRipple.remove();
+            }
+            button.appendChild(ripple);
+        }
+
+        /**
+         * Shows a custom message box instead of alert().
+         * @param {string} message - The message to display.
+         */
+        function showMessageBox(message) {
+            messageText.textContent = message;
+            messageBox.classList.add('active');
+            overlay.classList.add('active');
+        }
+
+        /**
+         * Hides the custom message box.
+         */
+        function hideMessageBox() {
+            messageBox.classList.remove('active');
+            overlay.classList.remove('active');
+        }
+
+        /**
+         * Saves current application data to local storage.
+         * @private
+         */
+        function saveData() {
+            localStorage.setItem('userName', userName);
+            localStorage.setItem('parentPassword', parentPassword);
+            localStorage.setItem('totalPoints', totalPoints.toString());
+            localStorage.setItem('redeemableItems', JSON.stringify(redeemableItems));
+            localStorage.setItem('hasVisitedBefore', 'true');
+        }
+
+        /**
+         * Loads application data from local storage.
+         * @private
+         */
+        function loadData() {
+            userName = localStorage.getItem('userName') || '';
+            parentPassword = localStorage.getItem('parentPassword') || '';
+            totalPoints = parseInt(localStorage.getItem('totalPoints') || '0');
+            try {
+                redeemableItems = JSON.parse(localStorage.getItem('redeemableItems') || '[]');
+            } catch (e) {
+                console.error("Error parsing redeemable items from local storage:", e);
+                redeemableItems = []; // Reset if corrupted
+            }
+        }
+
+        /**
+         * Renders the specified view and hides others.
+         * @param {string} viewId - The ID of the view to activate (e.g., 'home-view').
+         */
+        function renderView(viewId) {
+            const views = [setupView, homeView, sessionView, redeemView, parentView];
+            views.forEach(view => {
+                if (view.id === viewId) {
+                    view.classList.add('active');
+                } else {
+                    view.classList.remove('active');
+                }
+            });
+
+            // Update footer button active state
+            const navButtons = [navHomeBtn, navSessionBtn, navRedeemBtn, navParentBtn];
+            navButtons.forEach(btn => btn.classList.remove('active'));
+            if (viewId === 'home-view') navHomeBtn.classList.add('active');
+            else if (viewId === 'session-view') navSessionBtn.classList.add('active');
+            else if (viewId === 'redeem-view') navRedeemBtn.classList.add('active');
+            else if (viewId === 'parent-view') navParentBtn.classList.add('active');
+
+            // Specific view rendering logic
+            if (viewId === 'home-view') {
+                renderHome();
+            } else if (viewId === 'session-view') {
+                renderSession();
+            } else if (viewId === 'redeem-view') {
+                renderRedeem();
+            } else if (viewId === 'parent-view') {
+                // Reset parent dashboard view state on entry
+                parentLogin.classList.remove('hidden');
+                parentDashboard.classList.add('hidden');
+                parentPasswordLogin.value = ''; // Clear password input
+            }
+        }
+
+        /**
+         * Renders the Home view content.
+         */
+        function renderHome() {
+            totalPointsDisplay.textContent = totalPoints;
+            if (userName) {
+                helloGreeting.textContent = `Hello, ${userName}!`;
+                helloGreeting.classList.remove('hidden');
+            } else {
+                helloGreeting.classList.add('hidden');
+            }
+        }
+
+        /**
+         * Renders the Session view content based on session state.
+         */
+        function renderSession() {
+            // If a session is active, ensure the active session UI is shown
+            if (isSessionActive) {
+                sessionIntro.classList.add('hidden');
+                sessionActive.classList.remove('hidden');
+                sessionComplete.classList.add('hidden');
+                updateSessionUI();
+            } else {
+                // If no session is active, show the intro to start one
+                sessionIntro.classList.remove('hidden');
+                sessionActive.classList.add('hidden');
+                sessionComplete.classList.add('hidden');
+            }
+            endSessionPoints.textContent = currentSessionPoints;
+        }
+
+        /**
+         * Starts a new exercise session.
+         */
+        function startSession() {
+            isSessionActive = true;
+            currentSessionPoints = 0;
+            currentRound = 1;
+            currentExerciseIndex = 0;
+            sessionIntro.classList.add('hidden');
+            sessionActive.classList.remove('hidden');
+            sessionComplete.classList.add('hidden');
+            loadExercise();
+        }
+
+        /**
+         * Loads and displays the current exercise.
+         */
+        function loadExercise() {
+            if (currentRound > totalRounds) {
+                endSession();
+                return;
+            }
+
+            // If all exercises in a round are done, prepare for next round or end session
+            if (currentExerciseIndex >= exercises.length) {
+                currentRound++;
+                currentExerciseIndex = 0; // Reset for next round
+                if (currentRound <= totalRounds) {
+                    exerciseName.textContent = `Round ${currentRound} Ready!`;
+                    exerciseDetails.textContent = `Click 'Continue' to start Round ${currentRound}.`;
+                    timerDisplay.textContent = ""; // Clear timer
+                    exerciseActionBtn.textContent = `Continue to Round ${currentRound}`;
+                    exerciseActionBtn.onclick = () => { addRippleEffect(event); loadExercise(); }; // Set handler for continue
+                    nextExerciseHint.textContent = ""; // Clear hint
+                    updateSessionUI();
+                    return;
+                } else {
+                    endSession();
+                    return;
+                }
+            }
+
+            const exercise = exercises[currentExerciseIndex];
+            exerciseName.textContent = exercise.name;
+            currentRoundDisplay.textContent = currentRound;
+            sessionPointsDisplay.textContent = currentSessionPoints;
+            endSessionPoints.textContent = currentSessionPoints;
+
+            clearInterval(timerInterval); // Clear any existing timer
+
+            if (exercise.type === "timed") {
+                timerSeconds = exercise.time;
+                exerciseDetails.textContent = `Time: ${exercise.time}s | Points: ${exercise.time} (1 point/sec)`;
+                exerciseActionBtn.textContent = "Start Timer";
+                exerciseActionBtn.onclick = () => { addRippleEffect(event); startTimer(); };
+                updateTimerDisplay();
+                nextExerciseHint.textContent = "Next: " + (exercises[currentExerciseIndex + 1] ? exercises[currentExerciseIndex + 1].name : (currentRound < totalRounds ? `Round ${currentRound + 1}` : "Session End"));
+            } else if (exercise.type === "done") {
+                timerSeconds = 0; // No timer for this type
+                exerciseDetails.textContent = `Points: ${exercise.points}`;
+                timerDisplay.textContent = "Manual";
+                exerciseActionBtn.textContent = "Done";
+                exerciseActionBtn.onclick = () => { addRippleEffect(event); completeManualExercise(); };
+                nextExerciseHint.textContent = "Next: " + (exercises[currentExerciseIndex + 1] ? exercises[currentExerciseIndex + 1].name : (currentRound < totalRounds ? `Round ${currentRound + 1}` : "Session End"));
+            }
+        }
+
+        /**
+         * Starts the timer for a timed exercise.
+         */
+        function startTimer() {
+            exerciseActionBtn.textContent = "Running...";
+            exerciseActionBtn.disabled = true; // Disable button during timer
+            timerInterval = setInterval(() => {
+                if (timerSeconds > 0) {
+                    timerSeconds--;
+                    currentSessionPoints++; // Earn 1 point per second
+                    updateTimerDisplay();
+                    sessionPointsDisplay.textContent = currentSessionPoints;
+                    endSessionPoints.textContent = currentSessionPoints;
+                } else {
+                    clearInterval(timerInterval);
+                    completeTimedExercise();
+                }
+            }, 1000);
+        }
+
+        /**
+         * Updates the timer display.
+         */
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timerSeconds / 60);
+            const seconds = timerSeconds % 60;
+            timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        /**
+         * Completes a timed exercise.
+         */
+        function completeTimedExercise() {
+            exerciseActionBtn.disabled = false;
+            currentExerciseIndex++;
+            loadExercise(); // Load next exercise or round
+        }
+
+        /**
+         * Completes a manual exercise (e.g., Pushups).
+         */
+        function completeManualExercise() {
+            const exercise = exercises[currentExerciseIndex];
+            currentSessionPoints += exercise.points; // Add fixed points
+            sessionPointsDisplay.textContent = currentSessionPoints;
+            endSessionPoints.textContent = currentSessionPoints;
+            currentExerciseIndex++;
+            loadExercise(); // Load next exercise or round
+        }
+
+        /**
+         * Updates the session UI elements.
+         */
+        function updateSessionUI() {
+            currentRoundDisplay.textContent = currentRound;
+            sessionPointsDisplay.textContent = currentSessionPoints;
+            endSessionPoints.textContent = currentSessionPoints;
+        }
+
+        /**
+         * Ends the current session and updates total points.
+         */
+        function endSession() {
+            clearInterval(timerInterval);
+            totalPoints += currentSessionPoints;
+            saveData(); // Save updated total points
+            isSessionActive = false; // Reset session state
+            sessionActive.classList.add('hidden');
+            sessionComplete.classList.remove('hidden');
+            finalSessionPoints.textContent = currentSessionPoints;
+            renderHome(); // Update home view points
+        }
+
+        /**
+         * Renders the Redeem view content.
+         */
+        function renderRedeem() {
+            redeemableItemsList.innerHTML = ''; // Clear previous list
+            if (redeemableItems.length === 0) {
+                noRedeemablesMessage.classList.remove('hidden');
+            } else {
+                noRedeemablesMessage.classList.add('hidden');
+                redeemableItems.forEach(item => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'card flex justify-between items-center py-5 px-6'; /* Adjusted padding */
+                    itemDiv.innerHTML = `
+                        <div>
+                            <p class="text-xl font-semibold text-gray-800">${item.name}</p>
+                            <p class="text-lg text-gray-600">${item.cost} Points</p>
+                        </div>
+                        <button class="btn-primary redeem-btn" data-id="${item.id}">Redeem</button>
+                    `;
+                    redeemableItemsList.appendChild(itemDiv);
+                });
+
+                // Attach event listeners to new redeem buttons
+                document.querySelectorAll('.redeem-btn').forEach(button => {
+                    button.onclick = (event) => { addRippleEffect(event); redeemItem(event.target.dataset.id); };
+                });
+            }
+        }
+
+        /**
+         * Redeems an item, deducting points.
+         * @param {string} itemId - The ID of the item to redeem.
+         */
+        function redeemItem(itemId) {
+            const itemIndex = redeemableItems.findIndex(item => item.id === itemId);
+            if (itemIndex > -1) {
+                const item = redeemableItems[itemIndex];
+                if (totalPoints >= item.cost) {
+                    totalPoints -= item.cost;
+                    saveData();
+                    showMessageBox(`You have redeemed "${item.name}" for ${item.cost} points! Your new total is ${totalPoints} points.`);
+                    renderHome(); // Update home view
+                    renderRedeem(); // Re-render redeem list
+                } else {
+                    showMessageBox(`You don't have enough points to redeem "${item.name}". You need ${item.cost} points, but you only have ${totalPoints}.`);
+                }
+            }
+        }
+
+        /**
+         * Renders the list of redeemable items in the Parent dashboard.
+         */
+        function renderParentRedeemableList() {
+            parentRedeemableList.innerHTML = ''; // Clear previous list
+            if (redeemableItems.length === 0) {
+                noParentRedeemablesMessage.classList.remove('hidden');
+            } else {
+                noParentRedeemablesMessage.classList.add('hidden');
+                redeemableItems.forEach(item => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'flex justify-between items-center p-4 bg-gray-50 rounded-xl shadow-sm border border-gray-200'; /* Adjusted padding, more rounded */
+                    itemDiv.innerHTML = `
+                        <div>
+                            <p class="font-semibold text-gray-800">${item.name}</p>
+                            <p class="text-sm text-gray-600">${item.cost} Points</p>
+                        </div>
+                        <button class="btn-danger delete-redeem-btn" data-id="${item.id}">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                                <path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.518.148.023a.75.75 0 0 0 .23-1.482A10.004 10.004 0 0 0 14 4.193V3.75A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.828 0 1.5.672 1.5 1.5V12a.75.75 0 0 1-1.5 0V5.5c0-.828.672-1.5 1.5-1.5ZM8.5 5.5a.75.75 0 0 0-1.5 0V12a.75.75 0 0 0 1.5 0V5.5ZM12.25 5.5a.75.75 0 0 0-1.5 0V12a.75.75 0 0 0 1.5 0V5.5Z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    `;
+                    parentRedeemableList.appendChild(itemDiv);
+                });
+
+                // Attach event listeners to delete buttons
+                document.querySelectorAll('.delete-redeem-btn').forEach(button => {
+                    button.onclick = (event) => { addRippleEffect(event); deleteRedeemableItem(event.target.closest('button').dataset.id); };
+                });
+            }
+        }
+
+        /**
+         * Deletes a redeemable item from the list.
+         * @param {string} itemId - The ID of the item to delete.
+         */
+        function deleteRedeemableItem(itemId) {
+            redeemableItems = redeemableItems.filter(item => item.id !== itemId);
+            saveData();
+            renderParentRedeemableList(); // Re-render parent list
+            renderRedeem(); // Re-render user redeem list
+            showMessageBox("Item deleted successfully!");
+        }
+
+        // --- Event Listeners ---
+
+        // Message Box OK button
+        messageBoxOk.onclick = hideMessageBox;
+
+        // Initial Setup
+        setupSaveBtn.onclick = (event) => {
+            addRippleEffect(event);
+            const name = userNameInput.value.trim();
+            const password = parentPasswordInput.value.trim();
+
+            if (name && password) {
+                userName = name;
+                parentPassword = password;
+                saveData();
+                renderView('home-view');
+            } else {
+                showMessageBox("Please enter both your name and a parent password.");
+            }
+        };
+
+        // Navigation Buttons
+        navHomeBtn.onclick = (event) => { addRippleEffect(event); renderView('home-view'); };
+        navSessionBtn.onclick = (event) => { addRippleEffect(event); renderView('session-view'); };
+        navRedeemBtn.onclick = (event) => { addRippleEffect(event); renderView('redeem-view'); };
+        navParentBtn.onclick = (event) => { addRippleEffect(event); renderView('parent-view'); };
+
+        // Home View
+        startNewSessionBtnHome.onclick = (event) => { addRippleEffect(event); renderView('session-view'); };
+
+        // Session View
+        startSessionBtn.onclick = (event) => { addRippleEffect(event); startSession(); };
+        endSessionNowBtn.onclick = (event) => { addRippleEffect(event); endSession(); };
+        backToHomeBtn.onclick = (event) => {
+            addRippleEffect(event);
+            renderView('home-view');
+            // Reset session view to intro state when going back from complete
+            sessionIntro.classList.remove('hidden');
+            sessionActive.classList.add('hidden');
+            sessionComplete.classList.add('hidden');
+        };
+
+
+        // Parent View
+        parentLoginBtn.onclick = (event) => {
+            addRippleEffect(event);
+            const enteredPassword = parentPasswordLogin.value;
+            if (enteredPassword === parentPassword) {
+                parentLogin.classList.add('hidden');
+                parentDashboard.classList.remove('hidden');
+                renderParentRedeemableList(); // Load items for parent dashboard
+            } else {
+                showMessageBox("Incorrect parent password.");
+            }
+        };
+
+        addRedeemableBtn.onclick = (event) => {
+            addRippleEffect(event);
+            const itemName = redeemItemName.value.trim();
+            const itemCost = parseInt(redeemItemCost.value);
+
+            if (itemName && !isNaN(itemCost) && itemCost > 0) {
+                const newItem = {
+                    id: crypto.randomUUID(), // Unique ID for each item
+                    name: itemName,
+                    cost: itemCost
+                };
+                redeemableItems.push(newItem);
+                saveData();
+                redeemItemName.value = '';
+                redeemItemCost.value = '';
+                renderParentRedeemableList(); // Update parent list
+                renderRedeem(); // Update user redeem list
+                showMessageBox("Redeemable item added successfully!");
+            } else {
+                showMessageBox("Please enter a valid item name and a positive point cost.");
+            }
+        };
+
+        // --- Initial Load ---
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+            if (localStorage.getItem('hasVisitedBefore')) {
+                renderView('home-view'); // Go straight to home if already set up
+            } else {
+                renderView('setup-view'); // Show setup for first time users
+            }
+        });
+
+    </script>
+</body>
+</html>
