@@ -215,6 +215,11 @@
         #helloGreeting {
             @apply text-2xl font-semibold text-gray-700 mb-4;
         }
+        .message-box .button-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -222,7 +227,11 @@
         <!-- Message Box for alerts/confirmations -->
         <div id="messageBox" class="message-box">
             <p id="messageText" class="text-xl font-semibold mb-8"></p>
-            <button id="messageBoxOk" class="btn-primary">Got It!</button>
+            <div class="button-group">
+                <button id="messageBoxOk" class="btn-primary">Got It!</button>
+                <button id="messageBoxYes" class="btn-primary hidden">Yes</button>
+                <button id="messageBoxNo" class="btn-secondary hidden">No</button>
+            </div>
         </div>
         <div id="overlay" class="overlay"></div>
 
@@ -345,6 +354,11 @@
                         <p class="text-sm text-gray-500 mt-1">Enter -1 for unlimited uses, or a positive number.</p>
                     </div>
                     <button id="addRedeemableBtn" class="btn-primary w-full">Add Item</button>
+                </div>
+
+                <div class="card mb-8">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Manage Data</h3>
+                    <button id="signOutBtn" class="btn-danger w-full">Sign Out & Clear All Data</button>
                 </div>
 
                 <div class="card">
@@ -484,10 +498,11 @@
         const addManualPointsBtn = document.getElementById('addManualPointsBtn');
         const redeemItemName = document.getElementById('redeemItemName');
         const redeemItemCost = document.getElementById('redeemItemCost');
-        const redeemItemUsageLimit = document.getElementById('redeemItemUsageLimit'); // New element
+        const redeemItemUsageLimit = document.getElementById('redeemItemUsageLimit');
         const addRedeemableBtn = document.getElementById('addRedeemableBtn');
         const parentRedeemableList = document.getElementById('parentRedeemableList');
         const noParentRedeemablesMessage = document.getElementById('noParentRedeemablesMessage');
+        const signOutBtn = document.getElementById('signOutBtn'); // New element
 
         const navHomeBtn = document.getElementById('navHomeBtn');
         const navSessionBtn = document.getElementById('navSessionBtn');
@@ -497,6 +512,8 @@
         const messageBox = document.getElementById('messageBox');
         const messageText = document.getElementById('messageText');
         const messageBoxOk = document.getElementById('messageBoxOk');
+        const messageBoxYes = document.getElementById('messageBoxYes'); // New button
+        const messageBoxNo = document.getElementById('messageBoxNo');   // New button
         const overlay = document.getElementById('overlay');
 
         const timerEndSound = document.getElementById('timerEndSound');
@@ -524,11 +541,43 @@
         }
 
         /**
-         * Shows a custom message box instead of alert().
+         * Shows a custom message box for simple alerts.
          * @param {string} message - The message to display.
          */
         function showMessageBox(message) {
             messageText.textContent = message;
+            messageBoxOk.classList.remove('hidden');
+            messageBoxYes.classList.add('hidden');
+            messageBoxNo.classList.add('hidden');
+            messageBox.classList.add('active');
+            overlay.classList.add('active');
+        }
+
+        /**
+         * Shows a custom message box for confirmation (Yes/No).
+         * @param {string} message - The confirmation message.
+         * @param {function} onConfirmCallback - Function to call if 'Yes' is clicked.
+         */
+        function showConfirmBox(message, onConfirmCallback) {
+            messageText.textContent = message;
+            messageBoxOk.classList.add('hidden');
+            messageBoxYes.classList.remove('hidden');
+            messageBoxNo.classList.remove('hidden');
+
+            // Clear previous listeners to prevent multiple calls
+            messageBoxYes.onclick = null;
+            messageBoxNo.onclick = null;
+
+            messageBoxYes.onclick = (event) => {
+                addRippleEffect(event);
+                hideMessageBox(); // Hide the box first
+                onConfirmCallback(); // Execute the callback
+            };
+            messageBoxNo.onclick = (event) => {
+                addRippleEffect(event);
+                hideMessageBox(); // Just hide the box
+            };
+
             messageBox.classList.add('active');
             overlay.classList.add('active');
         }
@@ -662,7 +711,7 @@
         function startSession(sessionTypeKey) {
             currentSessionTypeKey = sessionTypeKey;
             currentExercisesSequence = sessionTypes[sessionTypeKey].sequence;
-            sessionTypes[sessionTypeKey].rounds; // Store total rounds for this session type
+            // No need to store totalRounds in a separate variable, can access directly from sessionTypes
 
             isSessionActive = true;
             currentSessionPoints = 0;
@@ -689,7 +738,7 @@
             // Check if all exercises in the current sequence are done for the current round
             if (currentExerciseIndex >= currentExercisesSequence.length) {
                 currentRound++;
-                currentExerciseIndex = 0; // Reset for next round
+                currentExerciseIndex = 0; // Reset for next exercise in the new round
                 if (currentRound <= sessionTypes[currentSessionTypeKey].rounds) {
                     exerciseName.textContent = `Round ${currentRound} Ready!`;
                     exerciseDetails.textContent = `Click 'Continue' to start Round ${currentRound}.`;
@@ -943,9 +992,33 @@
             }
         }
 
+        /**
+         * Signs out the user and clears all local storage data.
+         */
+        function signOut() {
+            showConfirmBox("Are you sure you want to sign out and delete ALL your data? This action cannot be undone.", () => {
+                localStorage.clear(); // Clear all local storage
+                userName = '';
+                parentPassword = '';
+                totalPoints = 0;
+                redeemableItems = [];
+                isSessionActive = false;
+                currentSessionPoints = 0;
+                currentRound = 1;
+                currentExerciseIndex = 0;
+                clearInterval(timerInterval); // Clear any active timers
+                timerSeconds = 0;
+                currentSessionTypeKey = null;
+                currentExercisesSequence = [];
+
+                showMessageBox("All data has been cleared. You are now signed out.");
+                renderView('setup-view'); // Go back to setup screen
+            });
+        }
+
         // --- Event Listeners ---
 
-        // Message Box OK button
+        // Message Box OK button (for simple alerts)
         messageBoxOk.onclick = hideMessageBox;
 
         // Initial Setup
@@ -1050,6 +1123,9 @@
 
         // Event listener for manual point addition
         addManualPointsBtn.onclick = addManualPoints;
+
+        // Event listener for Sign Out
+        signOutBtn.onclick = (event) => { addRippleEffect(event); signOut(); };
 
 
         // --- Initial Load ---
