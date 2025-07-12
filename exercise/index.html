@@ -261,8 +261,16 @@
         <div id="session-view" class="view">
             <h2 class="text-center">Session</h2>
             <div id="session-intro" class="card text-center">
-                <p class="text-xl text-gray-600 mb-6">Ready to earn some points?</p>
-                <button id="startSessionBtn" class="btn-primary w-full">Start New Session</button>
+                <p class="text-xl text-gray-600 mb-6">Choose your session type:</p>
+                <button id="chooseExercisesBtn" class="btn-primary w-full mb-4">Standard Exercises</button>
+                <button id="chooseLegStretchesBtn" class="btn-secondary w-full">Leg Stretches</button>
+            </div>
+
+            <div id="leg-stretches-options" class="card text-center hidden">
+                <p class="text-xl text-gray-600 mb-6">Select Leg Stretch Routine:</p>
+                <button id="start3MinLegStretchesBtn" class="btn-primary w-full mb-4">3 Minutes Each Leg (3 Rounds)</button>
+                <button id="start9MinLegStretchesBtn" class="btn-secondary w-full">9 Minutes Each Leg (Once) - Double Points!</button>
+                <button id="backToSessionIntroBtn" class="btn-secondary w-full mt-4">Back</button>
             </div>
 
             <div id="session-active" class="hidden flex flex-col items-center w-full">
@@ -311,6 +319,16 @@
             </div>
 
             <div id="parent-dashboard" class="hidden flex flex-col w-full">
+                <!-- Add Points Manually Section -->
+                <div class="card mb-8">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Manually Add Points</h3>
+                    <div class="mb-5">
+                        <label for="manualPointsInput" class="block text-gray-700 text-base font-bold mb-2">Points to Add:</label>
+                        <input type="number" id="manualPointsInput" class="input-field" placeholder="e.g., 50" min="1">
+                    </div>
+                    <button id="addManualPointsBtn" class="btn-primary w-full">Add Points</button>
+                </div>
+
                 <div class="card mb-8">
                     <h3 class="text-xl font-bold text-gray-800 mb-4">Add New Redeemable Item</h3>
                     <div class="mb-5">
@@ -320,6 +338,11 @@
                     <div class="mb-7">
                         <label for="redeemItemCost" class="block text-gray-700 text-base font-bold mb-2">Point Cost:</label>
                         <input type="number" id="redeemItemCost" class="input-field" placeholder="e.g., 100" min="1">
+                    </div>
+                    <div class="mb-7">
+                        <label for="redeemItemUsageLimit" class="block text-gray-700 text-base font-bold mb-2">Usage Limit (leave blank for unlimited):</label>
+                        <input type="number" id="redeemItemUsageLimit" class="input-field" placeholder="e.g., 3" min="-1">
+                        <p class="text-sm text-gray-500 mt-1">Enter -1 for unlimited uses, or a positive number.</p>
                     </div>
                     <button id="addRedeemableBtn" class="btn-primary w-full">Add Item</button>
                 </div>
@@ -371,7 +394,7 @@
         let userName = '';
         let parentPassword = '';
         let totalPoints = 0;
-        let redeemableItems = []; // { name: "Item Name", cost: 100, id: "unique-id" }
+        let redeemableItems = []; // { name: "Item Name", cost: 100, id: "unique-id", usageLimit: -1, timesUsed: 0 }
 
         // Session specific state
         let currentSessionPoints = 0;
@@ -380,15 +403,38 @@
         let timerInterval = null;
         let timerSeconds = 0;
         let isSessionActive = false;
+        let currentSessionTypeKey = null; // Stores 'exercises', 'legStretches3min', or 'legStretches9min'
 
-        // Exercise definitions
-        const exercises = [
-            { name: "Front Plank", time: 90, pointsPerSecond: 1, type: "timed" },
-            { name: "Hollow Hold", time: 40, pointsPerSecond: 1, type: "timed" },
-            { name: "Pushups", time: 0, points: 5, type: "done" },
-            { name: "Wall Sit", time: 90, pointsPerSecond: 1, type: "timed" }
-        ];
-        const totalRounds = 3;
+        // Exercise definitions for different session types
+        const sessionTypes = {
+            'exercises': {
+                name: "Standard Exercises",
+                sequence: [
+                    { name: "Front Plank", time: 90, pointsPerSecond: 1, type: "timed" },
+                    { name: "Hollow Hold", time: 40, pointsPerSecond: 1, type: "timed" },
+                    { name: "Pushups", time: 0, points: 5, type: "done" },
+                    { name: "Wall Sit", time: 90, pointsPerSecond: 1, type: "timed" }
+                ],
+                rounds: 3
+            },
+            'legStretches3min': {
+                name: "Leg Stretches (3 min rounds)",
+                sequence: [
+                    { name: "Right Leg Stretch", time: 180, pointsPerSecond: 1, type: "timed" },
+                    { name: "Left Leg Stretch", time: 180, pointsPerSecond: 1, type: "timed" }
+                ],
+                rounds: 3 // This means 3 pairs of (Right, Left)
+            },
+            'legStretches9min': {
+                name: "Leg Stretches (9 min single)",
+                sequence: [
+                    { name: "Right Leg Stretch", time: 540, pointsPerSecond: 2, type: "timed" }, // double points
+                    { name: "Left Leg Stretch", time: 540, pointsPerSecond: 2, type: "timed" }  // double points
+                ],
+                rounds: 1 // Only one pair
+            }
+        };
+        let currentExercisesSequence = []; // The actual sequence for the current session
 
         // DOM Elements
         const setupView = document.getElementById('setup-view');
@@ -397,13 +443,19 @@
         const setupSaveBtn = document.getElementById('setupSaveBtn');
 
         const homeView = document.getElementById('home-view');
-        const helloGreeting = document.getElementById('helloGreeting'); // New element for greeting
+        const helloGreeting = document.getElementById('helloGreeting');
         const totalPointsDisplay = document.getElementById('totalPointsDisplay');
         const startNewSessionBtnHome = document.getElementById('startNewSessionBtnHome');
 
         const sessionView = document.getElementById('session-view');
         const sessionIntro = document.getElementById('session-intro');
-        const startSessionBtn = document.getElementById('startSessionBtn');
+        const chooseExercisesBtn = document.getElementById('chooseExercisesBtn');
+        const chooseLegStretchesBtn = document.getElementById('chooseLegStretchesBtn');
+        const legStretchesOptions = document.getElementById('leg-stretches-options');
+        const start3MinLegStretchesBtn = document.getElementById('start3MinLegStretchesBtn');
+        const start9MinLegStretchesBtn = document.getElementById('start9MinLegStretchesBtn');
+        const backToSessionIntroBtn = document.getElementById('backToSessionIntroBtn');
+
         const sessionActive = document.getElementById('session-active');
         const currentRoundDisplay = document.getElementById('currentRoundDisplay');
         const sessionPointsDisplay = document.getElementById('sessionPointsDisplay');
@@ -428,8 +480,11 @@
         const parentPasswordLogin = document.getElementById('parentPasswordLogin');
         const parentLoginBtn = document.getElementById('parentLoginBtn');
         const parentDashboard = document.getElementById('parent-dashboard');
+        const manualPointsInput = document.getElementById('manualPointsInput');
+        const addManualPointsBtn = document.getElementById('addManualPointsBtn');
         const redeemItemName = document.getElementById('redeemItemName');
         const redeemItemCost = document.getElementById('redeemItemCost');
+        const redeemItemUsageLimit = document.getElementById('redeemItemUsageLimit'); // New element
         const addRedeemableBtn = document.getElementById('addRedeemableBtn');
         const parentRedeemableList = document.getElementById('parentRedeemableList');
         const noParentRedeemablesMessage = document.getElementById('noParentRedeemablesMessage');
@@ -444,7 +499,7 @@
         const messageBoxOk = document.getElementById('messageBoxOk');
         const overlay = document.getElementById('overlay');
 
-        const timerEndSound = document.getElementById('timerEndSound'); // Get the audio element
+        const timerEndSound = document.getElementById('timerEndSound');
 
         /**
          * Adds a ripple effect to a clicked button.
@@ -518,6 +573,11 @@
             totalPoints = parseInt(localStorage.getItem('totalPoints') || '0');
             try {
                 redeemableItems = JSON.parse(localStorage.getItem('redeemableItems') || '[]');
+                // Ensure new fields exist for old data
+                redeemableItems.forEach(item => {
+                    if (item.usageLimit === undefined) item.usageLimit = -1; // Default to unlimited
+                    if (item.timesUsed === undefined) item.timesUsed = 0;
+                });
             } catch (e) {
                 console.error("Error parsing redeemable items from local storage:", e);
                 redeemableItems = []; // Reset if corrupted
@@ -581,12 +641,14 @@
             // If a session is active, ensure the active session UI is shown
             if (isSessionActive) {
                 sessionIntro.classList.add('hidden');
+                legStretchesOptions.classList.add('hidden'); // Hide stretch options too
                 sessionActive.classList.remove('hidden');
                 sessionComplete.classList.add('hidden');
                 updateSessionUI();
             } else {
                 // If no session is active, show the intro to start one
                 sessionIntro.classList.remove('hidden');
+                legStretchesOptions.classList.add('hidden'); // Ensure hidden initially
                 sessionActive.classList.add('hidden');
                 sessionComplete.classList.add('hidden');
             }
@@ -594,14 +656,21 @@
         }
 
         /**
-         * Starts a new exercise session.
+         * Starts a new exercise session based on the chosen type.
+         * @param {string} sessionTypeKey - Key from sessionTypes object.
          */
-        function startSession() {
+        function startSession(sessionTypeKey) {
+            currentSessionTypeKey = sessionTypeKey;
+            currentExercisesSequence = sessionTypes[sessionTypeKey].sequence;
+            sessionTypes[sessionTypeKey].rounds; // Store total rounds for this session type
+
             isSessionActive = true;
             currentSessionPoints = 0;
             currentRound = 1;
             currentExerciseIndex = 0;
+
             sessionIntro.classList.add('hidden');
+            legStretchesOptions.classList.add('hidden');
             sessionActive.classList.remove('hidden');
             sessionComplete.classList.add('hidden');
             loadExercise();
@@ -611,31 +680,33 @@
          * Loads and displays the current exercise.
          */
         function loadExercise() {
-            if (currentRound > totalRounds) {
+            // Check if all rounds are complete for the current session type
+            if (currentRound > sessionTypes[currentSessionTypeKey].rounds) {
                 endSession();
                 return;
             }
 
-            // If all exercises in a round are done, prepare for next round or end session
-            if (currentExerciseIndex >= exercises.length) {
+            // Check if all exercises in the current sequence are done for the current round
+            if (currentExerciseIndex >= currentExercisesSequence.length) {
                 currentRound++;
                 currentExerciseIndex = 0; // Reset for next round
-                if (currentRound <= totalRounds) {
+                if (currentRound <= sessionTypes[currentSessionTypeKey].rounds) {
                     exerciseName.textContent = `Round ${currentRound} Ready!`;
                     exerciseDetails.textContent = `Click 'Continue' to start Round ${currentRound}.`;
                     timerDisplay.textContent = ""; // Clear timer
                     exerciseActionBtn.textContent = `Continue to Round ${currentRound}`;
-                    exerciseActionBtn.onclick = (event) => { addRippleEffect(event); loadExercise(); }; // Set handler for continue
-                    nextExerciseHint.textContent = ""; // Clear hint
+                    exerciseActionBtn.disabled = false;
+                    exerciseActionBtn.onclick = (event) => { addRippleEffect(event); loadExercise(); };
+                    nextExerciseHint.textContent = "";
                     updateSessionUI();
                     return;
                 } else {
-                    endSession();
+                    endSession(); // All rounds and exercises complete
                     return;
                 }
             }
 
-            const exercise = exercises[currentExerciseIndex];
+            const exercise = currentExercisesSequence[currentExerciseIndex];
             exerciseName.textContent = exercise.name;
             currentRoundDisplay.textContent = currentRound;
             sessionPointsDisplay.textContent = currentSessionPoints;
@@ -645,18 +716,26 @@
 
             if (exercise.type === "timed") {
                 timerSeconds = exercise.time;
-                exerciseDetails.textContent = `Time: ${exercise.time}s | Points: ${exercise.time} (1 point/sec)`;
+                exerciseDetails.textContent = `Time: ${exercise.time}s | Points: ${exercise.time * exercise.pointsPerSecond} (at ${exercise.pointsPerSecond} point/sec)`;
                 exerciseActionBtn.textContent = "Start Timer";
+                exerciseActionBtn.disabled = false;
                 exerciseActionBtn.onclick = (event) => { addRippleEffect(event); startTimer(); };
                 updateTimerDisplay();
-                nextExerciseHint.textContent = "Next: " + (exercises[currentExerciseIndex + 1] ? exercises[currentExerciseIndex + 1].name : (currentRound < totalRounds ? `Round ${currentRound + 1}` : "Session End"));
+                const nextHint = currentExerciseIndex + 1 < currentExercisesSequence.length ?
+                                 currentExercisesSequence[currentExerciseIndex + 1].name :
+                                 (currentRound < sessionTypes[currentSessionTypeKey].rounds ? `Round ${currentRound + 1}` : "Session End");
+                nextExerciseHint.textContent = "Next: " + nextHint;
             } else if (exercise.type === "done") {
-                timerSeconds = 0; // No timer for this type
+                timerSeconds = 0;
                 exerciseDetails.textContent = `Points: ${exercise.points}`;
                 timerDisplay.textContent = "Manual";
                 exerciseActionBtn.textContent = "Done";
+                exerciseActionBtn.disabled = false;
                 exerciseActionBtn.onclick = (event) => { addRippleEffect(event); completeManualExercise(); };
-                nextExerciseHint.textContent = "Next: " + (exercises[currentExerciseIndex + 1] ? exercises[currentExerciseIndex + 1].name : (currentRound < totalRounds ? `Round ${currentRound + 1}` : "Session End"));
+                const nextHint = currentExerciseIndex + 1 < currentExercisesSequence.length ?
+                                 currentExercisesSequence[currentExerciseIndex + 1].name :
+                                 (currentRound < sessionTypes[currentSessionTypeKey].rounds ? `Round ${currentRound + 1}` : "Session End");
+                nextExerciseHint.textContent = "Next: " + nextHint;
             }
         }
 
@@ -664,19 +743,22 @@
          * Starts the timer for a timed exercise.
          */
         function startTimer() {
+            const exercise = currentExercisesSequence[currentExerciseIndex];
             exerciseActionBtn.textContent = "Running...";
             exerciseActionBtn.disabled = true; // Disable button during timer
             timerInterval = setInterval(() => {
                 if (timerSeconds > 0) {
                     timerSeconds--;
-                    currentSessionPoints++; // Earn 1 point per second
+                    currentSessionPoints += exercise.pointsPerSecond; // Earn points based on exercise definition
                     updateTimerDisplay();
                     sessionPointsDisplay.textContent = currentSessionPoints;
                     endSessionPoints.textContent = currentSessionPoints;
                 } else {
                     clearInterval(timerInterval);
                     playTimerEndSound(); // Play sound when timer ends
-                    completeTimedExercise();
+                    exerciseActionBtn.textContent = "Next Exercise"; // Change button text
+                    exerciseActionBtn.disabled = false; // Re-enable button
+                    exerciseActionBtn.onclick = (event) => { addRippleEffect(event); proceedToNextExercise(); }; // Set new handler
                 }
             }, 1000);
         }
@@ -691,10 +773,9 @@
         }
 
         /**
-         * Completes a timed exercise.
+         * Proceeds to the next exercise after a timed exercise completes and user clicks.
          */
-        function completeTimedExercise() {
-            exerciseActionBtn.disabled = false;
+        function proceedToNextExercise() {
             currentExerciseIndex++;
             loadExercise(); // Load next exercise or round
         }
@@ -703,7 +784,7 @@
          * Completes a manual exercise (e.g., Pushups).
          */
         function completeManualExercise() {
-            const exercise = exercises[currentExerciseIndex];
+            const exercise = currentExercisesSequence[currentExerciseIndex];
             currentSessionPoints += exercise.points; // Add fixed points
             sessionPointsDisplay.textContent = currentSessionPoints;
             endSessionPoints.textContent = currentSessionPoints;
@@ -744,42 +825,56 @@
             } else {
                 noRedeemablesMessage.classList.add('hidden');
                 redeemableItems.forEach(item => {
+                    const remainingUses = item.usageLimit === -1 ? "Unlimited" : (item.usageLimit - item.timesUsed);
+                    const canRedeem = totalPoints >= item.cost && (item.usageLimit === -1 || item.timesUsed < item.usageLimit);
+                    const buttonClass = canRedeem ? "btn-primary" : "btn-secondary opacity-50 cursor-not-allowed";
+                    const buttonDisabled = !canRedeem;
+
                     const itemDiv = document.createElement('div');
-                    itemDiv.className = 'card flex justify-between items-center py-5 px-6'; /* Adjusted padding */
+                    itemDiv.className = 'card flex justify-between items-center py-5 px-6';
                     itemDiv.innerHTML = `
                         <div>
                             <p class="text-xl font-semibold text-gray-800">${item.name}</p>
                             <p class="text-lg text-gray-600">${item.cost} Points</p>
+                            <p class="text-sm text-gray-500">Uses Remaining: ${remainingUses}</p>
                         </div>
-                        <button class="btn-primary redeem-btn" data-id="${item.id}">Redeem</button>
+                        <button class="${buttonClass} redeem-btn" data-id="${item.id}" ${buttonDisabled ? 'disabled' : ''}>Redeem</button>
                     `;
                     redeemableItemsList.appendChild(itemDiv);
                 });
 
                 // Attach event listeners to new redeem buttons
                 document.querySelectorAll('.redeem-btn').forEach(button => {
-                    button.onclick = (event) => { addRippleEffect(event); redeemItem(event.target.dataset.id); };
+                    if (!button.disabled) {
+                        button.onclick = (event) => { addRippleEffect(event); redeemItem(event.target.dataset.id); };
+                    }
                 });
             }
         }
 
         /**
-         * Redeems an item, deducting points.
+         * Redeems an item, deducting points and tracking usage.
          * @param {string} itemId - The ID of the item to redeem.
          */
         function redeemItem(itemId) {
             const itemIndex = redeemableItems.findIndex(item => item.id === itemId);
             if (itemIndex > -1) {
                 const item = redeemableItems[itemIndex];
-                if (totalPoints >= item.cost) {
-                    totalPoints -= item.cost;
-                    saveData();
-                    showMessageBox(`You have redeemed "${item.name}" for ${item.cost} points! Your new total is ${totalPoints} points.`);
-                    renderHome(); // Update home view
-                    renderRedeem(); // Re-render redeem list
-                } else {
+                if (totalPoints < item.cost) {
                     showMessageBox(`You don't have enough points to redeem "${item.name}". You need ${item.cost} points, but you only have ${totalPoints}.`);
+                    return;
                 }
+                if (item.usageLimit !== -1 && item.timesUsed >= item.usageLimit) {
+                    showMessageBox(`"${item.name}" has reached its usage limit (${item.usageLimit} times) and cannot be redeemed again.`);
+                    return;
+                }
+
+                totalPoints -= item.cost;
+                item.timesUsed++; // Increment usage count
+                saveData();
+                showMessageBox(`You have redeemed "${item.name}" for ${item.cost} points! Your new total is ${totalPoints} points.`);
+                renderHome(); // Update home view
+                renderRedeem(); // Re-render redeem list to show updated uses
             }
         }
 
@@ -793,12 +888,14 @@
             } else {
                 noParentRedeemablesMessage.classList.add('hidden');
                 redeemableItems.forEach(item => {
+                    const usageInfo = item.usageLimit === -1 ? "Unlimited" : `${item.timesUsed} / ${item.usageLimit} uses`;
                     const itemDiv = document.createElement('div');
-                    itemDiv.className = 'flex justify-between items-center p-4 bg-gray-50 rounded-xl shadow-sm border border-gray-200'; /* Adjusted padding, more rounded */
+                    itemDiv.className = 'flex justify-between items-center p-4 bg-gray-50 rounded-xl shadow-sm border border-gray-200';
                     itemDiv.innerHTML = `
                         <div>
                             <p class="font-semibold text-gray-800">${item.name}</p>
                             <p class="text-sm text-gray-600">${item.cost} Points</p>
+                            <p class="text-xs text-gray-500">Usage: ${usageInfo}</p>
                         </div>
                         <button class="btn-danger delete-redeem-btn" data-id="${item.id}">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
@@ -826,6 +923,24 @@
             renderParentRedeemableList(); // Re-render parent list
             renderRedeem(); // Re-render user redeem list
             showMessageBox("Item deleted successfully!");
+        }
+
+        /**
+         * Handles adding points manually from the parent dashboard.
+         */
+        function addManualPoints(event) {
+            addRippleEffect(event);
+            const pointsToAdd = parseInt(manualPointsInput.value);
+
+            if (!isNaN(pointsToAdd) && pointsToAdd > 0) {
+                totalPoints += pointsToAdd;
+                saveData();
+                manualPointsInput.value = ''; // Clear input field
+                showMessageBox(`${pointsToAdd} points added successfully! Total points: ${totalPoints}`);
+                renderHome(); // Update home view to reflect new total
+            } else {
+                showMessageBox("Please enter a valid positive number of points to add.");
+            }
         }
 
         // --- Event Listeners ---
@@ -858,8 +973,22 @@
         // Home View
         startNewSessionBtnHome.onclick = (event) => { addRippleEffect(event); renderView('session-view'); };
 
-        // Session View
-        startSessionBtn.onclick = (event) => { addRippleEffect(event); startSession(); };
+        // Session View - Choose Session Type
+        chooseExercisesBtn.onclick = (event) => { addRippleEffect(event); startSession('exercises'); };
+        chooseLegStretchesBtn.onclick = (event) => {
+            addRippleEffect(event);
+            sessionIntro.classList.add('hidden');
+            legStretchesOptions.classList.remove('hidden');
+        };
+        backToSessionIntroBtn.onclick = (event) => {
+            addRippleEffect(event);
+            legStretchesOptions.classList.add('hidden');
+            sessionIntro.classList.remove('hidden');
+        };
+        start3MinLegStretchesBtn.onclick = (event) => { addRippleEffect(event); startSession('legStretches3min'); };
+        start9MinLegStretchesBtn.onclick = (event) => { addRippleEffect(event); startSession('legStretches9min'); };
+
+        // Session Active Buttons
         endSessionNowBtn.onclick = (event) => { addRippleEffect(event); endSession(); };
         backToHomeBtn.onclick = (event) => {
             addRippleEffect(event);
@@ -868,6 +997,7 @@
             sessionIntro.classList.remove('hidden');
             sessionActive.classList.add('hidden');
             sessionComplete.classList.add('hidden');
+            legStretchesOptions.classList.add('hidden'); // Ensure hidden
         };
 
 
@@ -888,24 +1018,39 @@
             addRippleEffect(event);
             const itemName = redeemItemName.value.trim();
             const itemCost = parseInt(redeemItemCost.value);
+            let itemUsageLimit = redeemItemUsageLimit.value.trim();
 
-            if (itemName && !isNaN(itemCost) && itemCost > 0) {
+            // Handle empty or non-numeric usage limit as unlimited (-1)
+            if (itemUsageLimit === '' || isNaN(parseInt(itemUsageLimit))) {
+                itemUsageLimit = -1;
+            } else {
+                itemUsageLimit = parseInt(itemUsageLimit);
+            }
+
+            if (itemName && !isNaN(itemCost) && itemCost > 0 && (itemUsageLimit === -1 || itemUsageLimit >= 0)) {
                 const newItem = {
                     id: crypto.randomUUID(), // Unique ID for each item
                     name: itemName,
-                    cost: itemCost
+                    cost: itemCost,
+                    usageLimit: itemUsageLimit,
+                    timesUsed: 0 // Initialize times used
                 };
                 redeemableItems.push(newItem);
                 saveData();
                 redeemItemName.value = '';
                 redeemItemCost.value = '';
+                redeemItemUsageLimit.value = ''; // Clear new input
                 renderParentRedeemableList(); // Update parent list
                 renderRedeem(); // Update user redeem list
                 showMessageBox("Redeemable item added successfully!");
             } else {
-                showMessageBox("Please enter a valid item name and a positive point cost.");
+                showMessageBox("Please enter a valid item name, a positive point cost, and a valid usage limit (positive number or -1 for unlimited).");
             }
         };
+
+        // Event listener for manual point addition
+        addManualPointsBtn.onclick = addManualPoints;
+
 
         // --- Initial Load ---
         document.addEventListener('DOMContentLoaded', () => {
