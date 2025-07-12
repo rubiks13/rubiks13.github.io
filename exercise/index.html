@@ -1476,6 +1476,8 @@
                 }
                 updatedExercise.time = newTime;
                 updatedExercise.pointsPerSecond = newPointsPerSecond;
+                // Ensure other type properties are removed if type changes
+                delete updatedExercise.points;
             } else if (newType === 'done') {
                 const newPoints = parseInt(pointsInput.value);
                 if (isNaN(newPoints) || newPoints <= 0) {
@@ -1483,6 +1485,9 @@
                     return;
                 }
                 updatedExercise.points = newPoints;
+                // Ensure other type properties are removed if type changes
+                delete updatedExercise.time;
+                delete updatedExercise.pointsPerSecond;
             }
 
             sessionTypes[categoryKey].sequence[exerciseIndex] = updatedExercise;
