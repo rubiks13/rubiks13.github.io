@@ -316,12 +316,39 @@
             </div>
         </div>
 
+        <!-- Stats View -->
+        <div id="stats-view" class="view">
+            <h2 class="text-center">Your Stats</h2>
+            <div class="card text-center">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">Total Sessions Completed</h3>
+                <div class="grid grid-cols-2 gap-4 text-left mb-6">
+                    <div>
+                        <p class="text-gray-600 font-semibold">Last Week:</p>
+                        <ul id="statsLastWeek" class="list-disc list-inside text-gray-700"></ul>
+                    </div>
+                    <div>
+                        <p class="text-gray-600 font-semibold">Last Month:</p>
+                        <ul id="statsLastMonth" class="list-disc list-inside text-gray-700"></ul>
+                    </div>
+                    <div>
+                        <p class="text-gray-600 font-semibold">Last Year:</p>
+                        <ul id="statsLastYear" class="list-disc list-inside text-gray-700"></ul>
+                    </div>
+                    <div>
+                        <p class="text-gray-600 font-semibold">All Time:</p>
+                        <ul id="statsAllTime" class="list-disc list-inside text-gray-700"></ul>
+                    </div>
+                </div>
+                <p class="text-sm text-gray-500 mt-4">Stats are based on completed sessions.</p>
+            </div>
+        </div>
+
         <!-- Redeem View -->
         <div id="redeem-view" class="view">
             <h2 class="text-center">Redeem Points</h2>
             <div id="redeemableItemsList" class="flex flex-col gap-5 w-full">
                 <!-- Redeemable items will be dynamically loaded here -->
-                <p id="noRedeemablesMessage" class="text-center text-gray-500 card py-10">No redeemable items added yet. Ask a parent to add some!</p>
+                <p id="noRedeemablesMessage" class="text-center text-gray-500 card py-10">There are no redeemable items here yet. Ask a parent to add some!</p>
             </div>
         </div>
 
@@ -352,6 +379,49 @@
                     </div>
                     <button id="changeParentPasswordBtn" class="btn-primary w-full">Change Password</button>
                 </div>
+
+                <!-- Manage Exercises Section -->
+                <div class="card mb-8">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Manage Exercises</h3>
+                    <div class="mb-5">
+                        <label for="exerciseCategorySelect" class="block text-gray-700 text-base font-bold mb-2">Select Category:</label>
+                        <select id="exerciseCategorySelect" class="input-field">
+                            <option value="exercises">Standard Exercises</option>
+                            <option value="legStretches3min">Leg Stretches (3 min)</option>
+                            <option value="legStretches9min">Leg Stretches (9 min)</option>
+                        </select>
+                    </div>
+
+                    <h4 class="text-lg font-semibold text-gray-700 mb-3 mt-6">Current Exercises:</h4>
+                    <div id="currentExercisesList" class="flex flex-col gap-3 mb-8">
+                        <p class="text-center text-gray-500 py-4">Loading exercises...</p>
+                    </div>
+
+                    <h4 class="text-lg font-semibold text-gray-700 mb-3">Add New Exercise:</h4>
+                    <div class="mb-4">
+                        <label for="newExerciseName" class="block text-gray-700 text-base font-bold mb-2">Name:</label>
+                        <input type="text" id="newExerciseName" class="input-field" placeholder="e.g., Jumping Jacks">
+                    </div>
+                    <div class="mb-4">
+                        <label for="newExerciseType" class="block text-gray-700 text-base font-bold mb-2">Type:</label>
+                        <select id="newExerciseType" class="input-field">
+                            <option value="timed">Timed</option>
+                            <option value="done">Manual (Done)</option>
+                        </select>
+                    </div>
+                    <div id="newExerciseTimedOptions" class="mb-4">
+                        <label for="newExerciseTime" class="block text-gray-700 text-base font-bold mb-2">Time (seconds):</label>
+                        <input type="number" id="newExerciseTime" class="input-field" placeholder="e.g., 60" min="1">
+                        <label for="newExercisePointsPerSecond" class="block text-gray-700 text-base font-bold mb-2 mt-4">Points per Second:</label>
+                        <input type="number" id="newExercisePointsPerSecond" class="input-field" placeholder="e.g., 1" min="1">
+                    </div>
+                    <div id="newExerciseDoneOptions" class="mb-4 hidden">
+                        <label for="newExercisePoints" class="block text-gray-700 text-base font-bold mb-2">Points for Completion:</label>
+                        <input type="number" id="newExercisePoints" class="input-field" placeholder="e.g., 10" min="1">
+                    </div>
+                    <button id="addNewExerciseBtn" class="btn-primary w-full">Add Exercise</button>
+                </div>
+
 
                 <!-- Add Points Manually Section -->
                 <div class="card mb-8">
@@ -413,6 +483,12 @@
             </svg>
             Session
         </button>
+        <button id="navStatsBtn">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
+                <path fill-rule="evenodd" d="M2.25 11.25a.75.75 0 0 1 .75-.75h2.25a.75.75 0 0 1 .75.75v6.75a.75.75 0 0 1-.75.75H3a.75.75 0 0 1-.75-.75v-6.75ZM7.5 9A.75.75 0 0 1 8.25 8.25h2.25a.75.75 0 0 1 .75.75v9A.75.75 0 0 1 10.5 18h-2.25a.75.75 0 0 1-.75-.75V9ZM12.75 6A.75.75 0 0 1 13.5 5.25h2.25a.75.75 0 0 1 .75.75v12.75a.75.75 0 0 1-.75.75H13.5a.75.75 0 0 1-.75-.75V6ZM18 2.25A.75.75 0 0 1 18.75 1.5h2.25a.75.75 0 0 1 .75.75v16.5a.75.75 0 0 1-.75.75H18.75a.75.75 0 0 1-.75-.75V2.25Z" clip-rule="evenodd" />
+            </svg>
+            Stats
+        </button>
         <button id="navRedeemBtn">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
                 <path d="M12 9a3.75 3.75 0 1 0 0 7.5A3.75 3.75 0 0 0 12 9Z" />
@@ -434,6 +510,7 @@
         let parentPassword = '';
         let totalPoints = 0;
         let redeemableItems = []; // { name: "Item Name", cost: 100, id: "unique-id", usageLimit: -1, timesUsed: 0 }
+        let sessionHistory = []; // { type: 'exercises'|'legStretches3min'|'legStretches9min', timestamp: Date.now(), roundsCompleted: number }
 
         // Session specific state
         let currentSessionPoints = 0;
@@ -445,34 +522,36 @@
         let currentSessionTypeKey = null; // Stores 'exercises', 'legStretches3min', or 'legStretches9min'
 
         // Exercise definitions for different session types
-        const sessionTypes = {
+        const initialSessionTypes = { // Use a constant for initial, modify a mutable copy
             'exercises': {
                 name: "Standard Exercises",
                 sequence: [
-                    { name: "Front Plank", time: 90, pointsPerSecond: 1, type: "timed" },
-                    { name: "Hollow Hold", time: 40, pointsPerSecond: 1, type: "timed" },
-                    { name: "Pushups", time: 0, points: 5, type: "done" },
-                    { name: "Wall Sit", time: 90, pointsPerSecond: 1, type: "timed" }
+                    { id: 'ex1', name: "Front Plank", time: 90, pointsPerSecond: 1, type: "timed" },
+                    { id: 'ex2', name: "Hollow Hold", time: 40, pointsPerSecond: 1, type: "timed" },
+                    { id: 'ex3', name: "Pushups", time: 0, points: 5, type: "done" },
+                    { id: 'ex4', name: "Wall Sit", time: 90, pointsPerSecond: 1, type: "timed" }
                 ],
                 rounds: 3
             },
             'legStretches3min': {
                 name: "Leg Stretches (3 min rounds)",
                 sequence: [
-                    { name: "Right Leg Stretch", time: 180, pointsPerSecond: 1, type: "timed" },
-                    { name: "Left Leg Stretch", time: 180, pointsPerSecond: 1, type: "timed" }
+                    { id: 'ls3r1', name: "Right Leg Stretch", time: 180, pointsPerSecond: 1, type: "timed" },
+                    { id: 'ls3r2', name: "Left Leg Stretch", time: 180, pointsPerSecond: 1, type: "timed" }
                 ],
                 rounds: 3 // This means 3 pairs of (Right, Left)
             },
             'legStretches9min': {
                 name: "Leg Stretches (9 min single)",
                 sequence: [
-                    { name: "Right Leg Stretch", time: 540, pointsPerSecond: 2, type: "timed" }, // double points
-                    { name: "Left Leg Stretch", time: 540, pointsPerSecond: 2, type: "timed" }  // double points
+                    { id: 'ls9s1', name: "Right Leg Stretch", time: 540, pointsPerSecond: 2, type: "timed" }, // double points
+                    { id: 'ls9s2', name: "Left Leg Stretch", time: 540, pointsPerSecond: 2, type: "timed" }  // double points
                 ],
                 rounds: 1 // Only one pair
             }
         };
+        let sessionTypes = {}; // This will be the mutable copy loaded from storage or initial
+
         let currentExercisesSequence = []; // The actual sequence for the current session
 
         // DOM Elements
@@ -510,13 +589,20 @@
         const finalSessionPoints = document.getElementById('finalSessionPoints');
         const backToHomeBtn = document.getElementById('backToHomeBtn');
 
+        const statsView = document.getElementById('stats-view'); // New view
+        const statsLastWeek = document.getElementById('statsLastWeek');
+        const statsLastMonth = document.getElementById('statsLastMonth');
+        const statsLastYear = document.getElementById('statsLastYear');
+        const statsAllTime = document.getElementById('statsAllTime');
+
+
         const redeemView = document.getElementById('redeem-view');
         const redeemableItemsList = document.getElementById('redeemableItemsList');
         const noRedeemablesMessage = document.getElementById('noRedeemablesMessage');
 
         const parentView = document.getElementById('parent-view');
         const parentLogin = document.getElementById('parent-login');
-        const clearDataPreLoginBtn = document.getElementById('clearDataPreLoginBtn'); // New element
+        const clearDataPreLoginBtn = document.getElementById('clearDataPreLoginBtn');
         const parentPasswordLogin = document.getElementById('parentPasswordLogin');
         const parentLoginBtn = document.getElementById('parentLoginBtn');
         const parentDashboard = document.getElementById('parent-dashboard');
@@ -533,10 +619,23 @@
         const noParentRedeemablesMessage = document.getElementById('noParentRedeemablesMessage');
         const signOutBtn = document.getElementById('signOutBtn');
 
+        // New elements for Exercise Management
+        const exerciseCategorySelect = document.getElementById('exerciseCategorySelect');
+        const currentExercisesList = document.getElementById('currentExercisesList');
+        const newExerciseName = document.getElementById('newExerciseName');
+        const newExerciseType = document.getElementById('newExerciseType');
+        const newExerciseTimedOptions = document.getElementById('newExerciseTimedOptions');
+        const newExerciseTime = document.getElementById('newExerciseTime');
+        const newExercisePointsPerSecond = document.getElementById('newExercisePointsPerSecond');
+        const newExerciseDoneOptions = document.getElementById('newExerciseDoneOptions');
+        const newExercisePoints = document.getElementById('newExercisePoints');
+        const addNewExerciseBtn = document.getElementById('addNewExerciseBtn');
+
         const footerNav = document.getElementById('footerNav');
 
         const navHomeBtn = document.getElementById('navHomeBtn');
         const navSessionBtn = document.getElementById('navSessionBtn');
+        const navStatsBtn = document.getElementById('navStatsBtn'); // New nav button
         const navRedeemBtn = document.getElementById('navRedeemBtn');
         const navParentBtn = document.getElementById('navParentBtn');
 
@@ -548,6 +647,17 @@
         const overlay = document.getElementById('overlay');
 
         const timerEndSound = document.getElementById('timerEndSound');
+
+        /**
+         * Generates a unique ID (UUID v4).
+         * @returns {string} A unique ID.
+         */
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
 
         /**
          * Adds a ripple effect to a clicked button.
@@ -640,6 +750,8 @@
             localStorage.setItem('parentPassword', parentPassword);
             localStorage.setItem('totalPoints', totalPoints.toString());
             localStorage.setItem('redeemableItems', JSON.stringify(redeemableItems));
+            localStorage.setItem('sessionTypes', JSON.stringify(sessionTypes)); // Save dynamic session types
+            localStorage.setItem('sessionHistory', JSON.stringify(sessionHistory)); // Save session history
             localStorage.setItem('hasVisitedBefore', 'true');
         }
 
@@ -651,6 +763,7 @@
             userName = localStorage.getItem('userName') || '';
             parentPassword = localStorage.getItem('parentPassword') || '';
             totalPoints = parseInt(localStorage.getItem('totalPoints') || '0');
+
             try {
                 redeemableItems = JSON.parse(localStorage.getItem('redeemableItems') || '[]');
                 // Ensure new fields exist for old data
@@ -661,6 +774,36 @@
             } catch (e) {
                 console.error("Error parsing redeemable items from local storage:", e);
                 redeemableItems = []; // Reset if corrupted
+            }
+
+            try {
+                sessionTypes = JSON.parse(localStorage.getItem('sessionTypes'));
+                if (!sessionTypes) { // If no custom session types, use initial ones
+                    sessionTypes = JSON.parse(JSON.stringify(initialSessionTypes)); // Deep copy
+                } else {
+                    // Ensure all initial session types exist and have IDs for old data
+                    for (const key in initialSessionTypes) {
+                        if (!sessionTypes[key]) {
+                            sessionTypes[key] = initialSessionTypes[key];
+                        }
+                        // Ensure exercises within sessionTypes have IDs
+                        sessionTypes[key].sequence.forEach(exercise => {
+                            if (!exercise.id) {
+                                exercise.id = generateUUID();
+                            }
+                        });
+                    }
+                }
+            } catch (e) {
+                console.error("Error parsing session types from local storage:", e);
+                sessionTypes = JSON.parse(JSON.stringify(initialSessionTypes)); // Reset to initial if corrupted
+            }
+
+            try {
+                sessionHistory = JSON.parse(localStorage.getItem('sessionHistory') || '[]');
+            } catch (e) {
+                console.error("Error parsing session history from local storage:", e);
+                sessionHistory = []; // Reset if corrupted
             }
         }
 
@@ -674,7 +817,7 @@
                 viewId = 'setup-view';
             }
 
-            const views = [setupView, homeView, sessionView, redeemView, parentView];
+            const views = [setupView, homeView, sessionView, statsView, redeemView, parentView]; // Added statsView
             views.forEach(view => {
                 if (view.id === viewId) {
                     view.classList.add('active');
@@ -691,10 +834,11 @@
             }
 
             // Update footer button active state
-            const navButtons = [navHomeBtn, navSessionBtn, navRedeemBtn, navParentBtn];
+            const navButtons = [navHomeBtn, navSessionBtn, navStatsBtn, navRedeemBtn, navParentBtn]; // Added navStatsBtn
             navButtons.forEach(btn => btn.classList.remove('active'));
             if (viewId === 'home-view') navHomeBtn.classList.add('active');
             else if (viewId === 'session-view') navSessionBtn.classList.add('active');
+            else if (viewId === 'stats-view') navStatsBtn.classList.add('active'); // Activate stats button
             else if (viewId === 'redeem-view') navRedeemBtn.classList.add('active');
             else if (viewId === 'parent-view') navParentBtn.classList.add('active');
 
@@ -703,6 +847,8 @@
                 renderHome();
             } else if (viewId === 'session-view') {
                 renderSession();
+            } else if (viewId === 'stats-view') { // New stats rendering
+                renderStats();
             } else if (viewId === 'redeem-view') {
                 renderRedeem();
             } else if (viewId === 'parent-view') {
@@ -713,6 +859,8 @@
                 // Clear password change inputs when entering parent view
                 newParentPasswordInput.value = '';
                 confirmNewParentPasswordInput.value = '';
+                // Render exercises list for default category
+                renderExercisesList(exerciseCategorySelect.value);
             }
         }
 
@@ -757,7 +905,6 @@
         function startSession(sessionTypeKey) {
             currentSessionTypeKey = sessionTypeKey;
             currentExercisesSequence = sessionTypes[sessionTypeKey].sequence;
-            // No need to store totalRounds in a separate variable, can access directly from sessionTypes
 
             isSessionActive = true;
             currentSessionPoints = 0;
@@ -902,13 +1049,76 @@
         function endSession() {
             clearInterval(timerInterval);
             totalPoints += currentSessionPoints;
-            saveData(); // Save updated total points
+            // Record session completion in history
+            sessionHistory.push({
+                type: currentSessionTypeKey,
+                timestamp: Date.now(),
+                roundsCompleted: currentRound - 1 // Store the number of rounds actually completed
+            });
+            saveData(); // Save updated total points and history
             isSessionActive = false; // Reset session state
             sessionActive.classList.add('hidden');
             sessionComplete.classList.remove('hidden');
             finalSessionPoints.textContent = currentSessionPoints;
             renderHome(); // Update home view points
         }
+
+        /**
+         * Renders the Stats view content.
+         */
+        function renderStats() {
+            const now = Date.now();
+            const oneWeekAgo = now - (7 * 24 * 60 * 60 * 1000);
+            const oneMonthAgo = now - (30 * 24 * 60 * 60 * 1000); // Approximation
+            const oneYearAgo = now - (365 * 24 * 60 * 60 * 1000); // Approximation
+
+            const filterSessions = (startTime) => {
+                return sessionHistory.filter(session => session.timestamp >= startTime);
+            };
+
+            const calculateStats = (filteredSessions) => {
+                const stats = {};
+                for (const typeKey in sessionTypes) {
+                    stats[typeKey] = {
+                        sessions: 0,
+                        rounds: 0
+                    };
+                }
+
+                filteredSessions.forEach(session => {
+                    if (stats[session.type]) {
+                        stats[session.type].sessions++;
+                        stats[session.type].rounds += session.roundsCompleted;
+                    }
+                });
+                return stats;
+            };
+
+            const displayStats = (elementId, stats) => {
+                const ul = document.getElementById(elementId);
+                ul.innerHTML = '';
+                let hasStats = false;
+                for (const typeKey in stats) {
+                    if (stats[typeKey].sessions > 0) {
+                        const li = document.createElement('li');
+                        li.textContent = `${sessionTypes[typeKey].name}: ${stats[typeKey].sessions} sessions, ${stats[typeKey].rounds} rounds`;
+                        ul.appendChild(li);
+                        hasStats = true;
+                    }
+                }
+                if (!hasStats) {
+                    const li = document.createElement('li');
+                    li.textContent = 'No data.';
+                    ul.appendChild(li);
+                }
+            };
+
+            displayStats('statsLastWeek', calculateStats(filterSessions(oneWeekAgo)));
+            displayStats('statsLastMonth', calculateStats(filterSessions(oneMonthAgo)));
+            displayStats('statsLastYear', calculateStats(filterSessions(oneYearAgo)));
+            displayStats('statsAllTime', calculateStats(sessionHistory));
+        }
+
 
         /**
          * Renders the Redeem view content.
@@ -968,8 +1178,16 @@
                 item.timesUsed++; // Increment usage count
                 saveData();
                 showMessageBox(`You have redeemed "${item.name}" for ${item.cost} points! Your new total is ${totalPoints} points.`);
-                renderHome(); // Update home view
-                renderRedeem(); // Re-render redeem list to show updated uses
+
+                // Check if usage limit is reached after this redemption
+                if (item.usageLimit !== -1 && item.timesUsed >= item.usageLimit) {
+                    // Automatically delete the item if its limit is reached
+                    deleteRedeemableItem(item.id); // This will also re-render the list
+                    showMessageBox(`"${item.name}" has been fully used and removed from the list.`);
+                } else {
+                    renderHome(); // Update home view
+                    renderRedeem(); // Re-render redeem list to show updated uses
+                }
             }
         }
 
@@ -1017,7 +1235,7 @@
             saveData();
             renderParentRedeemableList(); // Re-render parent list
             renderRedeem(); // Re-render user redeem list
-            showMessageBox("Item deleted successfully!");
+            // showMessageBox("Item deleted successfully!"); // Removed to avoid double message on auto-delete
         }
 
         /**
@@ -1063,6 +1281,146 @@
         }
 
         /**
+         * Renders the list of exercises for the selected category in the parent dashboard.
+         * @param {string} categoryKey - The key for the exercise category (e.g., 'exercises', 'legStretches3min').
+         */
+        function renderExercisesList(categoryKey) {
+            const exercises = sessionTypes[categoryKey].sequence;
+            currentExercisesList.innerHTML = ''; // Clear previous list
+
+            if (exercises.length === 0) {
+                currentExercisesList.innerHTML = '<p class="text-center text-gray-500 py-4">No exercises in this category yet.</p>';
+                return;
+            }
+
+            exercises.forEach(exercise => {
+                const exerciseDiv = document.createElement('div');
+                exerciseDiv.className = 'flex flex-col p-4 bg-gray-50 rounded-xl shadow-sm border border-gray-200';
+                let details = `Type: ${exercise.type === 'timed' ? 'Timed' : 'Manual'}`;
+                if (exercise.type === 'timed') {
+                    details += ` | Time: ${exercise.time}s | Points/Sec: ${exercise.pointsPerSecond}`;
+                } else {
+                    details += ` | Points: ${exercise.points}`;
+                }
+
+                exerciseDiv.innerHTML = `
+                    <p class="font-semibold text-gray-800">${exercise.name}</p>
+                    <p class="text-sm text-gray-600">${details}</p>
+                    <div class="flex gap-2 mt-3">
+                        <button class="btn-secondary text-sm px-3 py-1 rounded-lg edit-exercise-btn" data-category="${categoryKey}" data-id="${exercise.id}">Edit</button>
+                        <button class="btn-danger text-sm px-3 py-1 rounded-lg delete-exercise-btn" data-category="${categoryKey}" data-id="${exercise.id}">Delete</button>
+                    </div>
+                `;
+                currentExercisesList.appendChild(exerciseDiv);
+            });
+
+            // Attach event listeners for edit and delete buttons
+            document.querySelectorAll('.edit-exercise-btn').forEach(button => {
+                button.onclick = (event) => {
+                    addRippleEffect(event);
+                    const category = event.target.dataset.category;
+                    const id = event.target.dataset.id;
+                    editExercise(category, id);
+                };
+            });
+            document.querySelectorAll('.delete-exercise-btn').forEach(button => {
+                button.onclick = (event) => {
+                    addRippleEffect(event);
+                    const category = event.target.dataset.category;
+                    const id = event.target.dataset.id;
+                    deleteExercise(category, id);
+                };
+            });
+        }
+
+        /**
+         * Handles adding a new exercise to the selected category.
+         */
+        function addNewExercise(event) {
+            addRippleEffect(event);
+            const categoryKey = exerciseCategorySelect.value;
+            const name = newExerciseName.value.trim();
+            const type = newExerciseType.value;
+            let newExercise = { id: generateUUID(), name: name, type: type };
+
+            if (!name) {
+                showMessageBox("Exercise name cannot be empty.");
+                return;
+            }
+
+            if (type === 'timed') {
+                const time = parseInt(newExerciseTime.value);
+                const pointsPerSecond = parseInt(newExercisePointsPerSecond.value);
+                if (isNaN(time) || time <= 0 || isNaN(pointsPerSecond) || pointsPerSecond <= 0) {
+                    showMessageBox("For timed exercises, please enter valid positive numbers for Time and Points per Second.");
+                    return;
+                }
+                newExercise.time = time;
+                newExercise.pointsPerSecond = pointsPerSecond;
+            } else if (type === 'done') {
+                const points = parseInt(newExercisePoints.value);
+                if (isNaN(points) || points <= 0) {
+                    showMessageBox("For manual exercises, please enter a valid positive number for Points.");
+                    return;
+                }
+                newExercise.points = points;
+            }
+
+            sessionTypes[categoryKey].sequence.push(newExercise);
+            saveData();
+            showMessageBox(`"${name}" added to ${sessionTypes[categoryKey].name}.`);
+            newExerciseName.value = '';
+            newExerciseTime.value = '';
+            newExercisePointsPerSecond.value = '';
+            newExercisePoints.value = '';
+            renderExercisesList(categoryKey); // Re-render the list
+        }
+
+        /**
+         * Handles editing an existing exercise.
+         * @param {string} categoryKey - The key for the exercise category.
+         * @param {string} exerciseId - The ID of the exercise to edit.
+         */
+        function editExercise(categoryKey, exerciseId) {
+            const exerciseIndex = sessionTypes[categoryKey].sequence.findIndex(ex => ex.id === exerciseId);
+            if (exerciseIndex === -1) {
+                showMessageBox("Exercise not found for editing.");
+                return;
+            }
+            const exerciseToEdit = sessionTypes[categoryKey].sequence[exerciseIndex];
+
+            // Prompt for new values using a series of showMessageBox or a custom modal (for simplicity, let's use prompts for now, or a more complex custom modal)
+            // For a better UX, this would be a dedicated modal with pre-filled fields.
+            // Given the constraint of no alert/confirm, we'll need a more elaborate custom modal if we want full edit.
+            // For now, let's just make it clear that 'edit' is a placeholder for a more complex UI.
+            showMessageBox(`Editing "${exerciseToEdit.name}". This feature requires a more complex UI to implement fully without alerts. For now, please delete and re-add if you need to change values.`);
+            // A full implementation would involve:
+            /*
+            showCustomEditModal(exerciseToEdit, (updatedExercise) => {
+                sessionTypes[categoryKey].sequence[exerciseIndex] = updatedExercise;
+                saveData();
+                showMessageBox("Exercise updated successfully!");
+                renderExercisesList(categoryKey);
+            });
+            */
+        }
+
+        /**
+         * Handles deleting an exercise from the selected category.
+         * @param {string} categoryKey - The key for the exercise category.
+         * @param {string} exerciseId - The ID of the exercise to delete.
+         */
+        function deleteExercise(categoryKey, exerciseId) {
+            showConfirmBox("Are you sure you want to delete this exercise?", () => {
+                sessionTypes[categoryKey].sequence = sessionTypes[categoryKey].sequence.filter(ex => ex.id !== exerciseId);
+                saveData();
+                showMessageBox("Exercise deleted successfully!");
+                renderExercisesList(categoryKey); // Re-render the list
+            });
+        }
+
+
+        /**
          * Signs out the user and clears all local storage data.
          * This function is now also used for the pre-login clear data button.
          */
@@ -1073,6 +1431,7 @@
                 parentPassword = '';
                 totalPoints = 0;
                 redeemableItems = [];
+                sessionHistory = []; // Clear history
                 isSessionActive = false;
                 currentSessionPoints = 0;
                 currentRound = 1;
@@ -1081,6 +1440,7 @@
                 timerSeconds = 0;
                 currentSessionTypeKey = null;
                 currentExercisesSequence = [];
+                sessionTypes = JSON.parse(JSON.stringify(initialSessionTypes)); // Reset session types to initial
 
                 showMessageBox("All data has been cleared. You are now signed out.");
                 renderView('setup-view'); // Go back to setup screen
@@ -1111,6 +1471,7 @@
         // Navigation Buttons
         navHomeBtn.onclick = (event) => { addRippleEffect(event); renderView('home-view'); };
         navSessionBtn.onclick = (event) => { addRippleEffect(event); renderView('session-view'); };
+        navStatsBtn.onclick = (event) => { addRippleEffect(event); renderView('stats-view'); }; // New listener for Stats
         navRedeemBtn.onclick = (event) => { addRippleEffect(event); renderView('redeem-view'); };
         navParentBtn.onclick = (event) => { addRippleEffect(event); renderView('parent-view'); };
 
@@ -1153,6 +1514,7 @@
                 parentLogin.classList.add('hidden');
                 parentDashboard.classList.remove('hidden');
                 renderParentRedeemableList(); // Load items for parent dashboard
+                renderExercisesList(exerciseCategorySelect.value); // Load exercises list
             } else {
                 showMessageBox("Incorrect parent password.");
             }
@@ -1202,6 +1564,19 @@
 
         // New Event listener for Clear Data (from pre-login parent portal)
         clearDataPreLoginBtn.onclick = (event) => { addRippleEffect(event); signOut(); };
+
+        // Exercise management listeners
+        exerciseCategorySelect.onchange = () => renderExercisesList(exerciseCategorySelect.value);
+        newExerciseType.onchange = () => {
+            if (newExerciseType.value === 'timed') {
+                newExerciseTimedOptions.classList.remove('hidden');
+                newExerciseDoneOptions.classList.add('hidden');
+            } else {
+                newExerciseTimedOptions.classList.add('hidden');
+                newExerciseDoneOptions.classList.remove('hidden');
+            }
+        };
+        addNewExerciseBtn.onclick = addNewExercise;
 
 
         // --- Initial Load ---
