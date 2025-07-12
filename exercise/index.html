@@ -333,10 +333,26 @@
                     <label for="parentPasswordLogin" class="block text-gray-700 text-base font-bold mb-2">Parent Password:</label>
                     <input type="password" id="parentPasswordLogin" class="input-field" placeholder="Enter parent password">
                 </div>
-                <button id="parentLoginBtn" class="btn-primary w-full">Login</button>
+                <button id="parentLoginBtn" class="btn-primary w-full mb-4">Login</button>
+                <!-- New button for clearing data when password is forgotten -->
+                <button id="clearDataPreLoginBtn" class="btn-danger w-full">Forgot Password? Clear All Data</button>
             </div>
 
             <div id="parent-dashboard" class="hidden flex flex-col w-full">
+                <!-- Change Password Section -->
+                <div class="card mb-8">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Change Parent Password</h3>
+                    <div class="mb-5">
+                        <label for="newParentPasswordInput" class="block text-gray-700 text-base font-bold mb-2">New Password:</label>
+                        <input type="password" id="newParentPasswordInput" class="input-field" placeholder="Enter new password">
+                    </div>
+                    <div class="mb-7">
+                        <label for="confirmNewParentPasswordInput" class="block text-gray-700 text-base font-bold mb-2">Confirm New Password:</label>
+                        <input type="password" id="confirmNewParentPasswordInput" class="input-field" placeholder="Confirm new password">
+                    </div>
+                    <button id="changeParentPasswordBtn" class="btn-primary w-full">Change Password</button>
+                </div>
+
                 <!-- Add Points Manually Section -->
                 <div class="card mb-8">
                     <h3 class="text-xl font-bold text-gray-800 mb-4">Manually Add Points</h3>
@@ -500,9 +516,13 @@
 
         const parentView = document.getElementById('parent-view');
         const parentLogin = document.getElementById('parent-login');
+        const clearDataPreLoginBtn = document.getElementById('clearDataPreLoginBtn'); // New element
         const parentPasswordLogin = document.getElementById('parentPasswordLogin');
         const parentLoginBtn = document.getElementById('parentLoginBtn');
         const parentDashboard = document.getElementById('parent-dashboard');
+        const newParentPasswordInput = document.getElementById('newParentPasswordInput');
+        const confirmNewParentPasswordInput = document.getElementById('confirmNewParentPasswordInput');
+        const changeParentPasswordBtn = document.getElementById('changeParentPasswordBtn');
         const manualPointsInput = document.getElementById('manualPointsInput');
         const addManualPointsBtn = document.getElementById('addManualPointsBtn');
         const redeemItemName = document.getElementById('redeemItemName');
@@ -513,7 +533,7 @@
         const noParentRedeemablesMessage = document.getElementById('noParentRedeemablesMessage');
         const signOutBtn = document.getElementById('signOutBtn');
 
-        const footerNav = document.getElementById('footerNav'); // Get the footer nav element
+        const footerNav = document.getElementById('footerNav');
 
         const navHomeBtn = document.getElementById('navHomeBtn');
         const navSessionBtn = document.getElementById('navSessionBtn');
@@ -690,6 +710,9 @@
                 parentLogin.classList.remove('hidden');
                 parentDashboard.classList.add('hidden');
                 parentPasswordLogin.value = ''; // Clear password input
+                // Clear password change inputs when entering parent view
+                newParentPasswordInput.value = '';
+                confirmNewParentPasswordInput.value = '';
             }
         }
 
@@ -1016,7 +1039,32 @@
         }
 
         /**
+         * Handles changing the parent password.
+         */
+        function changeParentPassword(event) {
+            addRippleEffect(event);
+            const newPass = newParentPasswordInput.value.trim();
+            const confirmPass = confirmNewParentPasswordInput.value.trim();
+
+            if (!newPass) {
+                showMessageBox("New password cannot be empty.");
+                return;
+            }
+            if (newPass !== confirmPass) {
+                showMessageBox("New password and confirmation do not match.");
+                return;
+            }
+
+            parentPassword = newPass;
+            saveData();
+            newParentPasswordInput.value = '';
+            confirmNewParentPasswordInput.value = '';
+            showMessageBox("Parent password successfully changed!");
+        }
+
+        /**
          * Signs out the user and clears all local storage data.
+         * This function is now also used for the pre-login clear data button.
          */
         function signOut() {
             showConfirmBox("Are you sure you want to sign out and delete ALL your data? This action cannot be undone.", () => {
@@ -1061,7 +1109,6 @@
         };
 
         // Navigation Buttons
-        // These will now be controlled by renderView's visibility logic for footerNav
         navHomeBtn.onclick = (event) => { addRippleEffect(event); renderView('home-view'); };
         navSessionBtn.onclick = (event) => { addRippleEffect(event); renderView('session-view'); };
         navRedeemBtn.onclick = (event) => { addRippleEffect(event); renderView('redeem-view'); };
@@ -1138,7 +1185,6 @@
                 redeemItemCost.value = '';
                 redeemItemUsageLimit.value = ''; // Clear new input
                 renderParentRedeemableList(); // Update parent list
-                renderRedeem(); // Update user redeem list
                 showMessageBox("Redeemable item added successfully!");
             } else {
                 showMessageBox("Please enter a valid item name, a positive point cost, and a valid usage limit (positive number or -1 for unlimited).");
@@ -1148,8 +1194,14 @@
         // Event listener for manual point addition
         addManualPointsBtn.onclick = addManualPoints;
 
-        // Event listener for Sign Out
+        // Event listener for Change Parent Password
+        changeParentPasswordBtn.onclick = changeParentPassword;
+
+        // Event listener for Sign Out (from dashboard)
         signOutBtn.onclick = (event) => { addRippleEffect(event); signOut(); };
+
+        // New Event listener for Clear Data (from pre-login parent portal)
+        clearDataPreLoginBtn.onclick = (event) => { addRippleEffect(event); signOut(); };
 
 
         // --- Initial Load ---
