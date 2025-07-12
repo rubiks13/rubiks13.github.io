@@ -24,19 +24,19 @@
             flex-direction: column;
             align-items: center;
             justify-content: center; /* Center content vertically */
-            padding: 1.5rem; /* Increased padding */
-            padding-bottom: 6rem; /* Space for fixed footer */
+            padding: 2rem; /* Increased padding */
+            padding-bottom: 7rem; /* Space for fixed footer */
         }
         .view {
             display: none;
             flex-grow: 1; /* Allow views to take available space */
             width: 100%;
-            max-width: 420px; /* Slightly wider max-width */
-            padding: 1rem;
+            max-width: 450px; /* Slightly wider max-width for better content display */
+            padding: 1.5rem; /* Increased padding */
             box-sizing: border-box;
             overflow-y: auto; /* Enable scrolling for content */
             animation: fadeIn 0.6s ease-out forwards; /* Slightly longer fade in animation */
-            min-height: 70vh; /* Ensure views have enough height */
+            min-height: 75vh; /* Ensure views have enough height */
             justify-content: center; /* Center content within view */
             align-items: center;
             flex-direction: column;
@@ -61,8 +61,8 @@
             border-top: 1px solid #e2e8f0;
             display: flex;
             justify-content: space-around;
-            padding: 0.85rem 0; /* Increased padding */
-            box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.15); /* Stronger, softer shadow */
+            padding: 1rem 0; /* Increased padding */
+            box-shadow: 0 -8px 25px rgba(0, 0, 0, 0.2); /* Stronger, softer shadow */
             z-index: 1000;
             /* Initially hidden, shown after setup */
             visibility: hidden;
@@ -79,47 +79,50 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 0.6rem 0.8rem; /* More padding for touch targets */
-            font-size: 0.85rem; /* Slightly larger font */
+            padding: 0.8rem 1rem; /* More padding for touch targets */
+            font-size: 0.9rem; /* Slightly larger font */
             color: #64748b;
             transition: color 0.3s ease-in-out, transform 0.3s ease-in-out, background-color 0.3s ease-in-out;
-            border-radius: 1rem; /* More rounded */
-            min-width: 75px; /* Wider buttons */
-            font-weight: 600; /* Bolder text */
+            border-radius: 9999px; /* Full rounded corners for footer buttons */
+            min-width: 85px; /* Wider buttons */
+            font-weight: 700; /* Bolder text */
             position: relative;
             overflow: hidden; /* For ripple effect */
         }
         .footer-nav button.active {
             color: #2563eb; /* Darker blue for active state */
-            transform: translateY(-5px); /* More pronounced lift */
+            transform: translateY(-8px); /* More pronounced lift */
             background-color: #e0f2fe; /* Light blue background for active */
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
         }
         .footer-nav button svg {
-            width: 30px; /* Larger icons */
-            height: 30px;
-            margin-bottom: 0.3rem;
+            width: 32px; /* Larger icons */
+            height: 32px;
+            margin-bottom: 0.4rem;
         }
 
-        /* Custom Button Styles */
+        /* Custom Button Styles - Explicit border-radius */
         .btn-primary {
             background: linear-gradient(to right, #3b82f6, #2563eb); /* Blue gradient */
-            @apply text-white py-3.5 px-7 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300 font-bold text-lg;
-            border: none; /* Remove default border */
+            @apply text-white py-4 px-8 shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300 font-bold text-lg;
+            border: 2px solid #60a5fa; /* Added border for verification */
+            border-radius: 9999px; /* Explicitly set for primary buttons */
             position: relative;
             overflow: hidden;
         }
         .btn-secondary {
             background: linear-gradient(to right, #cbd5e1, #94a3b8); /* Gray gradient */
-            @apply text-gray-800 py-3.5 px-7 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-gray-300 font-semibold text-lg;
-            border: none;
+            @apply text-gray-800 py-4 px-8 shadow-md hover:shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-gray-300 font-semibold text-lg;
+            border: 2px solid #a1a1aa; /* Added border for verification */
+            border-radius: 9999px; /* Explicitly set for secondary buttons */
             position: relative;
             overflow: hidden;
         }
         .btn-danger {
             background: linear-gradient(to right, #ef4444, #dc2626); /* Red gradient */
-            @apply text-white p-2.5 rounded-lg hover:shadow-md transition-all duration-200 ease-in-out transform hover:scale-105;
-            border: none;
+            @apply text-white py-3 px-6 hover:shadow-md transition-all duration-200 ease-in-out transform hover:scale-105;
+            border: 2px solid #f87171; /* Added border for verification */
+            border-radius: 9999px; /* Explicitly set for danger buttons */
             position: relative;
             overflow: hidden;
         }
@@ -141,11 +144,11 @@
         }
 
         .input-field {
-            @apply w-full p-3.5 border border-gray-300 rounded-xl focus:ring-3 focus:ring-blue-400 focus:border-transparent transition-all duration-200 ease-in-out text-gray-800 shadow-sm; /* More padding, stronger focus ring, shadow */
+            @apply w-full p-4 border border-gray-300 rounded-2xl focus:ring-3 focus:ring-blue-400 focus:border-transparent transition-all duration-200 ease-in-out text-gray-800 shadow-sm; /* More padding, stronger focus ring, shadow, more rounded */
         }
         .card {
             background-color: #ffffff;
-            @apply rounded-3xl shadow-2xl p-7 mb-8 border border-blue-100; /* Even more rounded, stronger shadow, subtle border */
+            @apply rounded-3xl shadow-2xl p-8 mb-10 border border-blue-100; /* Even more rounded, stronger shadow, subtle border, more padding */
             width: 100%; /* Ensure cards take full width of their container */
             box-sizing: border-box;
             animation: cardPopIn 0.5s ease-out forwards;
@@ -162,9 +165,9 @@
             left: 50%;
             transform: translate(-50%, -50%);
             background: linear-gradient(to bottom right, #ffffff, #f0f9ff); /* White to light blue gradient */
-            padding: 3rem; /* More padding */
-            border-radius: 2rem; /* Even more rounded */
-            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.3); /* Deeper shadow */
+            padding: 3.5rem; /* More padding */
+            border-radius: 3rem; /* Even more rounded */
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.35); /* Deeper shadow */
             z-index: 1001;
             display: none;
             flex-direction: column;
@@ -172,7 +175,7 @@
             justify-content: center;
             text-align: center;
             max-width: 90%;
-            border: 3px solid #3b82f6; /* Thicker blue border */
+            border: 4px solid #3b82f6; /* Thicker blue border */
             animation: popIn 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards; /* Bouncier popIn */
         }
         .message-box.active {
@@ -190,7 +193,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.7); /* Darker overlay */
+            background-color: rgba(0, 0, 0, 0.75); /* Darker overlay */
             z-index: 1000;
             display: none;
         }
@@ -226,8 +229,8 @@
         }
         .message-box .button-group {
             display: flex;
-            gap: 1rem;
-            margin-top: 1.5rem;
+            gap: 1.25rem; /* Increased gap */
+            margin-top: 1.75rem; /* Increased margin */
         }
         /* Styles for in-place editing */
         .exercise-item.editing .display-mode {
@@ -242,16 +245,72 @@
             display: none;
         }
         .exercise-item .edit-mode .input-field {
-            padding: 0.5rem;
-            font-size: 0.9rem;
+            padding: 0.6rem; /* Slightly more padding for edit inputs */
+            font-size: 0.95rem; /* Slightly larger font for edit inputs */
+            border-radius: 0.75rem; /* More rounded for edit inputs */
         }
         .exercise-item .edit-mode .button-group {
-            margin-top: 0.5rem;
+            margin-top: 0.75rem; /* More margin */
             justify-content: flex-end; /* Align buttons to the right */
         }
-        .exercise-item .edit-mode .button-group button {
-            padding: 0.5rem 1rem;
-            font-size: 0.8rem;
+        /* Explicitly set border-radius for all buttons, overriding any default or Tailwind classes */
+        button {
+            border-radius: 9999px !important; /* Force full rounded corners on ALL buttons */
+        }
+        /* Ensure specific smaller buttons retain their padding/font-size */
+        .edit-exercise-btn, .delete-exercise-btn, .save-exercise-btn, .cancel-edit-btn {
+            padding: 0.6rem 1.1rem !important; /* Ensure padding is applied */
+            font-size: 0.85rem !important; /* Ensure font size is applied */
+        }
+
+        /* Toggle Switch Styles */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #2196F3;
+        }
+
+        input:focus + .slider {
+            box-shadow: 0 0 1px #2196F3;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
         }
     </style>
 </head>
@@ -384,9 +443,9 @@
                     <label for="parentPasswordLogin" class="block text-gray-700 text-base font-bold mb-2">Parent Password:</label>
                     <input type="password" id="parentPasswordLogin" class="input-field" placeholder="Enter parent password">
                 </div>
-                <button id="parentLoginBtn" class="btn-primary w-full mb-4">Login</button>
+                <button id="parentLoginBtn" class="btn-primary w-full">Login</button>
                 <!-- New button for clearing data when password is forgotten -->
-                <button id="clearDataPreLoginBtn" class="btn-danger w-full">Forgot Password? Clear All Data</button>
+                <button id="clearDataPreLoginBtn" class="btn-danger w-full mt-4">Forgot Password? Clear All Data</button>
             </div>
 
             <div id="parent-dashboard" class="hidden flex flex-col w-full">
@@ -402,6 +461,18 @@
                         <input type="password" id="confirmNewParentPasswordInput" class="input-field" placeholder="Confirm new password">
                     </div>
                     <button id="changeParentPasswordBtn" class="btn-primary w-full">Change Password</button>
+                </div>
+
+                <!-- Sound Control Section -->
+                <div class="card mb-8">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Sound Settings</h3>
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-700 text-base font-bold">Timer Sound:</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="timerSoundToggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
                 </div>
 
                 <!-- Manage Exercises Section -->
@@ -535,6 +606,7 @@
         let totalPoints = 0;
         let redeemableItems = []; // { name: "Item Name", cost: 100, id: "unique-id", usageLimit: -1, timesUsed: 0 }
         let sessionHistory = []; // { type: 'exercises'|'legStretches3min'|'legStretches9min', timestamp: Date.now(), roundsCompleted: number }
+        let isTimerSoundEnabled = true; // New state variable for sound control
 
         // Session specific state
         let currentSessionPoints = 0;
@@ -655,6 +727,9 @@
         const newExercisePoints = document.getElementById('newExercisePoints');
         const addNewExerciseBtn = document.getElementById('addNewExerciseBtn');
 
+        // New DOM element for sound toggle
+        const timerSoundToggle = document.getElementById('timerSoundToggle');
+
         const footerNav = document.getElementById('footerNav');
 
         const navHomeBtn = document.getElementById('navHomeBtn');
@@ -756,10 +831,10 @@
         }
 
         /**
-         * Plays the timer end sound.
+         * Plays the timer end sound if enabled.
          */
         function playTimerEndSound() {
-            if (timerEndSound) {
+            if (isTimerSoundEnabled && timerEndSound) {
                 timerEndSound.currentTime = 0; // Rewind to start
                 timerEndSound.play().catch(e => console.error("Error playing sound:", e));
             }
@@ -776,6 +851,7 @@
             localStorage.setItem('redeemableItems', JSON.stringify(redeemableItems));
             localStorage.setItem('sessionTypes', JSON.stringify(sessionTypes)); // Save dynamic session types
             localStorage.setItem('sessionHistory', JSON.stringify(sessionHistory)); // Save session history
+            localStorage.setItem('isTimerSoundEnabled', isTimerSoundEnabled.toString()); // Save sound preference
             localStorage.setItem('hasVisitedBefore', 'true');
         }
 
@@ -830,6 +906,9 @@
                 console.error("Error parsing session history from local storage:", e);
                 sessionHistory = []; // Reset if corrupted
             }
+
+            // Load sound preference, default to true if not found
+            isTimerSoundEnabled = localStorage.getItem('isTimerSoundEnabled') === 'true';
         }
 
         /**
@@ -884,6 +963,8 @@
                 // Clear password change inputs when entering parent view
                 newParentPasswordInput.value = '';
                 confirmNewParentPasswordInput.value = '';
+                // Set the initial state of the sound toggle
+                timerSoundToggle.checked = isTimerSoundEnabled;
                 // Render exercises list for default category
                 renderExercisesList(exerciseCategorySelect.value);
             }
@@ -1335,8 +1416,8 @@
                         <p class="font-semibold text-gray-800">${exercise.name}</p>
                         <p class="text-sm text-gray-600">${details}</p>
                         <div class="flex gap-2 mt-3">
-                            <button class="btn-secondary text-sm px-3 py-1 rounded-lg edit-exercise-btn" data-category="${categoryKey}" data-id="${exercise.id}">Edit</button>
-                            <button class="btn-danger text-sm px-3 py-1 rounded-lg delete-exercise-btn" data-category="${categoryKey}" data-id="${exercise.id}">Delete</button>
+                            <button class="btn-secondary text-sm px-3 py-1 edit-exercise-btn" data-category="${categoryKey}" data-id="${exercise.id}">Edit</button>
+                            <button class="btn-danger text-sm px-3 py-1 delete-exercise-btn" data-category="${categoryKey}" data-id="${exercise.id}">Delete</button>
                         </div>
                     </div>
                     <div class="edit-mode">
@@ -1362,8 +1443,8 @@
                         </div>
 
                         <div class="button-group flex justify-end gap-2">
-                            <button class="btn-primary text-sm px-3 py-1 rounded-lg save-exercise-btn" data-category="${categoryKey}" data-id="${exercise.id}">Save</button>
-                            <button class="btn-secondary text-sm px-3 py-1 rounded-lg cancel-edit-btn" data-category="${categoryKey}" data-id="${exercise.id}">Cancel</button>
+                            <button class="btn-primary text-sm px-3 py-1 save-exercise-btn" data-category="${categoryKey}" data-id="${exercise.id}">Save</button>
+                            <button class="btn-secondary text-sm px-3 py-1 cancel-edit-btn" data-category="${categoryKey}" data-id="${exercise.id}">Cancel</button>
                         </div>
                     </div>
                 `;
@@ -1570,13 +1651,13 @@
                 sessionHistory = []; // Clear history
                 isSessionActive = false;
                 currentSessionPoints = 0;
-                currentRound = 1;
                 currentExerciseIndex = 0;
                 clearInterval(timerInterval); // Clear any active timers
                 timerSeconds = 0;
                 currentSessionTypeKey = null;
                 currentExercisesSequence = [];
                 sessionTypes = JSON.parse(JSON.stringify(initialSessionTypes)); // Reset session types to initial
+                isTimerSoundEnabled = true; // Reset sound preference
 
                 showMessageBox("All data has been cleared. You are now signed out.");
                 renderView('setup-view'); // Go back to setup screen
@@ -1649,11 +1730,20 @@
             if (enteredPassword === parentPassword) {
                 parentLogin.classList.add('hidden');
                 parentDashboard.classList.remove('hidden');
+                // Set the initial state of the sound toggle when parent dashboard is shown
+                timerSoundToggle.checked = isTimerSoundEnabled;
                 renderParentRedeemableList(); // Load items for parent dashboard
                 renderExercisesList(exerciseCategorySelect.value); // Load exercises list
             } else {
                 showMessageBox("Incorrect parent password.");
             }
+        };
+
+        // New: Event listener for the timer sound toggle
+        timerSoundToggle.onchange = () => {
+            isTimerSoundEnabled = timerSoundToggle.checked;
+            saveData(); // Save the updated preference
+            showMessageBox(`Timer sound is now ${isTimerSoundEnabled ? 'ON' : 'OFF'}.`);
         };
 
         addRedeemableBtn.onclick = (event) => {
