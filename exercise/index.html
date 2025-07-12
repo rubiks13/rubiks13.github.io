@@ -64,6 +64,15 @@
             padding: 0.85rem 0; /* Increased padding */
             box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.15); /* Stronger, softer shadow */
             z-index: 1000;
+            /* Initially hidden, shown after setup */
+            visibility: hidden;
+            opacity: 0;
+            transition: visibility 0s 0.6s, opacity 0.6s ease-in-out;
+        }
+        .footer-nav.visible {
+            visibility: visible;
+            opacity: 1;
+            transition: visibility 0s, opacity 0.6s ease-in-out;
         }
         .footer-nav button {
             display: flex;
@@ -373,7 +382,7 @@
     </div>
 
     <!-- Footer Navigation -->
-    <nav class="footer-nav">
+    <nav id="footerNav" class="footer-nav">
         <button id="navHomeBtn" class="active">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
                 <path d="M11.47 3.84a.75.75 0 0 1 1.06 0l8.69 8.69a1.5 1.5 0 0 0 2.12 0.049l-1.49-1.49c-.272-.271-.497-.56-.676-.864l-4.935-4.935a.75.75 0 0 0-1.06 0L9.47 9.16a.75.75 0 1 1-1.06-1.06l7.16-7.16Z" />
@@ -502,7 +511,9 @@
         const addRedeemableBtn = document.getElementById('addRedeemableBtn');
         const parentRedeemableList = document.getElementById('parentRedeemableList');
         const noParentRedeemablesMessage = document.getElementById('noParentRedeemablesMessage');
-        const signOutBtn = document.getElementById('signOutBtn'); // New element
+        const signOutBtn = document.getElementById('signOutBtn');
+
+        const footerNav = document.getElementById('footerNav'); // Get the footer nav element
 
         const navHomeBtn = document.getElementById('navHomeBtn');
         const navSessionBtn = document.getElementById('navSessionBtn');
@@ -512,8 +523,8 @@
         const messageBox = document.getElementById('messageBox');
         const messageText = document.getElementById('messageText');
         const messageBoxOk = document.getElementById('messageBoxOk');
-        const messageBoxYes = document.getElementById('messageBoxYes'); // New button
-        const messageBoxNo = document.getElementById('messageBoxNo');   // New button
+        const messageBoxYes = document.getElementById('messageBoxYes');
+        const messageBoxNo = document.getElementById('messageBoxNo');
         const overlay = document.getElementById('overlay');
 
         const timerEndSound = document.getElementById('timerEndSound');
@@ -638,6 +649,11 @@
          * @param {string} viewId - The ID of the view to activate (e.g., 'home-view').
          */
         function renderView(viewId) {
+            // If setup is not complete, force to setup view
+            if (!localStorage.getItem('hasVisitedBefore') && viewId !== 'setup-view') {
+                viewId = 'setup-view';
+            }
+
             const views = [setupView, homeView, sessionView, redeemView, parentView];
             views.forEach(view => {
                 if (view.id === viewId) {
@@ -646,6 +662,13 @@
                     view.classList.remove('active');
                 }
             });
+
+            // Control footer navigation visibility
+            if (localStorage.getItem('hasVisitedBefore')) {
+                footerNav.classList.add('visible');
+            } else {
+                footerNav.classList.remove('visible');
+            }
 
             // Update footer button active state
             const navButtons = [navHomeBtn, navSessionBtn, navRedeemBtn, navParentBtn];
@@ -1038,6 +1061,7 @@
         };
 
         // Navigation Buttons
+        // These will now be controlled by renderView's visibility logic for footerNav
         navHomeBtn.onclick = (event) => { addRippleEffect(event); renderView('home-view'); };
         navSessionBtn.onclick = (event) => { addRippleEffect(event); renderView('session-view'); };
         navRedeemBtn.onclick = (event) => { addRippleEffect(event); renderView('redeem-view'); };
@@ -1131,10 +1155,11 @@
         // --- Initial Load ---
         document.addEventListener('DOMContentLoaded', () => {
             loadData();
+            // Initially render the setup view or home view based on data presence
             if (localStorage.getItem('hasVisitedBefore')) {
-                renderView('home-view'); // Go straight to home if already set up
+                renderView('home-view');
             } else {
-                renderView('setup-view'); // Show setup for first time users
+                renderView('setup-view');
             }
         });
 
