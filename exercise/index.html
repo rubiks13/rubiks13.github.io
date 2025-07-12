@@ -229,6 +229,30 @@
             gap: 1rem;
             margin-top: 1.5rem;
         }
+        /* Styles for in-place editing */
+        .exercise-item.editing .display-mode {
+            display: none;
+        }
+        .exercise-item.editing .edit-mode {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .exercise-item .edit-mode {
+            display: none;
+        }
+        .exercise-item .edit-mode .input-field {
+            padding: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .exercise-item .edit-mode .button-group {
+            margin-top: 0.5rem;
+            justify-content: flex-end; /* Align buttons to the right */
+        }
+        .exercise-item .edit-mode .button-group button {
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -589,7 +613,7 @@
         const finalSessionPoints = document.getElementById('finalSessionPoints');
         const backToHomeBtn = document.getElementById('backToHomeBtn');
 
-        const statsView = document.getElementById('stats-view'); // New view
+        const statsView = document.getElementById('stats-view');
         const statsLastWeek = document.getElementById('statsLastWeek');
         const statsLastMonth = document.getElementById('statsLastMonth');
         const statsLastYear = document.getElementById('statsLastYear');
@@ -619,7 +643,7 @@
         const noParentRedeemablesMessage = document.getElementById('noParentRedeemablesMessage');
         const signOutBtn = document.getElementById('signOutBtn');
 
-        // New elements for Exercise Management
+        // Elements for Exercise Management
         const exerciseCategorySelect = document.getElementById('exerciseCategorySelect');
         const currentExercisesList = document.getElementById('currentExercisesList');
         const newExerciseName = document.getElementById('newExerciseName');
@@ -635,7 +659,7 @@
 
         const navHomeBtn = document.getElementById('navHomeBtn');
         const navSessionBtn = document.getElementById('navSessionBtn');
-        const navStatsBtn = document.getElementById('navStatsBtn'); // New nav button
+        const navStatsBtn = document.getElementById('navStatsBtn');
         const navRedeemBtn = document.getElementById('navRedeemBtn');
         const navParentBtn = document.getElementById('navParentBtn');
 
@@ -777,10 +801,11 @@
             }
 
             try {
-                sessionTypes = JSON.parse(localStorage.getItem('sessionTypes'));
-                if (!sessionTypes) { // If no custom session types, use initial ones
+                const storedSessionTypes = JSON.parse(localStorage.getItem('sessionTypes'));
+                if (!storedSessionTypes) { // If no custom session types, use initial ones
                     sessionTypes = JSON.parse(JSON.stringify(initialSessionTypes)); // Deep copy
                 } else {
+                    sessionTypes = storedSessionTypes;
                     // Ensure all initial session types exist and have IDs for old data
                     for (const key in initialSessionTypes) {
                         if (!sessionTypes[key]) {
@@ -1295,7 +1320,9 @@
 
             exercises.forEach(exercise => {
                 const exerciseDiv = document.createElement('div');
-                exerciseDiv.className = 'flex flex-col p-4 bg-gray-50 rounded-xl shadow-sm border border-gray-200';
+                exerciseDiv.className = 'exercise-item flex flex-col p-4 bg-gray-50 rounded-xl shadow-sm border border-gray-200';
+                exerciseDiv.dataset.id = exercise.id; // Store ID on the div
+
                 let details = `Type: ${exercise.type === 'timed' ? 'Timed' : 'Manual'}`;
                 if (exercise.type === 'timed') {
                     details += ` | Time: ${exercise.time}s | Points/Sec: ${exercise.pointsPerSecond}`;
@@ -1304,11 +1331,40 @@
                 }
 
                 exerciseDiv.innerHTML = `
-                    <p class="font-semibold text-gray-800">${exercise.name}</p>
-                    <p class="text-sm text-gray-600">${details}</p>
-                    <div class="flex gap-2 mt-3">
-                        <button class="btn-secondary text-sm px-3 py-1 rounded-lg edit-exercise-btn" data-category="${categoryKey}" data-id="${exercise.id}">Edit</button>
-                        <button class="btn-danger text-sm px-3 py-1 rounded-lg delete-exercise-btn" data-category="${categoryKey}" data-id="${exercise.id}">Delete</button>
+                    <div class="display-mode">
+                        <p class="font-semibold text-gray-800">${exercise.name}</p>
+                        <p class="text-sm text-gray-600">${details}</p>
+                        <div class="flex gap-2 mt-3">
+                            <button class="btn-secondary text-sm px-3 py-1 rounded-lg edit-exercise-btn" data-category="${categoryKey}" data-id="${exercise.id}">Edit</button>
+                            <button class="btn-danger text-sm px-3 py-1 rounded-lg delete-exercise-btn" data-category="${categoryKey}" data-id="${exercise.id}">Delete</button>
+                        </div>
+                    </div>
+                    <div class="edit-mode">
+                        <label for="editName-${exercise.id}" class="block text-gray-700 text-sm font-bold mb-1">Name:</label>
+                        <input type="text" id="editName-${exercise.id}" class="input-field mb-2" value="${exercise.name}">
+
+                        <label for="editType-${exercise.id}" class="block text-gray-700 text-sm font-bold mb-1">Type:</label>
+                        <select id="editType-${exercise.id}" class="input-field mb-2">
+                            <option value="timed" ${exercise.type === 'timed' ? 'selected' : ''}>Timed</option>
+                            <option value="done" ${exercise.type === 'done' ? 'selected' : ''}>Manual (Done)</option>
+                        </select>
+
+                        <div id="editTimedOptions-${exercise.id}" class="${exercise.type === 'timed' ? '' : 'hidden'}">
+                            <label for="editTime-${exercise.id}" class="block text-gray-700 text-sm font-bold mb-1">Time (seconds):</label>
+                            <input type="number" id="editTime-${exercise.id}" class="input-field mb-2" value="${exercise.time || ''}" min="1">
+                            <label for="editPointsPerSecond-${exercise.id}" class="block text-gray-700 text-sm font-bold mb-1">Points per Second:</label>
+                            <input type="number" id="editPointsPerSecond-${exercise.id}" class="input-field mb-2" value="${exercise.pointsPerSecond || ''}" min="1">
+                        </div>
+
+                        <div id="editDoneOptions-${exercise.id}" class="${exercise.type === 'done' ? '' : 'hidden'}">
+                            <label for="editPoints-${exercise.id}" class="block text-gray-700 text-sm font-bold mb-1">Points for Completion:</label>
+                            <input type="number" id="editPoints-${exercise.id}" class="input-field mb-2" value="${exercise.points || ''}" min="1">
+                        </div>
+
+                        <div class="button-group flex justify-end gap-2">
+                            <button class="btn-primary text-sm px-3 py-1 rounded-lg save-exercise-btn" data-category="${categoryKey}" data-id="${exercise.id}">Save</button>
+                            <button class="btn-secondary text-sm px-3 py-1 rounded-lg cancel-edit-btn" data-category="${categoryKey}" data-id="${exercise.id}">Cancel</button>
+                        </div>
                     </div>
                 `;
                 currentExercisesList.appendChild(exerciseDiv);
@@ -1320,7 +1376,7 @@
                     addRippleEffect(event);
                     const category = event.target.dataset.category;
                     const id = event.target.dataset.id;
-                    editExercise(category, id);
+                    toggleEditMode(category, id, true); // Enable edit mode
                 };
             });
             document.querySelectorAll('.delete-exercise-btn').forEach(button => {
@@ -1331,7 +1387,110 @@
                     deleteExercise(category, id);
                 };
             });
+            // Attach event listeners for save and cancel buttons (newly created)
+            document.querySelectorAll('.save-exercise-btn').forEach(button => {
+                button.onclick = (event) => {
+                    addRippleEffect(event);
+                    const category = event.target.dataset.category;
+                    const id = event.target.dataset.id;
+                    saveEditedExercise(category, id);
+                };
+            });
+            document.querySelectorAll('.cancel-edit-btn').forEach(button => {
+                button.onclick = (event) => {
+                    addRippleEffect(event);
+                    const category = event.target.dataset.category;
+                    const id = event.target.dataset.id;
+                    toggleEditMode(category, id, false); // Disable edit mode
+                };
+            });
+            // Attach change listeners for type select within edit mode
+            document.querySelectorAll('[id^="editType-"]').forEach(select => {
+                select.onchange = (event) => {
+                    const exerciseId = event.target.id.split('-')[1];
+                    const timedOptions = document.getElementById(`editTimedOptions-${exerciseId}`);
+                    const doneOptions = document.getElementById(`editDoneOptions-${exerciseId}`);
+                    if (event.target.value === 'timed') {
+                        timedOptions.classList.remove('hidden');
+                        doneOptions.classList.add('hidden');
+                    } else {
+                        timedOptions.classList.add('hidden');
+                        doneOptions.classList.remove('hidden');
+                    }
+                };
+            });
         }
+
+        /**
+         * Toggles the edit mode for a specific exercise item.
+         * @param {string} categoryKey - The key for the exercise category.
+         * @param {string} exerciseId - The ID of the exercise item.
+         * @param {boolean} enable - True to enable edit mode, false to disable.
+         */
+        function toggleEditMode(categoryKey, exerciseId, enable) {
+            const exerciseDiv = document.querySelector(`.exercise-item[data-id="${exerciseId}"]`);
+            if (exerciseDiv) {
+                if (enable) {
+                    exerciseDiv.classList.add('editing');
+                } else {
+                    exerciseDiv.classList.remove('editing');
+                    // Re-render the list to reset inputs if cancelled
+                    renderExercisesList(categoryKey);
+                }
+            }
+        }
+
+        /**
+         * Saves the changes made to an exercise in edit mode.
+         * @param {string} categoryKey - The key for the exercise category.
+         * @param {string} exerciseId - The ID of the exercise to save.
+         */
+        function saveEditedExercise(categoryKey, exerciseId) {
+            const exerciseIndex = sessionTypes[categoryKey].sequence.findIndex(ex => ex.id === exerciseId);
+            if (exerciseIndex === -1) {
+                showMessageBox("Error: Exercise not found for saving.");
+                return;
+            }
+
+            const nameInput = document.getElementById(`editName-${exerciseId}`);
+            const typeSelect = document.getElementById(`editType-${exerciseId}`);
+            const timeInput = document.getElementById(`editTime-${exerciseId}`);
+            const pointsPerSecondInput = document.getElementById(`editPointsPerSecond-${exerciseId}`);
+            const pointsInput = document.getElementById(`editPoints-${exerciseId}`);
+
+            const newName = nameInput.value.trim();
+            const newType = typeSelect.value;
+            let updatedExercise = { id: exerciseId, name: newName, type: newType };
+
+            if (!newName) {
+                showMessageBox("Exercise name cannot be empty.");
+                return;
+            }
+
+            if (newType === 'timed') {
+                const newTime = parseInt(timeInput.value);
+                const newPointsPerSecond = parseInt(pointsPerSecondInput.value);
+                if (isNaN(newTime) || newTime <= 0 || isNaN(newPointsPerSecond) || newPointsPerSecond <= 0) {
+                    showMessageBox("For timed exercises, please enter valid positive numbers for Time and Points per Second.");
+                    return;
+                }
+                updatedExercise.time = newTime;
+                updatedExercise.pointsPerSecond = newPointsPerSecond;
+            } else if (newType === 'done') {
+                const newPoints = parseInt(pointsInput.value);
+                if (isNaN(newPoints) || newPoints <= 0) {
+                    showMessageBox("For manual exercises, please enter a valid positive number for Points.");
+                    return;
+                }
+                updatedExercise.points = newPoints;
+            }
+
+            sessionTypes[categoryKey].sequence[exerciseIndex] = updatedExercise;
+            saveData();
+            showMessageBox(`"${newName}" updated successfully!`);
+            renderExercisesList(categoryKey); // Re-render the list to show updated values and exit edit mode
+        }
+
 
         /**
          * Handles adding a new exercise to the selected category.
@@ -1376,34 +1535,6 @@
             renderExercisesList(categoryKey); // Re-render the list
         }
 
-        /**
-         * Handles editing an existing exercise.
-         * @param {string} categoryKey - The key for the exercise category.
-         * @param {string} exerciseId - The ID of the exercise to edit.
-         */
-        function editExercise(categoryKey, exerciseId) {
-            const exerciseIndex = sessionTypes[categoryKey].sequence.findIndex(ex => ex.id === exerciseId);
-            if (exerciseIndex === -1) {
-                showMessageBox("Exercise not found for editing.");
-                return;
-            }
-            const exerciseToEdit = sessionTypes[categoryKey].sequence[exerciseIndex];
-
-            // Prompt for new values using a series of showMessageBox or a custom modal (for simplicity, let's use prompts for now, or a more complex custom modal)
-            // For a better UX, this would be a dedicated modal with pre-filled fields.
-            // Given the constraint of no alert/confirm, we'll need a more elaborate custom modal if we want full edit.
-            // For now, let's just make it clear that 'edit' is a placeholder for a more complex UI.
-            showMessageBox(`Editing "${exerciseToEdit.name}". This feature requires a more complex UI to implement fully without alerts. For now, please delete and re-add if you need to change values.`);
-            // A full implementation would involve:
-            /*
-            showCustomEditModal(exerciseToEdit, (updatedExercise) => {
-                sessionTypes[categoryKey].sequence[exerciseIndex] = updatedExercise;
-                saveData();
-                showMessageBox("Exercise updated successfully!");
-                renderExercisesList(categoryKey);
-            });
-            */
-        }
 
         /**
          * Handles deleting an exercise from the selected category.
@@ -1471,7 +1602,7 @@
         // Navigation Buttons
         navHomeBtn.onclick = (event) => { addRippleEffect(event); renderView('home-view'); };
         navSessionBtn.onclick = (event) => { addRippleEffect(event); renderView('session-view'); };
-        navStatsBtn.onclick = (event) => { addRippleEffect(event); renderView('stats-view'); }; // New listener for Stats
+        navStatsBtn.onclick = (event) => { addRippleEffect(event); renderView('stats-view'); };
         navRedeemBtn.onclick = (event) => { addRippleEffect(event); renderView('redeem-view'); };
         navParentBtn.onclick = (event) => { addRippleEffect(event); renderView('parent-view'); };
 
