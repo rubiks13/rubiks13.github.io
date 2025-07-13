@@ -17,6 +17,7 @@
             margin: 0;
             padding: 0;
             color: #334155; /* Default text color */
+            transition: background-color 0.3s ease, color 0.3s ease; /* Smooth theme transition */
         }
         #app-container {
             flex-grow: 1;
@@ -67,7 +68,7 @@
             /* Initially hidden, shown after setup */
             visibility: hidden;
             opacity: 0;
-            transition: visibility 0s 0.6s, opacity 0.6s ease-in-out;
+            transition: visibility 0s 0.6s, opacity 0.6s ease-in-out, background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
         }
         .footer-nav.visible {
             visibility: visible;
@@ -152,6 +153,7 @@
             width: 100%; /* Ensure cards take full width of their container */
             box-sizing: border-box;
             animation: cardPopIn 0.5s ease-out forwards;
+            transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
         }
 
         @keyframes cardPopIn {
@@ -177,6 +179,7 @@
             max-width: 90%;
             border: 4px solid #3b82f6; /* Thicker blue border */
             animation: popIn 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards; /* Bouncier popIn */
+            transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
         }
         .message-box.active {
             display: flex;
@@ -206,15 +209,19 @@
             @apply text-5xl font-extrabold text-blue-800 mb-12; /* Larger, bolder titles, more margin */
             text-shadow: 2px 2px 4px rgba(0,0,0,0.15);
             letter-spacing: -0.025em; /* Slightly tighter letter spacing */
+            transition: color 0.3s ease, text-shadow 0.3s ease;
         }
         h3 {
             @apply text-2xl font-bold text-gray-800 mb-4;
+            transition: color 0.3s ease;
         }
         p {
             @apply text-gray-700;
+            transition: color 0.3s ease;
         }
         .text-blue-600 { /* For points display */
             color: #2563eb; /* Darker blue for contrast */
+            transition: color 0.3s ease;
         }
         .text-5xl { /* For large point numbers */
             font-size: 4.5rem; /* Even larger */
@@ -226,6 +233,7 @@
         }
         #helloGreeting {
             @apply text-2xl font-semibold text-gray-700 mb-4;
+            transition: color 0.3s ease;
         }
         .message-box .button-group {
             display: flex;
@@ -311,6 +319,60 @@
 
         input:checked + .slider:before {
             transform: translateX(26px);
+        }
+
+        /* Dark Theme Styles */
+        body.dark-theme {
+            background: linear-gradient(to bottom right, #1a202c, #2d3748); /* Darker blue-gray gradient */
+            color: #e2e8f0; /* Light text color */
+        }
+        body.dark-theme h2 {
+            color: #90cdf4; /* Lighter blue for titles */
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        body.dark-theme h3 {
+            color: #cbd5e1; /* Lighter gray for subheadings */
+        }
+        body.dark-theme p {
+            color: #a0aec0; /* Lighter gray for paragraphs */
+        }
+        body.dark-theme .text-blue-600 {
+            color: #63b3ed; /* Brighter blue for points */
+        }
+        body.dark-theme .card {
+            background-color: #2d3748; /* Dark card background */
+            border-color: #4a5568; /* Darker border */
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4); /* Darker shadow */
+        }
+        body.dark-theme .input-field {
+            background-color: #4a5568; /* Dark input background */
+            border-color: #667e91;
+            color: #e2e8f0;
+        }
+        body.dark-theme .input-field::placeholder {
+            color: #a0aec0;
+        }
+        body.dark-theme .footer-nav {
+            background-color: #2d3748;
+            border-top: 1px solid #4a5568;
+            box-shadow: 0 -8px 25px rgba(0, 0, 0, 0.4);
+        }
+        body.dark-theme .footer-nav button {
+            color: #a0aec0;
+        }
+        body.dark-theme .footer-nav button.active {
+            color: #90cdf4;
+            background-color: #4a5568;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.25);
+        }
+        body.dark-theme .message-box {
+            background: linear-gradient(to bottom right, #2d3748, #4a5568);
+            border: 4px solid #63b3ed;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+        }
+        body.dark-theme .exercise-item {
+            background-color: #4a5568;
+            border-color: #667e91;
         }
     </style>
 </head>
@@ -466,10 +528,17 @@
                 <!-- Sound Control Section -->
                 <div class="card mb-8">
                     <h3 class="text-xl font-bold text-gray-800 mb-4">Sound Settings</h3>
-                    <div class="flex items-center justify-between">
+                    <div class="flex items-center justify-between mb-4">
                         <span class="text-gray-700 text-base font-bold">Timer Sound:</span>
                         <label class="toggle-switch">
                             <input type="checkbox" id="timerSoundToggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-700 text-base font-bold">Dark Theme:</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="darkThemeToggle">
                             <span class="slider"></span>
                         </label>
                     </div>
@@ -607,15 +676,17 @@
         let redeemableItems = []; // { name: "Item Name", cost: 100, id: "unique-id", usageLimit: -1, timesUsed: 0 }
         let sessionHistory = []; // { type: 'exercises'|'legStretches3min'|'legStretches9min', timestamp: Date.now(), roundsCompleted: number }
         let isTimerSoundEnabled = true; // New state variable for sound control
+        let isDarkThemeEnabled = false; // New state variable for dark theme
 
-        // Session specific state
-        let currentSessionPoints = 0;
-        let currentRound = 1;
-        let currentExerciseIndex = 0;
-        let timerInterval = null;
-        let timerSeconds = 0;
-        let isSessionActive = false;
-        let currentSessionTypeKey = null; // Stores 'exercises', 'legStretches3min', or 'legStretches9min'
+        // Session specific state (now consolidated into one object for easier saving/loading)
+        let sessionState = {
+            isActive: false,
+            typeKey: null,
+            currentRound: 1,
+            currentExerciseIndex: 0,
+            timerSeconds: 0,
+            sessionPoints: 0
+        };
 
         // Exercise definitions for different session types
         const initialSessionTypes = { // Use a constant for initial, modify a mutable copy
@@ -729,6 +800,8 @@
 
         // New DOM element for sound toggle
         const timerSoundToggle = document.getElementById('timerSoundToggle');
+        const darkThemeToggle = document.getElementById('darkThemeToggle');
+
 
         const footerNav = document.getElementById('footerNav');
 
@@ -783,12 +856,20 @@
         /**
          * Shows a custom message box for simple alerts.
          * @param {string} message - The message to display.
+         * @param {function} [onOkCallback] - Optional callback for OK button.
          */
-        function showMessageBox(message) {
+        function showMessageBox(message, onOkCallback) {
             messageText.textContent = message;
             messageBoxOk.classList.remove('hidden');
             messageBoxYes.classList.add('hidden');
             messageBoxNo.classList.add('hidden');
+
+            messageBoxOk.onclick = (event) => {
+                addRippleEffect(event);
+                hideMessageBox();
+                if (onOkCallback) onOkCallback();
+            };
+
             messageBox.classList.add('active');
             overlay.classList.add('active');
         }
@@ -797,8 +878,9 @@
          * Shows a custom message box for confirmation (Yes/No).
          * @param {string} message - The confirmation message.
          * @param {function} onConfirmCallback - Function to call if 'Yes' is clicked.
+         * @param {function} [onCancelCallback] - Optional function to call if 'No' is clicked.
          */
-        function showConfirmBox(message, onConfirmCallback) {
+        function showConfirmBox(message, onConfirmCallback, onCancelCallback) {
             messageText.textContent = message;
             messageBoxOk.classList.add('hidden');
             messageBoxYes.classList.remove('hidden');
@@ -816,6 +898,7 @@
             messageBoxNo.onclick = (event) => {
                 addRippleEffect(event);
                 hideMessageBox(); // Just hide the box
+                if (onCancelCallback) onCancelCallback();
             };
 
             messageBox.classList.add('active');
@@ -841,6 +924,17 @@
         }
 
         /**
+         * Applies or removes the dark-theme class based on isDarkThemeEnabled.
+         */
+        function applyTheme() {
+            if (isDarkThemeEnabled) {
+                document.body.classList.add('dark-theme');
+            } else {
+                document.body.classList.remove('dark-theme');
+            }
+        }
+
+        /**
          * Saves current application data to local storage.
          * @private
          */
@@ -852,6 +946,8 @@
             localStorage.setItem('sessionTypes', JSON.stringify(sessionTypes)); // Save dynamic session types
             localStorage.setItem('sessionHistory', JSON.stringify(sessionHistory)); // Save session history
             localStorage.setItem('isTimerSoundEnabled', isTimerSoundEnabled.toString()); // Save sound preference
+            localStorage.setItem('isDarkThemeEnabled', isDarkThemeEnabled.toString()); // Save theme preference
+            localStorage.setItem('sessionState', JSON.stringify(sessionState)); // Save current session state
             localStorage.setItem('hasVisitedBefore', 'true');
         }
 
@@ -909,6 +1005,29 @@
 
             // Load sound preference, default to true if not found
             isTimerSoundEnabled = localStorage.getItem('isTimerSoundEnabled') === 'true';
+            // Load theme preference, default to false (light) if not found
+            isDarkThemeEnabled = localStorage.getItem('isDarkThemeEnabled') === 'true';
+
+            // Load session state
+            try {
+                const storedSessionState = JSON.parse(localStorage.getItem('sessionState'));
+                if (storedSessionState && storedSessionState.isActive) {
+                    sessionState = storedSessionState;
+                    isSessionActive = true; // Set global flag based on loaded state
+                    // Ensure currentExercisesSequence is correctly set based on loaded typeKey
+                    if (sessionState.typeKey && sessionTypes[sessionState.typeKey]) {
+                        currentExercisesSequence = sessionTypes[sessionState.typeKey].sequence;
+                    }
+                } else {
+                    // Reset sessionState if not active or corrupted
+                    sessionState = { isActive: false, typeKey: null, currentRound: 1, currentExerciseIndex: 0, timerSeconds: 0, sessionPoints: 0 };
+                    isSessionActive = false;
+                }
+            } catch (e) {
+                console.error("Error parsing session state from local storage:", e);
+                sessionState = { isActive: false, typeKey: null, currentRound: 1, currentExerciseIndex: 0, timerSeconds: 0, sessionPoints: 0 };
+                isSessionActive = false;
+            }
         }
 
         /**
@@ -963,8 +1082,9 @@
                 // Clear password change inputs when entering parent view
                 newParentPasswordInput.value = '';
                 confirmNewParentPasswordInput.value = '';
-                // Set the initial state of the sound toggle
+                // Set the initial state of the sound toggle and dark theme toggle
                 timerSoundToggle.checked = isTimerSoundEnabled;
+                darkThemeToggle.checked = isDarkThemeEnabled;
                 // Render exercises list for default category
                 renderExercisesList(exerciseCategorySelect.value);
             }
@@ -988,12 +1108,12 @@
          */
         function renderSession() {
             // If a session is active, ensure the active session UI is shown
-            if (isSessionActive) {
+            if (sessionState.isActive) {
                 sessionIntro.classList.add('hidden');
                 legStretchesOptions.classList.add('hidden'); // Hide stretch options too
                 sessionActive.classList.remove('hidden');
                 sessionComplete.classList.add('hidden');
-                updateSessionUI();
+                loadExercise(); // Load the exercise from the saved state
             } else {
                 // If no session is active, show the intro to start one
                 sessionIntro.classList.remove('hidden');
@@ -1001,7 +1121,7 @@
                 sessionActive.classList.add('hidden');
                 sessionComplete.classList.add('hidden');
             }
-            endSessionPoints.textContent = currentSessionPoints;
+            endSessionPoints.textContent = sessionState.sessionPoints;
         }
 
         /**
@@ -1009,18 +1129,20 @@
          * @param {string} sessionTypeKey - Key from sessionTypes object.
          */
         function startSession(sessionTypeKey) {
-            currentSessionTypeKey = sessionTypeKey;
-            currentExercisesSequence = sessionTypes[sessionTypeKey].sequence;
+            sessionState.isActive = true;
+            sessionState.typeKey = sessionTypeKey;
+            sessionState.currentRound = 1;
+            sessionState.currentExerciseIndex = 0;
+            sessionState.sessionPoints = 0;
+            sessionState.timerSeconds = 0; // Reset timer for new session
 
-            isSessionActive = true;
-            currentSessionPoints = 0;
-            currentRound = 1;
-            currentExerciseIndex = 0;
+            currentExercisesSequence = sessionTypes[sessionState.typeKey].sequence; // Set sequence for current session
 
             sessionIntro.classList.add('hidden');
             legStretchesOptions.classList.add('hidden');
             sessionActive.classList.remove('hidden');
             sessionComplete.classList.add('hidden');
+            saveSessionProgress(); // Save initial session state
             loadExercise();
         }
 
@@ -1029,78 +1151,99 @@
          */
         function loadExercise() {
             // Check if all rounds are complete for the current session type
-            if (currentRound > sessionTypes[currentSessionTypeKey].rounds) {
+            if (sessionState.currentRound > sessionTypes[sessionState.typeKey].rounds) {
                 endSession();
                 return;
             }
 
             // Check if all exercises in the current sequence are done for the current round
-            if (currentExerciseIndex >= currentExercisesSequence.length) {
-                currentRound++;
-                currentExerciseIndex = 0; // Reset for next exercise in the new round
-                if (currentRound <= sessionTypes[currentSessionTypeKey].rounds) {
-                    exerciseName.textContent = `Round ${currentRound} Ready!`;
-                    exerciseDetails.textContent = `Click 'Continue' to start Round ${currentRound}.`;
-                    timerDisplay.textContent = ""; // Clear timer
-                    exerciseActionBtn.textContent = `Continue to Round ${currentRound}`;
-                    exerciseActionBtn.disabled = false;
-                    exerciseActionBtn.onclick = (event) => { addRippleEffect(event); loadExercise(); };
-                    nextExerciseHint.textContent = "";
-                    updateSessionUI();
-                    return;
+            if (sessionState.currentExerciseIndex >= currentExercisesSequence.length) {
+                // Check for 2-round bonus before incrementing round
+                if (sessionState.currentRound === 2) {
+                    sessionState.sessionPoints += 5;
+                    showMessageBox("Bonus! You completed 2 rounds and earned 5 extra points!", () => {
+                        // Continue to next round after message
+                        sessionState.currentRound++;
+                        sessionState.currentExerciseIndex = 0; // Reset for next exercise in the new round
+                        loadExerciseForNewRound();
+                    });
+                    return; // Exit to wait for message box to close
                 } else {
-                    endSession(); // All rounds and exercises complete
+                    sessionState.currentRound++;
+                    sessionState.currentExerciseIndex = 0; // Reset for next exercise in the new round
+                    loadExerciseForNewRound();
                     return;
                 }
             }
 
-            const exercise = currentExercisesSequence[currentExerciseIndex];
+            const exercise = currentExercisesSequence[sessionState.currentExerciseIndex];
             exerciseName.textContent = exercise.name;
-            currentRoundDisplay.textContent = currentRound;
-            sessionPointsDisplay.textContent = currentSessionPoints;
-            endSessionPoints.textContent = currentSessionPoints;
+            currentRoundDisplay.textContent = sessionState.currentRound;
+            sessionPointsDisplay.textContent = sessionState.sessionPoints;
+            endSessionPoints.textContent = sessionState.sessionPoints;
 
             clearInterval(timerInterval); // Clear any existing timer
 
             if (exercise.type === "timed") {
-                timerSeconds = exercise.time;
+                sessionState.timerSeconds = exercise.time; // Use sessionState.timerSeconds
                 exerciseDetails.textContent = `Time: ${exercise.time}s | Points: ${exercise.time * exercise.pointsPerSecond} (at ${exercise.pointsPerSecond} point/sec)`;
                 exerciseActionBtn.textContent = "Start Timer";
                 exerciseActionBtn.disabled = false;
                 exerciseActionBtn.onclick = (event) => { addRippleEffect(event); startTimer(); };
                 updateTimerDisplay();
-                const nextHint = currentExerciseIndex + 1 < currentExercisesSequence.length ?
-                                 currentExercisesSequence[currentExerciseIndex + 1].name :
-                                 (currentRound < sessionTypes[currentSessionTypeKey].rounds ? `Round ${currentRound + 1}` : "Session End");
+                const nextHint = sessionState.currentExerciseIndex + 1 < currentExercisesSequence.length ?
+                                 currentExercisesSequence[sessionState.currentExerciseIndex + 1].name :
+                                 (sessionState.currentRound < sessionTypes[sessionState.typeKey].rounds ? `Round ${sessionState.currentRound + 1}` : "Session End");
                 nextExerciseHint.textContent = "Next: " + nextHint;
             } else if (exercise.type === "done") {
-                timerSeconds = 0;
+                sessionState.timerSeconds = 0; // Ensure timer is reset for manual
                 exerciseDetails.textContent = `Points: ${exercise.points}`;
                 timerDisplay.textContent = "Manual";
                 exerciseActionBtn.textContent = "Done";
                 exerciseActionBtn.disabled = false;
                 exerciseActionBtn.onclick = (event) => { addRippleEffect(event); completeManualExercise(); };
-                const nextHint = currentExerciseIndex + 1 < currentExercisesSequence.length ?
-                                 currentExercisesSequence[currentExerciseIndex + 1].name :
-                                 (currentRound < sessionTypes[currentSessionTypeKey].rounds ? `Round ${currentRound + 1}` : "Session End");
+                const nextHint = sessionState.currentExerciseIndex + 1 < currentExercisesSequence.length ?
+                                 currentExercisesSequence[sessionState.currentExerciseIndex + 1].name :
+                                 (sessionState.currentRound < sessionTypes[sessionState.typeKey].rounds ? `Round ${sessionState.currentRound + 1}` : "Session End");
                 nextExerciseHint.textContent = "Next: " + nextHint;
             }
+            saveSessionProgress(); // Save state after loading exercise
         }
+
+        /**
+         * Helper function to load exercise after a round transition, potentially with a message.
+         */
+        function loadExerciseForNewRound() {
+            if (sessionState.currentRound <= sessionTypes[sessionState.typeKey].rounds) {
+                exerciseName.textContent = `Round ${sessionState.currentRound} Ready!`;
+                exerciseDetails.textContent = `Click 'Continue' to start Round ${sessionState.currentRound}.`;
+                timerDisplay.textContent = ""; // Clear timer
+                exerciseActionBtn.textContent = `Continue to Round ${sessionState.currentRound}`;
+                exerciseActionBtn.disabled = false;
+                exerciseActionBtn.onclick = (event) => { addRippleEffect(event); loadExercise(); };
+                nextExerciseHint.textContent = "";
+                updateSessionUI();
+                saveSessionProgress(); // Save state after round transition
+            } else {
+                endSession(); // All rounds and exercises complete
+            }
+        }
+
 
         /**
          * Starts the timer for a timed exercise.
          */
         function startTimer() {
-            const exercise = currentExercisesSequence[currentExerciseIndex];
+            const exercise = currentExercisesSequence[sessionState.currentExerciseIndex];
             exerciseActionBtn.textContent = "Running...";
             exerciseActionBtn.disabled = true; // Disable button during timer
             timerInterval = setInterval(() => {
-                if (timerSeconds > 0) {
-                    timerSeconds--;
-                    currentSessionPoints += exercise.pointsPerSecond; // Earn points based on exercise definition
+                if (sessionState.timerSeconds > 0) {
+                    sessionState.timerSeconds--;
+                    sessionState.sessionPoints += exercise.pointsPerSecond; // Earn points based on exercise definition
                     updateTimerDisplay();
-                    sessionPointsDisplay.textContent = currentSessionPoints;
-                    endSessionPoints.textContent = currentSessionPoints;
+                    sessionPointsDisplay.textContent = sessionState.sessionPoints;
+                    endSessionPoints.textContent = sessionState.sessionPoints;
                 } else {
                     clearInterval(timerInterval);
                     playTimerEndSound(); // Play sound when timer ends
@@ -1108,6 +1251,7 @@
                     exerciseActionBtn.disabled = false; // Re-enable button
                     exerciseActionBtn.onclick = (event) => { addRippleEffect(event); proceedToNextExercise(); }; // Set new handler
                 }
+                saveSessionProgress(); // Save progress every second
             }, 1000);
         }
 
@@ -1115,8 +1259,8 @@
          * Updates the timer display.
          */
         function updateTimerDisplay() {
-            const minutes = Math.floor(timerSeconds / 60);
-            const seconds = timerSeconds % 60;
+            const minutes = Math.floor(sessionState.timerSeconds / 60);
+            const seconds = sessionState.timerSeconds % 60;
             timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
         }
 
@@ -1124,7 +1268,8 @@
          * Proceeds to the next exercise after a timed exercise completes and user clicks.
          */
         function proceedToNextExercise() {
-            currentExerciseIndex++;
+            sessionState.currentExerciseIndex++;
+            saveSessionProgress(); // Save state before loading next
             loadExercise(); // Load next exercise or round
         }
 
@@ -1132,11 +1277,12 @@
          * Completes a manual exercise (e.g., Pushups).
          */
         function completeManualExercise() {
-            const exercise = currentExercisesSequence[currentExerciseIndex];
-            currentSessionPoints += exercise.points; // Add fixed points
-            sessionPointsDisplay.textContent = currentSessionPoints;
-            endSessionPoints.textContent = currentSessionPoints;
-            currentExerciseIndex++;
+            const exercise = currentExercisesSequence[sessionState.currentExerciseIndex];
+            sessionState.sessionPoints += exercise.points; // Add fixed points
+            sessionPointsDisplay.textContent = sessionState.sessionPoints;
+            endSessionPoints.textContent = sessionState.sessionPoints;
+            sessionState.currentExerciseIndex++;
+            saveSessionProgress(); // Save state after manual completion
             loadExercise(); // Load next exercise or round
         }
 
@@ -1144,9 +1290,17 @@
          * Updates the session UI elements.
          */
         function updateSessionUI() {
-            currentRoundDisplay.textContent = currentRound;
-            sessionPointsDisplay.textContent = currentSessionPoints;
-            endSessionPoints.textContent = currentSessionPoints;
+            currentRoundDisplay.textContent = sessionState.currentRound;
+            sessionPointsDisplay.textContent = sessionState.sessionPoints;
+            endSessionPoints.textContent = sessionState.sessionPoints;
+        }
+
+        /**
+         * Saves the current session progress to local storage.
+         */
+        function saveSessionProgress() {
+            localStorage.setItem('sessionState', JSON.stringify(sessionState));
+            saveData(); // Call main saveData to ensure all data is consistent
         }
 
         /**
@@ -1154,19 +1308,26 @@
          */
         function endSession() {
             clearInterval(timerInterval);
-            totalPoints += currentSessionPoints;
-            // Record session completion in history
-            sessionHistory.push({
-                type: currentSessionTypeKey,
-                timestamp: Date.now(),
-                roundsCompleted: currentRound - 1 // Store the number of rounds actually completed
+
+            // Add 10 bonus points for completing the session
+            sessionState.sessionPoints += 10;
+            showMessageBox("Session Complete! You earned an extra 10 points for finishing!", () => {
+                totalPoints += sessionState.sessionPoints;
+                // Record session completion in history
+                sessionHistory.push({
+                    type: sessionState.typeKey,
+                    timestamp: Date.now(),
+                    roundsCompleted: sessionState.currentRound - 1 // Store the number of rounds actually completed
+                });
+                // Reset session state
+                sessionState = { isActive: false, typeKey: null, currentRound: 1, currentExerciseIndex: 0, timerSeconds: 0, sessionPoints: 0 };
+                saveData(); // Save updated total points and history, and clear session state
+                isSessionActive = false; // Reset global flag
+                sessionActive.classList.add('hidden');
+                sessionComplete.classList.remove('hidden');
+                finalSessionPoints.textContent = sessionState.sessionPoints; // This will show 0, but totalPoints will be updated
+                renderHome(); // Update home view points
             });
-            saveData(); // Save updated total points and history
-            isSessionActive = false; // Reset session state
-            sessionActive.classList.add('hidden');
-            sessionComplete.classList.remove('hidden');
-            finalSessionPoints.textContent = currentSessionPoints;
-            renderHome(); // Update home view points
         }
 
         /**
@@ -1649,25 +1810,19 @@
                 totalPoints = 0;
                 redeemableItems = [];
                 sessionHistory = []; // Clear history
-                isSessionActive = false;
-                currentSessionPoints = 0;
-                currentExerciseIndex = 0;
+                sessionState = { isActive: false, typeKey: null, currentRound: 1, currentExerciseIndex: 0, timerSeconds: 0, sessionPoints: 0 }; // Reset session state
+                isSessionActive = false; // Reset global flag
                 clearInterval(timerInterval); // Clear any active timers
-                timerSeconds = 0;
-                currentSessionTypeKey = null;
-                currentExercisesSequence = [];
-                sessionTypes = JSON.parse(JSON.stringify(initialSessionTypes)); // Reset session types to initial
                 isTimerSoundEnabled = true; // Reset sound preference
+                isDarkThemeEnabled = false; // Reset theme preference
 
-                showMessageBox("All data has been cleared. You are now signed out.");
-                renderView('setup-view'); // Go back to setup screen
+                showMessageBox("All data has been cleared. You are now signed out.", () => {
+                     renderView('setup-view'); // Go back to setup screen after message
+                });
             });
         }
 
         // --- Event Listeners ---
-
-        // Message Box OK button (for simple alerts)
-        messageBoxOk.onclick = hideMessageBox;
 
         // Initial Setup
         setupSaveBtn.onclick = (event) => {
@@ -1730,8 +1885,9 @@
             if (enteredPassword === parentPassword) {
                 parentLogin.classList.add('hidden');
                 parentDashboard.classList.remove('hidden');
-                // Set the initial state of the sound toggle when parent dashboard is shown
+                // Set the initial state of the sound toggle and dark theme toggle when parent dashboard is shown
                 timerSoundToggle.checked = isTimerSoundEnabled;
+                darkThemeToggle.checked = isDarkThemeEnabled;
                 renderParentRedeemableList(); // Load items for parent dashboard
                 renderExercisesList(exerciseCategorySelect.value); // Load exercises list
             } else {
@@ -1739,11 +1895,19 @@
             }
         };
 
-        // New: Event listener for the timer sound toggle
+        // Event listener for the timer sound toggle
         timerSoundToggle.onchange = () => {
             isTimerSoundEnabled = timerSoundToggle.checked;
             saveData(); // Save the updated preference
             showMessageBox(`Timer sound is now ${isTimerSoundEnabled ? 'ON' : 'OFF'}.`);
+        };
+
+        // Event listener for the dark theme toggle
+        darkThemeToggle.onchange = () => {
+            isDarkThemeEnabled = darkThemeToggle.checked;
+            applyTheme(); // Apply the theme immediately
+            saveData(); // Save the updated preference
+            showMessageBox(`Dark theme is now ${isDarkThemeEnabled ? 'ON' : 'OFF'}.`);
         };
 
         addRedeemableBtn.onclick = (event) => {
@@ -1804,15 +1968,36 @@
         };
         addNewExerciseBtn.onclick = addNewExercise;
 
+        // Handle page reload/close to save session state
+        window.addEventListener('beforeunload', saveSessionProgress);
+
 
         // --- Initial Load ---
         document.addEventListener('DOMContentLoaded', () => {
             loadData();
-            // Initially render the setup view or home view based on data presence
-            if (localStorage.getItem('hasVisitedBefore')) {
-                renderView('home-view');
+            applyTheme(); // Apply theme immediately on load
+
+            // Check if a session needs to be resumed
+            if (sessionState.isActive) {
+                showConfirmBox(
+                    "It looks like you have an active session. Would you like to resume it?",
+                    () => {
+                        renderView('session-view'); // This will call loadExercise() based on sessionState
+                    },
+                    () => {
+                        // User chose NOT to resume, clear session state and go to home
+                        sessionState = { isActive: false, typeKey: null, currentRound: 1, currentExerciseIndex: 0, timerSeconds: 0, sessionPoints: 0 };
+                        saveData(); // Save cleared state
+                        renderView('home-view');
+                    }
+                );
             } else {
-                renderView('setup-view');
+                // If no session to resume, proceed with normal view rendering
+                if (localStorage.getItem('hasVisitedBefore')) {
+                    renderView('home-view');
+                } else {
+                    renderView('setup-view');
+                }
             }
         });
 
