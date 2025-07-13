@@ -669,7 +669,7 @@
         const chooseLegStretchesBtn = document.getElementById('chooseLegStretchesBtn');
         const legStretchesOptions = document.getElementById('leg-stretches-options');
         const start3MinLegStretchesBtn = document.getElementById('start3MinLegStretchesBtn');
-        const start9MinLegStretchesBtn = document.getElementById('start9MinLegStretchesBtn');
+        const start9MinLegStretchesBtn = document = document.getElementById('start9MinLegStretchesBtn');
         const backToSessionIntroBtn = document.getElementById('backToSessionIntroBtn');
 
         const sessionActive = document.getElementById('session-active');
@@ -1201,7 +1201,8 @@
          */
         function endSession() {
             clearInterval(timerInterval);
-            totalPoints += sessionState.sessionPoints;
+            const earnedPoints = sessionState.sessionPoints; // Capture points before reset
+            totalPoints += earnedPoints;
             // Record session completion in history
             sessionHistory.push({
                 type: sessionState.typeKey,
@@ -1213,7 +1214,7 @@
             saveData(); // Save updated total points and history, and clear session state
             sessionActive.classList.add('hidden');
             sessionComplete.classList.remove('hidden');
-            finalSessionPoints.textContent = sessionState.sessionPoints; // This will show 0, but totalPoints will be updated
+            finalSessionPoints.textContent = earnedPoints; // Use captured points for display
             renderHome(); // Update home view points
         }
 
