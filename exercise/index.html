@@ -263,21 +263,54 @@
             font-size: 0.85rem !important; /* Ensure font size is applied */
         }
 
-        /* Flash Overlay Styles */
-        #flashOverlay {
-            position: fixed;
+        /* Toggle Switch Styles */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: black;
-            z-index: 9999; /* Ensure it's on top of everything */
-            opacity: 0; /* Start invisible */
-            pointer-events: none; /* Allow clicks to pass through when invisible */
-            transition: opacity 0.075s ease-out; /* Quick transition for flash effect */
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
         }
-        #flashOverlay.active {
-            opacity: 1; /* Make visible for the flash */
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #2196F3;
+        }
+
+        input:focus + .slider {
+            box-shadow: 0 0 1px #2196F3;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
         }
     </style>
 </head>
@@ -294,8 +327,8 @@
         </div>
         <div id="overlay" class="overlay"></div>
 
-        <!-- New Flash Overlay -->
-        <div id="flashOverlay"></div>
+        <!-- Audio element for timer completion sound -->
+        <audio id="timerEndSound" src="https://www.soundjay.com/misc/ding-ding-ding.mp3" preload="auto"></audio>
 
         <!-- Initial Setup View -->
         <div id="setup-view" class="view active">
@@ -430,6 +463,18 @@
                     <button id="changeParentPasswordBtn" class="btn-primary w-full">Change Password</button>
                 </div>
 
+                <!-- Sound Control Section -->
+                <div class="card mb-8">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Sound Settings</h3>
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-700 text-base font-bold">Timer Sound:</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="timerSoundToggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
                 <!-- Manage Exercises Section -->
                 <div class="card mb-8">
                     <h3 class="text-xl font-bold text-gray-800 mb-4">Manage Exercises</h3>
@@ -561,6 +606,7 @@
         let totalPoints = 0;
         let redeemableItems = []; // { name: "Item Name", cost: 100, id: "unique-id", usageLimit: -1, timesUsed: 0 }
         let sessionHistory = []; // { type: 'exercises'|'legStretches3min'|'legStretches9min', timestamp: Date.now(), roundsCompleted: number }
+        let isTimerSoundEnabled = true; // New state variable for sound control
         let timerInterval = null; // Declare timerInterval globally here
 
         // Session specific state (now consolidated into one object for easier saving/loading)
@@ -683,6 +729,9 @@
         const newExercisePoints = document.getElementById('newExercisePoints');
         const addNewExerciseBtn = document.getElementById('addNewExerciseBtn');
 
+        // New DOM element for sound toggle
+        const timerSoundToggle = document.getElementById('timerSoundToggle');
+
         const footerNav = document.getElementById('footerNav');
 
         const navHomeBtn = document.getElementById('navHomeBtn');
@@ -698,8 +747,7 @@
         const messageBoxNo = document.getElementById('messageBoxNo');
         const overlay = document.getElementById('overlay');
 
-        // Get the new flash overlay element
-        const flashOverlay = document.getElementById('flashOverlay');
+        const timerEndSound = document.getElementById('timerEndSound');
 
         /**
          * Generates a unique ID (UUID v4).
@@ -795,14 +843,12 @@
         }
 
         /**
-         * Flashes the screen black briefly using the overlay.
+         * Plays the timer end sound if enabled.
          */
-        function flashScreenBlack() {
-            if (flashOverlay) {
-                flashOverlay.classList.add('active');
-                setTimeout(() => {
-                    flashOverlay.classList.remove('active');
-                }, 150); // Flash for 150ms
+        function playTimerEndSound() {
+            if (isTimerSoundEnabled && timerEndSound) {
+                timerEndSound.currentTime = 0; // Rewind to start
+                timerEndSound.play().catch(e => console.error("Error playing sound:", e));
             }
         }
 
@@ -817,6 +863,7 @@
             localStorage.setItem('redeemableItems', JSON.stringify(redeemableItems));
             localStorage.setItem('sessionTypes', JSON.stringify(sessionTypes)); // Save dynamic session types
             localStorage.setItem('sessionHistory', JSON.stringify(sessionHistory)); // Save session history
+            localStorage.setItem('isTimerSoundEnabled', isTimerSoundEnabled.toString()); // Save sound preference
             localStorage.setItem('sessionState', JSON.stringify(sessionState)); // Save current session state
             localStorage.setItem('hasVisitedBefore', 'true');
         }
@@ -872,6 +919,9 @@
                 console.error("Error parsing session history from local storage:", e);
                 sessionHistory = []; // Reset if corrupted
             }
+
+            // Load sound preference, default to true if not found
+            isTimerSoundEnabled = localStorage.getItem('isTimerSoundEnabled') === 'true';
 
             // Load session state
             try {
@@ -944,8 +994,10 @@
                 // Clear password change inputs when entering parent view
                 newParentPasswordInput.value = '';
                 confirmNewParentPasswordInput.value = '';
-                renderParentRedeemableList(); // Load items for parent dashboard
-                renderExercisesList(exerciseCategorySelect.value); // Load exercises list
+                // Set the initial state of the sound toggle
+                timerSoundToggle.checked = isTimerSoundEnabled;
+                // Render exercises list for default category
+                renderExercisesList(exerciseCategorySelect.value);
             }
         }
 
@@ -1087,7 +1139,7 @@
                     endSessionPoints.textContent = sessionState.sessionPoints;
                 } else {
                     clearInterval(timerInterval);
-                    flashScreenBlack(); // Flash screen when timer ends
+                    playTimerEndSound(); // Play sound when timer ends
                     exerciseActionBtn.textContent = "Next Exercise"; // Change button text
                     exerciseActionBtn.disabled = false; // Re-enable button
                     exerciseActionBtn.onclick = (event) => { addRippleEffect(event); proceedToNextExercise(); }; // Set new handler
@@ -1533,7 +1585,7 @@
             const nameInput = document.getElementById(`editName-${exerciseId}`);
             const typeSelect = document.getElementById(`editType-${exerciseId}`);
             const timeInput = document.getElementById(`editTime-${exerciseId}`);
-            const pointsPerSecondInput = document.getElementById(`editPointsPerSecond-${exerciseId}`);
+            const pointsPerSecondInput = document.getElementById(`editPointsPerSecond-${exercise.id}`);
             const pointsInput = document.getElementById(`editPoints-${exerciseId}`);
 
             const newName = nameInput.value.trim();
@@ -1648,6 +1700,7 @@
                 sessionHistory = []; // Clear history
                 sessionState = { isActive: false, typeKey: null, currentRound: 1, currentExerciseIndex: 0, timerSeconds: 0, sessionPoints: 0 }; // Reset session state
                 clearInterval(timerInterval); // Clear any active timers
+                isTimerSoundEnabled = true; // Reset sound preference
 
                 showMessageBox("All data has been cleared. You are now signed out.", () => {
                      renderView('setup-view'); // Go back to setup screen after message
@@ -1718,11 +1771,20 @@
             if (enteredPassword === parentPassword) {
                 parentLogin.classList.add('hidden');
                 parentDashboard.classList.remove('hidden');
+                // Set the initial state of the sound toggle
+                timerSoundToggle.checked = isTimerSoundEnabled;
                 renderParentRedeemableList(); // Load items for parent dashboard
                 renderExercisesList(exerciseCategorySelect.value); // Load exercises list
             } else {
                 showMessageBox("Incorrect parent password.");
             }
+        };
+
+        // Event listener for the timer sound toggle
+        timerSoundToggle.onchange = () => {
+            isTimerSoundEnabled = timerSoundToggle.checked;
+            saveData(); // Save the updated preference
+            showMessageBox(`Timer sound is now ${isTimerSoundEnabled ? 'ON' : 'OFF'}.`);
         };
 
         addRedeemableBtn.onclick = (event) => {
