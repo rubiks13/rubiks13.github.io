@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Work Time Tracker</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for Inter font and general layout */
+        body {
+            font-family: "Inter", sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 2.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px; /* Limits width on larger screens */
+            width: 90%; /* Ensures it takes up 90% of screen width on smaller screens */
+            transition: all 0.3s ease-in-out; /* Smooth transition for view changes */
+        }
+        .button-group button, .action-button {
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            /* Ensures sufficient touch target size on mobile */
+            min-height: 48px; /* Recommended minimum touch target size */
+            min-width: 48px; /* Recommended minimum touch target size */
+        }
+        .button-group button:hover, .action-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+        }
+        .button-group button:active, .action-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .hidden {
+            display: none;
+        }
+        /* Styles for the custom confirmation dialog */
+        .fixed.inset-0 {
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+        }
+        .bg-opacity-50 {
+            background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent black overlay */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <div class="container">
+        <!-- Home View -->
+        <div id="homeView">
+            <h1 class="text-3xl font-bold text-gray-800 mb-6">Work Time Tracker</h1>
+
+            <div id="statusDisplay" class="text-lg text-gray-700 mb-4">
+                Loading status...
+            </div>
+
+            <div id="elapsedTimeDisplay" class="text-2xl font-semibold text-blue-600 mb-8">
+                00:00:00
+            </div>
+
+            <div class="button-group flex justify-center space-x-4 mb-6">
+                <button id="clockInBtn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
+                    Clock In
+                </button>
+                <button id="clockOutBtn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50">
+                    Clock Out
+                </button>
+            </div>
+
+            <button id="viewReportBtn" class="action-button text-blue-600 hover:underline text-md bg-transparent border-none py-2 px-4 rounded-lg">
+                View Work Report
+            </button>
+        </div>
+
+        <!-- Report View -->
+        <div id="reportView" class="hidden">
+            <h1 class="text-3xl font-bold text-gray-800 mb-6">Work Report</h1>
+
+            <div class="mb-6">
+                <p class="text-lg text-gray-700 mb-2">Total Time Worked:</p>
+                <p id="totalTimeDisplay" class="text-2xl font-semibold text-blue-600">00:00:00</p>
+            </div>
+
+            <div class="mb-8">
+                <p class="text-lg text-gray-700 mb-2">Estimated Pay:</p>
+                <p id="estimatedPayDisplay" class="text-3xl font-bold text-green-600">$0.00</p>
+            </div>
+
+            <button id="payBtn" class="action-button bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-8 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 mb-6">
+                Pay & Reset
+            </button>
+
+            <button id="backToHomeBtn" class="action-button text-blue-600 hover:underline text-md bg-transparent border-none py-2 px-4 rounded-lg">
+                Back to Home
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- DOM Element References ---
+        // Home View Elements
+        const homeView = document.getElementById('homeView');
+        const clockInBtn = document.getElementById('clockInBtn');
+        const clockOutBtn = document.getElementById('clockOutBtn');
+        const statusDisplay = document.getElementById('statusDisplay');
+        const elapsedTimeDisplay = document.getElementById('elapsedTimeDisplay');
+        const viewReportBtn = document.getElementById('viewReportBtn');
+
+        // Report View Elements
+        const reportView = document.getElementById('reportView');
+        const totalTimeDisplay = document.getElementById('totalTimeDisplay');
+        const estimatedPayDisplay = document.getElementById('estimatedPayDisplay');
+        const payBtn = document.getElementById('payBtn');
+        const backToHomeBtn = document.getElementById('backToHomeBtn');
+
+        // --- Global Variables ---
+        let isClockedIn = false;
+        let clockInTime = null; // Stores timestamp when clocked in (in milliseconds)
+        let totalWorkMilliseconds = 0; // Accumulates total work time (in milliseconds)
+        let timerInterval = null; // Stores the interval ID for the elapsed time timer
+
+        const WAGE_PER_HOUR = 12; // Wage per hour in dollars
+
+        // --- Utility Functions ---
+
+        /**
+         * Formats milliseconds into HH:MM:SS string.
+         * @param {number} ms - Milliseconds to format.
+         * @returns {string} Formatted time string.
+         */
+        function formatMillisecondsToHMS(ms) {
+            const seconds = Math.floor(ms / 1000);
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const remainingSeconds = seconds % 60;
+
+            const pad = (num) => String(num).padStart(2, '0');
+            return `${pad(hours)}:${pad(minutes)}:${pad(remainingSeconds)}`;
+        }
+
+        /**
+         * Shows a specific view and hides others.
+         * @param {HTMLElement} viewToShow - The view element to display.
+         */
+        function showView(viewToShow) {
+            homeView.classList.add('hidden');
+            reportView.classList.add('hidden');
+            viewToShow.classList.remove('hidden');
+        }
+
+        // --- Home View Logic ---
+
+        /**
+         * Updates the elapsed time display on the home view.
+         */
+        function updateElapsedTimeDisplay() {
+            if (isClockedIn && clockInTime) {
+                const currentElapsed = Date.now() - clockInTime;
+                elapsedTimeDisplay.textContent = formatMillisecondsToHMS(currentElapsed);
+            } else {
+                elapsedTimeDisplay.textContent = formatMillisecondsToHMS(0);
+            }
+        }
+
+        /**
+         * Starts the timer interval for updating elapsed time.
+         */
+        function startTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval); // Clear any existing timer to prevent duplicates
+            }
+            timerInterval = setInterval(updateElapsedTimeDisplay, 1000); // Update every second
+        }
+
+        /**
+         * Stops the timer interval.
+         */
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        /**
+         * Updates the UI elements on the home view based on the current clock-in status.
+         */
+        function updateHomeUI() {
+            if (isClockedIn) {
+                statusDisplay.textContent = `Clocked In since ${new Date(clockInTime).toLocaleTimeString()}`;
+                clockInBtn.disabled = true;
+                clockInBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                clockOutBtn.disabled = false;
+                clockOutBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                startTimer(); // Start the timer when clocked in
+            } else {
+                statusDisplay.textContent = 'Clocked Out';
+                clockInBtn.disabled = false;
+                clockInBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                clockOutBtn.disabled = true;
+                clockOutBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                stopTimer(); // Stop the timer when clocked out
+                elapsedTimeDisplay.textContent = formatMillisecondsToHMS(0); // Reset display
+            }
+        }
+
+        /**
+         * Handles the clock-in action.
+         */
+        function clockIn() {
+            if (!isClockedIn) {
+                isClockedIn = true;
+                clockInTime = Date.now(); // Record current timestamp
+                saveStateToLocalStorage(); // Save state immediately
+                updateHomeUI(); // Update UI
+            }
+        }
+
+        /**
+         * Handles the clock-out action.
+         */
+        function clockOut() {
+            if (isClockedIn && clockInTime) {
+                const clockOutTimestamp = Date.now();
+                const sessionDuration = clockOutTimestamp - clockInTime; // Duration of the current session
+
+                totalWorkMilliseconds += sessionDuration; // Add to total accumulated time
+                isClockedIn = false;
+                clockInTime = null; // Clear clock-in time
+
+                saveStateToLocalStorage(); // Save state immediately
+                updateHomeUI(); // Update UI
+            }
+        }
+
+        // --- Report View Logic ---
+
+        /**
+         * Loads and displays the work report from local storage.
+         */
+        function loadReport() {
+            // Ensure totalWorkMilliseconds is up-to-date from local storage
+            totalWorkMilliseconds = parseInt(localStorage.getItem('totalWorkMilliseconds') || '0', 10);
+
+            // Display total time worked
+            totalTimeDisplay.textContent = formatMillisecondsToHMS(totalWorkMilliseconds);
+
+            // Calculate and display estimated pay
+            const totalWorkHours = totalWorkMilliseconds / (1000 * 60 * 60); // Convert milliseconds to hours
+            const estimatedPay = totalWorkHours * WAGE_PER_HOUR;
+            estimatedPayDisplay.textContent = `$${estimatedPay.toFixed(2)}`; // Format to 2 decimal places
+        }
+
+        /**
+         * Clears work data from local storage and resets the report.
+         */
+        function clearLocalStorageAndReset() {
+            // Create a custom modal for confirmation instead of alert/confirm
+            const confirmationBox = document.createElement('div');
+            confirmationBox.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50';
+            confirmationBox.innerHTML = `
+                <div class="bg-white p-8 rounded-lg shadow-xl text-center mx-4 sm:mx-0">
+                    <p class="text-lg font-semibold mb-4">Are you sure you want to clear all work data?</p>
+                    <div class="flex justify-center space-x-4">
+                        <button id="confirmClearBtn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg">Yes, Clear</button>
+                        <button id="cancelClearBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg">Cancel</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(confirmationBox);
+
+            // Add event listeners for the confirmation buttons
+            document.getElementById('confirmClearBtn').addEventListener('click', () => {
+                localStorage.removeItem('isClockedIn');
+                localStorage.removeItem('clockInTime');
+                localStorage.removeItem('totalWorkMilliseconds');
+                
+                // Reset local variables to reflect cleared storage
+                isClockedIn = false;
+                clockInTime = null;
+                totalWorkMilliseconds = 0;
+
+                loadReport(); // Reload report to show zero
+                updateHomeUI(); // Update home UI as well
+                document.body.removeChild(confirmationBox); // Remove confirmation box
+            });
+
+            document.getElementById('cancelClearBtn').addEventListener('click', () => {
+                document.body.removeChild(confirmationBox); // Remove confirmation box
+            });
+        }
+
+        // --- Local Storage Management ---
+
+        /**
+         * Loads the application state from local storage.
+         */
+        function loadStateFromLocalStorage() {
+            const storedIsClockedIn = localStorage.getItem('isClockedIn');
+            const storedClockInTime = localStorage.getItem('clockInTime');
+            const storedTotalWorkMilliseconds = localStorage.getItem('totalWorkMilliseconds');
+
+            // Parse stored values
+            isClockedIn = storedIsClockedIn === 'true';
+            clockInTime = storedClockInTime ? parseInt(storedClockInTime, 10) : null;
+            totalWorkMilliseconds = storedTotalWorkMilliseconds ? parseInt(storedTotalWorkMilliseconds, 10) : 0;
+
+            // If clocked in, ensure clockInTime is valid.
+            // If the user closed the browser while clocked in, the timer will restart from the stored clockInTime.
+            if (isClockedIn && !clockInTime) {
+                // This case should ideally not happen if saved correctly, but as a fallback
+                isClockedIn = false;
+            }
+
+            updateHomeUI(); // Update the home UI based on loaded state
+        }
+
+        /**
+         * Saves the current application state to local storage.
+         */
+        function saveStateToLocalStorage() {
+            localStorage.setItem('isClockedIn', isClockedIn);
+            localStorage.setItem('clockInTime', clockInTime);
+            localStorage.setItem('totalWorkMilliseconds', totalWorkMilliseconds);
+        }
+
+        // --- Event Listeners ---
+
+        // Home View Buttons
+        clockInBtn.addEventListener('click', clockIn);
+        clockOutBtn.addEventListener('click', clockOut);
+        viewReportBtn.addEventListener('click', () => {
+            loadReport(); // Load data before showing report
+            showView(reportView);
+        });
+
+        // Report View Buttons
+        payBtn.addEventListener('click', clearLocalStorageAndReset);
+        backToHomeBtn.addEventListener('click', () => {
+            updateHomeUI(); // Ensure home UI is updated before showing
+            showView(homeView);
+        });
+
+        // Load state when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            loadStateFromLocalStorage();
+            // Initially show the home view
+            showView(homeView);
+        });
+
+        // Listen for changes in local storage from other tabs/windows
+        window.addEventListener('storage', (event) => {
+            if (event.key === 'isClockedIn' || event.key === 'clockInTime' || event.key === 'totalWorkMilliseconds') {
+                loadStateFromLocalStorage(); // Reload state if local storage changes
+                if (!homeView.classList.contains('hidden')) { // If currently on home view
+                    updateHomeUI();
+                } else if (!reportView.classList.contains('hidden')) { // If currently on report view
+                    loadReport();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
