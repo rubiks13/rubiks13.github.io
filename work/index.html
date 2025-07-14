@@ -45,7 +45,7 @@
         .hidden {
             display: none;
         }
-        /* Styles for the custom confirmation dialog */
+        /* Styles for the custom confirmation dialog and message box */
         .fixed.inset-0 {
             position: fixed;
             top: 0;
@@ -55,6 +55,15 @@
         }
         .bg-opacity-50 {
             background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent black overlay */
+        }
+        .message-box {
+            background-color: #ffffff;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 350px;
+            width: 80%;
         }
     </style>
 </head>
@@ -100,7 +109,18 @@
                 <p id="estimatedPayDisplay" class="text-3xl font-bold text-green-600">$0.00</p>
             </div>
 
-            <button id="payBtn" class="action-button bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-8 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 mb-6">
+            <!-- Remove Time Section -->
+            <div class="mt-8 pt-6 border-t border-gray-200">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Remove Time</h2>
+                <div class="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-4">
+                    <input type="number" id="removeMinutesInput" placeholder="Minutes to remove" class="p-2 border border-gray-300 rounded-md w-full sm:w-auto text-center" min="1">
+                    <button id="removeTimeBtn" class="action-button bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-opacity-50 w-full sm:w-auto">
+                        Remove Minutes
+                    </button>
+                </div>
+            </div>
+
+            <button id="payBtn" class="action-button bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-8 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 mt-8 mb-6">
                 Pay & Reset
             </button>
 
@@ -126,6 +146,8 @@
         const estimatedPayDisplay = document.getElementById('estimatedPayDisplay');
         const payBtn = document.getElementById('payBtn');
         const backToHomeBtn = document.getElementById('backToHomeBtn');
+        const removeMinutesInput = document.getElementById('removeMinutesInput');
+        const removeTimeBtn = document.getElementById('removeTimeBtn');
 
         // --- Global Variables ---
         let isClockedIn = false;
@@ -150,6 +172,30 @@
 
             const pad = (num) => String(num).padStart(2, '0');
             return `${pad(hours)}:${pad(minutes)}:${pad(remainingSeconds)}`;
+        }
+
+        /**
+         * Displays a custom message box instead of alert().
+         * @param {string} message - The message to display.
+         * @param {function} [onClose] - Optional callback function when the message box is closed.
+         */
+        function showMessageBox(message, onClose = null) {
+            const messageBoxOverlay = document.createElement('div');
+            messageBoxOverlay.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50';
+            messageBoxOverlay.innerHTML = `
+                <div class="message-box">
+                    <p class="text-lg font-semibold mb-4">${message}</p>
+                    <button id="messageBoxOkBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">OK</button>
+                </div>
+            `;
+            document.body.appendChild(messageBoxOverlay);
+
+            document.getElementById('messageBoxOkBtn').addEventListener('click', () => {
+                document.body.removeChild(messageBoxOverlay);
+                if (onClose) {
+                    onClose();
+                }
+            });
         }
 
         /**
@@ -266,6 +312,31 @@
         }
 
         /**
+         * Handles removing time from the total.
+         */
+        function removeTime() {
+            const minutesToRemove = parseInt(removeMinutesInput.value, 10);
+
+            if (isNaN(minutesToRemove) || minutesToRemove <= 0) {
+                showMessageBox('Please enter a valid positive number of minutes to remove.');
+                return;
+            }
+
+            const millisecondsToRemove = minutesToRemove * 60 * 1000; // Convert minutes to milliseconds
+
+            if (totalWorkMilliseconds < millisecondsToRemove) {
+                showMessageBox('Cannot remove more time than currently accumulated!');
+                return;
+            }
+
+            totalWorkMilliseconds -= millisecondsToRemove;
+            saveStateToLocalStorage();
+            loadReport(); // Update the report display
+            removeMinutesInput.value = ''; // Clear the input field
+            showMessageBox(`${minutesToRemove} minutes removed successfully.`);
+        }
+
+        /**
          * Clears work data from local storage and resets the report.
          */
         function clearLocalStorageAndReset() {
@@ -273,7 +344,7 @@
             const confirmationBox = document.createElement('div');
             confirmationBox.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50';
             confirmationBox.innerHTML = `
-                <div class="bg-white p-8 rounded-lg shadow-xl text-center mx-4 sm:mx-0">
+                <div class="message-box">
                     <p class="text-lg font-semibold mb-4">Are you sure you want to clear all work data?</p>
                     <div class="flex justify-center space-x-4">
                         <button id="confirmClearBtn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg">Yes, Clear</button>
@@ -354,6 +425,7 @@
             updateHomeUI(); // Ensure home UI is updated before showing
             showView(homeView);
         });
+        removeTimeBtn.addEventListener('click', removeTime);
 
         // Load state when the page loads
         document.addEventListener('DOMContentLoaded', () => {
