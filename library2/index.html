@@ -244,8 +244,17 @@
             flex-shrink: 0; /* Prevent shrinking in flex container */
             overflow: hidden; /* Ensure content is clipped within the bounds */
         }
+        .book-thumbnail-md {
+            /* Medium size for "All Books" table */
+            width: 100px; /* Adjusted width */
+            height: auto; /* Allow height to adjust proportionally */
+            max-width: 100%; /* Ensure it doesn't overflow its container */
+            border-radius: 0.5rem; /* rounded-lg */
+            object-fit: contain; /* Ensure the entire image is visible */
+            margin-right: 8px; /* Consistent margin */
+        }
         .book-thumbnail-lg {
-            /* Larger size for "All Books" table and details page */
+            /* Larger size for details page */
             width: 150px; /* Increased width */
             height: auto; /* Allow height to adjust proportionally */
             max-width: 100%; /* Ensure it doesn't overflow its container */
@@ -2124,10 +2133,10 @@
                     `;
                     const booksTableBody = document.getElementById('books-table-body');
                     filteredBooks.forEach(book => {
-                        // Use book-thumbnail-lg for the image in the search results table
+                        // Use book-thumbnail-md for the image in the search results table
                         const bookPhotoCellHtml = book.photo ?
-                            `<td class="px-6 py-4 whitespace-nowrap"><img src="${book.photo}" alt="Book Photo" class="book-thumbnail-lg"></td>` :
-                            `<td class="px-6 py-4 whitespace-nowrap flex items-center justify-center"><div class="book-thumbnail-lg flex items-center justify-center bg-gray-200">${defaultBookGraphic}</div></td>`;
+                            `<td class="px-6 py-4 whitespace-nowrap"><img src="${book.photo}" alt="Book Photo" class="book-thumbnail-md"></td>` :
+                            `<td class="px-6 py-4 whitespace-nowrap flex items-center justify-center"><div class="book-thumbnail-md flex items-center justify-center bg-gray-200">${defaultBookGraphic}</div></td>`;
 
                         const row = document.createElement('tr');
                         row.className = "cursor-pointer hover:bg-gray-50 book-row"; // Add class for click event
@@ -2323,8 +2332,8 @@
                     const reprintBooksTableBody = document.getElementById('reprint-books-table-body');
                     filteredBooks.forEach(book => {
                         const bookPhotoCellHtml = book.photo ?
-                            `<td class="px-6 py-4 whitespace-nowrap"><img src="${book.photo}" alt="Book Photo" class="book-thumbnail-lg"></td>` :
-                            `<td class="px-6 py-4 whitespace-nowrap flex items-center justify-center"><div class="book-thumbnail-lg flex items-center justify-center bg-gray-200">${defaultBookGraphic}</div></td>`;
+                            `<td class="px-6 py-4 whitespace-nowrap"><img src="${book.photo}" alt="Book Photo" class="book-thumbnail-md"></td>` :
+                            `<td class="px-6 py-4 whitespace-nowrap flex items-center justify-center"><div class="book-thumbnail-md flex items-center justify-center bg-gray-200">${defaultBookGraphic}</div></td>`;
 
                         const row = document.createElement('tr');
                         row.innerHTML = `
