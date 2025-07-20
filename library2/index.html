@@ -39,7 +39,7 @@
         /* Print styles for labels */
         @media print {
             /* Hide all body content except the print areas */
-            body > *:not(#label-print-area):not(#receipt-print-area) {
+            body > *:not(#label-print-area):not(#receipt-print-area):not(#return-receipt-print-area) {
                 display: none !important;
             }
             #label-print-area {
@@ -98,7 +98,7 @@
                 margin-top: 2mm; /* Add some space below title */
             }
 
-            /* Print styles for Receipt */
+            /* Print styles for Checkout Receipt */
             #receipt-print-area {
                 display: block !important;
                 position: absolute;
@@ -150,6 +150,51 @@
             #receipt-print-area .receipt-barcode-container svg {
                 width: 100%; /* Make SVG fill its container */
                 height: 100%;
+            }
+
+            /* Print styles for Return Receipt */
+            #return-receipt-print-area {
+                display: block !important;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 80mm; /* Standard receipt width */
+                margin: 0 auto; /* Center for preview, if needed */
+                padding: 5mm;
+                box-sizing: border-box;
+                font-family: 'Inter', sans-serif; /* Use Inter font */
+                font-size: 10pt; /* Adjust font size for receipts */
+                line-height: 1.4;
+                color: #000; /* Ensure black text for printing */
+            }
+            #return-receipt-print-area h3, #return-receipt-print-area h4 {
+                text-align: center;
+                margin-bottom: 5mm;
+                font-size: 12pt;
+                font-weight: bold;
+            }
+            #return-receipt-print-area .return-receipt-section {
+                border-top: 1px dashed #ccc;
+                padding-top: 5mm;
+                margin-top: 5mm;
+            }
+            #return-receipt-print-area .return-receipt-item {
+                margin-bottom: 2mm; /* More compact */
+                font-size: 9pt;
+            }
+            #return-receipt-print-area .return-receipt-item p {
+                margin: 0;
+                padding: 0;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            #return-receipt-print-area .return-receipt-footer {
+                text-align: center;
+                margin-top: 10mm;
+                font-size: 9pt;
+                border-top: 1px dashed #ccc;
+                padding-top: 5mm;
             }
         }
         /* CSS to hide the actions column by default */
@@ -339,6 +384,11 @@
         <!-- Receipts will be dynamically added here for printing -->
     </div>
 
+    <!-- Hidden area for printing return receipts -->
+    <div id="return-receipt-print-area" class="hidden">
+        <!-- Return receipts will be dynamically added here for printing -->
+    </div>
+
     <!-- JsBarcode Library (moved to end of body for better loading) -->
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <script>
@@ -356,6 +406,9 @@
 
         // Global flag to control visibility of edit/delete buttons in All Books
         let isEditDeleteButtonsVisible = false;
+
+        // Global array to hold books returned in the current session
+        let currentReturnSessionBooks = [];
 
         // Default book graphic (a simple SVG)
         const defaultBookGraphic = `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#000000"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M20 20L20 4C20 3.44772 19.5523 3 19 3H7C6.44772 3 6 3.44772 6 4V20C6 20.5523 6.44772 21 7 21H19C19.5523 21 20 20.5523 20 20Z" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> <path d="M6 20L6 4C6 3.44772 5.55228 3 5 3H4C3.44772 3 3 3.44772 3 4V20C3 20.5523 3.44772 21 4 21H5C5.55228 21 6 20.5523 6 20Z" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> <path d="M10 20V4" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg>`;
@@ -649,7 +702,7 @@
             return date.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
         };
 
-        // --- Receipt Printing ---
+        // --- Receipt Printing (Checkout) ---
         const receiptPrintArea = document.getElementById('receipt-print-area');
 
         const printReceipt = (cardHolder, newlyCheckedOutIsbns) => {
@@ -743,6 +796,51 @@
 
             setTimeout(() => {
                 receiptPrintArea.innerHTML = '';
+            }, 500);
+        };
+
+        // --- Receipt Printing (Return) ---
+        const returnReceiptPrintArea = document.getElementById('return-receipt-print-area');
+
+        const printReturnReceipt = (returnedBooks) => {
+            returnReceiptPrintArea.innerHTML = '';
+
+            if (returnedBooks.length === 0) {
+                console.warn("No books to print on return receipt.");
+                return;
+            }
+
+            let booksDetailsHtml = '';
+            returnedBooks.forEach(book => {
+                booksDetailsHtml += `
+                    <div class="return-receipt-item">
+                        <p class="font-semibold">${book.title}</p>
+                        <p>Call No: ${book.callNumber}</p>
+                    </div>
+                `;
+            });
+
+            const returnReceiptHtml = `
+                <div class="return-receipt-content">
+                    <h3 class="text-xl font-bold">Bell Library</h3>
+                    <h4 class="text-lg">Return Receipt</h4>
+                    <p>Date: ${new Date().toLocaleDateString()}</p>
+                    <p>Time: ${new Date().toLocaleTimeString()}</p>
+                    <div class="return-receipt-section">
+                        <p class="font-bold text-base mb-2">Books Returned:</p>
+                        ${booksDetailsHtml}
+                    </div>
+                    <div class="return-receipt-footer">
+                        <p>Thank you for returning your books!</p>
+                    </div>
+                </div>
+            `;
+
+            returnReceiptPrintArea.innerHTML = returnReceiptHtml;
+            window.print();
+
+            setTimeout(() => {
+                returnReceiptPrintArea.innerHTML = '';
             }, 500);
         };
 
@@ -1097,14 +1195,13 @@
             document.getElementById('add-book-form').addEventListener('submit', (e) => {
                 e.preventDefault();
                 clearMessage('add-book-message');
-                // Ensure generatedLabelArea is visible before attempting to print
-                generatedLabelArea.classList.remove('hidden');
-
 
                 const title = document.getElementById('title').value.trim();
                 const author = document.getElementById('author').value.trim();
                 const description = descriptionInput.value.trim(); // Get description
                 let selectedIsbn = customIsbnInput.value.trim(); // Prioritize custom ISBN
+
+                const isCustomIsbnUsed = !!selectedIsbn; // True if custom ISBN is provided
 
                 if (!selectedIsbn) { // If custom ISBN is empty, use generated
                     selectedIsbn = currentGeneratedIsbn;
@@ -1155,7 +1252,9 @@
                 books.push(newBook);
                 console.log("[Add Book Save] Books array after push:", books.map(b => ({id: b.id, title: b.title, photo: b.photo ? 'exists' : 'none'})));
                 saveData();
-                displayMessage('add-book-message', 'Book added successfully! Label generated below.', true);
+                displayMessage('add-book-message', 'Book added successfully!', true);
+
+                // Reset form fields
                 document.getElementById('add-book-form').reset();
                 updateGeneratedIsbn(); // Generate a new ISBN for the next book
                 updateCallNumberInput();
@@ -1165,31 +1264,38 @@
                 bookPhotoUpload.value = '';
                 clearMessage('add-book-photo-message');
 
-                labelPreviewContainer.innerHTML = '';
-                const previewBarcodeContainer = document.createElement('div');
-                previewBarcodeContainer.className = "barcode-container mb-2";
-                labelPreviewContainer.appendChild(previewBarcodeContainer);
+                // Conditional label printing and focus reset
+                if (!isCustomIsbnUsed) {
+                    // If generated ISBN, proceed with label printing
+                    generatedLabelArea.classList.remove('hidden');
+                    labelPreviewContainer.innerHTML = '';
+                    const previewBarcodeContainer = document.createElement('div');
+                    previewBarcodeContainer.className = "barcode-container mb-2";
+                    labelPreviewContainer.appendChild(previewBarcodeContainer);
 
-                const barcodeSvg = getBarcodeSvgString(newBook.isbn);
-                if (barcodeSvg) {
-                    previewBarcodeContainer.innerHTML = barcodeSvg;
+                    const barcodeSvg = getBarcodeSvgString(newBook.isbn);
+                    if (barcodeSvg) {
+                        previewBarcodeContainer.innerHTML = barcodeSvg;
+                    } else {
+                        previewBarcodeContainer.innerHTML = '<p class="text-red-500 text-xs">Barcode failed to load for preview.</p>';
+                    }
+
+                    const previewTitleP = document.createElement('p');
+                    previewTitleP.className = "label-title text-lg font-bold text-gray-800";
+                    previewTitleP.textContent = newBook.title;
+                    labelPreviewContainer.appendChild(previewTitleP);
+
+                    const previewCallNumberP = document.createElement('p');
+                    previewCallNumberP.className = "label-call-number text-sm text-gray-700 font-bold";
+                    previewCallNumberP.textContent = `Call No: ${newBook.callNumber}`;
+                    labelPreviewContainer.appendChild(previewCallNumberP);
+
+                    printLabel(newBook);
                 } else {
-                    previewBarcodeContainer.innerHTML = '<p class="text-red-500 text-xs">Barcode failed to load for preview.</p>';
+                    // If custom ISBN, hide label area and reset focus to title
+                    generatedLabelArea.classList.add('hidden');
+                    document.getElementById('title').focus();
                 }
-
-
-                const previewTitleP = document.createElement('p');
-                previewTitleP.className = "label-title text-lg font-bold text-gray-800";
-                previewTitleP.textContent = newBook.title;
-                labelPreviewContainer.appendChild(previewTitleP);
-
-                const previewCallNumberP = document.createElement('p');
-                previewCallNumberP.className = "label-call-number text-sm text-gray-700 font-bold";
-                previewCallNumberP.textContent = `Call No: ${newBook.callNumber}`;
-                labelPreviewContainer.appendChild(previewCallNumberP);
-
-                // Now call printLabel
-                printLabel(newBook);
             });
 
             printLabelBtn.addEventListener('click', () => {
@@ -1589,6 +1695,9 @@
         };
 
         const renderReturnBook = () => {
+            // Start a new return session when entering this page
+            currentReturnSessionBooks = [];
+            
             contentArea.innerHTML = `
                 <div class="p-6 bg-white rounded-lg shadow-md flex-grow">
                     <h2 class="text-3xl font-bold mb-6 text-gray-800">Return Book</h2>
@@ -1603,22 +1712,33 @@
                                 </label>
                                 <input type="text" id="returnIsbn" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Enter book ISBN (e.g., 978-0743273565)">
                             </div>
-                            <button id="complete-return-btn" class="w-full py-3 px-4 mt-4 border border-transparent rounded-md shadow-sm text-xl font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition duration-150 ease-in-out">
-                                Complete Individual Return
+                            <button id="add-to-return-session-btn" class="w-full py-3 px-4 mt-4 border border-transparent rounded-md shadow-sm text-xl font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition duration-150 ease-in-out">
+                                Add to Return Session
                             </button>
                             <div id="return-message-isbn" class="hidden"></div>
                         </div>
 
-                        <!-- Return by Receipt Barcode -->
+                        <!-- Books Returned in this Session List -->
+                        <div id="return-session-list-container" class="p-4 border border-gray-200 rounded-md ${currentReturnSessionBooks.length === 0 ? 'hidden' : ''}">
+                            <h3 class="text-xl font-semibold text-gray-700 mb-3">Books Returned in this Session:</h3>
+                            <ul id="returned-books-ul" class="list-none p-0 m-0 space-y-2">
+                                <!-- Books will be dynamically added here -->
+                            </ul>
+                            <button id="end-return-session-btn" class="w-full py-3 px-4 mt-4 border border-transparent rounded-md shadow-sm text-xl font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out">
+                                End Return Session & Print Receipt
+                            </button>
+                        </div>
+
+                        <!-- Return by Receipt Barcode (Kept for existing functionality) -->
                         <div class="p-4 border border-gray-200 rounded-md">
-                            <h3 class="text-xl font-semibold text-gray-700 mb-3">Return Books from Receipt</h3>
+                            <h3 class="text-xl font-semibold text-gray-700 mb-3">Return Books from Receipt (Optional)</h3>
                             <div>
                                 <label for="returnReceiptBarcode" class="block text-sm font-medium text-gray-700 mb-1">
                                     Scan Receipt Barcode:
                                 </label>
                                 <input type="text" id="returnReceiptBarcode" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Scan barcode from receipt">
                             </div>
-                            <button id="complete-receipt-return-btn" class="w-full py-3 px-4 mt-4 border border-transparent rounded-md shadow-sm text-xl font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out">
+                            <button id="complete-receipt-return-btn" class="w-full py-3 px-4 mt-4 border border-transparent rounded-md shadow-sm text-xl font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150 ease-in-out">
                                 Return Books on this Receipt
                             </button>
                             <div id="return-message-receipt" class="hidden"></div>
@@ -1628,22 +1748,58 @@
             `;
 
             const returnIsbnInput = document.getElementById('returnIsbn');
-            const completeReturnBtn = document.getElementById('complete-return-btn');
+            const addToReturnSessionBtn = document.getElementById('add-to-return-session-btn');
+            const returnSessionListContainer = document.getElementById('return-session-list-container');
+            const returnedBooksUl = document.getElementById('returned-books-ul');
+            const endReturnSessionBtn = document.getElementById('end-return-session-btn');
             const returnReceiptBarcodeInput = document.getElementById('returnReceiptBarcode');
             const completeReceiptReturnBtn = document.getElementById('complete-receipt-return-btn');
 
-            // Function to handle individual book return
+            const updateReturnSessionList = () => {
+                returnedBooksUl.innerHTML = ''; // Clear existing list
+                if (currentReturnSessionBooks.length > 0) {
+                    returnSessionListContainer.classList.remove('hidden');
+                    currentReturnSessionBooks.forEach(book => {
+                        const li = document.createElement('li');
+                        li.className = 'flex justify-between items-center bg-gray-50 p-3 rounded-md';
+                        li.innerHTML = `
+                            <div>
+                                <p class="font-semibold text-gray-800">${book.title}</p>
+                                <p class="text-sm text-gray-600">Call No: ${book.callNumber}</p>
+                                <p class="text-xs text-gray-500">ISBN: ${book.isbn}</p>
+                            </div>
+                            <button data-isbn="${book.isbn}" class="remove-from-return-session-btn text-red-500 hover:text-red-700 text-sm ml-4">
+                                Remove
+                            </button>
+                        `;
+                        returnedBooksUl.appendChild(li);
+                    });
+
+                    document.querySelectorAll('.remove-from-return-session-btn').forEach(button => {
+                        button.addEventListener('click', (e) => {
+                            const isbnToRemove = e.target.dataset.isbn;
+                            currentReturnSessionBooks = currentReturnSessionBooks.filter(book => book.isbn !== isbnToRemove);
+                            updateReturnSessionList();
+                        });
+                    });
+
+                } else {
+                    returnSessionListContainer.classList.add('hidden');
+                }
+            };
+
+            // Function to handle individual book return (add to session)
             const handleIndividualReturn = () => {
                 clearMessage('return-message-isbn');
-                const bookIsbnInput = returnIsbnInput.value.trim();
+                const bookIsbnInputVal = returnIsbnInput.value.trim();
 
-                if (!bookIsbnInput) {
+                if (!bookIsbnInputVal) {
                     displayMessage('return-message-isbn', 'Please scan (enter) the book ISBN to return.', false);
                     playErrorSound();
                     return;
                 }
 
-                const bookIndex = books.findIndex(b => b.isbn === bookIsbnInput);
+                const bookIndex = books.findIndex(b => b.isbn === bookIsbnInputVal);
                 if (bookIndex === -1) {
                     displayMessage('return-message-isbn', 'Book not found in the library system.', false);
                     playErrorSound();
@@ -1651,35 +1807,55 @@
                 }
                 const book = books[bookIndex];
 
-                console.log(`[Return] Processing ISBN: ${bookIsbnInput}`);
-                console.log(`[Return] Book found:`, book);
-                console.log(`[Return] Book isAvailable (before update):`, book.isAvailable);
-
                 if (book.isAvailable) {
                     displayMessage('return-message-isbn', 'This book is already available (not checked out).', false);
                     playErrorSound();
                     return;
                 }
 
-                const checkoutIndex = checkouts.findIndex(c => c.bookIsbn === bookIsbnInput && c.returnDate === null);
-                console.log(`[Return] Active checkout index found: ${checkoutIndex}`);
-                console.log(`[Return] Current checkouts array:`, checkouts);
-
+                const checkoutIndex = checkouts.findIndex(c => c.bookIsbn === bookIsbnInputVal && c.returnDate === null);
                 if (checkoutIndex === -1) {
                     displayMessage('return-message-isbn', 'No active checkout record found for this book.', false);
                     playErrorSound();
                     return;
                 }
 
+                // Check if already added to current session
+                if (currentReturnSessionBooks.some(b => b.isbn === bookIsbnInputVal)) {
+                    displayMessage('return-message-isbn', `Book "${book.title}" is already in the current return session.`, false);
+                    playErrorSound();
+                    return;
+                }
+
+                // Mark book as returned in data (important for persistence)
                 books[bookIndex].isAvailable = true;
                 checkouts[checkoutIndex].returnDate = new Date().toISOString();
-                console.log(`[Return] Book isAvailable (after update):`, books[bookIndex].isAvailable);
-                console.log(`[Return] Checkout record updated:`, checkouts[checkoutIndex]);
-
-
                 saveData();
-                displayMessage('return-message-isbn', `Book "${book.title}" (ISBN: ${book.isbn}) returned successfully!`, true);
+
+                // Add to session list for receipt
+                currentReturnSessionBooks.push({
+                    title: book.title,
+                    callNumber: book.callNumber,
+                    isbn: book.isbn // Keep ISBN for removal from session if needed
+                });
+
+                displayMessage('return-message-isbn', `Book "${book.title}" added to return session.`, true);
                 returnIsbnInput.value = '';
+                updateReturnSessionList();
+            };
+
+            // Function to end the return session and print receipt
+            const handleEndReturnSession = () => {
+                if (currentReturnSessionBooks.length === 0) {
+                    displayMessage('return-message-isbn', 'No books have been added to this return session yet.', false);
+                    playErrorSound();
+                    return;
+                }
+
+                printReturnReceipt(currentReturnSessionBooks);
+                currentReturnSessionBooks = []; // Clear session after printing
+                updateReturnSessionList();
+                displayMessage('return-message-isbn', 'Return session ended and receipt printed.', true);
             };
 
             // Function to handle returning all books on a specific receipt
@@ -1765,13 +1941,15 @@
             };
 
 
-            completeReturnBtn.addEventListener('click', handleIndividualReturn);
+            addToReturnSessionBtn.addEventListener('click', handleIndividualReturn);
             returnIsbnInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
                     handleIndividualReturn();
                 }
             });
+
+            endReturnSessionBtn.addEventListener('click', handleEndReturnSession);
 
             completeReceiptReturnBtn.addEventListener('click', handleReceiptReturn);
             returnReceiptBarcodeInput.addEventListener('keypress', (e) => {
@@ -1781,6 +1959,7 @@
                 }
             });
 
+            updateReturnSessionList(); // Initial render of the session list
             document.getElementById('returnIsbn').focus(); // Default focus
         };
 
