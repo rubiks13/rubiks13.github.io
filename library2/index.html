@@ -1,0 +1,2508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bell Library Management System</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts - Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Tone.js CDN for audio feedback -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom styles for better aesthetics and responsiveness */
+        .min-h-screen {
+            min-height: 100vh;
+        }
+        .flex-grow {
+            flex-grow: 1;
+        }
+        .shadow-md {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .rounded-lg {
+            border-radius: 0.5rem;
+        }
+        .transition-colors {
+            transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+            transition-duration: 150ms;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        /* Print styles for labels */
+        @media print {
+            /* Hide all body content except the print areas */
+            body > *:not(#label-print-area):not(#receipt-print-area) {
+                display: none !important;
+            }
+            #label-print-area {
+                display: block !important; /* Ensure it's visible for printing */
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%; /* Take full width for printing */
+                height: auto; /* Adjust height automatically */
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            .book-label {
+                width: 80mm; /* Label width */
+                height: 50mm; /* Label height */
+                padding: 5mm; /* Padding inside label */
+                border: none; /* Explicitly removed border */
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                text-align: center;
+                page-break-after: always; /* Each label on a new page */
+                box-sizing: border-box;
+                font-size: 10pt;
+                overflow: hidden; /* Ensure content doesn't overflow */
+            }
+            .book-label .barcode-container {
+                width: 70mm; /* Adjust barcode container size for print */
+                height: 25mm; /* Fixed height for barcode container */
+                margin-bottom: 3mm;
+                display: flex; /* To center SVG if it's smaller */
+                justify-content: center;
+                align-items: center;
+            }
+            .book-label .barcode-container svg {
+                width: 100%; /* Make SVG fill its container */
+                height: 100%;
+            }
+            .book-label p {
+                margin: 0;
+                line-height: 1.2;
+            }
+            .book-label .label-title {
+                font-weight: bold;
+                font-size: 11pt;
+                white-space: nowrap; /* Prevent text wrapping */
+                overflow: hidden; /* Hide overflowing text */
+                text-overflow: ellipsis; /* Add ellipsis for overflow */
+                max-width: 100%; /* Ensure it respects container width */
+            }
+            .book-label .label-call-number {
+                font-weight: bold; /* Already bolded */
+                font-size: 9pt; /* Adjusted for better fit */
+                margin-top: 2mm; /* Add some space below title */
+            }
+
+            /* Print styles for Receipt */
+            #receipt-print-area {
+                display: block !important;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 80mm; /* Standard receipt width */
+                margin: 0 auto; /* Center for preview, if needed */
+                padding: 5mm;
+                box-sizing: border-box;
+                font-family: 'Inter', sans-serif; /* Use Inter font */
+                font-size: 10pt; /* Adjust font size for receipts */
+                line-height: 1.4;
+                color: #000; /* Ensure black text for printing */
+            }
+            #receipt-print-area h3, #receipt-print-area h4 {
+                text-align: center;
+                margin-bottom: 5mm;
+                font-size: 12pt;
+                font-weight: bold;
+            }
+            #receipt-print-area .receipt-section {
+                border-top: 1px dashed #ccc;
+                padding-top: 5mm;
+                margin-top: 5mm;
+            }
+            #receipt-print-area .receipt-item {
+                margin-bottom: 3mm;
+            }
+            #receipt-print-area .receipt-item p {
+                margin: 0;
+                padding: 0;
+            }
+            #receipt-print-area .receipt-footer {
+                text-align: center;
+                margin-top: 10mm;
+                font-size: 9pt;
+                border-top: 1px dashed #ccc;
+                padding-top: 5mm;
+            }
+            /* Barcode on receipt */
+            #receipt-print-area .receipt-barcode-container {
+                width: 70mm; /* Adjust barcode container size for print */
+                height: 25mm; /* Fixed height for barcode container */
+                margin: 5mm auto 0 auto; /* Center with top margin */
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+            #receipt-print-area .receipt-barcode-container svg {
+                width: 100%; /* Make SVG fill its container */
+                height: 100%;
+            }
+        }
+        /* CSS to hide the actions column by default */
+        .hidden-actions-column {
+            display: none;
+        }
+        /* Style for books due soon */
+        .due-soon-red {
+            background-color: #fee2e2; /* Red-100 */
+            color: #991b1b; /* Red-800 */
+            font-weight: 600;
+        }
+
+        /* Styles for sidebar toggle */
+        .sidebar-hidden {
+            transform: translateX(-100%);
+            position: absolute; /* Use absolute to take it out of flow */
+            height: 100vh; /* Ensure it covers full height when hidden */
+            transition: transform 0.3s ease-in-out;
+        }
+        .sidebar-visible {
+            transform: translateX(0);
+            position: relative; /* Return to relative when visible */
+            transition: transform 0.3s ease-in-out;
+        }
+        /* Adjust main content when sidebar is hidden */
+        .main-content-expanded {
+            width: 100%; /* Take full width when sidebar is hidden */
+        }
+        .main-content-contracted {
+            width: calc(100% - 16rem); /* Adjust for sidebar width (w-64 = 16rem) */
+        }
+
+        /* Responsive adjustments for sidebar toggle */
+        @media (min-width: 768px) { /* md breakpoint */
+            .sidebar-hidden {
+                position: relative; /* Keep it in flow on desktop for smooth transition */
+            }
+            .main-content-expanded {
+                width: 100%;
+            }
+            .main-content-contracted {
+                width: calc(100% - 16rem);
+            }
+        }
+
+        /* Kiosk Mode Specific Styles for Checkout Page */
+        .kiosk-mode-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: calc(100vh - 4rem); /* Adjust for body padding/margin if any */
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .kiosk-form-group {
+            width: 80%; /* Make form elements wider */
+            max-width: 600px; /* Limit max width */
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .kiosk-form-group label {
+            font-size: 1.25rem; /* text-lg */
+            margin-bottom: 0.5rem;
+        }
+
+        .kiosk-form-group input {
+            font-size: 1.5rem; /* text-xl */
+            padding-top: 0.75rem; /* py-3 */
+            padding-bottom: 0.75rem; /* py-3 */
+        }
+
+        /* Make the list of scanned books larger in kiosk mode */
+        #scanned-isbns-list-container ul {
+            font-size: 1.125rem; /* text-lg */
+        }
+        #scanned-isbns-list-container li {
+            padding: 0.75rem; /* p-3 */
+        }
+
+        /* Styling for book image thumbnails */
+        .book-thumbnail {
+            width: 40px; /* w-10 */
+            height: 40px; /* h-10 */
+            border-radius: 0.5rem; /* Changed to rounded-lg for consistency with rectangular graphic */
+            object-fit: cover; /* object-cover */
+            margin-right: 8px; /* mr-2 */
+            flex-shrink: 0; /* Prevent shrinking in flex container */
+            overflow: hidden; /* Ensure content is clipped within the bounds */
+        }
+        .book-thumbnail-lg {
+            width: 120px; /* w-30 */
+            height: 120px; /* h-30 */
+            border-radius: 0.5rem; /* rounded-lg */
+            object-fit: cover;
+            margin-bottom: 16px; /* mb-4 */
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="min-h-screen bg-gray-100 font-inter antialiased flex flex-col md:flex-row">
+        <!-- Sidebar Navigation -->
+        <nav id="sidebar-nav" class="bg-gray-800 text-white w-full md:w-64 p-4 shadow-lg md:flex-shrink-0 sidebar-visible">
+            <h1 class="text-3xl font-extrabold mb-8 text-center">Bell Library</h1>
+            <ul class="space-y-3">
+                <li>
+                    <button id="nav-dashboard" class="w-full text-left py-3 px-4 rounded-md text-lg font-medium transition-colors duration-200 ease-in-out bg-indigo-600 shadow-md">
+                        Dashboard
+                    </button>
+                </li>
+                <li>
+                    <button id="nav-addBook" class="w-full text-left py-3 px-4 rounded-md text-lg font-medium transition-colors duration-200 ease-in-out hover:bg-gray-700">
+                        Add Book
+                    </button>
+                </li>
+                <li>
+                    <button id="nav-manageCards" class="w-full text-left py-3 px-4 rounded-md text-lg font-medium transition-colors duration-200 ease-in-out hover:bg-gray-700">
+                        Manage Cards
+                    </button>
+                </li>
+                <li>
+                    <button id="nav-checkout" class="w-full text-left py-3 px-4 rounded-md text-lg font-medium transition-colors duration-200 ease-in-out hover:bg-gray-700">
+                        Checkout Books
+                    </button>
+                </li>
+                <li>
+                    <button id="nav-return" class="w-full text-left py-3 px-4 rounded-md text-lg font-medium transition-colors duration-200 ease-in-out hover:bg-gray-700">
+                        Return Book
+                    </button>
+                </li>
+                <li>
+                    <button id="nav-allBooks" class="w-full text-left py-3 px-4 rounded-md text-lg font-medium transition-colors duration-200 ease-in-out hover:bg-gray-700">
+                        All Books
+                    </button>
+                </li>
+                <li>
+                    <button id="nav-checkedOut" class="w-full text-left py-3 px-4 rounded-md text-lg font-medium transition-colors duration-200 ease-in-out hover:bg-gray-700">
+                        Checked Out Books
+                    </button>
+                </li>
+                <li>
+                    <button id="nav-reprintLabels" class="w-full text-left py-3 px-4 rounded-md text-lg font-medium transition-colors duration-200 ease-in-out hover:bg-gray-700">
+                        Reprint Labels
+                    </button>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main id="content-area" class="flex-1 p-6 flex flex-col main-content-contracted">
+            <!-- Content will be rendered here by JavaScript -->
+        </main>
+    </div>
+
+    <!-- Reusable Modal Component -->
+    <div id="modal-overlay" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 modal-overlay">
+        <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full relative">
+            <h2 id="modal-title" class="text-2xl font-bold mb-4 text-gray-800"></h2>
+            <button id="modal-close-button" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-2xl font-bold">&times;</button>
+            <div id="modal-content"></div>
+            <div id="modal-actions" class="flex justify-end space-x-3 mt-4"></div>
+        </div>
+    </div>
+
+    <!-- Hidden area for printing labels -->
+    <div id="label-print-area" class="hidden">
+        <!-- Labels will be dynamically added here for printing -->
+    </div>
+
+    <!-- Hidden area for printing receipts -->
+    <div id="receipt-print-area" class="hidden">
+        <!-- Receipts will be dynamically added here for printing -->
+    </div>
+
+    <!-- JsBarcode Library (moved to end of body for better loading) -->
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <script>
+        // Global data stores, initialized from localStorage
+        let books = [];
+        let libraryCards = [];
+        let checkouts = [];
+        let receiptRecords = []; // New: To store details of printed receipts for multi-return
+
+        // Global variables for Call Number auto-increment
+        let defaultCallNumberPrefix = '';
+        let nextCallNumberSuffix = 1; // This will hold the *next* number to be used
+        let isCallNumberAutoIncrementEnabled = false;
+        let startingCallNumberSuffix = 1; // New: User-defined starting number
+
+        // Global flag to control visibility of edit/delete buttons in All Books
+        let isEditDeleteButtonsVisible = false;
+
+        // Default book graphic (a simple SVG)
+        const defaultBookGraphic = `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#000000"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M20 20L20 4C20 3.44772 19.5523 3 19 3H7C6.44772 3 6 3.44772 6 4V20C6 20.5523 6.44772 21 7 21H19C19.5523 21 20 20.5523 20 20Z" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> <path d="M6 20L6 4C6 3.44772 5.55228 3 5 3H4C3.44772 3 3 3.44772 3 4V20C3 20.5523 3.44772 21 4 21H5C5.55228 21 6 20.5523 6 20Z" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> <path d="M10 20V4" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg>`;
+
+        // Helper to generate unique IDs (for books, cards, checkouts)
+        const generateUniqueId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
+
+        // Helper to generate a unique 10-digit number for receipt barcode
+        const generateReceiptBarcodeNumber = () => {
+            let num = '';
+            for (let i = 0; i < 10; i++) {
+                num += Math.floor(Math.random() * 10);
+            }
+            return num;
+        };
+
+        // --- Tone.js for Error Sound ---
+        let errorSynth = null;
+
+        // Function to initialize Tone.js synth (call on first user interaction)
+        const initErrorSynth = () => {
+            if (!errorSynth) {
+                errorSynth = new Tone.Synth({
+                    oscillator: {
+                        type: "sawtooth"
+                    },
+                    envelope: {
+                        attack: 0.01,
+                        decay: 0.2,
+                        sustain: 0.0,
+                        release: 0.1
+                    }
+                }).toDestination();
+                console.log("[Audio] Tone.js error synth initialized.");
+            }
+        };
+
+        // Function to play error sound
+        const playErrorSound = () => {
+            initErrorSynth(); // Ensure synth is initialized
+            if (errorSynth) {
+                // Play a short, slightly dissonant chord or a quick buzz
+                errorSynth.triggerAttackRelease("C3", "8n"); // A short, low note
+                errorSynth.triggerAttackRelease("C#2", "16n", Tone.now() + 0.05); // A quick, slightly off note
+                console.log("[Audio] Error sound played.");
+            }
+        };
+
+        // Attach an event listener to the document to initialize audio context on first click
+        document.addEventListener('click', () => {
+            if (Tone.context.state !== 'running') {
+                Tone.start();
+                console.log("[Audio] Tone.js audio context started.");
+            }
+        }, { once: true });
+
+
+        // --- Local Storage Management ---
+        const saveData = () => {
+            console.log("[saveData] Attempting to save data. Current books array state (titles and photo presence):", JSON.stringify(books.map(b => ({id: b.id, title: b.title, photo: b.photo ? 'exists' : 'none'}))));
+            try {
+                localStorage.setItem('libraryBooks', JSON.stringify(books));
+                localStorage.setItem('libraryCards', JSON.stringify(libraryCards));
+                localStorage.setItem('libraryCheckouts', JSON.stringify(checkouts));
+                localStorage.setItem('receiptRecords', JSON.stringify(receiptRecords)); // Save receipt records
+                localStorage.setItem('defaultCallNumberPrefix', defaultCallNumberPrefix);
+                localStorage.setItem('nextCallNumberSuffix', nextCallNumberSuffix.toString());
+                localStorage.setItem('isCallNumberAutoIncrementEnabled', isCallNumberAutoIncrementEnabled.toString());
+                localStorage.setItem('startingCallNumberSuffix', startingCallNumberSuffix.toString());
+                console.log("[saveData] All data saved to localStorage successfully.");
+                // Verify immediately after saving
+                console.log("[saveData] Verifying localStorage 'libraryBooks':", localStorage.getItem('libraryBooks') ? 'Data exists' : 'Data missing');
+            } catch (e) {
+                console.error("[saveData Error] Failed to save data to localStorage:", e);
+                if (e.name === 'QuotaExceededError') {
+                    console.error("[saveData Error] Local storage quota exceeded. Please reduce the size of data (e.g., smaller images) or clear browser data.");
+                    // Using a custom modal for user feedback instead of alert()
+                    showModal('Storage Full!',
+                        `<p class="mb-4 text-gray-700">Your browser's local storage is full. This means your changes might not be saved.</p>
+                        <p class="mb-4 text-gray-700">Please reduce the size of images or clear browser data for other websites.</p>
+                        <p class="text-sm text-gray-500">Error: QuotaExceededError</p>`,
+                        [{ label: 'OK', className: 'py-2 px-4 rounded-md bg-blue-600 text-white hover:bg-blue-700', value: true }]
+                    );
+                } else {
+                    showModal('Save Error!',
+                        `<p class="mb-4 text-gray-700">An unexpected error occurred while saving data.</p>
+                        <p class="text-sm text-gray-500">Error: ${e.message}</p>
+                        <p class="text-sm text-gray-500">Please check the console for more details.</p>`,
+                        [{ label: 'OK', className: 'py-2 px-4 rounded-md bg-blue-600 text-white hover:bg-blue-700', value: true }]
+                    );
+                }
+            }
+        };
+
+        const loadData = () => {
+            try {
+                const storedBooks = localStorage.getItem('libraryBooks');
+                books = storedBooks ? JSON.parse(storedBooks) : [];
+                console.log("[loadData] Books loaded (titles and photo presence):", books.map(b => ({id: b.id, title: b.title, photo: b.photo ? 'exists' : 'none'})));
+
+                libraryCards = JSON.parse(localStorage.getItem('libraryCards')) || [];
+                checkouts = JSON.parse(localStorage.getItem('libraryCheckouts')) || [];
+                receiptRecords = JSON.parse(localStorage.getItem('receiptRecords')) || []; // Load receipt records
+                defaultCallNumberPrefix = localStorage.getItem('defaultCallNumberPrefix') || '';
+                nextCallNumberSuffix = parseInt(localStorage.getItem('nextCallNumberSuffix') || '1', 10);
+                isCallNumberAutoIncrementEnabled = localStorage.getItem('isCallNumberAutoIncrementEnabled') === 'true';
+                startingCallNumberSuffix = parseInt(localStorage.getItem('startingCallNumberSuffix') || '1', 10);
+                console.log("[loadData] Data loaded from localStorage.");
+            } catch (e) {
+                console.error("Error loading data from localStorage:", e);
+                // Clear corrupted data if parsing fails
+                books = [];
+                libraryCards = [];
+                checkouts = [];
+                receiptRecords = []; // Reset receipt records on error
+                defaultCallNumberPrefix = '';
+                nextCallNumberSuffix = 1;
+                isCallNumberAutoIncrementEnabled = false;
+                startingCallNumberSuffix = 1;
+                saveData(); // Save empty arrays to clear corrupted data
+                console.log("[loadData] Corrupted data cleared and empty data saved.");
+            }
+        };
+
+        // --- Modal Functions ---
+        const modalOverlay = document.getElementById('modal-overlay');
+        const modalTitle = document.getElementById('modal-title');
+        const modalContent = document.getElementById('modal-content');
+        const modalActions = document.getElementById('modal-actions');
+        const modalCloseButton = document.getElementById('modal-close-button');
+
+        let currentModalPromiseResolve = null; // This will hold the resolve function for the current modal promise
+
+        /**
+         * Shows a generic modal with custom content and action buttons.
+         * @param {string} title - The title of the modal.
+         * @param {string} contentHtml - The HTML content for the modal body.
+         * @param {Array<Object>} buttonsConfig - An array of button configurations.
+         * Each object: { label: string, className: string, value: any, onClick?: function(resolve): void }
+         * The onClick function, if provided, should handle resolution and hiding.
+         * @param {function} [onContentRendered] - Optional callback function to run after content is rendered.
+         * @returns {Promise<any>} A promise that resolves with the 'value' of the clicked button, or 'false' if closed via 'x'.
+         */
+        const showModal = (title, contentHtml, buttonsConfig = [], onContentRendered = null) => {
+            return new Promise(resolve => {
+                modalTitle.innerHTML = title;
+                modalContent.innerHTML = contentHtml;
+                modalActions.innerHTML = ''; // Clear previous actions
+
+                currentModalPromiseResolve = resolve; // Store the resolve function
+
+                buttonsConfig.forEach(buttonConf => {
+                    const button = document.createElement('button');
+                    button.textContent = buttonConf.label;
+                    button.className = buttonConf.className;
+                    button.addEventListener('click', async () => {
+                        if (buttonConf.onClick) {
+                            // If custom onClick is provided, it handles resolution and hiding
+                            await buttonConf.onClick(currentModalPromiseResolve);
+                        } else {
+                            // Default behavior: resolve with value and hide
+                            currentModalPromiseResolve(buttonConf.value);
+                            hideModal();
+                        }
+                    });
+                    modalActions.appendChild(button);
+                });
+
+                // Run the callback after content is rendered and before modal is shown
+                if (onContentRendered && typeof onContentRendered === 'function') {
+                    onContentRendered();
+                }
+
+                modalOverlay.classList.remove('hidden');
+            });
+        };
+
+        const hideModal = () => {
+            modalOverlay.classList.add('hidden');
+            modalTitle.innerHTML = '';
+            modalContent.innerHTML = '';
+            modalActions.innerHTML = '';
+            currentModalPromiseResolve = null; // Clear the stored resolve function
+        };
+
+        // The 'x' close button listener
+        modalCloseButton.addEventListener('click', () => {
+            if (currentModalPromiseResolve) {
+                currentModalPromiseResolve(false); // Resolve with false if closed via 'x'
+            }
+            hideModal();
+        });
+
+        // --- Message Display Helper ---
+        const displayMessage = (elementId, message, isSuccess) => {
+            const el = document.getElementById(elementId);
+            if (el) {
+                el.textContent = message;
+                el.className = `mt-4 p-3 rounded-md text-sm ${isSuccess ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`;
+                el.classList.remove('hidden');
+            }
+        };
+
+        const clearMessage = (elementId) => {
+            const el = document.getElementById(elementId);
+            if (el) {
+                el.textContent = '';
+                el.className = '';
+                el.classList.add('hidden');
+            }
+        };
+
+        // --- Random ISBN Generation ---
+        const generateRandomIsbn = () => {
+            let newIsbn;
+            let isUnique = false;
+            const ISBN_LENGTH = 10; // Set the desired ISBN length to 10 digits
+            while (!isUnique) {
+                newIsbn = '';
+                for (let i = 0; i < ISBN_LENGTH; i++) {
+                    newIsbn += Math.floor(Math.random() * 10);
+                }
+                // Check if this ISBN already exists in our books array
+                if (!books.some(book => book.isbn === newIsbn)) {
+                    isUnique = true;
+                }
+            }
+            return newIsbn;
+        };
+
+        // --- Barcode SVG Generation Helper ---
+        const getBarcodeSvgString = (data) => {
+            if (typeof JsBarcode === 'undefined') {
+                console.error("JsBarcode library not loaded. Cannot generate barcode SVG.");
+                return '';
+            }
+            const tempSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            try {
+                JsBarcode(tempSvg, data, {
+                    format: "CODE128",
+                    width: 2,
+                    height: 60,
+                    displayValue: false, // Do not display the value below the barcode
+                    renderer: "svg"
+                });
+                return tempSvg.outerHTML;
+            } catch (e) {
+                console.error("Error generating barcode SVG with JsBarcode:", e);
+                return '';
+            }
+        };
+
+        // --- Label Printing ---
+        const labelPrintArea = document.getElementById('label-print-area');
+
+        const printLabel = (book) => {
+            labelPrintArea.innerHTML = ''; // Clear previous content
+
+            const barcodeSvg = getBarcodeSvgString(book.isbn);
+
+            const labelHtml = `
+                <div class="book-label bg-white p-4 m-2 rounded-lg shadow-sm flex flex-col items-center justify-center">
+                    <div class="barcode-container mb-2">
+                        ${barcodeSvg || '<p class="text-red-500 text-xs">Barcode failed to load.</p>'}
+                    </div>
+                    <p class="label-title text-lg font-bold text-gray-800">${book.title}</p>
+                    <p class="label-call-number text-sm text-gray-700 font-bold">Call No: ${book.callNumber}</p>
+                </div>
+            `;
+
+            labelPrintArea.innerHTML = labelHtml;
+            window.print();
+
+            // Clear the print area after a short delay to allow the print job to be initiated
+            setTimeout(() => {
+                labelPrintArea.innerHTML = '';
+                const generatedLabelArea = document.getElementById('generated-label-area');
+                if (generatedLabelArea) {
+                    generatedLabelArea.classList.add('hidden'); // Hide the preview area
+                }
+                const titleInput = document.getElementById('title');
+                if (titleInput && currentPage === 'addBook') {
+                    titleInput.focus(); // Return focus to title input
+                }
+            }, 1000); // 1 second delay
+        };
+
+        // --- Date Formatting Helper ---
+        const formatDateForDisplay = (dateString) => {
+            const date = new Date(dateString);
+            return date.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        };
+
+        // --- Receipt Printing ---
+        const receiptPrintArea = document.getElementById('receipt-print-area');
+
+        const printReceipt = (cardHolder, newlyCheckedOutIsbns) => {
+            console.log("Attempting to print receipt...");
+            receiptPrintArea.innerHTML = '';
+
+            if (!cardHolder) {
+                console.error("No card holder information to print receipt.");
+                return;
+            }
+
+            // Get all currently checked out books for this card holder
+            const allCurrentCheckouts = checkouts.filter(c =>
+                c.cardNumber === cardHolder.cardNumber && c.returnDate === null
+            );
+
+            let newlyCheckedOutBooksDetails = [];
+
+            // Populate newlyCheckedOutBooksDetails with details of books just checked out
+            newlyCheckedOutIsbns.forEach(isbn => {
+                const book = books.find(b => b.isbn === isbn);
+                // Find the specific checkout record for this book and this cardholder that is still active
+                const checkout = checkouts.find(c => c.cardNumber === cardHolder.cardNumber && c.bookIsbn === isbn && c.returnDate === null);
+
+                const bookTitle = book ? book.title : 'Unknown Book';
+                const dueDateFormatted = checkout ? formatDateForDisplay(checkout.dueDate) : 'N/A';
+
+                const detail = `
+                    <div class="receipt-item">
+                        <p class="font-semibold">${bookTitle}</p>
+                        <p>ISBN: ${isbn}</p>
+                        <p>Due: ${dueDateFormatted}</p>
+                    </div>
+                `;
+                newlyCheckedOutBooksDetails.push(detail);
+            });
+
+
+            // Generate a unique receipt ID and store the record
+            const receiptId = generateReceiptBarcodeNumber();
+            receiptRecords.push({
+                receiptId: receiptId,
+                cardNumber: cardHolder.cardNumber,
+                books: newlyCheckedOutIsbns, // Store only books checked out in THIS session for this receipt
+                timestamp: new Date().toISOString()
+            });
+            saveData(); // Save the new receipt record
+
+            const receiptBarcodeSvg = getBarcodeSvgString(receiptId);
+
+            let receiptHtml = `
+                <div class="receipt-content">
+                    <h3 class="text-xl font-bold">Bell Library</h3>
+                    <h4 class="text-lg">Checkout Receipt</h4>
+                    <p>Date: ${new Date().toLocaleDateString()}</p>
+                    <p>Time: ${new Date().toLocaleTimeString()}</p>
+                    <div class="receipt-section">
+                        <p><strong>Card Holder:</strong> ${cardHolder.holderName}</p>
+                        <p><strong>Card No:</strong> ${cardHolder.cardNumber}</p>
+                        <p><strong>Total Books Checked Out:</strong> ${allCurrentCheckouts.length}</p>
+                    </div>
+            `;
+
+            if (newlyCheckedOutBooksDetails.length > 0) {
+                receiptHtml += `
+                    <div class="receipt-section">
+                        <p class="font-bold text-base mb-2">Books Just Checked Out:</p>
+                        ${newlyCheckedOutBooksDetails.join('')}
+                    </div>
+                `;
+            } else {
+                receiptHtml += `<p class="receipt-section">No new books were checked out in this session.</p>`;
+            }
+
+            receiptHtml += `
+                    <div class="receipt-footer">
+                        <p>Thank you for using Bell Library!</p>
+                        <p>Please return books by their due dates.</p>
+                        <div class="receipt-barcode-container">
+                            ${receiptBarcodeSvg || '<p class="text-red-500 text-xs">Receipt Barcode failed to load.</p>'}
+                        </div>
+                        <p class="text-xs mt-1">Receipt ID: ${receiptId}</p>
+                    </div>
+                </div>
+            `;
+
+            receiptPrintArea.innerHTML = receiptHtml;
+
+            console.log("Print dialog should be open.");
+            window.print();
+
+            setTimeout(() => {
+                receiptPrintArea.innerHTML = '';
+            }, 500);
+        };
+
+
+        // --- Page Rendering Functions ---
+        const contentArea = document.getElementById('content-area');
+        const navButtons = document.querySelectorAll('nav button');
+        const sidebarNav = document.getElementById('sidebar-nav');
+
+        const renderDashboard = () => {
+            contentArea.innerHTML = `
+                <div class="p-6 bg-white rounded-lg shadow-md flex-grow">
+                    <h2 class="text-3xl font-bold mb-6 text-gray-800">Bell Library Dashboard</h2>
+                    <p class="mb-4 text-gray-700">Welcome to your personal library system!</p>
+                    <p class="mb-6 text-sm text-gray-500">All your data is saved locally in your browser.</p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div class="bg-blue-50 p-6 rounded-lg shadow-sm">
+                            <h3 class="text-xl font-semibold text-blue-800 mb-2">Add Books</h3>
+                            <p class="text-blue-700">Easily add new books to your library collection with auto-generated ISBNs and print labels.</p>
+                        </div>
+                        <div class="bg-green-50 p-6 rounded-lg shadow-sm">
+                            <h3 class="text-xl font-semibold text-green-800 mb-2">Manage Cards</h3>
+                            <p class="text-green-700">Create and manage library cards for patrons.</p>
+                        </div>
+                        <div class="bg-yellow-50 p-6 rounded-lg shadow-sm">
+                            <h3 class="text-xl font-semibold text-yellow-800 mb-2">Checkout Books</h3>
+                            <p class="text-yellow-700">Process book checkouts by scanning card and book ISBNs (using Enter key).</p>
+                        </div>
+                        <div class="bg-purple-50 p-6 rounded-lg shadow-sm">
+                            <h3 class="text-xl font-semibold text-purple-800 mb-2">Return Books</h3>
+                            <p class="text-purple-700">Handle book returns and update availability.</p>
+                        </div>
+                        <div class="bg-red-50 p-6 rounded-lg shadow-sm">
+                            <h3 class="text-xl font-semibold text-red-800 mb-2">View All Books</h3>
+                            <p class="text-red-700">See your complete book inventory and their statuses.</p>
+                        </div>
+                        <div class="bg-teal-50 p-6 rounded-lg shadow-sm">
+                            <h3 class="text-xl font-semibold text-teal-800 mb-2">Checked Out</h3>
+                            <p class="text-teal-700">Monitor all currently checked out books.</p>
+                        </div>
+                        <div class="bg-orange-50 p-6 rounded-lg shadow-sm">
+                            <h3 class="text-xl font-semibold text-orange-800 mb-2">Reprint Labels</h3>
+                            <p class="text-orange-700">Search for any book and reprint its label.</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        };
+
+        // Function to handle pasting image from clipboard
+        async function pasteImageFromClipboard(messageElementId) {
+            clearMessage(messageElementId); // Clear previous messages
+            console.log(`[pasteImageFromClipboard] Attempting to paste image for element: ${messageElementId}`);
+
+            try {
+                const permissionStatus = await navigator.permissions.query({ name: "clipboard-read" });
+                console.log(`[pasteImageFromClipboard] Clipboard read permission state: ${permissionStatus.state}`);
+
+                if (permissionStatus.state === "denied") {
+                    displayMessage(messageElementId, "Clipboard read permission denied. Please allow clipboard access in your browser settings or use file upload.", false);
+                    return null;
+                }
+
+                const clipboardItems = await navigator.clipboard.read();
+                if (clipboardItems.length === 0) {
+                    displayMessage(messageElementId, "No image data found in clipboard. Please ensure an image is copied (e.g., right-click an image and select 'Copy Image', not 'Copy Image Address').", false);
+                    console.log("[pasteImageFromClipboard] Clipboard is empty or does not contain readable items.");
+                    return null;
+                }
+
+                for (const item of clipboardItems) {
+                    console.log("[pasteImageFromClipboard] Clipboard Item Types:", item.types);
+
+                    for (const type of item.types) {
+                        if (type.startsWith('image/')) {
+                            try {
+                                const blob = await item.getType(type);
+                                return new Promise((resolve) => {
+                                    const reader = new FileReader();
+                                    reader.onloadend = () => {
+                                        displayMessage(messageElementId, `Image pasted successfully! (Type: ${type})`, true);
+                                        resolve(reader.result);
+                                    };
+                                    reader.onerror = () => {
+                                        displayMessage(messageElementId, `Failed to read image data from clipboard for type ${type}.`, false);
+                                        console.error(`[pasteImageFromClipboard] Failed to read image data from clipboard for type ${type}.`);
+                                        resolve(null);
+                                    };
+                                    reader.readAsDataURL(blob);
+                                });
+                            } catch (blobError) {
+                                console.error(`[pasteImageFromClipboard] Error getting blob for type ${type}:`, blobError);
+                                displayMessage(messageElementId, `Failed to get image data from clipboard for type ${type}. Error: ${blobError.message}`, false);
+                                // Continue to try other types if available
+                            }
+                        }
+                    }
+                }
+                displayMessage(messageElementId, "No image data found in clipboard. Please ensure an image is copied (e.g., right-click an image and select 'Copy Image', not 'Copy Image Address').", false);
+                console.log("[pasteImageFromClipboard] No image data found in clipboard after checking all types.");
+                return null;
+            } catch (err) {
+                displayMessage(messageElementId, `Error accessing clipboard: ${err.message}. Ensure permissions are granted.`, false);
+                console.error("[pasteImageFromClipboard] Error accessing clipboard:", err);
+                return null;
+            }
+        }
+
+        const renderAddBookForm = () => {
+            contentArea.innerHTML = `
+                <div class="p-6 bg-white rounded-lg shadow-md flex-grow">
+                    <h2 class="text-3xl font-bold mb-6 text-gray-800">Add New Book</h2>
+                    <form id="add-book-form" class="space-y-4">
+                        <div>
+                            <label for="title" class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                            <input type="text" id="title" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., The Great Gatsby" required>
+                        </div>
+                        <div>
+                            <label for="author" class="block text-sm font-medium text-gray-700 mb-1">Author</label>
+                            <input type="text" id="author" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., F. Scott Fitzgerald" required>
+                        </div>
+
+                        <!-- Call Number Auto-Increment Section -->
+                        <div class="p-4 border border-gray-200 rounded-md bg-gray-50">
+                            <h3 class="text-xl font-semibold text-gray-700 mb-3">Call Number Settings</h3>
+                            <div class="flex items-center mb-3">
+                                <input type="checkbox" id="enable-call-number-auto-increment" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                                <label for="enable-call-number-auto-increment" class="ml-2 block text-base font-medium text-gray-900">Enable Auto-Increment</label>
+                            </div>
+                            <div>
+                                <label for="default-call-number-prefix" class="block text-sm font-medium text-gray-700 mb-1">Call Number Prefix (e.g., B, FIC, BIO)</label>
+                                <input type="text" id="default-call-number-prefix" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm uppercase" placeholder="e.g., B">
+                            </div>
+                            <div class="mt-3">
+                                <label for="starting-call-number-suffix" class="block text-sm font-medium text-gray-700 mb-1">Starting Number</label>
+                                <input type="number" id="starting-call-number-suffix" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" value="1" min="1">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="callNumber" class="block text-sm font-medium text-gray-700 mb-1">Call Number</label>
+                            <input type="text" id="callNumber" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., FIC FITZ G" required>
+                        </div>
+
+                        <!-- ISBN Input Section -->
+                        <div class="p-4 border border-gray-200 rounded-md bg-gray-50">
+                            <h3 class="text-xl font-semibold text-gray-700 mb-3">ISBN</h3>
+                            <div class="flex items-center space-x-2 mb-2">
+                                <label for="generated-isbn-display" class="block text-sm font-medium text-gray-700">Generated ISBN:</label>
+                                <span id="generated-isbn-display" class="font-mono text-gray-900 text-lg bg-gray-100 p-2 rounded-md flex-grow"></span>
+                                <button type="button" id="generate-isbn-btn" class="py-2 px-4 rounded-md bg-gray-200 text-gray-700 hover:bg-gray-300 transition duration-150 ease-in-out">Generate New</button>
+                            </div>
+                            <div>
+                                <label for="custom-isbn-input" class="block text-sm font-medium text-gray-700 mb-1">Or Enter Custom ISBN (10 or 13 digits)</label>
+                                <input type="text" id="custom-isbn-input" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., 9780743273565">
+                            </div>
+                            <div id="isbn-message" class="hidden text-xs mt-2"></div>
+                        </div>
+
+                        <!-- Description Field -->
+                        <div>
+                            <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
+                            <textarea id="description" rows="4" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Enter a brief description of the book..."></textarea>
+                        </div>
+
+                        <!-- Photo Upload Section -->
+                        <div class="p-4 border border-gray-200 rounded-md bg-gray-50">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Book Photo (Optional)</label>
+                            <input type="file" id="book-photo-upload" accept="image/*" class="hidden">
+                            <button type="button" id="add-photo-btn" class="py-2 px-4 rounded-md bg-indigo-500 text-white hover:bg-indigo-600 transition duration-150 ease-in-out">
+                                Add Photo (Paste or Upload)
+                            </button>
+                            <div id="photo-preview-container" class="mt-4 flex items-center space-x-3 hidden">
+                                <img id="photo-preview" class="w-20 h-20 object-cover rounded-md border border-gray-300" src="" alt="Book Photo Preview">
+                                <button type="button" id="remove-photo-btn" class="text-red-600 hover:text-red-800 text-sm font-medium">Remove Photo</button>
+                            </div>
+                            <div id="add-book-photo-message" class="hidden text-xs mt-2"></div>
+                            <p class="text-xs text-gray-500 mt-2">Note: Images are stored in your browser's local storage. Large images may affect performance.</p>
+                        </div>
+
+                        <button type="submit" class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
+                            Add Book
+                        </button>
+                    </form>
+                    <div id="add-book-message" class="hidden"></div>
+
+                    <div id="generated-label-area" class="mt-8 p-4 border border-blue-200 bg-blue-50 rounded-lg hidden flex flex-col items-center justify-center">
+                        <h3 class="text-xl font-bold text-blue-800 mb-4">Book Label Generated!</h3>
+                        <div id="label-preview-container" class="book-label bg-white p-4 m-2 rounded-lg shadow-sm flex flex-col items-center justify-center">
+                            <!-- Label content will be rendered here -->
+                        </div>
+                        <button id="print-label-btn" class="mt-4 py-2 px-4 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition duration-150 ease-in-out">
+                            Print Label
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            const generatedIsbnDisplay = document.getElementById('generated-isbn-display');
+            const customIsbnInput = document.getElementById('custom-isbn-input');
+            const generateIsbnBtn = document.getElementById('generate-isbn-btn');
+            const isbnMessage = document.getElementById('isbn-message');
+            const descriptionInput = document.getElementById('description');
+
+            const generatedLabelArea = document.getElementById('generated-label-area');
+            const labelPreviewContainer = document.getElementById('label-preview-container');
+            const printLabelBtn = document.getElementById('print-label-btn');
+            const callNumberInput = document.getElementById('callNumber');
+            const enableAutoIncrementCheckbox = document.getElementById('enable-call-number-auto-increment');
+            const defaultCallNumberPrefixInput = document.getElementById('default-call-number-prefix');
+            const startingCallNumberSuffixInput = document.getElementById('starting-call-number-suffix');
+
+            const bookPhotoUpload = document.getElementById('book-photo-upload');
+            const addPhotoBtn = document.getElementById('add-photo-btn');
+            const photoPreviewContainer = document.getElementById('photo-preview-container');
+            const photoPreview = document.getElementById('photo-preview');
+            const removePhotoBtn = document.getElementById('remove-photo-btn');
+            const addBookPhotoMessage = document.getElementById('add-book-photo-message');
+
+            let currentGeneratedIsbn = '';
+            let currentBookPhoto = ''; // Stores base64 image data
+
+            const updateGeneratedIsbn = () => {
+                currentGeneratedIsbn = generateRandomIsbn();
+                generatedIsbnDisplay.textContent = currentGeneratedIsbn;
+                // Clear custom ISBN input when a new ISBN is generated
+                customIsbnInput.value = '';
+                clearMessage('isbn-message');
+            };
+
+            const updateCallNumberInput = () => {
+                if (isCallNumberAutoIncrementEnabled && defaultCallNumberPrefix.trim() !== '') {
+                    callNumberInput.value = `${defaultCallNumberPrefix.trim().toUpperCase()}${nextCallNumberSuffix}`;
+                    callNumberInput.readOnly = true;
+                    callNumberInput.classList.add('bg-gray-100');
+                } else {
+                    callNumberInput.value = '';
+                    callNumberInput.readOnly = false;
+                    callNumberInput.classList.remove('bg-gray-100');
+                }
+            };
+
+            // Initialize form elements based on loaded data
+            enableAutoIncrementCheckbox.checked = isCallNumberAutoIncrementEnabled;
+            defaultCallNumberPrefixInput.value = defaultCallNumberPrefix;
+            startingCallNumberSuffixInput.value = startingCallNumberSuffix;
+            updateGeneratedIsbn(); // Generate an ISBN on load
+            updateCallNumberInput();
+
+            // Event Listeners for Call Number Auto-Increment
+            enableAutoIncrementCheckbox.addEventListener('change', () => {
+                isCallNumberAutoIncrementEnabled = enableAutoIncrementCheckbox.checked;
+                if (isCallNumberAutoIncrementEnabled) {
+                    nextCallNumberSuffix = startingCallNumberSuffix;
+                }
+                saveData();
+                updateCallNumberInput();
+            });
+
+            defaultCallNumberPrefixInput.addEventListener('input', () => {
+                const newPrefix = defaultCallNumberPrefixInput.value.trim().toUpperCase();
+                if (newPrefix !== defaultCallNumberPrefix) {
+                    defaultCallNumberPrefix = newPrefix;
+                    if (isCallNumberAutoIncrementEnabled) {
+                        nextCallNumberSuffix = startingCallNumberSuffix;
+                    }
+                    saveData();
+                }
+                updateCallNumberInput();
+            });
+
+            startingCallNumberSuffixInput.addEventListener('input', () => {
+                const newStartingSuffix = parseInt(startingCallNumberSuffixInput.value, 10);
+                if (!isNaN(newStartingSuffix) && newStartingSuffix >= 1) {
+                    startingCallNumberSuffix = newStartingSuffix;
+                    if (isCallNumberAutoIncrementEnabled) {
+                        nextCallNumberSuffix = startingCallNumberSuffix;
+                    }
+                    saveData();
+                    updateCallNumberInput();
+                } else {
+                    startingCallNumberSuffixInput.value = Math.max(1, newStartingSuffix || 1);
+                    startingCallNumberSuffix = Math.max(1, newStartingSuffix || 1);
+                    if (isCallNumberAutoIncrementEnabled) {
+                        nextCallNumberSuffix = startingCallNumberSuffix;
+                    }
+                    saveData();
+                    updateCallNumberInput();
+                }
+            });
+
+
+            generateIsbnBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                updateGeneratedIsbn();
+            });
+
+            customIsbnInput.addEventListener('input', () => {
+                clearMessage('isbn-message');
+                // Optional: add more robust ISBN validation here if needed
+            });
+
+
+            // Photo upload logic
+            addPhotoBtn.addEventListener('click', async () => {
+                clearMessage('add-book-photo-message');
+                const pastedImage = await pasteImageFromClipboard('add-book-photo-message');
+                if (pastedImage) {
+                    currentBookPhoto = pastedImage;
+                    photoPreview.src = currentBookPhoto;
+                    photoPreviewContainer.classList.remove('hidden');
+                    // Message already handled by pasteImageFromClipboard
+                } else {
+                    // Fallback to file input if no image in clipboard or permission denied
+                    bookPhotoUpload.value = ''; // Clear the input value to ensure change event fires even if same file is re-selected
+                    bookPhotoUpload.click();
+                }
+            });
+
+            bookPhotoUpload.addEventListener('change', (event) => {
+                clearMessage('add-book-photo-message');
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        currentBookPhoto = e.target.result;
+                        photoPreview.src = currentBookPhoto;
+                        photoPreviewContainer.classList.remove('hidden');
+                        displayMessage('add-book-photo-message', 'Image uploaded from file!', true);
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    // If user opens file dialog and cancels, ensure photo is cleared if it was previously set
+                    if (currentBookPhoto) {
+                        currentBookPhoto = '';
+                        photoPreview.src = '';
+                        photoPreviewContainer.classList.add('hidden');
+                    }
+                }
+            });
+
+            removePhotoBtn.addEventListener('click', () => {
+                currentBookPhoto = '';
+                photoPreview.src = '';
+                photoPreviewContainer.classList.add('hidden');
+                bookPhotoUpload.value = ''; // Clear the file input
+                clearMessage('add-book-photo-message');
+            });
+
+
+            document.getElementById('add-book-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                clearMessage('add-book-message');
+                // Ensure generatedLabelArea is visible before attempting to print
+                generatedLabelArea.classList.remove('hidden');
+
+
+                const title = document.getElementById('title').value.trim();
+                const author = document.getElementById('author').value.trim();
+                const description = descriptionInput.value.trim(); // Get description
+                let selectedIsbn = customIsbnInput.value.trim(); // Prioritize custom ISBN
+
+                if (!selectedIsbn) { // If custom ISBN is empty, use generated
+                    selectedIsbn = currentGeneratedIsbn;
+                }
+
+                let callNumber = callNumberInput.value.trim();
+
+                if (isCallNumberAutoIncrementEnabled && defaultCallNumberPrefix.trim() !== '') {
+                    callNumber = `${defaultCallNumberPrefix.trim().toUpperCase()}${nextCallNumberSuffix}`;
+                    nextCallNumberSuffix++;
+                } else {
+                    if (!callNumber) {
+                        displayMessage('add-book-message', 'Please fill in all fields (including Call Number).', false);
+                        // Hide generated label area if validation fails
+                        generatedLabelArea.classList.add('hidden');
+                        return;
+                    }
+                }
+
+
+                if (!title || !author || !callNumber || !selectedIsbn) {
+                    displayMessage('add-book-message', 'Please fill in all required fields (Title, Author, Call Number, and ISBN).', false);
+                    // Hide generated label area if validation fails
+                    generatedLabelArea.classList.add('hidden');
+                    return;
+                }
+
+                if (books.some(book => book.isbn === selectedIsbn)) {
+                    displayMessage('add-book-message', `ISBN "${selectedIsbn}" already exists. Please use a different ISBN or generate a new one.`, false);
+                    // Hide generated label area if validation fails
+                    generatedLabelArea.classList.add('hidden');
+                    return;
+                }
+
+                const newBook = {
+                    id: generateUniqueId(),
+                    title,
+                    author,
+                    isbn: selectedIsbn,
+                    callNumber,
+                    description: description, // Save the description
+                    isAvailable: true,
+                    createdAt: new Date().toISOString(),
+                    photo: currentBookPhoto // Save the photo data
+                };
+
+                console.log("[Add Book Save] New book object before push:", newBook);
+                books.push(newBook);
+                console.log("[Add Book Save] Books array after push:", books.map(b => ({id: b.id, title: b.title, photo: b.photo ? 'exists' : 'none'})));
+                saveData();
+                displayMessage('add-book-message', 'Book added successfully! Label generated below.', true);
+                document.getElementById('add-book-form').reset();
+                updateGeneratedIsbn(); // Generate a new ISBN for the next book
+                updateCallNumberInput();
+                currentBookPhoto = ''; // Clear photo after adding book
+                photoPreview.src = '';
+                photoPreviewContainer.classList.add('hidden');
+                bookPhotoUpload.value = '';
+                clearMessage('add-book-photo-message');
+
+                labelPreviewContainer.innerHTML = '';
+                const previewBarcodeContainer = document.createElement('div');
+                previewBarcodeContainer.className = "barcode-container mb-2";
+                labelPreviewContainer.appendChild(previewBarcodeContainer);
+
+                const barcodeSvg = getBarcodeSvgString(newBook.isbn);
+                if (barcodeSvg) {
+                    previewBarcodeContainer.innerHTML = barcodeSvg;
+                } else {
+                    previewBarcodeContainer.innerHTML = '<p class="text-red-500 text-xs">Barcode failed to load for preview.</p>';
+                }
+
+
+                const previewTitleP = document.createElement('p');
+                previewTitleP.className = "label-title text-lg font-bold text-gray-800";
+                previewTitleP.textContent = newBook.title;
+                labelPreviewContainer.appendChild(previewTitleP);
+
+                const previewCallNumberP = document.createElement('p');
+                previewCallNumberP.className = "label-call-number text-sm text-gray-700 font-bold";
+                previewCallNumberP.textContent = `Call No: ${newBook.callNumber}`;
+                labelPreviewContainer.appendChild(previewCallNumberP);
+
+                // Now call printLabel
+                printLabel(newBook);
+            });
+
+            printLabelBtn.addEventListener('click', () => {
+                const lastAddedBook = books[books.length - 1];
+                if (lastAddedBook) {
+                    printLabel(lastAddedBook);
+                } else {
+                    displayMessage('add-book-message', 'No book added yet to print a label.', false);
+                }
+            });
+            document.getElementById('title').focus();
+        };
+
+        const renderManageCards = () => {
+            contentArea.innerHTML = `
+                <div class="p-6 bg-white rounded-lg shadow-md flex-grow">
+                    <h2 class="text-3xl font-bold mb-6 text-gray-800">Manage Library Cards</h2>
+
+                    <!-- Add Card Form -->
+                    <form id="add-card-form" class="space-y-4 mb-8 p-4 border border-gray-200 rounded-md">
+                        <h3 class="text-xl font-semibold text-gray-700">Add New Card</h3>
+                        <div>
+                            <label for="cardNumber" class="block text-sm font-medium text-gray-700 mb-1">Card Number (Scan)</label>
+                            <input type="text" id="cardNumber" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., LBRY-001" required>
+                        </div>
+                        <div>
+                            <label for="holderName" class="block text-sm font-medium text-gray-700 mb-1">Card Holder Name</label>
+                            <input type="text" id="holderName" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., Jane Doe" required>
+                        </div>
+                        <button type="submit" class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150 ease-in-out">
+                            Add Card
+                        </button>
+                        <div id="add-card-message" class="hidden"></div>
+                    </form>
+
+                    <!-- List of Cards -->
+                    <h3 class="text-xl font-semibold text-gray-700 mb-4">Existing Library Cards</h3>
+                    <div id="cards-list-container"></div>
+                </div>
+            `;
+
+            const renderCardsList = () => {
+                const cardsListContainer = document.getElementById('cards-list-container');
+                if (libraryCards.length === 0) {
+                    cardsListContainer.innerHTML = '<p class="text-gray-600">No library cards added yet.</p>';
+                } else {
+                    cardsListContainer.innerHTML = `
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200 rounded-lg overflow-hidden">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Card Number</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Holder Name</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200" id="cards-table-body">
+                                    <!-- Cards will be inserted here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                    const cardsTableBody = document.getElementById('cards-table-body');
+                    libraryCards.forEach(card => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${card.cardNumber}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${card.holderName}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <button data-id="${card.id}" class="delete-card-btn text-red-600 hover:text-red-900 font-semibold py-1 px-3 rounded-md border border-red-600 hover:bg-red-50 transition duration-150 ease-in-out">
+                                    Delete
+                                </button>
+                            </td>
+                        `;
+                        cardsTableBody.appendChild(row);
+                    });
+
+                    document.querySelectorAll('.delete-card-btn').forEach(button => {
+                        button.addEventListener('click', async (e) => {
+                            const cardId = e.target.dataset.id;
+                            const cardToDelete = libraryCards.find(c => c.id === cardId);
+
+                            const confirmed = await showModal(
+                                'Confirm Deletion',
+                                `<p class="mb-4 text-gray-700">Are you sure you want to delete the card for <span class="font-semibold">${cardToDelete.holderName}</span> (Card No: <span class="font-semibold">${cardToDelete.cardNumber}</span>)?</p>`,
+                                [
+                                    { label: 'Cancel', className: 'py-2 px-4 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 transition duration-150 ease-in-out', value: false, onClick: (resolve) => { resolve(false); hideModal(); } },
+                                    { label: 'Delete', className: 'py-2 px-4 rounded-md bg-red-600 text-white hover:bg-red-700 transition duration-150 ease-in-out', value: true, onClick: (resolve) => { resolve(true); hideModal(); } }
+                                ]
+                            );
+
+                            if (confirmed) {
+                                libraryCards = libraryCards.filter(card => card.id !== cardId);
+                                saveData();
+                                displayMessage('add-card-message', `Library card for ${cardToDelete.holderName} deleted successfully!`, true);
+                                renderCardsList();
+                            } else {
+                                clearMessage('add-card-message');
+                            }
+                        });
+                    });
+                }
+            };
+
+            document.getElementById('add-card-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                clearMessage('add-card-message');
+
+                const cardNumber = document.getElementById('cardNumber').value.trim();
+                const holderName = document.getElementById('holderName').value.trim();
+
+                if (!cardNumber || !holderName) {
+                    displayMessage('add-card-message', 'Please fill in all fields.', false);
+                    return;
+                }
+
+                if (libraryCards.some(card => card.cardNumber === cardNumber)) {
+                    displayMessage('add-card-message', 'A card with this number already exists.', false);
+                    return;
+                }
+
+                libraryCards.push({
+                    id: generateUniqueId(),
+                    cardNumber,
+                    holderName,
+                    createdAt: new Date().toISOString()
+                });
+                saveData();
+                displayMessage('add-card-message', 'Library card added successfully!', true);
+                document.getElementById('add-card-form').reset();
+                renderCardsList();
+            });
+
+            renderCardsList();
+            document.getElementById('cardNumber').focus();
+        };
+
+        let scannedIsbns = [];
+        let currentCardHolder = null;
+        let inactivityTimeout;
+        const INACTIVITY_TIMEOUT_MS = 30 * 1000;
+
+        const updateScannedIsbnsList = () => {
+            const scannedIsbnsListContainer = document.getElementById('scanned-isbns-list-container');
+            if (!scannedIsbnsListContainer) return;
+
+            if (scannedIsbns.length === 0) {
+                scannedIsbnsListContainer.innerHTML = '';
+                return;
+            }
+
+            const lastScannedIsbn = scannedIsbns[scannedIsbns.length - 1];
+            const book = books.find(b => b.isbn === lastScannedIsbn);
+            const title = book ? book.title : 'Unknown Book';
+            // Use a div with default graphic if no photo, otherwise use img
+            const bookPhotoHtml = book && book.photo ?
+                `<img src="${book.photo}" alt="Book Photo" class="book-thumbnail">` :
+                `<div class="book-thumbnail flex items-center justify-center">${defaultBookGraphic}</div>`;
+
+
+            scannedIsbnsListContainer.innerHTML = `
+                <h3 class="text-lg font-semibold text-gray-700 mb-2">Recently Checked Out:</h3>
+                <ul class="list-disc list-inside space-y-1" id="scanned-books-ul">
+                    <li class="flex items-center bg-gray-50 p-2 rounded-md">
+                        ${bookPhotoHtml}
+                        <span>${title} (ISBN: ${lastScannedIsbn})</span>
+                    </li>
+                </ul>
+            `;
+        };
+
+        const resetCheckoutSession = () => {
+            const cardScanInput = document.getElementById('cardScan');
+            const bookScanInput = document.getElementById('bookScan');
+            const cardHolderDisplay = document.getElementById('card-holder-display');
+            const checkoutMessage = document.getElementById('checkout-message');
+
+            if (cardScanInput) cardScanInput.value = '';
+            if (bookScanInput) bookScanInput.value = '';
+            if (cardHolderDisplay) {
+                cardHolderDisplay.classList.add('hidden');
+                cardHolderDisplay.textContent = '';
+            }
+            currentCardHolder = null;
+            scannedIsbns = [];
+            updateScannedIsbnsList();
+            if (checkoutMessage) {
+                checkoutMessage.textContent = '';
+                checkoutMessage.classList.add('hidden');
+            }
+            if (cardScanInput) cardScanInput.focus();
+            startInactivityTimer();
+        };
+
+        const startInactivityTimer = () => {
+            clearTimeout(inactivityTimeout);
+            inactivityTimeout = setTimeout(() => {
+                if (currentPage === 'checkout' && sidebarNav.classList.contains('sidebar-hidden')) {
+                    resetCheckoutSession();
+                }
+            }, INACTIVITY_TIMEOUT_MS);
+        };
+
+        const resetTimerOnActivity = () => {
+            if (currentPage === 'checkout' && sidebarNav.classList.contains('sidebar-hidden')) {
+                startInactivityTimer();
+            }
+        };
+
+        document.addEventListener('keypress', resetTimerOnActivity);
+        document.addEventListener('click', resetTimerOnActivity);
+
+
+        const renderCheckoutScan = () => {
+            const isKioskMode = sidebarNav.classList.contains('sidebar-hidden');
+
+            if (currentPage !== 'checkout') {
+                scannedIsbns = [];
+                currentCardHolder = null;
+            }
+
+
+            contentArea.innerHTML = `
+                <div class="p-6 bg-white rounded-lg shadow-md flex-grow ${isKioskMode ? 'kiosk-mode-container' : ''}">
+                    <h2 class="text-3xl font-bold mb-6 text-gray-800">Book Checkout</h2>
+
+                    <div class="space-y-6 ${isKioskMode ? 'kiosk-form-group' : ''}">
+                        <!-- Card Number Input -->
+                        <div class="p-4 border border-gray-200 rounded-md">
+                            <label for="cardScan" class="block text-sm font-medium text-gray-700 mb-1 ${isKioskMode ? 'text-lg' : ''}">
+                                Scan Library Card Number:
+                            </label>
+                            <input type="text" id="cardScan" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${isKioskMode ? 'text-xl py-3' : ''}" placeholder="Enter library card number (e.g., LBRY-001)">
+                            <p id="card-holder-display" class="text-sm text-gray-600 mt-2 italic hidden ${isKioskMode ? 'text-base' : ''}"></p>
+                        </div>
+
+                        <!-- Book ISBN Input -->
+                        <div class="p-4 border border-gray-200 rounded-md">
+                            <label for="bookScan" class="block text-sm font-medium text-gray-700 mb-1 ${isKioskMode ? 'text-lg' : ''}">
+                                Scan Book ISBNs (one by one):
+                            </label>
+                            <div class="flex space-x-2">
+                                <input type="text" id="bookScan" class="flex-grow px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${isKioskMode ? 'text-xl py-3' : ''}" placeholder="Enter book ISBN (e.g., 978-0743273565)">
+                            </div>
+
+                            <div id="scanned-isbns-list-container" class="mt-4">
+                                <!-- Scanned ISBNs will be listed here -->
+                            </div>
+                        </div>
+
+                        <div id="checkout-message" class="hidden"></div>
+
+                        ${isKioskMode ? `
+                            <button id="kiosk-done-btn" class="w-full py-4 px-4 border border-transparent rounded-md shadow-sm text-2xl font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150 ease-in-out">
+                                Done
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+
+            const cardScanInput = document.getElementById('cardScan');
+            const cardHolderDisplay = document.getElementById('card-holder-display');
+            const bookScanInput = document.getElementById('bookScan');
+            const scannedIsbnsListContainer = document.getElementById('scanned-isbns-list-container');
+            const kioskDoneBtn = document.getElementById('kiosk-done-btn');
+
+
+            const handleCardScanEnter = () => {
+                clearMessage('checkout-message');
+                const cardNumber = cardScanInput.value.trim();
+                if (!cardNumber) {
+                    cardHolderDisplay.classList.add('hidden');
+                    return;
+                }
+
+                const libraryCard = libraryCards.find(card => card.cardNumber === cardNumber);
+                if (libraryCard) {
+                    currentCardHolder = libraryCard;
+                    cardHolderDisplay.textContent = `Card Holder: ${libraryCard.holderName}`;
+                    cardHolderDisplay.classList.remove('hidden');
+                    bookScanInput.focus();
+                } else {
+                    currentCardHolder = null;
+                    cardHolderDisplay.textContent = 'Card not found.';
+                    cardHolderDisplay.classList.remove('hidden');
+                }
+            };
+
+            const handleBookScanEnter = () => {
+                clearMessage('checkout-message');
+                const isbn = bookScanInput.value.trim();
+
+                if (!currentCardHolder) {
+                    displayMessage('checkout-message', 'Please scan a library card first.', false);
+                    bookScanInput.value = '';
+                    cardScanInput.focus();
+                    return;
+                }
+
+                if (!isbn) {
+                    return;
+                }
+
+                const book = books.find(b => b.isbn === isbn);
+
+                console.log(`[Checkout] Processing ISBN: ${isbn}`);
+                console.log(`[Checkout] Book found:`, book);
+                console.log(`[Checkout] Book isAvailable (before update):`, book ? book.isAvailable : 'N/A');
+
+                if (!book) {
+                    displayMessage('checkout-message', `Book with ISBN ${isbn} not found in library inventory.`, false);
+                } else if (!book.isAvailable) {
+                    displayMessage('checkout-message', `Book "${book.title}" (ISBN: ${isbn}) is currently unavailable (checked out).`, false);
+                } else {
+                    const bookIndex = books.findIndex(b => b.id === book.id);
+                    if (bookIndex !== -1) {
+                        books[bookIndex].isAvailable = false;
+                        console.log(`[Checkout] Book isAvailable (after update):`, books[bookIndex].isAvailable);
+                    }
+
+                    const checkoutDate = new Date();
+                    const dueDate = new Date();
+                    dueDate.setDate(checkoutDate.getDate() + 14);
+
+                    const newCheckoutRecord = {
+                        id: generateUniqueId(),
+                        cardNumber: currentCardHolder.cardNumber,
+                        bookIsbn: book.isbn,
+                        checkoutDate: checkoutDate.toISOString(),
+                        dueDate: dueDate.toISOString(),
+                        returnDate: null,
+                        holderName: currentCardHolder.holderName,
+                        bookTitle: book.title
+                    };
+                    checkouts.push(newCheckoutRecord);
+                    console.log(`[Checkout] New checkout record added:`, newCheckoutRecord);
+                    console.log(`[Checkout] Current checkouts array:`, checkouts);
+
+
+                    saveData();
+                    displayMessage('checkout-message', `Successfully checked out "${book.title}" for ${currentCardHolder.holderName}.`, true);
+                    scannedIsbns.push(book.isbn);
+                    updateScannedIsbnsList();
+                }
+                bookScanInput.value = '';
+            };
+
+            cardScanInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleCardScanEnter();
+                }
+            });
+
+            bookScanInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleBookScanEnter();
+                }
+            });
+
+            if (kioskDoneBtn) {
+                kioskDoneBtn.addEventListener('click', () => {
+                    console.log("Kiosk Done button clicked.");
+                    if (currentCardHolder) {
+                        printReceipt(currentCardHolder, scannedIsbns);
+                        setTimeout(() => {
+                            resetCheckoutSession();
+                        }, 100);
+                    } else {
+                        resetCheckoutSession();
+                    }
+                });
+            }
+
+            updateScannedIsbnsList();
+            if (cardScanInput) {
+                cardScanInput.focus();
+            }
+
+            if (isKioskMode) {
+                startInactivityTimer();
+            } else {
+                clearTimeout(inactivityTimeout);
+            }
+        };
+
+        const renderReturnBook = () => {
+            contentArea.innerHTML = `
+                <div class="p-6 bg-white rounded-lg shadow-md flex-grow">
+                    <h2 class="text-3xl font-bold mb-6 text-gray-800">Return Book</h2>
+
+                    <div class="space-y-6">
+                        <!-- Return by Individual ISBN -->
+                        <div class="p-4 border border-gray-200 rounded-md">
+                            <h3 class="text-xl font-semibold text-gray-700 mb-3">Return Individual Book</h3>
+                            <div>
+                                <label for="returnIsbn" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Scan Book ISBN to Return:
+                                </label>
+                                <input type="text" id="returnIsbn" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Enter book ISBN (e.g., 978-0743273565)">
+                            </div>
+                            <button id="complete-return-btn" class="w-full py-3 px-4 mt-4 border border-transparent rounded-md shadow-sm text-xl font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition duration-150 ease-in-out">
+                                Complete Individual Return
+                            </button>
+                            <div id="return-message-isbn" class="hidden"></div>
+                        </div>
+
+                        <!-- Return by Receipt Barcode -->
+                        <div class="p-4 border border-gray-200 rounded-md">
+                            <h3 class="text-xl font-semibold text-gray-700 mb-3">Return Books from Receipt</h3>
+                            <div>
+                                <label for="returnReceiptBarcode" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Scan Receipt Barcode:
+                                </label>
+                                <input type="text" id="returnReceiptBarcode" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Scan barcode from receipt">
+                            </div>
+                            <button id="complete-receipt-return-btn" class="w-full py-3 px-4 mt-4 border border-transparent rounded-md shadow-sm text-xl font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out">
+                                Return Books on this Receipt
+                            </button>
+                            <div id="return-message-receipt" class="hidden"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            const returnIsbnInput = document.getElementById('returnIsbn');
+            const completeReturnBtn = document.getElementById('complete-return-btn');
+            const returnReceiptBarcodeInput = document.getElementById('returnReceiptBarcode');
+            const completeReceiptReturnBtn = document.getElementById('complete-receipt-return-btn');
+
+            // Function to handle individual book return
+            const handleIndividualReturn = () => {
+                clearMessage('return-message-isbn');
+                const bookIsbnInput = returnIsbnInput.value.trim();
+
+                if (!bookIsbnInput) {
+                    displayMessage('return-message-isbn', 'Please scan (enter) the book ISBN to return.', false);
+                    playErrorSound();
+                    return;
+                }
+
+                const bookIndex = books.findIndex(b => b.isbn === bookIsbnInput);
+                if (bookIndex === -1) {
+                    displayMessage('return-message-isbn', 'Book not found in the library system.', false);
+                    playErrorSound();
+                    return;
+                }
+                const book = books[bookIndex];
+
+                console.log(`[Return] Processing ISBN: ${bookIsbnInput}`);
+                console.log(`[Return] Book found:`, book);
+                console.log(`[Return] Book isAvailable (before update):`, book.isAvailable);
+
+                if (book.isAvailable) {
+                    displayMessage('return-message-isbn', 'This book is already available (not checked out).', false);
+                    playErrorSound();
+                    return;
+                }
+
+                const checkoutIndex = checkouts.findIndex(c => c.bookIsbn === bookIsbnInput && c.returnDate === null);
+                console.log(`[Return] Active checkout index found: ${checkoutIndex}`);
+                console.log(`[Return] Current checkouts array:`, checkouts);
+
+                if (checkoutIndex === -1) {
+                    displayMessage('return-message-isbn', 'No active checkout record found for this book.', false);
+                    playErrorSound();
+                    return;
+                }
+
+                books[bookIndex].isAvailable = true;
+                checkouts[checkoutIndex].returnDate = new Date().toISOString();
+                console.log(`[Return] Book isAvailable (after update):`, books[bookIndex].isAvailable);
+                console.log(`[Return] Checkout record updated:`, checkouts[checkoutIndex]);
+
+
+                saveData();
+                displayMessage('return-message-isbn', `Book "${book.title}" (ISBN: ${book.isbn}) returned successfully!`, true);
+                returnIsbnInput.value = '';
+            };
+
+            // Function to handle returning all books on a specific receipt
+            const handleReceiptReturn = () => {
+                clearMessage('return-message-receipt');
+                const receiptId = returnReceiptBarcodeInput.value.trim();
+
+                if (!receiptId) {
+                    displayMessage('return-message-receipt', 'Please scan (enter) the receipt barcode.', false);
+                    playErrorSound();
+                    return;
+                }
+
+                const receipt = receiptRecords.find(r => r.receiptId === receiptId);
+
+                if (!receipt) {
+                    displayMessage('return-message-receipt', 'Receipt not found or already processed.', false);
+                    playErrorSound();
+                    return;
+                }
+
+                let returnedCount = 0;
+                let alreadyReturnedCount = 0;
+                let notFoundCount = 0;
+                let booksReturnedThisSession = [];
+
+                // Iterate through the books associated with THIS specific receipt
+                receipt.books.forEach(bookIsbn => {
+                    const bookIndex = books.findIndex(b => b.isbn === bookIsbn);
+                    if (bookIndex === -1) {
+                        notFoundCount++;
+                        console.warn(`Book with ISBN ${bookIsbn} from receipt ${receiptId} not found in inventory.`);
+                        return; // Skip this book
+                    }
+                    const book = books[bookIndex];
+
+                    // Find the active checkout record for this specific book from this specific receipt's transaction
+                    // (We assume a book can only be checked out once at a time, so finding any active checkout for this ISBN is sufficient)
+                    const checkoutIndex = checkouts.findIndex(c => c.bookIsbn === bookIsbn && c.returnDate === null);
+
+                    if (checkoutIndex !== -1) {
+                        // Found an active checkout, proceed with return
+                        books[bookIndex].isAvailable = true;
+                        checkouts[checkoutIndex].returnDate = new Date().toISOString();
+                        returnedCount++;
+                        booksReturnedThisSession.push(book.title);
+                    } else {
+                        // Book is either already available or no active checkout found for it
+                        alreadyReturnedCount++;
+                    }
+                });
+
+                if (returnedCount > 0) {
+                    // Remove the receipt record after its associated books are processed
+                    receiptRecords = receiptRecords.filter(r => r.receiptId !== receiptId);
+                    saveData();
+                    let message = `Successfully returned ${returnedCount} book(s) from receipt ${receiptId}.`;
+                    if (booksReturnedThisSession.length > 0) {
+                        message += ` Books: ${booksReturnedThisSession.join(', ')}.`;
+                    }
+                    if (alreadyReturnedCount > 0) {
+                        message += ` (${alreadyReturnedCount} book(s) were already returned or had no active checkout.)`;
+                    }
+                    if (notFoundCount > 0) {
+                        message += ` (${notFoundCount} book(s) not found in system.)`;
+                    }
+                    displayMessage('return-message-receipt', message, true);
+                } else if (alreadyReturnedCount > 0) {
+                    displayMessage('return-message-receipt', `All books on receipt ${receiptId} were already returned or had no active checkouts.`, true);
+                    // Still remove the receipt record if all were already returned
+                    receiptRecords = receiptRecords.filter(r => r.receiptId !== receiptId);
+                    saveData();
+                } else if (notFoundCount === receipt.books.length && receipt.books.length > 0) {
+                     displayMessage('return-message-receipt', `No books from receipt ${receiptId} found in library system.`, false);
+                     playErrorSound();
+                }
+                else {
+                    displayMessage('return-message-receipt', `No books were returned from receipt ${receiptId}. It might be empty or all books were already returned.`, false);
+                    playErrorSound();
+                }
+
+                returnReceiptBarcodeInput.value = '';
+            };
+
+
+            completeReturnBtn.addEventListener('click', handleIndividualReturn);
+            returnIsbnInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleIndividualReturn();
+                }
+            });
+
+            completeReceiptReturnBtn.addEventListener('click', handleReceiptReturn);
+            returnReceiptBarcodeInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleReceiptReturn();
+                }
+            });
+
+            document.getElementById('returnIsbn').focus(); // Default focus
+        };
+
+        // --- Book Details Page Rendering ---
+        const renderBookDetails = (bookId) => {
+            const book = books.find(b => b.id === bookId);
+            if (!book) {
+                contentArea.innerHTML = `<div class="p-6 bg-white rounded-lg shadow-md flex-grow"><p class="text-red-600">Book not found.</p><button id="back-to-all-books" class="mt-4 py-2 px-4 rounded-md bg-gray-200 text-gray-700 hover:bg-gray-300">Back to All Books</button></div>`;
+                document.getElementById('back-to-all-books').addEventListener('click', () => renderPage('allBooks'));
+                return;
+            }
+
+            const bookPhotoHtml = book.photo ? `<img src="${book.photo}" alt="Book Photo" class="book-thumbnail-lg mx-auto">` : `<div class="book-thumbnail-lg mx-auto flex items-center justify-center bg-gray-200">${defaultBookGraphic}</div>`;
+
+            const bookCheckouts = checkouts.filter(c => c.bookIsbn === book.isbn)
+                                            .sort((a, b) => new Date(b.checkoutDate) - new Date(a.checkoutDate)); // Sort by most recent checkout first
+
+            let checkoutHistoryHtml = '';
+            if (bookCheckouts.length === 0) {
+                checkoutHistoryHtml = '<p class="text-gray-600">No checkout history available for this book.</p>';
+            } else {
+                checkoutHistoryHtml = `
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200 rounded-lg overflow-hidden">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Card Holder</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Card Number</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Checkout Date</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Return Date</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                `;
+                bookCheckouts.forEach(history => {
+                    checkoutHistoryHtml += `
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${history.holderName || 'N/A'}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${history.cardNumber}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatDateForDisplay(history.checkoutDate)}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatDateForDisplay(history.dueDate)}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${history.returnDate ? formatDateForDisplay(history.returnDate) : '<span class="text-red-500 font-semibold">NOT RETURNED</span>'}</td>
+                                </tr>
+                    `;
+                });
+                checkoutHistoryHtml += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }
+
+            const descriptionHtml = book.description ? `
+                <div class="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200 w-full max-w-2xl">
+                    <h3 class="text-xl font-semibold text-gray-700 mb-2">Description</h3>
+                    <p class="text-gray-700 whitespace-pre-wrap">${book.description}</p>
+                </div>
+            ` : '';
+
+
+            contentArea.innerHTML = `
+                <div class="p-6 bg-white rounded-lg shadow-md flex-grow">
+                    <button id="back-to-all-books" class="mb-4 py-2 px-4 rounded-md bg-gray-200 text-gray-700 hover:bg-gray-300 transition duration-150 ease-in-out">
+                        &larr; Back to All Books
+                    </button>
+                    <h2 class="text-3xl font-bold mb-6 text-gray-800 text-center">${book.title}</h2>
+
+                    <div class="flex flex-col items-center mb-8">
+                        ${bookPhotoHtml}
+                        <p class="text-lg text-gray-700"><strong>Author:</strong> ${book.author}</p>
+                        <p class="text-lg text-gray-700"><strong>Call Number:</strong> ${book.callNumber}</p>
+                        <p class="text-lg text-gray-700"><strong>ISBN:</strong> ${book.isbn}</p>
+                        <p class="text-lg text-gray-700"><strong>Status:</strong>
+                            <span class="px-3 py-1 inline-flex text-base leading-5 font-semibold rounded-full ${book.isAvailable ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                ${book.isAvailable ? 'Available' : 'Checked Out'}
+                            </span>
+                        </p>
+                        <p class="text-sm text-gray-500 mt-2">Added on: ${formatDateForDisplay(book.createdAt)}</p>
+                    </div>
+
+                    ${descriptionHtml}
+
+                    <h3 class="text-2xl font-bold mb-4 text-gray-800 mt-8">Checkout History</h3>
+                    ${checkoutHistoryHtml}
+                </div>
+            `;
+            document.getElementById('back-to-all-books').addEventListener('click', () => renderPage('allBooks'));
+        };
+
+
+        // --- Edit/Delete Book Functions ---
+        const editBook = async (bookId) => {
+            const bookToEdit = books.find(b => b.id === bookId);
+            if (!bookToEdit) {
+                displayMessage('books-list-message', 'Book not found for editing.', false);
+                return;
+            }
+
+            let currentEditBookPhoto = bookToEdit.photo || ''; // Initialize with existing photo
+
+            const editFormHtml = `
+                <form id="edit-book-form" class="space-y-4">
+                    <div>
+                        <label for="edit-title" class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                        <input type="text" id="edit-title" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" value="${bookToEdit.title}" required>
+                    </div>
+                    <div>
+                        <label for="edit-author" class="block text-sm font-medium text-gray-700 mb-1">Author</label>
+                        <input type="text" id="edit-author" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" value="${bookToEdit.author}" required>
+                    </div>
+                    <div>
+                        <label for="edit-callNumber" class="block text-sm font-medium text-gray-700 mb-1">Call Number</label>
+                        <input type="text" id="edit-callNumber" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" value="${bookToEdit.callNumber}" required>
+                    </div>
+                    <div>
+                        <label for="edit-isbn" class="block text-sm font-medium text-gray-700 mb-1">ISBN</label>
+                        <input type="text" id="edit-isbn" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" value="${bookToEdit.isbn}" required>
+                    </div>
+                    <!-- Description Field -->
+                    <div>
+                        <label for="edit-description" class="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
+                        <textarea id="edit-description" rows="4" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Enter a brief description of the book...">${bookToEdit.description || ''}</textarea>
+                    </div>
+                    <!-- Photo Edit Section -->
+                    <div class="p-4 border border-gray-200 rounded-md bg-gray-50">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Book Photo (Optional)</label>
+                        <input type="file" id="edit-book-photo-upload" accept="image/*" class="hidden">
+                        <button type="button" id="edit-add-photo-btn" class="py-2 px-4 rounded-md bg-indigo-500 text-white hover:bg-indigo-600 transition duration-150 ease-in-out">
+                            Change Photo (Paste or Upload)
+                        </button>
+                        <div id="edit-photo-preview-container" class="mt-4 flex items-center space-x-3 ${bookToEdit.photo ? '' : 'hidden'}">
+                            <img id="edit-photo-preview" class="w-20 h-20 object-cover rounded-md border border-gray-300" src="${bookToEdit.photo || ''}" alt="Book Photo Preview">
+                            <button type="button" id="edit-remove-photo-btn" class="text-red-600 hover:text-red-800 text-sm font-medium">Remove Photo</button>
+                        </div>
+                        <div id="edit-book-photo-message" class="hidden text-xs mt-2"></div>
+                        <p class="text-xs text-gray-500 mt-2">Note: Images are stored in your browser's local storage. Large images may affect performance.</p>
+                    </div>
+                </form>
+                <div id="edit-book-message" class="hidden"></div>
+            `;
+
+            const buttonsConfig = [
+                { label: 'Cancel', className: 'py-2 px-4 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 transition duration-150 ease-in-out', value: false, onClick: (resolve) => { resolve(false); hideModal(); } },
+                { label: 'Save Changes', className: 'py-2 px-4 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 transition duration-150 ease-in-out', value: 'save',
+                    onClick: async (resolve) => {
+                        console.log("[Edit Book Save] Save Changes button clicked.");
+                        const updatedTitle = document.getElementById('edit-title').value.trim();
+                        const updatedAuthor = document.getElementById('edit-author').value.trim();
+                        const updatedCallNumber = document.getElementById('edit-callNumber').value.trim();
+                        const updatedIsbn = document.getElementById('edit-isbn').value.trim();
+                        const updatedDescription = document.getElementById('edit-description').value.trim(); // Get updated description
+
+                        const modalMessageEl = document.getElementById('edit-book-message');
+                        clearMessage('edit-book-message');
+
+                        if (!updatedTitle || !updatedAuthor || !updatedCallNumber || !updatedIsbn) {
+                            displayMessage('edit-book-message', 'All fields are required.', false);
+                            console.log("[Edit Book Save] Validation failed: Missing fields.");
+                            return; // Keep modal open
+                        }
+
+                        if (books.some(book => book.isbn === updatedIsbn && book.id !== bookToEdit.id)) {
+                            displayMessage('edit-book-message', 'This ISBN is already assigned to another book.', false);
+                            console.log("[Edit Book Save] Validation failed: Duplicate ISBN.");
+                            return; // Keep modal open
+                        }
+
+                        console.log("[Edit Book Save] Validation passed, attempting to save.");
+                        const bookIndex = books.findIndex(b => b.id === bookToEdit.id);
+                        if (bookIndex !== -1) {
+                            console.log("[Edit Book Save] Book found at index:", bookIndex);
+                            console.log("[Edit Book Save] Value of currentEditBookPhoto before assignment:", currentEditBookPhoto ? currentEditBookPhoto.substring(0, 50) + '...' : 'none'); // Log partial string
+
+                            books[bookIndex] = {
+                                ...books[bookIndex],
+                                title: updatedTitle,
+                                author: updatedAuthor,
+                                callNumber: updatedCallNumber,
+                                isbn: updatedIsbn,
+                                description: updatedDescription, // Save the updated description
+                                photo: currentEditBookPhoto // Save the updated photo
+                            };
+                            console.log("[Edit Book Save] Book object in array AFTER update:", books[bookIndex]);
+                            saveData(); // Explicitly call saveData after modifying the books array
+                            console.log("[Edit Book Save] saveData() called.");
+
+                            displayMessage('books-list-message', `Book "${updatedTitle}" updated successfully!`, true);
+                            renderBookList(); // Re-render the main book list to show changes
+                            resolve(true); // Resolve the modal promise
+                            hideModal(); // Hide the modal
+                            console.log("[Edit Book Save] Modal hidden and resolved.");
+                        } else {
+                            displayMessage('edit-book-message', 'Error: Book not found for update.', false);
+                            console.log("[Edit Book Save] Error: Book not found for update.");
+                            resolve(false); // Resolve with false due to error
+                            hideModal(); // Hide the modal even on error
+                        }
+                    }
+                }
+            ];
+
+            // Define the callback function to attach event listeners
+            const attachEditPhotoListeners = () => {
+                const editBookPhotoUpload = document.getElementById('edit-book-photo-upload');
+                const editAddPhotoBtn = document.getElementById('edit-add-photo-btn');
+                const editPhotoPreviewContainer = document.getElementById('edit-photo-preview-container');
+                const editPhotoPreview = document.getElementById('edit-photo-preview');
+                const editRemovePhotoBtn = document.getElementById('edit-remove-photo-btn');
+                const editBookPhotoMessage = document.getElementById('edit-book-photo-message');
+
+                console.log("[editBook] Attaching event listener to editAddPhotoBtn INSIDE onContentRendered.");
+                editAddPhotoBtn.addEventListener('click', async () => {
+                    console.log("[editBook] editAddPhotoBtn clicked INSIDE onContentRendered.");
+                    clearMessage('edit-book-photo-message');
+                    const pastedImage = await pasteImageFromClipboard('edit-book-photo-message');
+                    if (pastedImage) {
+                        currentEditBookPhoto = pastedImage;
+                        editPhotoPreview.src = currentEditBookPhoto;
+                        editPhotoPreviewContainer.classList.remove('hidden');
+                        console.log("[editBook] Image pasted, currentEditBookPhoto updated:", currentEditBookPhoto ? currentEditBookPhoto.substring(0, 50) + '...' : 'none');
+                    } else {
+                        // Fallback to file input if no image in clipboard or permission denied
+                        editBookPhotoUpload.value = ''; // Clear the input value to ensure change event fires even if same file is re-selected
+                        editBookPhotoUpload.click(); // Trigger the hidden file input
+                    }
+                });
+
+                editBookPhotoUpload.addEventListener('change', (event) => {
+                    clearMessage('edit-book-photo-message');
+                    const file = event.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            currentEditBookPhoto = e.target.result;
+                            editPhotoPreview.src = currentEditBookPhoto;
+                            editPhotoPreviewContainer.classList.remove('hidden');
+                            displayMessage('edit-book-photo-message', 'Image uploaded from file!', true);
+                            console.log("[editBook] Image uploaded, currentEditBookPhoto updated:", currentEditBookPhoto ? currentEditBookPhoto.substring(0, 50) + '...' : 'none');
+                        };
+                        reader.readAsDataURL(file);
+                    } else {
+                        // If user opens file dialog and cancels, ensure photo is cleared if it was previously set
+                        if (currentEditBookPhoto) {
+                            currentEditBookPhoto = '';
+                            editPhotoPreview.src = '';
+                            editPhotoPreviewContainer.classList.add('hidden');
+                            console.log("[editBook] File input cancelled, currentEditBookPhoto cleared.");
+                        }
+                    }
+                });
+
+                editRemovePhotoBtn.addEventListener('click', () => {
+                    currentEditBookPhoto = '';
+                    editPhotoPreview.src = '';
+                    editPhotoPreviewContainer.classList.add('hidden');
+                    editBookPhotoUpload.value = ''; // Clear the file input
+                    clearMessage('edit-book-photo-message');
+                    console.log("[editBook] Photo removed, currentEditBookPhoto cleared.");
+                });
+            };
+
+            const actionResult = await showModal(
+                `Edit Book: ${bookToEdit.title}`,
+                editFormHtml,
+                buttonsConfig,
+                attachEditPhotoListeners // Pass the callback here
+            );
+
+            // The rest of the logic after modal closes...
+            // No need for actionResult.action === 'save' check here, as the onClick handler already handles it.
+        };
+
+        const deleteBook = async (bookId) => {
+            const bookToDelete = books.find(b => b.id === bookId);
+            if (!bookToDelete) {
+                displayMessage('books-list-message', 'Book not found for deletion.', false);
+                return;
+            }
+
+            const isCheckedOut = checkouts.some(c => c.bookIsbn === bookToDelete.isbn && c.returnDate === null);
+            if (isCheckedOut) {
+                await showModal(
+                    'Cannot Delete Book',
+                    `<p class="mb-4 text-gray-700">Book "<span class="font-semibold">${bookToDelete.title}</span>" (ISBN: <span class="font-semibold">${bookToDelete.isbn}</span>) is currently checked out and cannot be deleted.</p>`,
+                    [
+                        { label: 'OK', className: 'py-2 px-4 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition duration-150 ease-in-out', value: false, onClick: (resolve) => { resolve(false); hideModal(); } }
+                    ]
+                );
+                return;
+            }
+
+            const confirmed = await showModal(
+                'Confirm Deletion',
+                `<p class="mb-4 text-gray-700">Are you sure you want to delete the book "<span class="font-semibold">${bookToDelete.title}</span>" (ISBN: <span class="font-semibold">${bookToDelete.isbn}</span>)? This action cannot be undone.</p>`,
+                [
+                    { label: 'Cancel', className: 'py-2 px-4 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 transition duration-150 ease-in-out', value: false, onClick: (resolve) => { resolve(false); hideModal(); } },
+                    { label: 'Delete', className: 'py-2 px-4 rounded-md bg-red-600 text-white hover:bg-red-700 transition duration-150 ease-in-out', value: true, onClick: (resolve) => { resolve(true); hideModal(); } }
+                ]
+            );
+
+            if (confirmed) {
+                books = books.filter(book => book.id !== bookId);
+                saveData();
+                displayMessage('books-list-message', `Book "${bookToDelete.title}" deleted successfully!`, true);
+                renderBookList();
+            } else {
+                clearMessage('books-list-message');
+            }
+        };
+
+        const renderBookList = () => {
+            contentArea.innerHTML = `
+                <div class="p-6 bg-white rounded-lg shadow-md flex-grow">
+                    <h2 class="text-3xl font-bold mb-6 text-gray-800">All Books</h2>
+
+                    <div class="mb-6">
+                        <label for="book-search" class="block text-sm font-medium text-gray-700 mb-1">Search Books (Title, Author, ISBN, Call Number):</label>
+                        <input type="text" id="book-search" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., Gatsby, Fitzgerald, 978..." autofocus>
+                    </div>
+                    <div id="books-list-container"></div>
+                    <div id="books-list-message" class="hidden"></div>
+                </div>
+            `;
+
+            const bookSearchInput = document.getElementById('book-search');
+            const booksListContainer = document.getElementById('books-list-container');
+
+            const filterAndRenderBooksList = () => {
+                const searchTerm = bookSearchInput.value.toLowerCase();
+                const filteredBooks = books.filter(book =>
+                    (book.title && book.title.toLowerCase().includes(searchTerm)) ||
+                    (book.author && book.author.toLowerCase().includes(searchTerm)) ||
+                    (book.isbn && book.isbn.toLowerCase().includes(searchTerm)) ||
+                    (book.callNumber && book.callNumber.toLowerCase().includes(searchTerm))
+                ).sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+
+                if (filteredBooks.length === 0) {
+                    booksListContainer.innerHTML = '<p class="text-gray-600">No books found matching your search.</p>';
+                } else {
+                    booksListContainer.innerHTML = `
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200 rounded-lg overflow-hidden">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th> <!-- For Photo -->
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Author</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Call Number</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${isEditDeleteButtonsVisible ? '' : 'hidden-actions-column'}">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200" id="books-table-body">
+                                    <!-- Books will be inserted here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                    const booksTableBody = document.getElementById('books-table-body');
+                    filteredBooks.forEach(book => {
+                        const bookPhotoCellHtml = book.photo ?
+                            `<td class="px-6 py-4 whitespace-nowrap"><img src="${book.photo}" alt="Book Photo" class="book-thumbnail"></td>` :
+                            `<td class="px-6 py-4 whitespace-nowrap flex items-center justify-center"><div class="book-thumbnail flex items-center justify-center">${defaultBookGraphic}</div></td>`; // Added flex and justify for default graphic
+
+                        const row = document.createElement('tr');
+                        row.className = "cursor-pointer hover:bg-gray-50 book-row"; // Add class for click event
+                        row.dataset.bookId = book.id; // Store book ID for navigation
+                        row.innerHTML = `
+                            ${bookPhotoCellHtml}
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${book.title}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${book.author}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${book.callNumber || 'N/A'}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${book.isAvailable ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                    ${book.isAvailable ? 'Available' : 'Checked Out'}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium ${isEditDeleteButtonsVisible ? '' : 'hidden-actions-column'}">
+                                <button data-id="${book.id}" class="edit-book-btn text-indigo-600 hover:text-indigo-900 font-semibold py-1 px-3 rounded-md border border-indigo-600 hover:bg-indigo-50 transition duration-150 ease-in-out mr-2">
+                                    Edit
+                                </button>
+                                <button data-id="${book.id}" class="delete-book-btn text-red-600 hover:text-red-900 font-semibold py-1 px-3 rounded-md border border-red-600 hover:bg-red-50 transition duration-150 ease-in-out">
+                                    Delete
+                                </button>
+                            </td>
+                        `;
+                        booksTableBody.appendChild(row);
+                    });
+
+                    // Add event listener for clicking on book rows
+                    document.querySelectorAll('.book-row').forEach(row => {
+                        row.addEventListener('click', (e) => {
+                            // Ensure click is not on edit/delete buttons
+                            if (!e.target.classList.contains('edit-book-btn') && !e.target.classList.contains('delete-book-btn')) {
+                                const bookId = row.dataset.bookId;
+                                renderPage('bookDetails', bookId); // Navigate to book details page
+                            }
+                        });
+                    });
+
+                    if (isEditDeleteButtonsVisible) {
+                        document.querySelectorAll('.edit-book-btn').forEach(button => {
+                            button.addEventListener('click', (e) => {
+                                e.stopPropagation(); // Prevent row click from triggering
+                                const bookId = e.target.dataset.id;
+                                editBook(bookId);
+                            });
+                        });
+
+                        document.querySelectorAll('.delete-book-btn').forEach(button => {
+                            button.addEventListener('click', (e) => {
+                                e.stopPropagation(); // Prevent row click from triggering
+                                const bookId = e.target.dataset.id;
+                                deleteBook(bookId);
+                            });
+                        });
+                    }
+                }
+            };
+
+            bookSearchInput.addEventListener('input', filterAndRenderBooksList);
+            bookSearchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    filterAndRenderBooksList();
+                }
+            });
+
+            filterAndRenderBooksList();
+            document.getElementById('book-search').focus();
+        };
+
+        const renderCheckedOutBooks = () => {
+            contentArea.innerHTML = `
+                <div class="p-6 bg-white rounded-lg shadow-md flex-grow">
+                    <h2 class="text-3xl font-bold mb-6 text-gray-800">Currently Checked Out Books</h2>
+                    <div id="checked-out-list-container"></div>
+                </div>
+            `;
+
+            const checkedOutListContainer = document.getElementById('checked-out-list-container');
+            const currentlyCheckedOut = checkouts.filter(c => c.returnDate === null);
+
+            if (currentlyCheckedOut.length === 0) {
+                checkedOutListContainer.innerHTML = '<p class="text-gray-600">No books are currently checked out.</p>';
+            } else {
+                currentlyCheckedOut.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+
+                checkedOutListContainer.innerHTML = `
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200 rounded-lg overflow-hidden">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Book Title</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ISBN</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Card Holder</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Card Number</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Checkout Date</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200" id="checked-out-table-body">
+                                <!-- Checked out books will be inserted here -->
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                const checkedOutTableBody = document.getElementById('checked-out-table-body');
+
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                tomorrow.setHours(0, 0, 0, 0);
+
+                currentlyCheckedOut.forEach(checkout => {
+                    const checkoutDateFormatted = new Date(checkout.checkoutDate).toLocaleDateString();
+                    const dueDateObj = new Date(checkout.dueDate);
+                    const dueDateFormatted = formatDateForDisplay(checkout.dueDate);
+
+                    dueDateObj.setHours(0, 0, 0, 0);
+
+                    let rowClass = '';
+                    if (dueDateObj.getTime() === tomorrow.getTime()) {
+                        rowClass = 'due-soon-red';
+                    }
+
+                    const row = document.createElement('tr');
+                    row.className = rowClass;
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${checkout.bookTitle || 'N/A'}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${checkout.bookIsbn}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${checkout.holderName || 'N/A'}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${checkout.cardNumber}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            ${checkoutDateFormatted}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold">
+                            ${dueDateFormatted}
+                        </td>
+                    `;
+                    checkedOutTableBody.appendChild(row);
+                });
+            }
+        };
+
+        const renderReprintLabels = () => {
+            contentArea.innerHTML = `
+                <div class="p-6 bg-white rounded-lg shadow-md flex-grow">
+                    <h2 class="text-3xl font-bold mb-6 text-gray-800">Reprint Labels</h2>
+
+                    <div class="mb-6">
+                        <label for="label-search" class="block text-sm font-medium text-gray-700 mb-1">Search Books (Title, Author, ISBN, Call Number):</label>
+                        <input type="text" id="label-search" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., Gatsby, Fitzgerald, 978..." autofocus>
+                    </div>
+
+                    <div id="reprint-books-list-container"></div>
+                </div>
+            `;
+
+            const labelSearchInput = document.getElementById('label-search');
+            const reprintBooksListContainer = document.getElementById('reprint-books-list-container');
+
+            const filterAndRenderBooks = () => {
+                const searchTerm = labelSearchInput.value.toLowerCase();
+                const filteredBooks = books.filter(book =>
+                    (book.title && book.title.toLowerCase().includes(searchTerm)) ||
+                    (book.author && book.author.toLowerCase().includes(searchTerm)) ||
+                    (book.isbn && book.isbn.toLowerCase().includes(searchTerm)) ||
+                    (book.callNumber && book.callNumber.toLowerCase().includes(searchTerm))
+                ).sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+
+                if (filteredBooks.length === 0) {
+                    reprintBooksListContainer.innerHTML = '<p class="text-gray-600">No books found matching your search.</p>';
+                } else {
+                    reprintBooksListContainer.innerHTML = `
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200 rounded-lg overflow-hidden">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th> <!-- For Photo -->
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Author</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Call No.</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ISBN</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200" id="reprint-books-table-body">
+                                    <!-- Books will be inserted here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                    const reprintBooksTableBody = document.getElementById('reprint-books-table-body');
+                    filteredBooks.forEach(book => {
+                        const bookPhotoCellHtml = book.photo ?
+                            `<td class="px-6 py-4 whitespace-nowrap"><img src="${book.photo}" alt="Book Photo" class="book-thumbnail"></td>` :
+                            `<td class="px-6 py-4 whitespace-nowrap flex items-center justify-center"><div class="book-thumbnail flex items-center justify-center">${defaultBookGraphic}</div></td>`; // Added flex and justify for default graphic
+
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            ${bookPhotoCellHtml}
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${book.title}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${book.author}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${book.callNumber || 'N/A'}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${book.isbn}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <button data-id="${book.id}" class="reprint-label-btn text-blue-600 hover:text-blue-900 font-semibold py-1 px-3 rounded-md border border-blue-600 hover:bg-blue-50 transition duration-150 ease-in-out">
+                                    Print Label
+                                </button>
+                            </td>
+                        `;
+                        reprintBooksTableBody.appendChild(row);
+                    });
+
+                    document.querySelectorAll('.reprint-label-btn').forEach(button => {
+                        button.addEventListener('click', (e) => {
+                            const bookId = e.target.dataset.id;
+                            const bookToPrint = books.find(b => b.id === bookId);
+                            if (bookToPrint) {
+                                printLabel(bookToPrint);
+                            }
+                        });
+                    });
+                }
+            };
+
+            labelSearchInput.addEventListener('input', filterAndRenderBooks);
+            labelSearchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    filterAndRenderBooks();
+                }
+            });
+
+            filterAndRenderBooks();
+            document.getElementById('label-search').focus();
+        };
+
+
+        // --- Navigation Logic ---
+        let currentPage = 'dashboard';
+
+        const renderPage = (pageName, id = null) => { // Added id parameter
+            clearTimeout(inactivityTimeout);
+            isEditDeleteButtonsVisible = false;
+
+            currentPage = pageName;
+            navButtons.forEach(button => {
+                if (button.id === `nav-${pageName}`) {
+                    button.classList.add('bg-indigo-600', 'shadow-md');
+                    button.classList.remove('hover:bg-gray-700');
+                } else {
+                    button.classList.remove('bg-indigo-600', 'shadow-md');
+                    button.classList.add('hover:bg-gray-700');
+                }
+            });
+
+            switch (pageName) {
+                case 'dashboard':
+                    renderDashboard();
+                    break;
+                case 'addBook':
+                    renderAddBookForm();
+                    break;
+                case 'manageCards':
+                    renderManageCards();
+                    break;
+                case 'checkout':
+                    renderCheckoutScan();
+                    break;
+                case 'return':
+                    renderReturnBook();
+                    break;
+                case 'allBooks':
+                    renderBookList();
+                    break;
+                case 'bookDetails': // New case for book details page
+                    renderBookDetails(id);
+                    break;
+                case 'checkedOut':
+                    renderCheckedOutBooks();
+                    break;
+                case 'reprintLabels':
+                    renderReprintLabels();
+                    break;
+                default:
+                    renderDashboard();
+            }
+        };
+
+        navButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                const pageName = e.target.id.replace('nav-', '');
+                renderPage(pageName);
+            });
+        });
+
+        // --- Global Keyboard Shortcut (Ctrl + H / Cmd + H) for Sidebar Toggle ---
+        window.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'h') {
+                e.preventDefault();
+                sidebarNav.classList.toggle('sidebar-hidden');
+                sidebarNav.classList.toggle('sidebar-visible');
+                contentArea.classList.toggle('main-content-expanded');
+                contentArea.classList.toggle('main-content-contracted');
+
+                if (currentPage === 'checkout') {
+                    renderCheckoutScan();
+                } else {
+                    clearTimeout(inactivityTimeout);
+                }
+            }
+        });
+
+        // --- Global Keyboard Shortcut (Ctrl + E / Cmd + E) ---
+        window.addEventListener('keydown', async (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
+                if (currentPage === 'allBooks') {
+                    e.preventDefault();
+
+                    isEditDeleteButtonsVisible = true;
+                    renderBookList();
+
+                    const isbnInputHtml = `
+                        <p class="mb-4 text-gray-700">Enter the ISBN of the book you want to edit or delete:</p>
+                        <input type="text" id="shortcut-isbn-input" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Enter ISBN" autofocus>
+                        <div id="shortcut-message" class="hidden"></div>
+                    `;
+                    const buttonsConfig = [
+                        { label: 'Cancel', className: 'py-2 px-4 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 transition duration-150 ease-in-out', value: false, onClick: (resolve) => { resolve(false); hideModal(); } },
+                        { label: 'Edit Book', className: 'py-2 px-4 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 transition duration-150 ease-in-out', value: 'edit',
+                            onClick: async (resolve) => {
+                                const isbnInput = document.getElementById('shortcut-isbn-input');
+                                const isbn = isbnInput.value.trim();
+                                const book = books.find(b => b.isbn === isbn);
+
+                                if (!isbn || !book) {
+                                    displayMessage('shortcut-message', 'Please enter a valid ISBN for an existing book.', false);
+                                    return;
+                                }
+                                resolve({ action: 'edit', bookId: book.id });
+                                hideModal();
+                            }
+                        },
+                        { label: 'Delete Book', className: 'py-2 px-4 rounded-md bg-red-600 text-white hover:bg-red-700 transition duration-150 ease-in-out', value: 'delete',
+                            onClick: async (resolve) => {
+                                const isbnInput = document.getElementById('shortcut-isbn-input');
+                                const isbn = isbnInput.value.trim();
+                                const book = books.find(b => b.isbn === isbn);
+
+                                if (!isbn || !book) {
+                                    displayMessage('shortcut-message', 'Please enter a valid ISBN for an existing book.', false);
+                                    return;
+                                }
+                                resolve({ action: 'delete', bookId: book.id });
+                                hideModal();
+                            }
+                        }
+                    ];
+
+                    const actionResult = await showModal('Edit/Delete Book by ISBN', isbnInputHtml, buttonsConfig);
+
+                    if (actionResult && actionResult.action === 'edit') {
+                        editBook(actionResult.bookId);
+                    } else if (actionResult && actionResult.action === 'delete') {
+                        deleteBook(actionResult.bookId);
+                    }
+
+                    isEditDeleteButtonsVisible = false;
+                    renderBookList();
+                }
+            }
+        });
+
+
+        // Initial load
+        window.onload = () => {
+            loadData();
+            renderPage(currentPage);
+        };
+    </script>
+</body>
+</html>
