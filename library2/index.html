@@ -230,12 +230,12 @@
             font-size: 1.125rem; /* text-lg */
         }
         #scanned-isbns-list-container li {
-            padding: 0.75rem; /* p-3 */
+            padding: 1rem; /* Increased padding for larger images */
         }
 
         /* Styling for book image thumbnails */
         .book-thumbnail {
-            /* Default size for smaller thumbnails, e.g., in checkout list */
+            /* Default size for smaller thumbnails, e.g., in checkout list (old) */
             width: 80px; /* w-20 equivalent */
             height: 80px; /* h-20 equivalent */
             border-radius: 0.5rem; /* Changed to rounded-lg for consistency with rectangular graphic */
@@ -254,13 +254,13 @@
             margin-right: 8px; /* Consistent margin */
         }
         .book-thumbnail-lg {
-            /* Larger size for details page */
+            /* Larger size for details page AND checkout list */
             width: 150px; /* Increased width */
             height: auto; /* Allow height to adjust proportionally */
             max-width: 100%; /* Ensure it doesn't overflow its container */
             border-radius: 0.5rem; /* rounded-lg */
             object-fit: contain; /* Ensure the entire image is visible */
-            margin-bottom: 16px; /* mb-4 */
+            /* Removed margin-bottom here, will apply margin-right in HTML for lists */
         }
     </style>
 </head>
@@ -1341,22 +1341,32 @@
                 return;
             }
 
-            const lastScannedIsbn = scannedIsbns[scannedIsbns.length - 1];
-            const book = books.find(b => b.isbn === lastScannedIsbn);
-            const title = book ? book.title : 'Unknown Book';
-            // Use a div with default graphic if no photo, otherwise use img
-            const bookPhotoHtml = book && book.photo ?
-                `<img src="${book.photo}" alt="Book Photo" class="book-thumbnail">` :
-                `<div class="book-thumbnail flex items-center justify-center">${defaultBookGraphic}</div>`;
+            let booksHtml = '';
+            // Iterate over all scannedIsbns to display all books
+            scannedIsbns.forEach(isbn => {
+                const book = books.find(b => b.isbn === isbn);
+                const title = book ? book.title : 'Unknown Book';
+                // Use book-thumbnail-lg for the image in the checkout list
+                const bookPhotoHtml = book && book.photo ?
+                    `<img src="${book.photo}" alt="Book Photo" class="book-thumbnail-lg mr-4">` : // Added mr-4 for spacing
+                    `<div class="book-thumbnail-lg mr-4 flex items-center justify-center bg-gray-200">${defaultBookGraphic}</div>`;
+
+                booksHtml += `
+                    <li class="flex items-center bg-gray-50 p-4 rounded-md mb-2">
+                        ${bookPhotoHtml}
+                        <div>
+                            <p class="font-semibold text-gray-800">${title}</p>
+                            <p class="text-sm text-gray-600">ISBN: ${isbn}</p>
+                        </div>
+                    </li>
+                `;
+            });
 
 
             scannedIsbnsListContainer.innerHTML = `
-                <h3 class="text-lg font-semibold text-gray-700 mb-2">Recently Checked Out:</h3>
-                <ul class="list-disc list-inside space-y-1" id="scanned-books-ul">
-                    <li class="flex items-center bg-gray-50 p-2 rounded-md">
-                        ${bookPhotoHtml}
-                        <span>${title} (ISBN: ${lastScannedIsbn})</span>
-                    </li>
+                <h3 class="text-lg font-semibold text-gray-700 mb-2">Books to Checkout:</h3>
+                <ul class="list-none p-0 m-0"> <!-- Removed disc, added padding/margin reset -->
+                    ${booksHtml}
                 </ul>
             `;
         };
@@ -1533,7 +1543,7 @@
                     saveData();
                     displayMessage('checkout-message', `Successfully checked out "${book.title}" for ${currentCardHolder.holderName}.`, true);
                     scannedIsbns.push(book.isbn);
-                    updateScannedIsbnsList();
+                    updateScannedIsbnsList(); // Call to update the list with all scanned books
                 }
                 bookScanInput.value = '';
             };
