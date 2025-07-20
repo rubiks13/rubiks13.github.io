@@ -245,10 +245,11 @@
             overflow: hidden; /* Ensure content is clipped within the bounds */
         }
         .book-thumbnail-lg {
-            width: 120px; /* w-30 */
-            height: 120px; /* h-30 */
+            width: 150px; /* Increased width */
+            height: auto; /* Allow height to adjust proportionally */
+            max-width: 100%; /* Ensure it doesn't overflow its container */
             border-radius: 0.5rem; /* rounded-lg */
-            object-fit: cover;
+            object-fit: contain; /* Ensure the entire image is visible */
             margin-bottom: 16px; /* mb-4 */
         }
     </style>
@@ -1813,8 +1814,9 @@
                 `;
             }
 
+            // Changed max-w-2xl to max-w-4xl for wider description
             const descriptionHtml = book.description ? `
-                <div class="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200 w-full max-w-2xl">
+                <div class="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200 w-full max-w-4xl mx-auto">
                     <h3 class="text-xl font-semibold text-gray-700 mb-2">Description</h3>
                     <p class="text-gray-700 whitespace-pre-wrap">${book.description}</p>
                 </div>
