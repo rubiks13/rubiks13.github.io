@@ -235,7 +235,7 @@
 
         /* Styling for book image thumbnails */
         .book-thumbnail {
-            /* Increased size for better visibility in tables */
+            /* Default size for smaller thumbnails, e.g., in checkout list */
             width: 80px; /* w-20 equivalent */
             height: 80px; /* h-20 equivalent */
             border-radius: 0.5rem; /* Changed to rounded-lg for consistency with rectangular graphic */
@@ -245,6 +245,7 @@
             overflow: hidden; /* Ensure content is clipped within the bounds */
         }
         .book-thumbnail-lg {
+            /* Larger size for "All Books" table and details page */
             width: 150px; /* Increased width */
             height: auto; /* Allow height to adjust proportionally */
             max-width: 100%; /* Ensure it doesn't overflow its container */
@@ -2123,9 +2124,10 @@
                     `;
                     const booksTableBody = document.getElementById('books-table-body');
                     filteredBooks.forEach(book => {
+                        // Use book-thumbnail-lg for the image in the search results table
                         const bookPhotoCellHtml = book.photo ?
-                            `<td class="px-6 py-4 whitespace-nowrap"><img src="${book.photo}" alt="Book Photo" class="book-thumbnail"></td>` :
-                            `<td class="px-6 py-4 whitespace-nowrap flex items-center justify-center"><div class="book-thumbnail flex items-center justify-center">${defaultBookGraphic}</div></td>`; // Added flex and justify for default graphic
+                            `<td class="px-6 py-4 whitespace-nowrap"><img src="${book.photo}" alt="Book Photo" class="book-thumbnail-lg"></td>` :
+                            `<td class="px-6 py-4 whitespace-nowrap flex items-center justify-center"><div class="book-thumbnail-lg flex items-center justify-center bg-gray-200">${defaultBookGraphic}</div></td>`;
 
                         const row = document.createElement('tr');
                         row.className = "cursor-pointer hover:bg-gray-50 book-row"; // Add class for click event
@@ -2321,8 +2323,8 @@
                     const reprintBooksTableBody = document.getElementById('reprint-books-table-body');
                     filteredBooks.forEach(book => {
                         const bookPhotoCellHtml = book.photo ?
-                            `<td class="px-6 py-4 whitespace-nowrap"><img src="${book.photo}" alt="Book Photo" class="book-thumbnail"></td>` :
-                            `<td class="px-6 py-4 whitespace-nowrap flex items-center justify-center"><div class="book-thumbnail flex items-center justify-center">${defaultBookGraphic}</div></td>`; // Added flex and justify for default graphic
+                            `<td class="px-6 py-4 whitespace-nowrap"><img src="${book.photo}" alt="Book Photo" class="book-thumbnail-lg"></td>` :
+                            `<td class="px-6 py-4 whitespace-nowrap flex items-center justify-center"><div class="book-thumbnail-lg flex items-center justify-center bg-gray-200">${defaultBookGraphic}</div></td>`;
 
                         const row = document.createElement('tr');
                         row.innerHTML = `
