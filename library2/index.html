@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bell Library Management System</title>
+    <title>Longview Mennonite School Library Management System</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts - Inter -->
@@ -307,13 +307,95 @@
             object-fit: contain; /* Ensure the entire image is visible */
             /* Removed margin-bottom here, will apply margin-right in HTML for lists */
         }
+
+        /* Specific styles for mobile catalog cards */
+        .book-card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); /* Responsive grid columns */
+            gap: 1rem; /* Gap between cards */
+        }
+
+        .book-card {
+            background-color: #ffffff;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.06);
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.1s ease-in-out;
+        }
+
+        .book-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .book-card-image-container {
+            width: 100px; /* Fixed width for card image */
+            height: 120px; /* Fixed height for card image */
+            margin-bottom: 0.75rem;
+            border-radius: 0.25rem;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f3f4f6; /* Gray-100 */
+        }
+
+        .book-card-image-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* Cover the container */
+        }
+
+        .book-card-title {
+            font-weight: 600; /* semibold */
+            font-size: 1rem; /* text-base */
+            color: #1f2937; /* gray-900 */
+            margin-bottom: 0.25rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2; /* Limit title to 2 lines */
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .book-card-author {
+            font-size: 0.875rem; /* text-sm */
+            color: #6b7280; /* gray-600 */
+            margin-bottom: 0.5rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 1; /* Limit author to 1 line */
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Hide table on small screens, show grid */
+        .md\\:table {
+            display: none;
+        }
+        .md\\:grid {
+            display: grid;
+        }
+
+        @media (min-width: 768px) { /* md breakpoint */
+            .md\\:table {
+                display: table;
+            }
+            .md\\:grid {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-100">
     <div class="min-h-screen bg-gray-100 font-inter antialiased flex flex-col md:flex-row">
         <!-- Sidebar Navigation -->
         <nav id="sidebar-nav" class="bg-gray-800 text-white w-full md:w-64 p-4 shadow-lg md:flex-shrink-0 sidebar-visible">
-            <h1 class="text-3xl font-extrabold mb-8 text-center">Bell Library</h1>
+            <h1 class="text-3xl font-extrabold mb-8 text-center">Longview Mennonite School</h1>
             <ul class="space-y-3">
                 <li>
                     <button id="nav-dashboard" class="w-full text-left py-3 px-4 rounded-md text-lg font-medium transition-colors duration-200 ease-in-out bg-indigo-600 shadow-md">
@@ -760,7 +842,7 @@
 
             let receiptHtml = `
                 <div class="receipt-content">
-                    <h3 class="text-xl font-bold">Bell Library</h3>
+                    <h3 class="text-xl font-bold">Longview Mennonite School</h3>
                     <h4 class="text-lg">Checkout Receipt</h4>
                     <p>Date: ${new Date().toLocaleDateString()}</p>
                     <p>Time: ${new Date().toLocaleTimeString()}</p>
@@ -784,7 +866,7 @@
 
             receiptHtml += `
                     <div class="receipt-footer">
-                        <p>Thank you for using Bell Library!</p>
+                        <p>Thank you for using Longview Mennonite School!</p>
                         <p>Please return books by their due dates.</p>
                         <div class="receipt-barcode-container">
                             ${receiptBarcodeSvg || '<p class="text-red-500 text-xs">Receipt Barcode failed to load.</p>'}
@@ -827,7 +909,7 @@
 
             const returnReceiptHtml = `
                 <div class="return-receipt-content">
-                    <h3 class="text-xl font-bold">Bell Library</h3>
+                    <h3 class="text-xl font-bold">Longview Mennonite School</h3>
                     <h4 class="text-lg">Return Receipt</h4>
                     <p>Date: ${new Date().toLocaleDateString()}</p>
                     <p>Time: ${new Date().toLocaleTimeString()}</p>
@@ -858,7 +940,7 @@
         const renderDashboard = () => {
             contentArea.innerHTML = `
                 <div class="p-6 bg-white rounded-lg shadow-md flex-grow">
-                    <h2 class="text-3xl font-bold mb-6 text-gray-800">Bell Library Dashboard</h2>
+                    <h2 class="text-3xl font-bold mb-6 text-gray-800">Longview Mennonite School Dashboard</h2>
                     <p class="mb-4 text-gray-700">Welcome to your personal library system!</p>
                     <p class="mb-6 text-sm text-gray-500">All your data is saved locally in your browser.</p>
 
@@ -1641,7 +1723,12 @@
                             <label for="cardScan" class="block text-sm font-medium text-gray-700 mb-1 ${isKioskMode ? 'text-lg' : ''}">
                                 Scan Library Card Number:
                             </label>
-                            <input type="text" id="cardScan" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${isKioskMode ? 'text-xl py-3' : ''}" placeholder="Enter library card number (e.g., LBRY-001)">
+                            <input
+                                type="text"
+                                id="cardScan"
+                                class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${isKioskMode ? 'text-xl py-3' : ''}"
+                                placeholder="Enter library card number (e.g., LBRY-001)"
+                            >
                             <p id="card-holder-display" class="text-sm text-gray-600 mt-2 italic hidden ${isKioskMode ? 'text-base' : ''}"></p>
                         </div>
 
@@ -1651,7 +1738,12 @@
                                 Scan Book ISBNs (one by one):
                             </label>
                             <div class="flex space-x-2">
-                                <input type="text" id="bookScan" class="flex-grow px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${isKioskMode ? 'text-xl py-3' : ''}" placeholder="Enter book ISBN (e.g., 978-0743273565)">
+                                <input
+                                    type="text"
+                                    id="bookScan"
+                                    class="flex-grow px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${isKioskMode ? 'text-xl py-3' : ''}"
+                                    placeholder="Enter book ISBN (e.g., 978-0743273565)"
+                                >
                             </div>
 
                             <div id="scanned-isbns-list-container" class="mt-4">
@@ -2404,7 +2496,29 @@
                 if (filteredBooks.length === 0) {
                     booksListContainer.innerHTML = '<p class="text-gray-600">No books found matching your search.</p>';
                 } else {
-                    booksListContainer.innerHTML = `
+                    // Mobile (card) view
+                    let mobileCardsHtml = '';
+                    filteredBooks.forEach(book => {
+                        const bookPhotoHtml = book.photo ?
+                            `<img src="${book.photo}" alt="Book Cover" class="w-full h-full object-cover">` :
+                            `<div class="w-full h-full flex items-center justify-center text-gray-400">${defaultBookGraphic}</div>`;
+
+                        mobileCardsHtml += `
+                            <div class="book-card" data-book-id="${book.id}">
+                                <div class="book-card-image-container">
+                                    ${bookPhotoHtml}
+                                </div>
+                                <p class="book-card-title">${book.title}</p>
+                                <p class="book-card-author">${book.author}</p>
+                                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${book.isAvailable ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                    ${book.isAvailable ? 'Available' : 'Checked Out'}
+                                </span>
+                            </div>
+                        `;
+                    });
+
+                    // Desktop (table) view
+                    let desktopTableHtml = `
                         <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200 rounded-lg overflow-hidden">
                                 <thead class="bg-gray-50">
@@ -2423,39 +2537,52 @@
                             </table>
                         </div>
                     `;
+
+                    booksListContainer.innerHTML = `
+                        <div class="md:hidden book-card-grid">
+                            ${mobileCardsHtml}
+                        </div>
+                        <div class="hidden md:block">
+                            ${desktopTableHtml}
+                        </div>
+                    `;
+
+                    // Populate desktop table if it's rendered
                     const booksTableBody = document.getElementById('books-table-body');
-                    filteredBooks.forEach(book => {
-                        // Use book-thumbnail-md for the image in the search results table
-                        const bookPhotoCellHtml = book.photo ?
-                            `<td class="px-6 py-4 whitespace-nowrap"><img src="${book.photo}" alt="Book Photo" class="book-thumbnail-md"></td>` :
-                            `<td class="px-6 py-4 whitespace-nowrap flex items-center justify-center"><div class="book-thumbnail-md flex items-center justify-center bg-gray-200">${defaultBookGraphic}</div></td>`;
+                    if (booksTableBody) {
+                        filteredBooks.forEach(book => {
+                            // Use book-thumbnail-md for the image in the search results table
+                            const bookPhotoCellHtml = book.photo ?
+                                `<td class="px-6 py-4 whitespace-nowrap"><img src="${book.photo}" alt="Book Photo" class="book-thumbnail-md"></td>` :
+                                `<td class="px-6 py-4 whitespace-nowrap flex items-center justify-center"><div class="book-thumbnail-md flex items-center justify-center bg-gray-200">${defaultBookGraphic}</div></td>`;
 
-                        const row = document.createElement('tr');
-                        row.className = "cursor-pointer hover:bg-gray-50 book-row"; // Add class for click event
-                        row.dataset.bookId = book.id; // Store book ID for navigation
-                        row.innerHTML = `
-                            ${bookPhotoCellHtml}
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${book.title}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${book.author}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${book.callNumber || 'N/A'}</td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${book.isAvailable ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
-                                    ${book.isAvailable ? 'Available' : 'Checked Out'}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium ${isEditDeleteButtonsVisible ? '' : 'hidden-actions-column'}">
-                                <button data-id="${book.id}" class="edit-book-btn text-indigo-600 hover:text-indigo-900 font-semibold py-1 px-3 rounded-md border border-indigo-600 hover:bg-indigo-50 transition duration-150 ease-in-out mr-2">
-                                    Edit
-                                </button>
-                                <button data-id="${book.id}" class="delete-book-btn text-red-600 hover:text-red-900 font-semibold py-1 px-3 rounded-md border border-red-600 hover:bg-red-50 transition duration-150 ease-in-out">
-                                    Delete
-                                </button>
-                            </td>
-                        `;
-                        booksTableBody.appendChild(row);
-                    });
+                            const row = document.createElement('tr');
+                            row.className = "cursor-pointer hover:bg-gray-50 book-row"; // Add class for click event
+                            row.dataset.bookId = book.id; // Store book ID for navigation
+                            row.innerHTML = `
+                                ${bookPhotoCellHtml}
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${book.title}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${book.author}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${book.callNumber || 'N/A'}</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${book.isAvailable ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                        ${book.isAvailable ? 'Available' : 'Checked Out'}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium ${isEditDeleteButtonsVisible ? '' : 'hidden-actions-column'}">
+                                    <button data-id="${book.id}" class="edit-book-btn text-indigo-600 hover:text-indigo-900 font-semibold py-1 px-3 rounded-md border border-indigo-600 hover:bg-indigo-50 transition duration-150 ease-in-out mr-2">
+                                        Edit
+                                    </button>
+                                    <button data-id="${book.id}" class="delete-book-btn text-red-600 hover:text-red-900 font-semibold py-1 px-3 rounded-md border border-red-600 hover:bg-red-50 transition duration-150 ease-in-out">
+                                        Delete
+                                    </button>
+                                </td>
+                            `;
+                            booksTableBody.appendChild(row);
+                        });
+                    }
 
-                    // Add event listener for clicking on book rows
+                    // Add event listener for clicking on book rows (for desktop table)
                     document.querySelectorAll('.book-row').forEach(row => {
                         row.addEventListener('click', (e) => {
                             // Ensure click is not on edit/delete buttons
@@ -2465,6 +2592,15 @@
                             }
                         });
                     });
+
+                    // Add event listener for clicking on book cards (for mobile grid)
+                    document.querySelectorAll('.book-card').forEach(card => {
+                        card.addEventListener('click', (e) => {
+                            const bookId = card.dataset.bookId;
+                            renderPage('bookDetails', bookId); // Navigate to book details page
+                        });
+                    });
+
 
                     if (isEditDeleteButtonsVisible) {
                         document.querySelectorAll('.edit-book-btn').forEach(button => {
