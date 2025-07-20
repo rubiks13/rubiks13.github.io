@@ -355,6 +355,11 @@
                         Reprint Labels
                     </button>
                 </li>
+                <li class="mt-auto"> <!-- This will push the settings button to the bottom -->
+                    <button id="nav-settings" class="w-full text-left py-3 px-4 rounded-md text-lg font-medium transition-colors duration-200 ease-in-out hover:bg-gray-700">
+                        Settings
+                    </button>
+                </li>
             </ul>
         </nav>
 
@@ -886,6 +891,10 @@
                             <h3 class="text-xl font-semibold text-orange-800 mb-2">Reprint Labels</h3>
                             <p class="text-orange-700">Search for any book and reprint its label.</p>
                         </div>
+                        <div class="bg-gray-200 p-6 rounded-lg shadow-sm">
+                            <h3 class="text-xl font-semibold text-gray-800 mb-2">Settings</h3>
+                            <p class="text-gray-700">Manage application data: backup and restore.</p>
+                        </div>
                     </div>
                 </div>
             `;
@@ -950,6 +959,52 @@
             }
         }
 
+        // Function to fetch book data from Open Library API
+        async function fetchBookDataByISBN(isbn, messageElementId) {
+            clearMessage(messageElementId);
+            const apiUrl = `https://openlibrary.org/isbn/${isbn}.json`;
+            try {
+                displayMessage(messageElementId, 'Searching Open Library...', true);
+                const response = await fetch(apiUrl);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                console.log("Open Library API response:", data);
+
+                let title = data.title || '';
+                let author = 'Unknown Author';
+                if (data.authors && data.authors.length > 0) {
+                    // Open Library author data often needs another fetch to get the name
+                    const authorKey = data.authors[0].key;
+                    if (authorKey) {
+                        const authorResponse = await fetch(`https://openlibrary.org${authorKey}.json`);
+                        if (authorResponse.ok) {
+                            const authorData = await authorResponse.json();
+                            author = authorData.name || author;
+                        }
+                    }
+                }
+                let description = '';
+                if (data.description) {
+                    description = typeof data.description === 'string' ? data.description : data.description.value || '';
+                }
+                let coverUrl = '';
+                if (data.covers && data.covers.length > 0) {
+                    coverUrl = `https://covers.openlibrary.org/b/id/${data.covers[0]}-L.jpg`;
+                }
+
+                displayMessage(messageElementId, 'Book details found!', true);
+                return { title, author, description, coverUrl };
+
+            } catch (error) {
+                console.error("Error fetching book data from Open Library:", error);
+                displayMessage(messageElementId, 'Could not find book details for this ISBN. Please enter manually.', false);
+                return { title: '', author: '', description: '', coverUrl: '' };
+            }
+        }
+
+
         const renderAddBookForm = () => {
             contentArea.innerHTML = `
                 <div class="p-6 bg-white rounded-lg shadow-md flex-grow">
@@ -994,9 +1049,14 @@
                                 <span id="generated-isbn-display" class="font-mono text-gray-900 text-lg bg-gray-100 p-2 rounded-md flex-grow"></span>
                                 <button type="button" id="generate-isbn-btn" class="py-2 px-4 rounded-md bg-gray-200 text-gray-700 hover:bg-gray-300 transition duration-150 ease-in-out">Generate New</button>
                             </div>
-                            <div>
-                                <label for="custom-isbn-input" class="block text-sm font-medium text-gray-700 mb-1">Or Enter Custom ISBN (10 or 13 digits)</label>
-                                <input type="text" id="custom-isbn-input" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., 9780743273565">
+                            <div class="flex items-end space-x-2">
+                                <div class="flex-grow">
+                                    <label for="custom-isbn-input" class="block text-sm font-medium text-gray-700 mb-1">Or Enter Custom ISBN (10 or 13 digits)</label>
+                                    <input type="text" id="custom-isbn-input" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., 9780743273565">
+                                </div>
+                                <button type="button" id="fetch-book-data-btn" class="py-2 px-4 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition duration-150 ease-in-out">
+                                    Fetch Details
+                                </button>
                             </div>
                             <div id="isbn-message" class="hidden text-xs mt-2"></div>
                         </div>
@@ -1040,9 +1100,12 @@
                 </div>
             `;
 
+            const titleInput = document.getElementById('title');
+            const authorInput = document.getElementById('author');
             const generatedIsbnDisplay = document.getElementById('generated-isbn-display');
             const customIsbnInput = document.getElementById('custom-isbn-input');
             const generateIsbnBtn = document.getElementById('generate-isbn-btn');
+            const fetchBookDataBtn = document.getElementById('fetch-book-data-btn');
             const isbnMessage = document.getElementById('isbn-message');
             const descriptionInput = document.getElementById('description');
 
@@ -1144,6 +1207,46 @@
                 // Optional: add more robust ISBN validation here if needed
             });
 
+            fetchBookDataBtn.addEventListener('click', async () => {
+                const isbnToFetch = customIsbnInput.value.trim();
+                if (isbnToFetch) {
+                    const bookData = await fetchBookDataByISBN(isbnToFetch, 'isbn-message');
+                    if (bookData.title) {
+                        titleInput.value = bookData.title;
+                    }
+                    if (bookData.author) {
+                        authorInput.value = bookData.author;
+                    }
+                    if (bookData.description) {
+                        descriptionInput.value = bookData.description;
+                    }
+                    if (bookData.coverUrl) {
+                        // Fetch the image and convert to base64
+                        try {
+                            const imgResponse = await fetch(bookData.coverUrl);
+                            if (imgResponse.ok) {
+                                const blob = await imgResponse.blob();
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                    currentBookPhoto = reader.result;
+                                    photoPreview.src = currentBookPhoto;
+                                    photoPreviewContainer.classList.remove('hidden');
+                                    displayMessage('add-book-photo-message', 'Cover image fetched!', true);
+                                };
+                                reader.readAsDataURL(blob);
+                            } else {
+                                displayMessage('add-book-photo-message', 'Could not fetch cover image.', false);
+                            }
+                        } catch (imgError) {
+                            console.error("Error fetching cover image:", imgError);
+                            displayMessage('add-book-photo-message', 'Error fetching cover image.', false);
+                        }
+                    }
+                } else {
+                    displayMessage('isbn-message', 'Please enter an ISBN to fetch book details.', false);
+                }
+            });
+
 
             // Photo upload logic
             addPhotoBtn.addEventListener('click', async () => {
@@ -1196,8 +1299,8 @@
                 e.preventDefault();
                 clearMessage('add-book-message');
 
-                const title = document.getElementById('title').value.trim();
-                const author = document.getElementById('author').value.trim();
+                const title = titleInput.value.trim();
+                const author = authorInput.value.trim();
                 const description = descriptionInput.value.trim(); // Get description
                 let selectedIsbn = customIsbnInput.value.trim(); // Prioritize custom ISBN
 
@@ -1294,7 +1397,7 @@
                 } else {
                     // If custom ISBN, hide label area and reset focus to title
                     generatedLabelArea.classList.add('hidden');
-                    document.getElementById('title').focus();
+                    titleInput.focus();
                 }
             });
 
@@ -1306,7 +1409,7 @@
                     displayMessage('add-book-message', 'No book added yet to print a label.', false);
                 }
             });
-            document.getElementById('title').focus();
+            titleInput.focus();
         };
 
         const renderManageCards = () => {
@@ -2564,6 +2667,147 @@
             document.getElementById('label-search').focus();
         };
 
+        const renderSettingsPage = () => {
+            contentArea.innerHTML = `
+                <div class="p-6 bg-white rounded-lg shadow-md flex-grow">
+                    <h2 class="text-3xl font-bold mb-6 text-gray-800">Settings</h2>
+
+                    <div class="space-y-6">
+                        <!-- Download Data Section -->
+                        <div class="p-4 border border-gray-200 rounded-md bg-gray-50">
+                            <h3 class="text-xl font-semibold text-gray-700 mb-3">Backup Data</h3>
+                            <p class="text-gray-700 mb-4">Download all your library data as a JSON file. This can be used to restore your data later.</p>
+                            <button id="download-data-btn" class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150 ease-in-out">
+                                Download Data
+                            </button>
+                            <div id="download-message" class="hidden"></div>
+                        </div>
+
+                        <!-- Upload Data Section -->
+                        <div class="p-4 border border-gray-200 rounded-md bg-gray-50">
+                            <h3 class="text-xl font-semibold text-gray-700 mb-3">Restore Data</h3>
+                            <p class="text-gray-700 mb-4">Upload a JSON file to restore your library data. This will overwrite existing data.</p>
+                            <input type="file" id="upload-data-input" accept="application/json" class="block w-full text-sm text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 mb-4">
+                            <button id="upload-data-btn" class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out">
+                                Upload Data
+                            </button>
+                            <div id="upload-message" class="hidden"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            const downloadDataBtn = document.getElementById('download-data-btn');
+            const downloadMessage = document.getElementById('download-message');
+            const uploadDataInput = document.getElementById('upload-data-input');
+            const uploadDataBtn = document.getElementById('upload-data-btn');
+            const uploadMessage = document.getElementById('upload-message');
+
+            downloadDataBtn.addEventListener('click', () => {
+                clearMessage('download-message');
+                try {
+                    const allData = {
+                        libraryBooks: books,
+                        libraryCards: libraryCards,
+                        libraryCheckouts: checkouts,
+                        receiptRecords: receiptRecords,
+                        defaultCallNumberPrefix: defaultCallNumberPrefix,
+                        nextCallNumberSuffix: nextCallNumberSuffix,
+                        isCallNumberAutoIncrementEnabled: isCallNumberAutoIncrementEnabled,
+                        startingCallNumberSuffix: startingCallNumberSuffix
+                    };
+                    const jsonString = JSON.stringify(allData, null, 2); // Pretty print JSON
+
+                    const blob = new Blob([jsonString], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `bell_library_data_${new Date().toISOString().slice(0, 10)}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+
+                    displayMessage('download-message', 'Data downloaded successfully!', true);
+                } catch (e) {
+                    console.error("Error downloading data:", e);
+                    displayMessage('download-message', `Failed to download data: ${e.message}`, false);
+                }
+            });
+
+            uploadDataBtn.addEventListener('click', () => {
+                clearMessage('upload-message');
+                const file = uploadDataInput.files[0];
+
+                if (!file) {
+                    displayMessage('upload-message', 'Please select a JSON file to upload.', false);
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    try {
+                        const uploadedData = JSON.parse(e.target.result);
+
+                        // Basic validation of uploaded data structure
+                        if (
+                            !uploadedData.libraryBooks ||
+                            !uploadedData.libraryCards ||
+                            !uploadedData.libraryCheckouts ||
+                            !uploadedData.receiptRecords ||
+                            uploadedData.defaultCallNumberPrefix === undefined ||
+                            uploadedData.nextCallNumberSuffix === undefined ||
+                            uploadedData.isCallNumberAutoIncrementEnabled === undefined ||
+                            uploadedData.startingCallNumberSuffix === undefined
+                        ) {
+                            displayMessage('upload-message', 'Invalid JSON file structure. Please upload a file generated by this system.', false);
+                            playErrorSound();
+                            return;
+                        }
+
+                        const confirmed = await showModal(
+                            'Confirm Data Restore',
+                            `<p class="mb-4 text-gray-700">Are you sure you want to restore data from this file?</p>
+                            <p class="font-bold text-red-600">This will overwrite all existing library data!</p>`,
+                            [
+                                { label: 'Cancel', className: 'py-2 px-4 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100', value: false },
+                                { label: 'Restore', className: 'py-2 px-4 rounded-md bg-red-600 text-white hover:bg-red-700', value: true }
+                            ]
+                        );
+
+                        if (confirmed) {
+                            localStorage.setItem('libraryBooks', JSON.stringify(uploadedData.libraryBooks));
+                            localStorage.setItem('libraryCards', JSON.stringify(uploadedData.libraryCards));
+                            localStorage.setItem('libraryCheckouts', JSON.stringify(uploadedData.libraryCheckouts));
+                            localStorage.setItem('receiptRecords', JSON.stringify(uploadedData.receiptRecords));
+                            localStorage.setItem('defaultCallNumberPrefix', uploadedData.defaultCallNumberPrefix);
+                            localStorage.setItem('nextCallNumberSuffix', uploadedData.nextCallNumberSuffix.toString());
+                            localStorage.setItem('isCallNumberAutoIncrementEnabled', uploadedData.isCallNumberAutoIncrementEnabled.toString());
+                            localStorage.setItem('startingCallNumberSuffix', uploadedData.startingCallNumberSuffix.toString());
+
+                            displayMessage('upload-message', 'Data restored successfully! Reloading application...', true);
+                            setTimeout(() => {
+                                location.reload(); // Reload page to apply new data
+                            }, 1500);
+                        } else {
+                            displayMessage('upload-message', 'Data restore cancelled.', false);
+                        }
+
+                    } catch (parseError) {
+                        console.error("Error parsing uploaded JSON:", parseError);
+                        displayMessage('upload-message', `Failed to parse JSON file: ${parseError.message}. Ensure it's a valid JSON.`, false);
+                        playErrorSound();
+                    }
+                };
+                reader.onerror = () => {
+                    displayMessage('upload-message', 'Failed to read file.', false);
+                    playErrorSound();
+                };
+                reader.readAsText(file);
+            });
+        };
+
 
         // --- Navigation Logic ---
         let currentPage = 'dashboard';
@@ -2610,6 +2854,9 @@
                     break;
                 case 'reprintLabels':
                     renderReprintLabels();
+                    break;
+                case 'settings': // New case for settings page
+                    renderSettingsPage();
                     break;
                 default:
                     renderDashboard();
