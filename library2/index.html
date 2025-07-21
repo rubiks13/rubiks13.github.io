@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Longview Mennonite School Library Management System</title>
+    <title>Bell Library Management System</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts - Inter -->
@@ -395,7 +395,7 @@
     <div class="min-h-screen bg-gray-100 font-inter antialiased flex flex-col md:flex-row">
         <!-- Sidebar Navigation -->
         <nav id="sidebar-nav" class="bg-gray-800 text-white w-full md:w-64 p-4 shadow-lg md:flex-shrink-0 sidebar-visible">
-            <h1 class="text-3xl font-extrabold mb-8 text-center">Longview Mennonite School</h1>
+            <h1 class="text-3xl font-extrabold mb-8 text-center">Bell Library</h1>
             <ul class="space-y-3">
                 <li>
                     <button id="nav-dashboard" class="w-full text-left py-3 px-4 rounded-md text-lg font-medium transition-colors duration-200 ease-in-out bg-indigo-600 shadow-md">
@@ -748,6 +748,64 @@
             }
         };
 
+        // --- Image Compression Helper ---
+        /**
+         * Compresses an image given its data URL.
+         * @param {string} dataUrl - The base64 data URL of the image.
+         * @param {number} maxWidth - Maximum width for the compressed image.
+         * @param {number} maxHeight - Maximum height for the compressed image.
+         * @param {number} quality - JPEG/PNG compression quality (0 to 1).
+         * @returns {Promise<string>} A promise that resolves with the compressed image data URL.
+         */
+        const compressImage = (dataUrl, maxWidth, maxHeight, quality) => {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+
+                    // Calculate new dimensions while maintaining aspect ratio
+                    if (width > height) {
+                        if (width > maxWidth) {
+                            height *= maxWidth / width;
+                            width = maxWidth;
+                        }
+                    } else {
+                        if (height > maxHeight) {
+                            width *= maxHeight / height;
+                            height = maxHeight;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // Determine output format based on original dataUrl mime type
+                    const mimeType = dataUrl.substring(5, dataUrl.indexOf(';'));
+                    let outputMimeType = 'image/jpeg'; // Default to jpeg for better compression
+                    if (mimeType === 'image/png') {
+                        outputMimeType = 'image/png'; // Keep PNG if original was PNG (for transparency)
+                    }
+
+                    try {
+                        const compressedDataUrl = canvas.toDataURL(outputMimeType, quality);
+                        resolve(compressedDataUrl);
+                    } catch (e) {
+                        reject(e);
+                    }
+                };
+                img.onerror = (e) => {
+                    reject(new Error("Failed to load image for compression."));
+                };
+                img.src = dataUrl;
+            });
+        };
+
+
         // --- Label Printing ---
         const labelPrintArea = document.getElementById('label-print-area');
 
@@ -842,7 +900,7 @@
 
             let receiptHtml = `
                 <div class="receipt-content">
-                    <h3 class="text-xl font-bold">Longview Mennonite School</h3>
+                    <h3 class="text-xl font-bold">Bell Library</h3>
                     <h4 class="text-lg">Checkout Receipt</h4>
                     <p>Date: ${new Date().toLocaleDateString()}</p>
                     <p>Time: ${new Date().toLocaleTimeString()}</p>
@@ -866,7 +924,7 @@
 
             receiptHtml += `
                     <div class="receipt-footer">
-                        <p>Thank you for using Longview Mennonite School!</p>
+                        <p>Thank you for using Bell Library!</p>
                         <p>Please return books by their due dates.</p>
                         <div class="receipt-barcode-container">
                             ${receiptBarcodeSvg || '<p class="text-red-500 text-xs">Receipt Barcode failed to load.</p>'}
@@ -909,7 +967,7 @@
 
             const returnReceiptHtml = `
                 <div class="return-receipt-content">
-                    <h3 class="text-xl font-bold">Longview Mennonite School</h3>
+                    <h3 class="text-xl font-bold">Bell Library</h3>
                     <h4 class="text-lg">Return Receipt</h4>
                     <p>Date: ${new Date().toLocaleDateString()}</p>
                     <p>Time: ${new Date().toLocaleTimeString()}</p>
@@ -940,7 +998,7 @@
         const renderDashboard = () => {
             contentArea.innerHTML = `
                 <div class="p-6 bg-white rounded-lg shadow-md flex-grow">
-                    <h2 class="text-3xl font-bold mb-6 text-gray-800">Longview Mennonite School Dashboard</h2>
+                    <h2 class="text-3xl font-bold mb-6 text-gray-800">Bell Library Dashboard</h2>
                     <p class="mb-4 text-gray-700">Welcome to your personal library system!</p>
                     <p class="mb-6 text-sm text-gray-500">All your data is saved locally in your browser.</p>
 
@@ -1012,9 +1070,16 @@
                                 const blob = await item.getType(type);
                                 return new Promise((resolve) => {
                                     const reader = new FileReader();
-                                    reader.onloadend = () => {
-                                        displayMessage(messageElementId, `Image pasted successfully! (Type: ${type})`, true);
-                                        resolve(reader.result);
+                                    reader.onloadend = async () => {
+                                        try {
+                                            const compressedDataUrl = await compressImage(reader.result, 300, 300, 0.7);
+                                            displayMessage(messageElementId, `Image pasted and compressed successfully! (Type: ${type})`, true);
+                                            resolve(compressedDataUrl);
+                                        } catch (compressError) {
+                                            displayMessage(messageElementId, `Failed to compress pasted image. Error: ${compressError.message}`, false);
+                                            console.error(`[pasteImageFromClipboard] Compression failed for type ${type}:`, compressError);
+                                            resolve(null); // Resolve with null on compression error
+                                        }
                                     };
                                     reader.onerror = () => {
                                         displayMessage(messageElementId, `Failed to read image data from clipboard for type ${type}.`, false);
@@ -1303,17 +1368,23 @@
                         descriptionInput.value = bookData.description;
                     }
                     if (bookData.coverUrl) {
-                        // Fetch the image and convert to base64
+                        // Fetch the image and convert to base64, then compress
                         try {
                             const imgResponse = await fetch(bookData.coverUrl);
                             if (imgResponse.ok) {
                                 const blob = await imgResponse.blob();
                                 const reader = new FileReader();
-                                reader.onloadend = () => {
-                                    currentBookPhoto = reader.result;
-                                    photoPreview.src = currentBookPhoto;
-                                    photoPreviewContainer.classList.remove('hidden');
-                                    displayMessage('add-book-photo-message', 'Cover image fetched!', true);
+                                reader.onloadend = async () => {
+                                    try {
+                                        const compressedDataUrl = await compressImage(reader.result, 300, 300, 0.7);
+                                        currentBookPhoto = compressedDataUrl;
+                                        photoPreview.src = currentBookPhoto;
+                                        photoPreviewContainer.classList.remove('hidden');
+                                        displayMessage('add-book-photo-message', 'Cover image fetched and compressed!', true);
+                                    } catch (compressError) {
+                                        displayMessage('add-book-photo-message', 'Could not compress fetched cover image.', false);
+                                        console.error("Error compressing fetched cover image:", compressError);
+                                    }
                                 };
                                 reader.readAsDataURL(blob);
                             } else {
@@ -1351,11 +1422,20 @@
                 const file = event.target.files[0];
                 if (file) {
                     const reader = new FileReader();
-                    reader.onload = (e) => {
-                        currentBookPhoto = e.target.result;
-                        photoPreview.src = currentBookPhoto;
-                        photoPreviewContainer.classList.remove('hidden');
-                        displayMessage('add-book-photo-message', 'Image uploaded from file!', true);
+                    reader.onload = async (e) => {
+                        try {
+                            const compressedDataUrl = await compressImage(e.target.result, 300, 300, 0.7);
+                            currentBookPhoto = compressedDataUrl;
+                            photoPreview.src = currentBookPhoto;
+                            photoPreviewContainer.classList.remove('hidden');
+                            displayMessage('add-book-photo-message', 'Image uploaded from file and compressed!', true);
+                        } catch (compressError) {
+                            displayMessage('add-book-photo-message', 'Failed to compress uploaded image.', false);
+                            console.error("Error compressing uploaded image:", compressError);
+                            currentBookPhoto = ''; // Clear photo on compression failure
+                            photoPreview.src = '';
+                            photoPreviewContainer.classList.add('hidden');
+                        }
                     };
                     reader.readAsDataURL(file);
                 } else {
@@ -2389,12 +2469,21 @@
                     const file = event.target.files[0];
                     if (file) {
                         const reader = new FileReader();
-                        reader.onload = (e) => {
-                            currentEditBookPhoto = e.target.result;
-                            editPhotoPreview.src = currentEditBookPhoto;
-                            editPhotoPreviewContainer.classList.remove('hidden');
-                            displayMessage('edit-book-photo-message', 'Image uploaded from file!', true);
-                            console.log("[editBook] Image uploaded, currentEditBookPhoto updated:", currentEditBookPhoto ? currentEditBookPhoto.substring(0, 50) + '...' : 'none');
+                        reader.onload = async (e) => {
+                            try {
+                                const compressedDataUrl = await compressImage(e.target.result, 300, 300, 0.7);
+                                currentEditBookPhoto = compressedDataUrl;
+                                editPhotoPreview.src = currentEditBookPhoto;
+                                editPhotoPreviewContainer.classList.remove('hidden');
+                                displayMessage('edit-book-photo-message', 'Image uploaded from file and compressed!', true);
+                                console.log("[editBook] Image uploaded, currentEditBookPhoto updated:", currentEditBookPhoto ? currentEditBookPhoto.substring(0, 50) + '...' : 'none');
+                            } catch (compressError) {
+                                displayMessage('edit-book-photo-message', 'Failed to compress uploaded image.', false);
+                                console.error("Error compressing uploaded image:", compressError);
+                                currentEditBookPhoto = ''; // Clear photo on compression failure
+                                editPhotoPreview.src = '';
+                                editPhotoPreviewContainer.classList.add('hidden');
+                            }
                         };
                         reader.readAsDataURL(file);
                     } else {
