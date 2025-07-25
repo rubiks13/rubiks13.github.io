@@ -18,6 +18,18 @@
             background-color: rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(5px);
         }
+        /* Hide scrollbar for elements with line-clamp */
+        .line-clamp-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        /* NEW: Force text wrapping for article content */
+        #article-detail-content {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-900">
@@ -67,36 +79,53 @@
         </section>
 
         <!-- Latest Articles Grid -->
-        <section>
+        <section id="latest-articles-section">
             <h3 class="text-2xl font-bold text-gray-900 mb-6">Latest Articles</h3>
             <div id="articles-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 <p class="text-center text-gray-600 col-span-full" id="loading-articles">Loading articles...</p>
-                <!-- Static Article Card 1 (Fallback/Initial Content) -->
+                <!-- Static Article Cards (will be replaced by dynamic content) -->
                 <div class="bg-white rounded-xl shadow-lg overflow-hidden transform transition-transform hover:scale-105">
                     <img src="https://placehold.co/400x250/A78BFA/FFFFFF?text=Static+Article+1" alt="Static Article Image 1" class="w-full h-48 object-cover rounded-t-xl">
                     <div class="p-5">
                         <span class="text-xs text-purple-600 font-semibold uppercase mb-2 block">Technology</span>
-                        <h4 class="text-xl font-bold text-gray-900 mb-3 line-clamp-2">The Future of AI in Everyday Life</h4>
+                        <h4 class="text-xl font-bold text-gray-900 mb-2 line-clamp-2">The Future of AI in Everyday Life</h4>
+                        <p class="text-gray-500 text-sm mb-4">Published on: January 1, 2024</p>
                         <p class="text-gray-700 text-sm mb-4 line-clamp-3">
                             A deep dive into how artificial intelligence is shaping our daily routines and what to expect next.
                         </p>
-                        <a href="#" class="text-indigo-600 font-semibold hover:underline">Continue Reading &rarr;</a>
+                        <button class="text-indigo-600 font-semibold hover:underline read-more-btn" data-article-id="static-1">Continue Reading &rarr;</button>
                     </div>
                 </div>
 
-                <!-- Static Article Card 2 (Fallback/Initial Content) -->
                 <div class="bg-white rounded-xl shadow-lg overflow-hidden transform transition-transform hover:scale-105">
                     <img src="https://placehold.co/400x250/6EE7B7/FFFFFF?text=Static+Article+2" alt="Static Article Image 2" class="w-full h-48 object-cover rounded-t-xl">
                     <div class="p-5">
                         <span class="text-xs text-emerald-600 font-semibold uppercase mb-2 block">Lifestyle</span>
-                        <h4 class="text-xl font-bold text-gray-900 mb-3 line-clamp-2">Mindfulness for a Calmer You</h4>
+                        <h4 class="text-xl font-bold text-gray-900 mb-2 line-clamp-2">Mindfulness for a Calmer You</h4>
+                        <p class="text-gray-500 text-sm mb-4">Published on: February 15, 2024</p>
                         <p class="text-gray-700 text-sm mb-4 line-clamp-3">
                             Simple practices to incorporate mindfulness into your busy schedule for reduced stress.
                         </p>
-                        <a href="#" class="text-indigo-600 font-semibold hover:underline">Continue Reading &rarr;</a>
+                        <button class="text-indigo-600 font-semibold hover:underline read-more-btn" data-article-id="static-2">Continue Reading &rarr;</button>
                     </div>
                 </div>
             </div>
+        </section>
+
+        <!-- NEW: Full Article Detail Section -->
+        <section id="article-detail-section" class="hidden bg-white rounded-xl shadow-lg p-8">
+            <button id="back-to-articles-btn" class="mb-6 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors flex items-center">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                Back to Articles
+            </button>
+            <h1 id="article-detail-title" class="text-4xl font-bold text-gray-900 mb-4 leading-tight"></h1>
+            <p id="article-detail-meta" class="text-gray-600 text-lg mb-6"></p>
+            <img id="article-detail-image" src="" alt="Article Image" class="w-full h-96 object-cover rounded-lg mb-8">
+            <div id="article-detail-content" class="text-gray-800 text-lg leading-relaxed prose max-w-none">
+                <!-- Full article content will be loaded here -->
+            </div>
+            <p id="article-detail-loading" class="text-center text-gray-600 mt-8 hidden">Loading article...</p>
+            <p id="article-detail-error" class="text-center text-red-600 mt-8 hidden">Failed to load article details.</p>
         </section>
     </main>
 
@@ -119,7 +148,8 @@
             <button id="close-modal-button" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-3xl font-bold">&times;</button>
             <h2 class="text-3xl font-bold text-gray-900 mb-6 text-center">Upload New Article</h2>
 
-            <form id="article-upload-form" class="space-y-6">
+            <!-- IMPORTANT: Added enctype="multipart/form-data" for file uploads -->
+            <form id="article-upload-form" class="space-y-6" enctype="multipart/form-data">
                 <div>
                     <label for="article-title" class="block text-sm font-medium text-gray-700 mb-1">Article Title</label>
                     <input type="text" id="article-title" name="title" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Enter article title" required>
@@ -137,8 +167,9 @@
 
                 <div>
                     <label for="article-image" class="block text-sm font-medium text-gray-700 mb-1">Article Image</label>
+                    <!-- IMPORTANT: name="image" matches the upload.single('image') in backend -->
                     <input type="file" id="article-image" name="image" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
-                    <p class="mt-1 text-xs text-gray-500">Note: For this demo, images are not actually uploaded, only a placeholder URL is sent.</p>
+                    <p class="mt-1 text-xs text-gray-500">Upload an image for your article.</p>
                 </div>
 
                 <button type="submit" class="w-full bg-indigo-600 text-white py-3 px-4 rounded-lg shadow-md hover:bg-indigo-700 transition-colors font-semibold flex items-center justify-center">
@@ -157,7 +188,7 @@
     <script>
         // Backend URL for article operations
         // IMPORTANT: If you run your backend on a different port or host, update this URL.
-        const BACKEND_BASE_URL = 'http://localhost:3000'; // Default for local Node.js server
+        const BACKEND_BASE_URL = 'http://192.168.68.117:8000'; // Default for local Node.js server
 
         document.addEventListener('DOMContentLoaded', () => {
             const mobileMenuButton = document.getElementById('mobile-menu-button');
@@ -173,6 +204,16 @@
             const articlesGrid = document.getElementById('articles-grid');
             const loadingArticlesText = document.getElementById('loading-articles');
             const featuredArticleSection = document.getElementById('featured-article-section');
+            const latestArticlesSection = document.getElementById('latest-articles-section'); // Reference to latest articles section
+            const articleDetailSection = document.getElementById('article-detail-section'); // Reference to article detail section
+            const backToArticlesBtn = document.getElementById('back-to-articles-btn'); // Back button
+
+            const articleDetailTitle = document.getElementById('article-detail-title');
+            const articleDetailMeta = document.getElementById('article-detail-meta');
+            const articleDetailImage = document.getElementById('article-detail-image');
+            const articleDetailContent = document.getElementById('article-detail-content');
+            const articleDetailLoading = document.getElementById('article-detail-loading');
+            const articleDetailError = document.getElementById('article-detail-error');
 
 
             // Mobile menu toggle
@@ -210,7 +251,7 @@
                 }
             });
 
-            // Function to render articles
+            // Function to render articles in the main grid
             function renderArticles(articles) {
                 articlesGrid.innerHTML = ''; // Clear existing articles
                 loadingArticlesText.classList.add('hidden'); // Hide loading text
@@ -224,47 +265,117 @@
                 // Render featured article (the first one in the sorted list, assuming backend sends latest first)
                 const featuredArticle = articles[0];
                 featuredArticleSection.classList.remove('hidden');
+                const featuredArticleDate = new Date(featuredArticle.timestamp).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
                 featuredArticleSection.innerHTML = `
                     <div class="bg-white rounded-xl shadow-lg overflow-hidden md:flex">
                         <div class="md:w-1/2">
-                            <img src="${featuredArticle.imageUrl || 'https://placehold.co/600x400/818CF8/FFFFFF?text=Featured+Article+Image'}" alt="${featuredArticle.title}" class="w-full h-64 md:h-full object-cover rounded-t-xl md:rounded-l-xl md:rounded-tr-none">
+                            <img src="${featuredArticle.image_url || 'https://placehold.co/600x400/818CF8/FFFFFF?text=Featured+Article+Image'}" alt="${featuredArticle.title}" class="w-full h-64 md:h-full object-cover rounded-t-xl md:rounded-l-xl md:rounded-tr-none">
                         </div>
                         <div class="md:w-1/2 p-6 flex flex-col justify-center">
                             <span class="text-sm text-indigo-600 font-semibold uppercase mb-2">${featuredArticle.category || 'Uncategorized'}</span>
-                            <h2 class="text-3xl font-bold text-gray-900 mb-4 leading-tight">${featuredArticle.title}</h2>
+                            <h2 class="text-3xl font-bold text-gray-900 mb-2 leading-tight">${featuredArticle.title}</h2>
+                            <p class="text-gray-500 text-sm mb-4">Published on: ${featuredArticleDate}</p>
                             <p class="text-gray-700 mb-6 line-clamp-3">
                                 ${featuredArticle.content}
                             </p>
-                            <a href="#" class="inline-block bg-indigo-600 text-white px-6 py-3 rounded-lg shadow-md hover:bg-indigo-700 transition-colors self-start">Read More</a>
+                            <button class="inline-block bg-indigo-600 text-white px-6 py-3 rounded-lg shadow-md hover:bg-indigo-700 transition-colors self-start read-more-btn" data-article-id="${featuredArticle.id}">Read More</button>
                         </div>
                     </div>
                 `;
 
                 // Render remaining articles in the grid
                 articles.slice(1).forEach(article => {
+                    const articleDate = new Date(article.timestamp).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
                     const articleCard = `
                         <div class="bg-white rounded-xl shadow-lg overflow-hidden transform transition-transform hover:scale-105">
-                            <img src="${article.imageUrl || 'https://placehold.co/400x250/A78BFA/FFFFFF?text=No+Image'}" alt="${article.title}" class="w-full h-48 object-cover rounded-t-xl">
+                            <img src="${article.image_url || 'https://placehold.co/400x250/A78BFA/FFFFFF?text=No+Image'}" alt="${article.title}" class="w-full h-48 object-cover rounded-t-xl">
                             <div class="p-5">
                                 <span class="text-xs text-purple-600 font-semibold uppercase mb-2 block">${article.category || 'Uncategorized'}</span>
-                                <h4 class="text-xl font-bold text-gray-900 mb-3 line-clamp-2">${article.title}</h4>
+                                <h4 class="text-xl font-bold text-gray-900 mb-2 line-clamp-2">${article.title}</h4>
+                                <p class="text-gray-500 text-sm mb-4">Published on: ${articleDate}</p>
                                 <p class="text-gray-700 text-sm mb-4 line-clamp-3">
                                     ${article.content}
                                 </p>
-                                <a href="#" class="text-indigo-600 font-semibold hover:underline">Continue Reading &rarr;</a>
+                                <button class="text-indigo-600 font-semibold hover:underline read-more-btn" data-article-id="${article.id}">Continue Reading &rarr;</button>
                             </div>
                         </div>
                     `;
                     articlesGrid.insertAdjacentHTML('beforeend', articleCard);
                 });
+
+                // Attach event listeners to all "Read More" buttons
+                document.querySelectorAll('.read-more-btn').forEach(button => {
+                    button.addEventListener('click', (event) => {
+                        const articleId = event.target.dataset.articleId;
+                        showArticleDetails(articleId);
+                    });
+                });
             }
 
-            // Function to fetch articles from the backend
+            // NEW: Function to display a single article in detail view
+            async function showArticleDetails(articleId) {
+                // Hide main sections and show detail section
+                latestArticlesSection.classList.add('hidden');
+                featuredArticleSection.classList.add('hidden');
+                articleDetailSection.classList.remove('hidden');
+
+                // Clear previous content and show loading
+                articleDetailTitle.textContent = '';
+                articleDetailMeta.textContent = '';
+                articleDetailImage.src = '';
+                articleDetailImage.alt = '';
+                articleDetailContent.innerHTML = '';
+                articleDetailLoading.classList.remove('hidden');
+                articleDetailError.classList.add('hidden');
+
+                const fetchUrl = `${BACKEND_BASE_URL}/articles/${articleId}`;
+                console.log(`Attempting to fetch single article from: ${fetchUrl}`);
+
+                try {
+                    const response = await fetch(fetchUrl);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const article = await response.json();
+
+                    // Format date for display
+                    const articleDate = new Date(article.timestamp).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+                    articleDetailTitle.textContent = article.title;
+                    articleDetailMeta.textContent = `${article.category || 'Uncategorized'} | Published on: ${articleDate}`;
+                    articleDetailImage.src = article.image_url || 'https://placehold.co/900x600/CCCCCC/000000?text=No+Image+Available';
+                    articleDetailImage.alt = article.title;
+                    // Replace newlines with paragraph tags for better formatting of raw text
+                    articleDetailContent.innerHTML = article.content.split('\n').map(paragraph => `<p>${paragraph}</p>`).join('');
+
+                } catch (error) {
+                    console.error("Error fetching article details:", error);
+                    articleDetailError.textContent = `Failed to load article details: ${error.message}.`;
+                    articleDetailError.classList.remove('hidden');
+                } finally {
+                    articleDetailLoading.classList.add('hidden');
+                }
+            }
+
+            // NEW: Event listener for "Back to Articles" button
+            backToArticlesBtn.addEventListener('click', () => {
+                articleDetailSection.classList.add('hidden'); // Hide detail section
+                latestArticlesSection.classList.remove('hidden'); // Show latest articles section
+                featuredArticleSection.classList.remove('hidden'); // Show featured section again
+                fetchArticles(); // Re-fetch articles to ensure main view is up-to-date
+            });
+
+            // Function to fetch articles from the backend (for main page)
             async function fetchArticles() {
                 loadingArticlesText.classList.remove('hidden');
                 articlesGrid.innerHTML = ''; // Clear previous content, show loading
+                latestArticlesSection.classList.remove('hidden'); // Ensure main section is visible
+                featuredArticleSection.classList.add('hidden'); // Hide featured if no articles initially
+                articleDetailSection.classList.add('hidden'); // Hide detail section
+
                 const fetchUrl = `${BACKEND_BASE_URL}/articles`;
-                console.log(`Attempting to fetch articles from: ${fetchUrl}`); // Log the URL being fetched
+                console.log(`Attempting to fetch articles from: ${fetchUrl}`);
 
                 try {
                     const response = await fetch(fetchUrl);
@@ -293,35 +404,19 @@
                 articleUploadForm.querySelector('button[type="submit"]').disabled = true;
                 responseMessage.className = 'mt-4 text-center text-sm font-medium'; // Reset classes
 
-                const title = document.getElementById('article-title').value;
-                const category = document.getElementById('article-category').value;
-                const content = document.getElementById('article-content').value;
-                const imageFile = document.getElementById('article-image').files[0];
-
-                let imageUrl = '';
-                // For this demo, we'll just use a placeholder for the image URL.
-                // In a real app, you'd upload the image to cloud storage and get a URL.
-                if (imageFile) {
-                    imageUrl = 'https://placehold.co/400x250/A78BFA/FFFFFF?text=Uploaded+Image';
-                }
-
-                const articleData = {
-                    title: title,
-                    category: category,
-                    content: content,
-                    imageUrl: imageUrl
-                };
+                // Create a FormData object from the form
+                const formData = new FormData(articleUploadForm);
+                // The 'image' field will automatically be included by FormData if a file is selected
 
                 const uploadUrl = `${BACKEND_BASE_URL}/upload-article`;
-                console.log(`Attempting to upload article to: ${uploadUrl}`); // Log the URL being uploaded to
+                console.log(`Attempting to upload article to: ${uploadUrl}`);
 
                 try {
                     const response = await fetch(uploadUrl, {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(articleData)
+                        // IMPORTANT: Do NOT set 'Content-Type': 'multipart/form-data' header manually.
+                        // When using FormData, the browser sets the correct header, including the boundary.
+                        body: formData // Send the FormData object directly
                     });
 
                     const result = await response.json();
