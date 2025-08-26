@@ -436,30 +436,27 @@
                 {
                     text: 'Card',
                     type: 'success',
+                    // NEW: Direct call to printReceipt
                     action: handleCardPayment
                 },
                 {
                     text: 'Cash',
                     type: 'success',
+                    // NEW: Direct call to handleCashPayment
                     action: handleCashPayment
                 }
             ]);
         }
 
         // Handles the card payment flow
+        // NEW: This function now simply calls printReceipt directly
         function handleCardPayment() {
-            showModal('Please wait...', [], false); // Show 'Please wait...' message
-            
-            // Generate a random delay between 1 and 5 seconds
-            const delay = Math.random() * 4000 + 1000; 
-            
-            setTimeout(() => {
-                printReceipt('Card');
-                hideModal();
-            }, delay);
+            hideModal();
+            printReceipt('Card');
         }
 
         // Handles the cash payment flow
+        // NEW: This function now handles input and then calls printReceipt
         function handleCashPayment() {
             const total = parseFloat(totalEl.textContent.replace('$', ''));
 
@@ -482,12 +479,8 @@
                         }
 
                         const change = tendered - total;
-                        showModal(`Change due: $${change.toFixed(2)}`, [], false);
-
-                        setTimeout(() => {
-                            printReceipt('Cash', tendered, change);
-                            hideModal();
-                        }, 1000);
+                        hideModal(); // Hide modal before printing
+                        printReceipt('Cash', tendered, change);
                     }
                 },
                 {
