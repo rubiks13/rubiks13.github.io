@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hobby Store POS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            @apply bg-gray-100;
+        }
+
+        /* Styles for the print receipt */
+        @media print {
+            body > *:not(.print-receipt-container) {
+                display: none !important;
+            }
+            
+            .print-receipt-container {
+                display: block !important;
+                /* This is the key line to ensure the receipt is 80mm wide for thermal printers */
+                width: 80mm;
+                /* Aligned to the left side */
+                margin: 0;
+                box-sizing: border-box;
+                font-family: 'Inter', sans-serif; 
+                /* NEW: Reduced base font size to fit more content vertically */
+                font-size: 9px;
+                /* Added padding to prevent content from touching the very edge */
+                padding: 5px;
+            }
+
+            .print-receipt-container h1, .print-receipt-container h2 {
+                text-align: center;
+                font-weight: 700;
+                /* NEW: Reduced heading font size */
+                font-size: 12px;
+            }
+
+            .print-receipt-container hr {
+                border-top: 1px solid black;
+                /* NEW: Reduced margin to save vertical space */
+                margin: 4px 0;
+            }
+
+            /* Reverted to a simple flexbox with all items left-aligned */
+            .print-receipt-container .item {
+                display: flex;
+                flex-direction: column;
+                /* NEW: Reduced margin to save vertical space */
+                margin-bottom: 1px;
+            }
+            
+            /* Changed from space-between to flex-start to ensure everything stays left */
+            .print-receipt-container .total-line {
+                display: flex;
+                justify-content: flex-start;
+                font-size: 1.1em;
+                /* NEW: Reduced margin to save vertical space */
+                margin-top: 3px;
+            }
+
+            .print-receipt-container .total-line .label {
+                font-weight: 600;
+                /* Added a fixed width to keep alignment for labels */
+                width: 60px; 
+            }
+            
+            .print-receipt-container .total-line .value {
+                 font-weight: 700;
+            }
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-8 md:p-12 lg:p-16 flex flex-col items-center">
+    <h1 class="text-4xl sm:text-5xl font-extrabold text-gray-800 mb-6 text-center">Hobby Store POS</h1>
+    <p class="text-sm sm:text-base text-gray-600 mb-10 text-center max-w-2xl">Enter an item price and tap a department button to add it to the cart. Discounts and tax will be calculated on the total.</p>
+
+    <div class="w-full max-w-6xl grid grid-cols-1 md:grid-cols-3 gap-6">
+
+        <!-- Left Column: Manual Entry & Departments -->
+        <div class="col-span-1 md:col-span-2 bg-white rounded-xl shadow-lg p-6 h-full flex flex-col">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Manual Entry</h2>
+            
+            <div class="mb-6">
+                <label for="price-input" class="block text-gray-700 font-medium mb-2">Item Price:</label>
+                <input type="tel" id="price-input" placeholder="0.00" class="w-full px-4 py-3 text-2xl text-center font-bold rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-200">
+            </div>
+
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Departments</h2>
+            <div id="department-buttons" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 overflow-y-auto max-h-[60vh] md:max-h-full">
+                <!-- Department buttons will be loaded here by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Right Column: Cart & Checkout -->
+        <div class="col-span-1 md:col-span-1 bg-white rounded-xl shadow-lg p-6 h-full flex flex-col">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Cart</h2>
+            <div id="cart-items" class="flex-grow overflow-y-auto mb-4 border-b border-gray-200">
+                <!-- Cart items will be loaded here by JavaScript -->
+            </div>
+
+            <!-- Totals Section -->
+            <div class="space-y-2 text-sm sm:text-base mb-6">
+                <div class="flex justify-between items-center text-gray-700">
+                    <span>Subtotal:</span>
+                    <span id="subtotal" class="font-medium">$0.00</span>
+                </div>
+                <div class="flex justify-between items-center text-gray-700">
+                    <span>Discount (<span id="discount-label">0</span>%):</span>
+                    <span id="discount-amount" class="font-medium text-red-500">-$0.00</span>
+                </div>
+                <div class="flex justify-between items-center text-gray-700">
+                    <span>Tax (<span id="tax-label">0</span>%):</span>
+                    <span id="tax-amount" class="font-medium text-green-500">+$0.00</span>
+                </div>
+                <div class="flex justify-between items-center text-xl font-bold text-gray-900 pt-2 border-t border-gray-300">
+                    <span>Total:</span>
+                    <span id="total">$0.00</span>
+                </div>
+            </div>
+
+            <!-- Actions Section -->
+            <div class="flex flex-col space-y-4">
+                <button onclick="applyDiscount()" class="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-200">
+                    Apply Discount
+                </button>
+                <button onclick="checkout()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-200">
+                    Complete Sale
+                </button>
+                <button onclick="clearCart()" class="bg-gray-400 hover:bg-gray-500 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-200">
+                    Clear Cart
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Modal for User Messages and Prompts -->
+    <div id="modal" class="fixed inset-0 bg-gray-800 bg-opacity-75 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm text-center">
+            <p id="modal-text" class="text-gray-800 text-lg mb-4"></p>
+            <div id="modal-actions" class="flex justify-center space-x-4">
+                <!-- Buttons will be added here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Use a unique ID for the app, or a default if not defined
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const localStorageKey = `hobby-pos-data-${appId}`;
+
+        // Department data with unique IDs and names
+        const departments = [
+            { id: 1, name: "Crafts", color: "bg-red-300" },
+            { id: 2, name: "Home Decor", color: "bg-blue-300" },
+            { id: 3, name: "Seasonal", color: "bg-green-300" },
+            { id: 4, name: "Frames", color: "bg-yellow-300" },
+            { id: 5, name: "Fabric", color: "bg-purple-300" },
+            { id: 6, name: "Jewelry", color: "bg-pink-300" },
+            { id: 7, name: "Party", color: "bg-indigo-300" },
+            { id: 8, name: "Paper Crafts", color: "bg-cyan-300" },
+            { id: 9, name: "Misc", color: "bg-gray-500" }
+        ];
+
+        let cart = [];
+        let discountPercent = 0;
+        const taxRate = 0.0825; // Example tax rate (8.25%)
+
+        const priceInputEl = document.getElementById('price-input');
+        const departmentButtonsEl = document.getElementById('department-buttons');
+        const cartItemsEl = document.getElementById('cart-items');
+        const subtotalEl = document.getElementById('subtotal');
+        const discountLabelEl = document.getElementById('discount-label');
+        const discountAmountEl = document.getElementById('discount-amount');
+        const taxLabelEl = document.getElementById('tax-label');
+        const taxAmountEl = document.getElementById('tax-amount');
+        const totalEl = document.getElementById('total');
+        const modalEl = document.getElementById('modal');
+        const modalTextEl = document.getElementById('modal-text');
+        const modalActionsEl = document.getElementById('modal-actions');
+
+        // Function to show a custom modal (replaces alert and confirm)
+        function showModal(text, buttons, showInput = false) {
+            modalTextEl.textContent = text;
+            modalActionsEl.innerHTML = '';
+            
+            // Add input field if requested
+            if (showInput) {
+                const input = document.createElement('input');
+                // Changed from 'number' to 'text' for more reliable input parsing
+                input.type = 'text'; 
+                input.className = 'w-full px-4 py-2 mb-4 text-center rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500';
+                modalTextEl.parentNode.insertBefore(input, modalTextEl.nextSibling);
+                input.focus();
+            }
+
+            buttons.forEach(button => {
+                const btn = document.createElement('button');
+                btn.textContent = button.text;
+                btn.className = 'px-4 py-2 rounded-lg font-semibold transition duration-200';
+                if (button.type === 'primary') {
+                    btn.className += ' bg-indigo-500 hover:bg-indigo-600 text-white';
+                } else if (button.type === 'secondary') {
+                    btn.className += ' bg-gray-300 hover:bg-gray-400 text-gray-800';
+                } else if (button.type === 'success') {
+                    btn.className += ' bg-green-500 hover:bg-green-600 text-white';
+                }
+                btn.onclick = () => {
+                    button.action();
+                    // Do not hide modal here to allow for chained actions
+                };
+                modalActionsEl.appendChild(btn);
+            });
+            modalEl.classList.remove('hidden');
+            modalEl.classList.add('flex');
+        }
+
+        // Function to hide the custom modal
+        function hideModal() {
+            modalEl.classList.add('hidden');
+            modalEl.classList.remove('flex');
+            // Remove any dynamically added input fields
+            const input = modalEl.querySelector('input');
+            if (input) {
+                input.parentNode.removeChild(input);
+            }
+        }
+
+        // Load data from local storage on startup
+        function loadData() {
+            try {
+                const savedData = JSON.parse(localStorage.getItem(localStorageKey));
+                if (savedData) {
+                    cart = savedData.cart || [];
+                    discountPercent = savedData.discountPercent || 0;
+                }
+            } catch (e) {
+                console.error("Could not load data from local storage:", e);
+                // Fallback to initial state
+                cart = [];
+                discountPercent = 0;
+            }
+            render();
+            // Automatically focus the price input field on load
+            priceInputEl.focus();
+        }
+
+        // Save data to local storage
+        function saveData() {
+            try {
+                const dataToSave = {
+                    cart: cart,
+                    discountPercent: discountPercent
+                };
+                localStorage.setItem(localStorageKey, JSON.stringify(dataToSave));
+            } catch (e) {
+                console.error("Could not save data to local storage:", e);
+            }
+        }
+
+        // Renders all elements (departments, cart, totals)
+        function render() {
+            renderDepartments();
+            renderCart();
+            calculateTotals();
+        }
+
+        // Renders the department buttons
+        function renderDepartments() {
+            departmentButtonsEl.innerHTML = '';
+            departments.forEach(dept => {
+                const deptBtn = document.createElement('button');
+                deptBtn.className = `p-4 rounded-xl text-center font-bold text-white shadow-md transition duration-200 hover:opacity-80 ${dept.color}`;
+                deptBtn.textContent = dept.name;
+                deptBtn.onclick = () => addManualItemToCart(dept.name);
+                departmentButtonsEl.appendChild(deptBtn);
+            });
+        }
+        
+        // Corrected function to format the price input
+        function formatPriceInput() {
+            // Get the current value and remove all non-digit characters
+            let value = priceInputEl.value.replace(/[^0-9]/g, '');
+
+            // If the value is empty, do nothing and let the placeholder show
+            if (value === '') {
+                return;
+            }
+
+            // Pad the value with leading zeros only if it is less than 3 digits long.
+            while (value.length < 3) {
+                value = '0' + value;
+            }
+
+            // Insert the decimal point two characters from the end
+            const dollars = value.substring(0, value.length - 2);
+            const cents = value.substring(value.length - 2);
+            
+            // Update the input field's visual value
+            priceInputEl.value = `${parseInt(dollars)}.${cents}`;
+        }
+        
+        // Event listener to format the price as the user types
+        priceInputEl.addEventListener('input', formatPriceInput);
+        
+        // Adds a manually entered item to the cart
+        function addManualItemToCart(departmentName) {
+            let priceString = priceInputEl.value;
+            let price = parseFloat(priceString);
+
+            // If the price is not a valid number, or is less than or equal to zero
+            if (isNaN(price) || price <= 0) {
+                // If it's the Misc button, default the price to $1.00
+                if (departmentName === 'Misc') {
+                    price = 1.00;
+                } else {
+                    showModal('Please enter a valid price greater than $0.', [{ text: 'OK', type: 'secondary', action: () => { hideModal(); } }]);
+                    return;
+                }
+            }
+            // price value is already correct because of the new input listener
+
+            const existingItem = cart.find(item => item.name === departmentName);
+            if (existingItem) {
+                // If the same department is added again, we add the new price to the total for that department
+                existingItem.price += price;
+                existingItem.quantity++;
+            } else {
+                cart.push({ id: Date.now(), name: departmentName, price: price, quantity: 1 });
+            }
+            
+            // Clear the input field for the next item and refocus it
+            priceInputEl.value = '';
+            priceInputEl.focus();
+
+            saveData();
+            renderCart();
+            calculateTotals();
+        }
+
+        // Renders the cart items
+        function renderCart() {
+            cartItemsEl.innerHTML = '';
+            if (cart.length === 0) {
+                cartItemsEl.innerHTML = '<p class="text-center text-gray-500 italic p-4">Cart is empty.</p>';
+            } else {
+                cart.forEach((item, index) => {
+                    const cartItemEl = document.createElement('div');
+                    cartItemEl.className = "flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0";
+                    cartItemEl.innerHTML = `
+                        <div class="flex-1">
+                            <p class="font-medium text-gray-800">${item.name}</p>
+                            <p class="text-xs text-gray-500">Qty: ${item.quantity}</p>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="font-semibold text-gray-700">$${item.price.toFixed(2)}</span>
+                            <button onclick="removeFromCart(${index})" class="text-red-500 hover:text-red-600 font-semibold transition duration-200 px-2 py-1 rounded-lg">
+                                Remove
+                            </button>
+                        </div>
+                    `;
+                    cartItemsEl.appendChild(cartItemEl);
+                });
+            }
+        }
+
+        // Removes an item from the cart
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            saveData();
+            renderCart();
+            calculateTotals();
+        }
+
+        // Calculates and updates the totals displayed on the page
+        function calculateTotals() {
+            const subtotal = cart.reduce((sum, item) => sum + item.price, 0);
+            const discountAmount = subtotal * (discountPercent / 100);
+            const subtotalAfterDiscount = subtotal - discountAmount;
+            const taxAmount = subtotalAfterDiscount * taxRate;
+            const total = subtotalAfterDiscount + taxAmount;
+
+            subtotalEl.textContent = `$${subtotal.toFixed(2)}`;
+            discountLabelEl.textContent = discountPercent;
+            discountAmountEl.textContent = `-$${discountAmount.toFixed(2)}`;
+            taxLabelEl.textContent = (taxRate * 100).toFixed(2);
+            taxAmountEl.textContent = `+$${taxAmount.toFixed(2)}`;
+            totalEl.textContent = `$${total.toFixed(2)}`;
+        }
+
+        // Prompts the user to enter a discount percentage
+        function applyDiscount() {
+            showModal('Enter discount percentage:', [
+                {
+                    text: 'Apply',
+                    type: 'primary',
+                    action: () => {
+                        const input = modalEl.querySelector('input');
+                        if (!input) {
+                            hideModal();
+                            return;
+                        }
+                        const value = parseFloat(input.value);
+                        if (!isNaN(value) && value >= 0 && value <= 100) {
+                            discountPercent = value;
+                            saveData();
+                            calculateTotals();
+                            showModal(`Discount of ${value}% applied!`, [{ text: 'OK', type: 'primary', action: () => { hideModal(); } }]);
+                        } else {
+                            showModal('Please enter a valid number between 0 and 100.', [{ text: 'OK', type: 'secondary', action: () => { hideModal(); } }]);
+                        }
+                    }
+                },
+                {
+                    text: 'Cancel',
+                    type: 'secondary',
+                    action: () => { hideModal(); }
+                }
+            ], true);
+        }
+
+        // Handles the checkout process by asking for payment type
+        function checkout() {
+            if (cart.length === 0) {
+                showModal('The cart is empty!', [{ text: 'OK', type: 'primary', action: () => { hideModal(); } }]);
+                return;
+            }
+
+            showModal('How is the customer paying?', [
+                {
+                    text: 'Card',
+                    type: 'success',
+                    action: handleCardPayment
+                },
+                {
+                    text: 'Cash',
+                    type: 'success',
+                    action: handleCashPayment
+                }
+            ]);
+        }
+
+        // Handles the card payment flow
+        function handleCardPayment() {
+            showModal('Please wait...', [], false); // Show 'Please wait...' message
+            
+            // Generate a random delay between 1 and 5 seconds
+            const delay = Math.random() * 4000 + 1000; 
+            
+            setTimeout(() => {
+                printReceipt('Card');
+                hideModal();
+            }, delay);
+        }
+
+        // Handles the cash payment flow
+        function handleCashPayment() {
+            const total = parseFloat(totalEl.textContent.replace('$', ''));
+
+            showModal('Enter amount tendered:', [
+                {
+                    text: 'Enter',
+                    type: 'primary',
+                    action: () => {
+                        const input = modalEl.querySelector('input');
+                        if (!input) {
+                            hideModal();
+                            return;
+                        }
+
+                        const tendered = parseFloat(input.value);
+                        
+                        if (isNaN(tendered) || tendered < total) {
+                            showModal('Invalid amount. Please try again.', [{ text: 'OK', type: 'secondary', action: () => { hideModal(); } }]);
+                            return;
+                        }
+
+                        const change = tendered - total;
+                        showModal(`Change due: $${change.toFixed(2)}`, [], false);
+
+                        setTimeout(() => {
+                            printReceipt('Cash', tendered, change);
+                            hideModal();
+                        }, 1000);
+                    }
+                },
+                {
+                    text: 'Cancel',
+                    type: 'secondary',
+                    action: () => { hideModal(); }
+                }
+            ], true);
+        }
+
+        // Generates and prints the receipt
+        function printReceipt(paymentMethod, tendered = 0, change = 0) {
+            const date = new Date().toLocaleString();
+            let receiptContent = `
+                <div class="print-receipt-container" style="font-family: 'Inter', sans-serif; font-size: 10px; color: #000;">
+                    <div style="text-align: center; margin-bottom: 10px;">
+                        <span style="font-size: 1.5em; font-weight: bold;">Hobby Store</span>
+                    </div>
+                    <div style="text-align: center; margin-bottom: 15px;">
+                        <span style="font-size: 0.8em;">Receipt</span>
+                        <br>
+                        <span style="font-size: 0.7em;">${date}</span>
+                    </div>
+                    
+                    <hr style="border-top: 1px solid black; margin-bottom: 10px;">
+                    
+                    <div class="items" style="margin-bottom: 10px;">
+            `;
+            
+            // Add cart items to the receipt content, left-aligned
+            cart.forEach(item => {
+                receiptContent += `
+                    <div>
+                        <span>${item.name}</span>
+                        <span>$${item.price.toFixed(2)}</span>
+                    </div>
+                    <div style="font-size: 0.8em; color: #555;">
+                        <span>Qty: ${item.quantity}</span>
+                    </div>
+                `;
+            });
+            
+            receiptContent += `
+                        </div>
+                        
+                        <hr style="border-top: 1px dashed #bbb; margin-top: 10px; margin-bottom: 10px;">
+
+                        <div class="totals-section" style="margin-bottom: 10px;">
+                            <div class="total-line">
+                                <span class="label">Subtotal:</span>
+                                <span class="value">$${subtotalEl.textContent.replace('$', '')}</span>
+                            </div>
+                            <div class="total-line">
+                                <span class="label">Discount:</span>
+                                <span class="value">${discountAmountEl.textContent}</span>
+                            </div>
+                            <div class="total-line">
+                                <span class="label">Tax:</span>
+                                <span class="value">${taxAmountEl.textContent}</span>
+                            </div>
+                            
+                            <hr style="border-top: 2px solid black; margin-top: 10px; margin-bottom: 10px;">
+
+                            <div class="total-line final">
+                                <span class="label">TOTAL:</span>
+                                <span class="value">${totalEl.textContent}</span>
+                            </div>
+                        </div>
+                        
+                        <hr style="border-top: 1px solid black; margin-top: 10px; margin-bottom: 10px;">
+                        
+                        <div style="text-align: center; font-size: 0.9em;">
+                            <p>Payment: ${paymentMethod}</p>
+            `;
+            
+            // Add cash specific information if applicable
+            if (paymentMethod === 'Cash') {
+                receiptContent += `
+                            <p>Tendered: $${tendered.toFixed(2)}</p>
+                            <p>Change: $${change.toFixed(2)}</p>
+                `;
+            }
+            
+            receiptContent += `
+                            <p style="margin-top: 15px; font-weight: bold;">Thank you for shopping with us!</p>
+                            <p style="margin-top: 5px;">Return Policy: All sales are final.</p>
+                            <p style="margin-top: 5px;">Visit us at: www.hobbystore.com</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Open a new window for printing
+            const printWindow = window.open('', '_blank');
+            if (printWindow) {
+                printWindow.document.write('<html><head><title>Receipt</title></head><body>');
+                printWindow.document.write('<style>');
+                // Copy the print styles directly into the new window's head
+                const printStyles = document.querySelector('style[media="print"]');
+                if (printStyles) {
+                    printWindow.document.write(printStyles.innerHTML);
+                }
+                printWindow.document.write('</style>');
+                printWindow.document.write(receiptContent);
+                printWindow.document.write('</body></html>');
+                printWindow.document.close();
+                printWindow.print();
+                printWindow.close();
+            } else {
+                console.error("Could not open print window. Please check browser pop-up blocker settings.");
+                showModal('Could not open the print window. Please check your browser\'s pop-up blocker settings.', [{ text: 'OK', type: 'secondary', action: () => { hideModal(); } }]);
+            }
+
+            // Clear the cart and reset the POS for the next sale
+            resetPOS();
+        }
+
+        // NEW: Function to reset the entire POS system after a transaction
+        function resetPOS() {
+            clearCart();
+            priceInputEl.value = '';
+            priceInputEl.focus();
+        }
+
+        // Clears the cart and resets totals
+        function clearCart(silent = false) {
+            cart = [];
+            discountPercent = 0;
+            saveData();
+            renderCart();
+            calculateTotals();
+            if (!silent) {
+                showModal('Cart has been cleared.', [{ text: 'OK', type: 'primary', action: () => { hideModal(); } }]);
+            }
+        }
+
+        // Initialize the app
+        window.onload = loadData;
+    </script>
+</body>
+</html>
