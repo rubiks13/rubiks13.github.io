@@ -436,27 +436,22 @@
                 {
                     text: 'Card',
                     type: 'success',
-                    // NEW: Direct call to printReceipt
-                    action: handleCardPayment
+                    action: () => {
+                        hideModal(); // Hide modal immediately
+                        printReceipt('Card'); // Call print function directly
+                    }
                 },
                 {
                     text: 'Cash',
                     type: 'success',
-                    // NEW: Direct call to handleCashPayment
-                    action: handleCashPayment
+                    action: () => {
+                        handleCashPayment();
+                    }
                 }
             ]);
         }
-
-        // Handles the card payment flow
-        // NEW: This function now simply calls printReceipt directly
-        function handleCardPayment() {
-            hideModal();
-            printReceipt('Card');
-        }
-
-        // Handles the cash payment flow
-        // NEW: This function now handles input and then calls printReceipt
+        
+        // Handles the cash payment flow by showing a new modal for tendered amount
         function handleCashPayment() {
             const total = parseFloat(totalEl.textContent.replace('$', ''));
 
@@ -588,19 +583,23 @@
                 printWindow.document.write('</body></html>');
                 printWindow.document.close();
                 printWindow.print();
-                printWindow.close();
+                // We clear the cart after a short delay to allow the print dialog to show up
+                setTimeout(() => {
+                    printWindow.close();
+                    resetPOS();
+                }, 1000); 
             } else {
                 console.error("Could not open print window. Please check browser pop-up blocker settings.");
                 showModal('Could not open the print window. Please check your browser\'s pop-up blocker settings.', [{ text: 'OK', type: 'secondary', action: () => { hideModal(); } }]);
             }
 
-            // Clear the cart and reset the POS for the next sale
-            resetPOS();
+            // Show a message to the user that the receipt should be printing
+            showModal('Your receipt is ready to print. Please look for the print dialog.', [{ text: 'OK', type: 'success', action: () => { hideModal(); } }]);
         }
 
         // NEW: Function to reset the entire POS system after a transaction
         function resetPOS() {
-            clearCart();
+            clearCart(true); // Call clear cart silently so it doesn't show a new modal
             priceInputEl.value = '';
             priceInputEl.focus();
         }
