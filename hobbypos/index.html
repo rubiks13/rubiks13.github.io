@@ -583,10 +583,10 @@
                 printWindow.document.write('</body></html>');
                 printWindow.document.close();
                 printWindow.print();
-                // We clear the cart after a short delay to allow the print dialog to show up
+                // We clear the cart and reload the page after a short delay to allow the print dialog to show up
                 setTimeout(() => {
                     printWindow.close();
-                    resetPOS();
+                    window.location.reload(); // Reloads the entire page
                 }, 1000); 
             } else {
                 console.error("Could not open print window. Please check browser pop-up blocker settings.");
