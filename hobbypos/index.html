@@ -592,9 +592,6 @@
                 console.error("Could not open print window. Please check browser pop-up blocker settings.");
                 showModal('Could not open the print window. Please check your browser\'s pop-up blocker settings.', [{ text: 'OK', type: 'secondary', action: () => { hideModal(); } }]);
             }
-
-            // Show a message to the user that the receipt should be printing
-            showModal('Your receipt is ready to print. Please look for the print dialog.', [{ text: 'OK', type: 'success', action: () => { hideModal(); } }]);
         }
 
         // NEW: Function to reset the entire POS system after a transaction
