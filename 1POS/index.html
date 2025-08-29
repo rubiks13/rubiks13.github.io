@@ -3,8 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-     <meta name="theme-color" content="#1E40AF" />
-    <link rel="manifest" href="manifest.json" />
     <title>Advanced POS System</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -380,6 +378,12 @@
                 margin-left: auto;
                 margin-right: auto;
             }
+            .receipt-loyalty-message {
+                text-align: center;
+                font-size: 1.1em;
+                font-weight: bold;
+                color: #000 !important; /* Force black for print */
+            }
             .receipt-footer {
                 text-align: center;
                 font-size: 1em;
@@ -387,18 +391,6 @@
             }
         }
     </style>
-    <script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js').then((registration) => {
-        console.log('Service Worker registered with scope:', registration.scope);
-      }).catch((error) => {
-        console.log('Service Worker registration failed:', error);
-      });
-    });
-  }
-</script>
-
 </head>
 <body class="flex flex-col min-h-screen">
     <header class="bg-blue-800 text-white p-4 shadow-md">
@@ -413,6 +405,7 @@
             <button class="tab-button" data-tab="receipts">Receipts History</button>
             <button class="tab-button" data-tab="reports">Reports</button>
             <button class="tab-button" data-tab="settings">Settings</button>
+            <button class="tab-button" data-tab="item-search">Item Search</button> <!-- NEW TAB BUTTON -->
         </div>
 
         <!-- Tab Content Containers -->
@@ -529,6 +522,22 @@
                             <input type="number" id="new-product-price" step="0.01" required placeholder="e.g., 1200.00"
                                    class="mt-1 block w-full p-2 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 placeholder-gray-400">
                         </div>
+                        <!-- NEW: Aisle, Bay, Location Inputs -->
+                        <div>
+                            <label for="new-product-aisle" class="block text-sm font-medium text-gray-300">Aisle</label>
+                            <input type="text" id="new-product-aisle" placeholder="e.g., A1"
+                                   class="mt-1 block w-full p-2 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 placeholder-gray-400">
+                        </div>
+                        <div>
+                            <label for="new-product-bay" class="block text-sm font-medium text-gray-300">Bay</label>
+                            <input type="text" id="new-product-bay" placeholder="e.g., B3"
+                                   class="mt-1 block w-full p-2 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 placeholder-gray-400">
+                        </div>
+                        <div>
+                            <label for="new-product-loc" class="block text-sm font-medium text-gray-300">Location</label>
+                            <input type="text" id="new-product-loc" placeholder="e.g., Shelf 2"
+                                   class="mt-1 block w-full p-2 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 placeholder-gray-400">
+                        </div>
                     </div>
                     <button id="add-product-button"
                             class="w-full mt-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">
@@ -546,6 +555,9 @@
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Barcode</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Name</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Price</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Aisle</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Bay</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Loc</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
@@ -651,6 +663,29 @@
                 <input type="text" id="receipt-search-input" placeholder="e.g., TXN-123, 2025-06-17"
                        class="w-full p-3 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400">
             </div>
+
+            <!-- New: Scan Transaction for Points Section -->
+            <div class="mb-6 pt-4 border-t border-gray-700">
+                <h3 class="text-xl font-medium mb-3 text-gray-200">Assign Points from Past Transaction</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="transaction-id-for-points" class="block text-sm font-medium text-gray-300">Transaction ID</label>
+                        <input type="text" id="transaction-id-for-points" placeholder="e.g., TXN-123456789"
+                               class="mt-1 block w-full p-2 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-400">
+                    </div>
+                    <div>
+                        <label for="customer-phone-for-points" class="block text-sm font-medium text-gray-300">Customer Phone Number</label>
+                        <input type="tel" id="customer-phone-for-points" placeholder="(XXX)-XXX-XXXX" maxlength="14"
+                               class="mt-1 block w-full p-2 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-400">
+                    </div>
+                </div>
+                <button id="assign-points-button"
+                        class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">
+                    Assign Points
+                </button>
+            </div>
+
+
             <div id="receipts-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-y-auto max-h-screen">
                 <!-- Receipts will be dynamically loaded here -->
                 <p id="no-receipts-message" class="col-span-full text-center text-gray-400">No receipts yet. Complete a sale to see receipts here.</p>
@@ -750,6 +785,23 @@
                 </div>
             </div>
 
+            <!-- Receipt Coupon Recommendations Settings (NEW) -->
+            <div class="mb-6 pb-4 border-t pt-4 border-gray-700">
+                <h3 class="text-xl font-medium mb-3 text-gray-200">Receipt Coupon Recommendations</h3>
+                <div class="flex items-center mb-4">
+                    <input type="checkbox" id="display-recommended-coupons-toggle" class="h-5 w-5 text-blue-600 rounded border-gray-600 focus:ring-blue-500 bg-gray-700">
+                    <label for="display-recommended-coupons-toggle" class="ml-2 block text-sm font-medium text-gray-300 cursor-pointer">
+                        Show Recommended Coupons on Receipt
+                    </label>
+                </div>
+                <div id="num-recommended-coupons-group" class="mb-4">
+                    <label for="num-recommended-coupons-input" class="block text-sm font-medium text-gray-300 mb-1">Number of Recommended Coupons</label>
+                    <input type="number" id="num-recommended-coupons-input" min="0" max="10" value="5"
+                           class="mt-1 block w-full p-2 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-yellow-500 placeholder-gray-400">
+                    <p class="text-xs text-gray-400 mt-1">Set to 0 to hide, max 10.</p>
+                </div>
+            </div>
+
             <!-- Loyalty Program Settings (NEW) -->
             <div class="mb-6 pb-4 border-t pt-4 border-gray-700">
                 <h3 class="text-xl font-medium mb-3 text-gray-200">Loyalty Program Settings</h3>
@@ -814,6 +866,21 @@
             </button>
         </section>
 
+        <!-- NEW: Item Search Tab -->
+        <section id="item-search-tab-content" class="tab-content hidden flex-col flex-1 rounded-xl shadow-lg border border-orange-600">
+            <h2 class="text-2xl font-semibold mb-4 text-gray-100">Item Search</h2>
+
+            <div class="mb-4">
+                <label for="item-search-barcode-input" class="block text-sm font-medium text-gray-300 mb-1">Enter Item Barcode</label>
+                <input type="text" id="item-search-barcode-input" placeholder="Enter barcode and press Enter"
+                       class="w-full p-3 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500 placeholder-gray-400" autofocus>
+            </div>
+
+            <div id="item-search-results" class="flex-1 p-4 bg-gray-700 rounded-lg border border-gray-600">
+                <p class="text-gray-400 text-center">Enter a barcode above to search for an item.</p>
+            </div>
+        </section>
+
     </main>
 
     <!-- Checkout Overlay/Panel -->
@@ -828,6 +895,9 @@
 
             <!-- Step 2: Loyalty Step -->
             <div id="loyalty-step" class="checkout-step">
+                <button id="apply-rewards-button" class="absolute top-4 right-4 bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out text-sm">
+                    Apply Rewards
+                </button>
                 <h3>Enter Customer Phone Number:</h3>
                 <input type="tel" id="customer-phone-input" placeholder="(XXX)-XXX-XXXX" maxlength="14"
                        class="w-64 p-3 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400 text-center">
@@ -976,6 +1046,11 @@
                     <li>Press '<kbd>Enter</kbd>' or '<kbd>Space</kbd>' on focused 'Upload Logo', 'Add Loyalty Deal', or 'Save All Settings' buttons.</li>
                 </ul>
 
+                <p><strong>Item Search:</strong></p>
+                <ul class="list-disc list-inside ml-4">
+                    <li><span class="font-semibold">Barcode Input:</span> Type barcode, then press '<kbd>Enter</kbd>' to search.</li>
+                </ul>
+
                 <p class="mt-4 text-center"><strong>Special Hotkey:</strong></p>
                 <p class="text-center text-xl font-bold text-blue-400">Press '<kbd>Ctrl</kbd> + <kbd>I</kbd>' to show this guide.</p>
             </div>
@@ -1060,7 +1135,7 @@
         let currentCustomer = null; // Stores the customer object if logged in via phone number
         const TAX_RATE = 0.08; // 8% tax rate
         const BAG_FEE_PER_BAG = 0.10; // $0.10 per bag
-        const NUM_RECOMMENDED_COUPONS_TO_DISPLAY = 5; // Exactly 5 recommended coupons
+        // const NUM_RECOMMENDED_COUPONS_TO_DISPLAY = 5; // This will now be dynamic from settings
         let bagsUsed = 0; // Global variable to store bag count
 
         let storeSettings = {
@@ -1068,9 +1143,11 @@
             storeAddress: '123 Main St, Anytown, USA',
             storePhone: '(123) 456-7890',
             storeWebsite: 'www.yourstore.com',
-            logoUrl: 'https://placehold.com/150x50/1e40af/ffffff?text=Your+Logo', // Default placeholder logo
+            logoUrl: 'https://placehold.co/150x50/1e40af/ffffff?text=Your+Logo', // Default placeholder logo
             receiptFooterMessage: 'Thank you for your purchase! Please come again!',
-            loyaltyOffers: [] // New array for loyalty redemption offers
+            loyaltyOffers: [], // New array for loyalty redemption offers
+            displayRecommendedCoupons: true, // NEW: default to true
+            numRecommendedCoupons: 5 // NEW: default to 5
         };
 
         // Variables for return functionality
@@ -1114,6 +1191,9 @@
         let newProductBarcodeInput;
         let newProductNameInput;
         let newProductPriceInput;
+        let newProductAisleInput; // NEW
+        let newProductBayInput;   // NEW
+        let newProductLocInput;   // NEW
         let addProductButton;
         let productListBody;
 
@@ -1146,6 +1226,10 @@
         let printHistoricalReceiptBtn;
         let returnItemsButton;
 
+        let transactionIdForPointsInput; // New
+        let customerPhoneForPointsInput; // New
+        let assignPointsButton; // New
+
         let reportLastHourSpan;
         let reportLast24HoursSpan;
         let reportLastMonthSpan;
@@ -1161,6 +1245,10 @@
         let uploadLogoButton;
         let currentLogoPreview;
         let saveSettingsButton;
+
+        let displayRecommendedCouponsToggle; // NEW
+        let numRecommendedCouponsInput;      // NEW
+        let numRecommendedCouponsGroup;     // NEW
 
         let receiptPrintArea;
         let messageBox;
@@ -1182,6 +1270,7 @@
         let loyaltyContinueButton;
         let loyaltySignupButton;
         let loyaltySkipButton;
+        let applyRewardsButton; // New
 
         let signUpStep;
         let signupPhoneInput;
@@ -1214,6 +1303,9 @@
         let totalRefundAmountSpan;
         let processReturnButton;
         let cancelReturnButton;
+
+        let itemSearchBarcodeInput; // NEW
+        let itemSearchResultsDiv;   // NEW
 
         let lastFocusedElement = null; // To store the element that had focus before a modal opened
 
@@ -1277,7 +1369,12 @@
                         ...receipt,
                         recommendedDiscounts: receipt.recommendedDiscounts || [],
                         paymentMethod: receipt.paymentMethod || 'Unknown',
-                        numberOfBags: receipt.numberOfBags || 0
+                        numberOfBags: receipt.numberOfBags || 0,
+                        // New fields for loyalty tracking on receipts
+                        pointsEarnedThisTransaction: receipt.pointsEarnedThisTransaction || 0,
+                        customerPhoneAtTimeOfSale: receipt.customerPhoneAtTimeOfSale !== undefined ? receipt.customerPhoneAtTimeOfSale : null, // Ensure null if not set
+                        // Ensure pointsAssignedToCustomer is boolean, default to true if customerPhoneAtTimeOfSale exists
+                        pointsAssignedToCustomer: receipt.pointsAssignedToCustomer !== undefined ? receipt.pointsAssignedToCustomer : (receipt.customerPhoneAtTimeOfSale !== null && receipt.customerPhoneAtTimeOfSale !== '')
                     }));
                 }
 
@@ -1293,6 +1390,9 @@
                         value: offer.value,
                         pointsRequired: offer.pointsRequired
                     })) : [];
+                    // NEW: Load recommended coupon settings with fallbacks
+                    storeSettings.displayRecommendedCoupons = parsedSettings.displayRecommendedCoupons !== undefined ? parsedSettings.displayRecommendedCoupons : true;
+                    storeSettings.numRecommendedCoupons = parsedSettings.numRecommendedCoupons !== undefined ? parsedSettings.numRecommendedCoupons : 5;
                 }
             } catch (e) {
                 console.error("Error loading from local storage:", e);
@@ -1306,7 +1406,9 @@
                     storePhone: '(123) 456-7890', storeWebsite: 'www.yourstore.com',
                     logoUrl: 'https://placehold.co/150x50/1e40af/ffffff?text=Your+Logo',
                     receiptFooterMessage: 'Thank you for your purchase! Please come again!',
-                    loyaltyOffers: []
+                    loyaltyOffers: [],
+                    displayRecommendedCoupons: true, // Reset to default
+                    numRecommendedCoupons: 5 // Reset to default
                 };
                 addSampleProducts();
                 addSampleCoupons();
@@ -1404,6 +1506,8 @@
                 } else if (tabId === 'settings') {
                     loadSettingsIntoForm(); // Ensure settings form is loaded
                     storeNameInput.focus();
+                } else if (tabId === 'item-search') { // NEW: Focus for Item Search tab
+                    itemSearchBarcodeInput.focus();
                 }
             }
         }
@@ -1485,12 +1589,12 @@
          * Adds initial sample products to the system.
          */
         function addSampleProducts() {
-            products.push({ barcode: '1000000000', name: 'Laptop', price: 1200.00 });
-            products.push({ barcode: '1000000001', name: 'Mouse', price: 25.00 });
-            products.push({ barcode: '1000000002', name: 'Keyboard', price: 75.00 });
-            products.push({ barcode: '1000000003', name: 'Monitor', price: 300.00 });
-            products.push({ barcode: '1000000004', name: 'Coat', price: 12.99 }); // Added for return test case
-            products.push({ barcode: '1000000005', name: 'Shirt', price: 10.00 }); // Added for single item return test case
+            products.push({ barcode: '1000000000', name: 'Laptop', price: 1200.00, aisle: 'A1', bay: 'B1', loc: 'Shelf 1' });
+            products.push({ barcode: '1000000001', name: 'Mouse', price: 25.00, aisle: 'A1', bay: 'B2', loc: 'Shelf 2' });
+            products.push({ barcode: '1000000002', name: 'Keyboard', price: 75.00, aisle: 'A2', bay: 'B1', loc: 'Shelf 1' });
+            products.push({ barcode: '1000000003', name: 'Monitor', price: 300.00, aisle: 'A2', bay: 'B2', loc: 'Shelf 2' });
+            products.push({ barcode: '1000000004', name: 'Coat', price: 12.99, aisle: 'C1', bay: 'B1', loc: 'Rack 1' });
+            products.push({ barcode: '1000000005', name: 'Shirt', price: 10.00, aisle: 'C1', bay: 'B2', loc: 'Rack 2' });
         }
 
         /**
@@ -1499,14 +1603,17 @@
          * @param {string} barcode - The unique barcode for the product.
          * @param {string} name - The name of the product.
          * @param {number} price - The price of the product.
+         * @param {string} aisle - The aisle location.
+         * @param {string} bay - The bay location.
+         * @param {string} loc - The specific location (e.g., shelf, rack).
          * @returns {boolean} True if product was added, false if barcode exists.
          */
-        function addProduct(barcode, name, price) {
+        function addProduct(barcode, name, price, aisle, bay, loc) {
             if (products.some(p => p.barcode === barcode)) {
                 showMessageBox('Error: Product with this barcode already exists!');
                 return false;
             }
-            products.push({ barcode, name, price: parseFloat(price.toFixed(2)) });
+            products.push({ barcode, name, price: parseFloat(price.toFixed(2)), aisle, bay, loc });
             renderProductList();
             saveData(); // Save changes to local storage
             return true;
@@ -1523,6 +1630,9 @@
                 row.insertCell().textContent = product.barcode;
                 row.insertCell().textContent = product.name;
                 row.insertCell().textContent = `$${product.price.toFixed(2)}`;
+                row.insertCell().textContent = product.aisle || 'N/A'; // Display new fields
+                row.insertCell().textContent = product.bay || 'N/A';
+                row.insertCell().textContent = product.loc || 'N/A';
                 const actionsCell = row.insertCell();
                 actionsCell.className = 'flex gap-2 py-2';
 
@@ -1871,6 +1981,7 @@
                 customerPhoneInput.focus();
                 customerInfoDisplay.textContent = 'Enter phone number to check loyalty.';
                 loyaltyDealsDisplayArea.classList.add('hidden'); // Hide deals area initially
+                applyRewardsButton.classList.remove('hidden'); // Show apply rewards button
             } else if (stepToShow === signUpStep) {
                 // Pre-fill signup phone if a value was already entered in loyaltyStep
                 signupPhoneInput.value = customerPhoneInput.value;
@@ -1934,9 +2045,12 @@
          * @returns {string} HTML string of the receipt.
          */
         function generateReceiptHtml(receiptData, forPrint = true) {
-            const { storeName, storeAddress, storePhone, storeWebsite, logoUrl, receiptFooterMessage } = receiptData.storeInfo;
+            const { storeName, storeAddress, storePhone, storeWebsite, logoUrl, receiptFooterMessage, displayRecommendedCoupons } = receiptData.storeInfo;
             const recommendedDiscounts = receiptData.recommendedDiscounts; // Use the stored recommended discounts
             const bagFeeTotal = receiptData.numberOfBags * BAG_FEE_PER_BAG;
+
+            console.log("Generating receipt HTML. Points earned:", receiptData.pointsEarnedThisTransaction);
+            console.log("Customer phone at sale:", receiptData.customerPhoneAtTimeOfSale);
 
             let receiptHtml = `
                 <div class="receipt-container ${forPrint ? '' : 'bg-gray-800 text-gray-100 p-4 rounded-lg shadow-lg'}">
@@ -2024,16 +2138,33 @@
 
                     <div class="dashed-line"></div>
 
-                    <div class="receipt-barcode text-center mb-6">
-                        <p class="font-bold">Transaction Barcode:</p>
-                        <svg id="receipt-transaction-barcode" class="w-full"></svg>
-                    </div>
-
-                    <div class="dashed-line"></div>
-
                     `;
 
-            if (recommendedDiscounts && recommendedDiscounts.length > 0) {
+            // New: Loyalty Message on Receipt
+            if (receiptData.pointsEarnedThisTransaction > 0) { // Only show if points were earned
+                receiptHtml += `
+                    <div class="receipt-loyalty-message text-center mb-6">
+                        ${receiptData.customerPhoneAtTimeOfSale && receiptData.customerPhoneAtTimeOfSale !== '' ?
+                            `<p class="font-bold text-blue-800">You earned ${receiptData.pointsEarnedThisTransaction} points!</p>` :
+                            `<p class="font-bold text-blue-800">Sign up today and get ${receiptData.pointsEarnedThisTransaction} points on this purchase!</p>`
+                        }
+                    </div>
+                    <div class="dashed-line"></div>
+                `;
+            }
+
+            // NEW: Transaction Barcode at the bottom
+            receiptHtml += `
+                <div class="receipt-barcode text-center mb-6">
+                    <p class="font-bold">Transaction Barcode:</p>
+                    <svg id="txn-barcode-svg" class="w-full"></svg>
+                </div>
+                <div class="dashed-line"></div>
+            `;
+
+
+            // NEW: Conditional display of recommended discounts based on settings
+            if (displayRecommendedCoupons && recommendedDiscounts && recommendedDiscounts.length > 0) {
                 receiptHtml += `
                     <div class="receipt-recommended-discounts mb-6">
                         <h4>Recommended Discounts For You!</h4>
@@ -2065,129 +2196,129 @@
          * @param {string} paymentMethod - The method of payment (Cash or Card).
          * @param {boolean} printReceipt - Whether to print the receipt or not.
          */
-     function finalizeSale(paymentMethod, printReceipt) {
-    console.log("finalizeSale started.");
-    if (cart.length === 0) {
-        console.error("Attempted to finalize sale for empty cart. Exiting finalizeSale.");
-        return;
-    }
-
-    const transactionId = `TXN-${generateRandomBarcodeNumber()}`;
-    const timestamp = new Date().toISOString();
-
-    // Calculate loyalty points earned and update customer
-    const pointsEarned = Math.floor(currentTransaction.totalAfterCouponDiscount / 10) * 5;
-    currentTransaction.loyaltyPointsEarned = pointsEarned;
-    if (currentCustomer) {
-        currentCustomer.points = (currentCustomer.points || 0) + currentTransaction.loyaltyPointsEarned;
-        saveCustomer(currentCustomer);
-        console.log(`Customer ${currentCustomer.name} now has ${currentCustomer.points} points.`);
-    }
-
-    // Prepare receipt data
-    const receiptData = {
-        cartItems: JSON.parse(JSON.stringify(cart)), // Deep copy cart items
-        subtotal: currentTransaction.subtotal,
-        discountAmount: currentTransaction.discountAmount,
-        loyaltyDiscount: currentTransaction.loyaltyDiscount,
-        totalAfterDiscount: currentTransaction.totalAfterCouponDiscount,
-        taxAmount: currentTransaction.taxAmount,
-        numberOfBags: bagsUsed,
-        finalTotal: currentTransaction.finalTotal,
-        transactionId: transactionId,
-        timestamp: timestamp,
-        storeInfo: { ...storeSettings },
-        appliedCoupon: appliedCoupon ? { ...appliedCoupon } : null,
-        recommendedDiscounts: getRandomRecommendedCoupons(),
-        paymentMethod: paymentMethod,
-        customerPhone: currentCustomer ? currentCustomer.phoneNumber : null,
-        pointsEarned: currentTransaction.loyaltyPointsEarned
-    };
-    console.log("Receipt Data prepared:", receiptData);
-
-    // Add receipt to history
-    receipts.unshift(receiptData);
-    saveData();
-    renderReceiptsHistory();
-    console.log("Receipt added to history and saved.");
-
-    if (printReceipt) {
-        console.log("Attempting to send receipt to backend printer...");
-        receiptPrintArea.innerHTML = generateReceiptHtml(receiptData, true);
-
-        // Generate transaction barcode SVG
-        const transactionBarcodeElement = receiptPrintArea.querySelector('#receipt-transaction-barcode');
-        if (transactionBarcodeElement) {
-            try {
-                JsBarcode(transactionBarcodeElement, transactionId, {
-                    format: "CODE128", displayValue: true, width: 1.5, height: 50,
-                    margin: 5, fontSize: 12, lineColor: "#000", background: "#fff"
-                });
-                console.log("Transaction barcode generated for print area.");
-            } catch (e) {
-                console.error(`Error generating transaction barcode (${transactionId}) for print:`, e);
-                transactionBarcodeElement.textContent = `Code: ${transactionId}`;
+        function finalizeSale(paymentMethod, printReceipt) {
+            console.log("finalizeSale started.");
+            if (cart.length === 0) {
+                console.error("Attempted to finalize sale for empty cart. Exiting finalizeSale.");
+                return;
             }
-        }
 
-        // Generate recommended discount barcodes
-        if (receiptData.recommendedDiscounts && receiptData.recommendedDiscounts.length > 0) {
-            receiptData.recommendedDiscounts.forEach((coupon) => {
-                const recBarcodeElement = receiptPrintArea.querySelector(`#rec-barcode-${coupon.code}`);
-                if (recBarcodeElement) {
+            const transactionId = `TXN-${generateRandomBarcodeNumber()}`;
+            const timestamp = new Date().toISOString();
+
+            // Calculate loyalty points earned for this transaction
+            const pointsEarned = Math.floor(currentTransaction.totalAfterCouponDiscount / 10) * 5;
+            currentTransaction.loyaltyPointsEarned = pointsEarned;
+
+            // If a customer is active, update their points
+            if (currentCustomer) {
+                currentCustomer.points = (currentCustomer.points || 0) + currentTransaction.loyaltyPointsEarned;
+                saveCustomer(currentCustomer);
+                console.log(`Customer ${currentCustomer.name} now has ${currentCustomer.points} points.`);
+            }
+
+            // Prepare receipt data
+            const receiptData = {
+                cartItems: JSON.parse(JSON.stringify(cart)), // Deep copy cart items
+                subtotal: currentTransaction.subtotal,
+                discountAmount: currentTransaction.discountAmount,
+                loyaltyDiscount: currentTransaction.loyaltyDiscount,
+                totalAfterDiscount: currentTransaction.totalAfterCouponDiscount,
+                taxAmount: currentTransaction.taxAmount,
+                numberOfBags: bagsUsed,
+                finalTotal: currentTransaction.finalTotal,
+                transactionId: transactionId,
+                timestamp: timestamp,
+                storeInfo: { ...storeSettings },
+                appliedCoupon: appliedCoupon ? { ...appliedCoupon } : null,
+                recommendedDiscounts: getRandomRecommendedCoupons(), // This function now uses storeSettings.numRecommendedCoupons
+                paymentMethod: paymentMethod,
+                pointsEarnedThisTransaction: currentTransaction.loyaltyPointsEarned, // Points earned in this sale
+                customerPhoneAtTimeOfSale: currentCustomer ? currentCustomer.phoneNumber : null, // Customer phone if signed in
+                pointsAssignedToCustomer: currentCustomer ? true : false // Flag if points were assigned at time of sale
+            };
+            console.log("Receipt Data prepared:", receiptData);
+
+            // Add receipt to history
+            receipts.unshift(receiptData);
+            saveData();
+            renderReceiptsHistory();
+            console.log("Receipt added to history and saved.");
+
+            if (printReceipt) {
+                console.log("Attempting to print receipt...");
+                receiptPrintArea.innerHTML = generateReceiptHtml(receiptData, true);
+
+                // Generate main transaction barcode
+                const transactionBarcodeElement = receiptPrintArea.querySelector('#txn-barcode-svg');
+                if (transactionBarcodeElement) {
                     try {
-                        JsBarcode(recBarcodeElement, coupon.code, {
-                            format: "CODE128", displayValue: true, width: 1.5, height: 50,
-                            margin: 5, fontSize: 12, lineColor: "#000", background: "#fff"
-                        });
-                        console.log(`Recommended barcode ${coupon.code} generated for print area.`);
+                        JsBarcode(transactionBarcodeElement, transactionId, { format: "CODE128", displayValue: true, width: 1.5, height: 50, margin: 5, fontSize: 12, lineColor: "#000", background: "#fff" });
+                        console.log("Transaction barcode generated for print area.");
                     } catch (e) {
-                        console.error(`Error generating recommendation barcode for ${coupon.code} for print:`, e);
-                        recBarcodeElement.textContent = `Code: ${coupon.code}`;
+                        console.error(`Error generating transaction barcode (${transactionId}) for print:`, e);
+                        // Fallback text if barcode generation fails
+                        const fallbackText = document.createElement('p');
+                        fallbackText.textContent = `Transaction Barcode: ${transactionId}`;
+                        transactionBarcodeElement.parentNode.replaceChild(fallbackText, transactionBarcodeElement);
                     }
                 }
-            });
+
+                // Only generate recommended discount barcodes if the setting is enabled
+                if (storeSettings.displayRecommendedCoupons && receiptData.recommendedDiscounts && receiptData.recommendedDiscounts.length > 0) {
+                    receiptData.recommendedDiscounts.forEach((coupon) => {
+                        const recBarcodeElement = receiptPrintArea.querySelector(`#rec-barcode-${coupon.code}`);
+                        if (recBarcodeElement) {
+                            try {
+                                JsBarcode(recBarcodeElement, coupon.code, { format: "CODE128", displayValue: true, width: 1.5, height: 50, margin: 5, fontSize: 12, lineColor: "#000", background: "#fff" });
+                                console.log(`Recommended barcode ${coupon.code} generated for print area.`);
+                            } catch (e) {
+                                console.error(`Error generating recommendation barcode for ${coupon.code} for print:`, e);
+                                // Fallback text if barcode generation fails
+                                const fallbackText = document.createElement('p');
+                                fallbackText.textContent = `Coupon Code: ${coupon.code}`;
+                                recBarcodeElement.parentNode.replaceChild(fallbackText, recBarcodeElement);
+                            }
+                        }
+                    });
+                }
+
+                receiptPrintArea.classList.remove('hidden'); // Make the print area visible
+                console.log("receiptPrintArea visibility set to true, calling window.print()...");
+                window.print(); // Trigger the browser's print dialog
+                console.log("window.print() called.");
+                receiptPrintArea.classList.add('hidden'); // Hide the print area again
+                receiptPrintArea.innerHTML = ''; // Clear the print area content
+            } else {
+                console.log("Receipt not requested to be printed.");
+            }
+
+            // Reset for next transaction
+            cart = [];
+            appliedCoupon = null;
+            currentCustomer = null;
+            bagsUsed = 0; // Explicitly reset bagsUsed
+            updateCartDisplay(); // Clear display
+            barcodeScannerInput.focus();
+            console.log("Cart cleared, state reset, and focus returned to barcode input. finalizeSale finished.");
         }
 
-        // Send HTML to backend printer server
-        fetch('http://192.168.1.15:3000/print-receipt', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ html: receiptPrintArea.innerHTML }),
-        })
-        .then(res => {
-            if (!res.ok) throw new Error('Failed to send receipt to printer.');
-            console.log('Receipt sent to printer backend successfully.');
-        })
-        .catch(err => {
-            console.error('Error sending receipt to backend:', err);
-        });
-
-        receiptPrintArea.innerHTML = ''; // clear temp content
-    } else {
-        console.log("Receipt not requested to be printed.");
-    }
-
-    // Reset for next transaction
-    cart = [];
-    appliedCoupon = null;
-    currentCustomer = null;
-    bagsUsed = 0;
-    updateCartDisplay();
-    barcodeScannerInput.focus();
-    console.log("Cart cleared, state reset, and focus returned to barcode input. finalizeSale finished.");
-}
         /**
-         * Gets a random selection of recommended coupons.
+         * Gets a random selection of recommended coupons based on settings.
          * @returns {Array<Object>} A subset of coupons for recommendations.
          */
         function getRandomRecommendedCoupons() {
+            if (!storeSettings.displayRecommendedCoupons || storeSettings.numRecommendedCoupons <= 0) {
+                return []; // Return empty array if not enabled or count is 0
+            }
+
             const shuffledCoupons = [...coupons]; // Create a shallow copy to avoid modifying original array
             for (let i = shuffledCoupons.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [shuffledCoupons[i], shuffledCoupons[j]] = [shuffledCoupons[j], shuffledCoupons[i]];
             }
-            return shuffledCoupons.slice(0, NUM_RECOMMENDED_COUPONS_TO_DISPLAY);
+            // Slice based on the setting
+            return shuffledCoupons.slice(0, storeSettings.numRecommendedCoupons);
         }
 
         /**
@@ -2250,8 +2381,8 @@
             // Generate HTML for modal display (not for print)
             historicalReceiptContent.innerHTML = generateReceiptHtml(receiptData, false);
 
-            // Render JsBarcodes for the modal receipt HTML
-            const transactionBarcodeElement = historicalReceiptContent.querySelector('#receipt-transaction-barcode');
+            // Generate main transaction barcode for modal
+            const transactionBarcodeElement = historicalReceiptContent.querySelector('#txn-barcode-svg');
             if (transactionBarcodeElement) {
                 try {
                     JsBarcode(transactionBarcodeElement, receiptData.transactionId, {
@@ -2266,12 +2397,15 @@
                     });
                 } catch (e) {
                     console.error(`Error generating transaction barcode for modal (${receiptData.transactionId}):`, e);
-                    transactionBarcodeElement.textContent = `Code: ${receiptData.transactionId}`;
+                    // Fallback text if barcode generation fails
+                    const fallbackText = document.createElement('p');
+                    fallbackText.textContent = `Transaction Barcode: ${receiptData.transactionId}`;
+                    transactionBarcodeElement.parentNode.replaceChild(fallbackText, transactionBarcodeElement);
                 }
             }
 
-            // Render JsBarcodes for recommended discounts on the modal receipt HTML
-            if (receiptData.recommendedDiscounts && receiptData.recommendedDiscounts.length > 0) {
+            // Render JsBarcodes for recommended discounts on the modal receipt HTML, only if enabled
+            if (receiptData.storeInfo.displayRecommendedCoupons && receiptData.recommendedDiscounts && receiptData.recommendedDiscounts.length > 0) {
                 receiptData.recommendedDiscounts.forEach((coupon) => {
                     const recBarcodeElement = historicalReceiptContent.querySelector(`#rec-barcode-${coupon.code}`);
                     if (recBarcodeElement) {
@@ -2306,15 +2440,15 @@
                 historicalReceiptModal.classList.add('hidden'); // Hide modal while printing
 
                 // Re-render JsBarcodes for print area (needed after innerHTML change)
-                const printTransactionBarcodeElement = receiptPrintArea.querySelector('#receipt-transaction-barcode');
+                const printTransactionBarcodeElement = receiptPrintArea.querySelector('#txn-barcode-svg');
                 if (printTransactionBarcodeElement) {
                      try {
                         JsBarcode(printTransactionBarcodeElement, receiptData.transactionId, { format: "CODE128", displayValue: true, width: 1.5, height: 50, margin: 5, fontSize: 12, lineColor: "#000", background: "#fff" });
                     } catch (e) { console.error(`Error generating print transaction barcode:`, e); printTransactionBarcodeElement.textContent = `Code: ${receiptData.transactionId}`; }
                 }
 
-                // Render recommended barcodes for print
-                if (receiptData.recommendedDiscounts && receiptData.recommendedDiscounts.length > 0) {
+                // Render recommended barcodes for print, only if enabled
+                if (receiptData.storeInfo.displayRecommendedCoupons && receiptData.recommendedDiscounts && receiptData.recommendedDiscounts.length > 0) {
                     receiptData.recommendedDiscounts.forEach((coupon) => {
                         const recBarcodeElement = receiptPrintArea.querySelector(`#rec-barcode-${coupon.code}`);
                         if (recBarcodeElement) {
@@ -2615,7 +2749,9 @@
                     });
                 } catch (e) {
                     console.error(`Error generating return barcode (${returnTransactionId}):`, e);
-                    returnBarcodeElement.textContent = `Code: ${returnTransactionId}`;
+                    const fallbackText = document.createElement('p');
+                    fallbackText.textContent = `Return Barcode: ${returnTransactionId}`;
+                    returnBarcodeElement.parentNode.replaceChild(fallbackText, returnBarcodeElement);
                 }
             }
 
@@ -2653,6 +2789,58 @@
             barcodeScannerInput.focus();
 
             showMessageBox(`Return processed! Give customer: $${subtotalRefundAfterDiscount.toFixed(2)}`); // Display pre-tax refund
+        }
+
+        /**
+         * Assigns points from a past receipt to a customer.
+         */
+        function assignPointsToCustomerFromReceipt() {
+            const transactionId = transactionIdForPointsInput.value.trim().toUpperCase();
+            const customerPhone = cleanPhoneNumber(customerPhoneForPointsInput.value.trim());
+
+            if (!transactionId || !customerPhone || customerPhone.length !== 10) {
+                showMessageBox('Please enter a valid Transaction ID and a 10-digit customer phone number.');
+                return;
+            }
+
+            const receipt = receipts.find(r => r.transactionId === transactionId);
+            if (!receipt) {
+                showMessageBox(`Receipt with Transaction ID "${transactionId}" not found.`);
+                return;
+            }
+
+            // NEW LOGIC: Allow assignment if points were not assigned to a *known* customer
+            // This means: if pointsAssignedToCustomer is true AND customerPhoneAtTimeOfSale is NOT null/empty, then it's already assigned.
+            // Otherwise, it's either not assigned yet, or assigned to "unknown", so allow re-assignment.
+            const existingAssignedPhone = cleanPhoneNumber(receipt.customerPhoneAtTimeOfSale || '');
+            if (receipt.pointsAssignedToCustomer && existingAssignedPhone.length === 10) {
+                showMessageBox(`Points for transaction "${transactionId}" have already been assigned to customer ${formatPhoneNumber(receipt.customerPhoneAtTimeOfSale)}.`);
+                return;
+            }
+
+            const customer = getCustomerByPhone(customerPhone);
+            if (!customer) {
+                showMessageBox(`Customer with phone number "${formatPhoneNumber(customerPhone)}" not found. Please sign them up first.`);
+                return;
+            }
+
+            // Points to assign are those calculated at the time of the original transaction
+            const pointsToAssign = receipt.pointsEarnedThisTransaction;
+
+            if (pointsToAssign > 0) {
+                customer.points = (customer.points || 0) + pointsToAssign;
+                receipt.pointsAssignedToCustomer = true;
+                receipt.customerPhoneAtTimeOfSale = customer.phoneNumber; // Link the receipt to the customer
+                saveCustomer(customer); // Save updated customer points
+                saveData(); // Save updated receipt
+                showMessageBox(`Successfully assigned ${pointsToAssign} points to ${customer.name || 'customer'} (${customer.phoneNumber}) for transaction ${transactionId}!`);
+            } else {
+                showMessageBox(`No points were earned for transaction ${transactionId}.`);
+            }
+
+            transactionIdForPointsInput.value = '';
+            customerPhoneForPointsInput.value = '';
+            transactionIdForPointsInput.focus();
         }
 
 
@@ -2709,11 +2897,17 @@
             currentLogoPreview.src = storeSettings.logoUrl;
             // Add fallback for logo if URL is broken or not set
             currentLogoPreview.onerror = function() {
-                this.src = 'https://placehold.com/150x50/1e40af/ffffff?text=Logo+Not+Found';
+                this.src = 'https://placehold.co/150x50/1e40af/ffffff?text=Logo+Not+Found';
             };
              if (!storeSettings.logoUrl) {
                 currentLogoPreview.src = 'https://placehold.co/150x50/1e40af/ffffff?text=Your+Logo'; // Set default if empty
             }
+
+            // NEW: Load recommended coupon settings
+            displayRecommendedCouponsToggle.checked = storeSettings.displayRecommendedCoupons;
+            numRecommendedCouponsInput.value = storeSettings.numRecommendedCoupons;
+            toggleNumRecommendedCouponsInput(); // Call to set initial visibility
+
             renderLoyaltyDealList(); // Also render loyalty deals
         }
 
@@ -2726,8 +2920,19 @@
             storeSettings.storePhone = storePhoneInput.value.trim();
             storeSettings.storeWebsite = storeWebsiteInput.value.trim();
             storeSettings.receiptFooterMessage = receiptFooterMessageInput.value.trim(); // Save footer message
+            
+            // NEW: Save recommended coupon settings
+            storeSettings.displayRecommendedCoupons = displayRecommendedCouponsToggle.checked;
+            let numCoupons = parseInt(numRecommendedCouponsInput.value);
+            if (isNaN(numCoupons) || numCoupons < 0) {
+                numCoupons = 0; // Default to 0 if invalid
+            } else if (numCoupons > 10) {
+                numCoupons = 10; // Cap at max 10
+            }
+            storeSettings.numRecommendedCoupons = numCoupons;
+
             // loyaltyOffers handled by addLoyaltyDeal and deleteLoyaltyDeal
-            saveData(); // Save other settings changes
+            saveData(); // Save all settings changes
             showMessageBox('Settings saved successfully!');
         }
 
@@ -2811,6 +3016,48 @@
             showMessageBox('Loyalty deal deleted!');
         }
 
+        /**
+         * Toggles the visibility of the number of recommended coupons input based on the checkbox.
+         */
+        function toggleNumRecommendedCouponsInput() {
+            if (displayRecommendedCouponsToggle.checked) {
+                numRecommendedCouponsGroup.classList.remove('hidden');
+                numRecommendedCouponsInput.setAttribute('required', 'required');
+            } else {
+                numRecommendedCouponsGroup.classList.add('hidden');
+                numRecommendedCouponsInput.removeAttribute('required');
+            }
+        }
+
+        // --- Item Search Functions (NEW) ---
+        /**
+         * Searches for an item by barcode and displays its details.
+         */
+        function searchItemByBarcode() {
+            const barcode = itemSearchBarcodeInput.value.trim();
+            itemSearchResultsDiv.innerHTML = ''; // Clear previous results
+
+            if (!barcode) {
+                itemSearchResultsDiv.innerHTML = '<p class="text-gray-400 text-center">Please enter a barcode to search.</p>';
+                return;
+            }
+
+            const product = products.find(p => p.barcode === barcode);
+
+            if (product) {
+                itemSearchResultsDiv.innerHTML = `
+                    <h3 class="text-xl font-bold text-gray-100 mb-2">${product.name}</h3>
+                    <p class="text-lg text-gray-200 mb-1">Price: <span class="font-semibold">$${product.price.toFixed(2)}</span></p>
+                    <p class="text-md text-gray-300">Barcode: ${product.barcode}</p>
+                    <p class="text-md text-gray-300">Aisle: ${product.aisle || 'N/A'}</p>
+                    <p class="text-md text-gray-300">Bay: ${product.bay || 'N/A'}</p>
+                    <p class="text-md text-gray-300">Location: ${product.loc || 'N/A'}</p>
+                `;
+            } else {
+                itemSearchResultsDiv.innerHTML = `<p class="text-red-400 text-center">Product with barcode "${barcode}" not found.</p>`;
+            }
+        }
+
 
         // --- Event Listeners (Assigned inside window.onload) ---
 
@@ -2839,6 +3086,9 @@
             newProductBarcodeInput = document.getElementById('new-product-barcode');
             newProductNameInput = document.getElementById('new-product-name');
             newProductPriceInput = document.getElementById('new-product-price');
+            newProductAisleInput = document.getElementById('new-product-aisle'); // NEW
+            newProductBayInput = document.getElementById('new-product-bay');     // NEW
+            newProductLocInput = document.getElementById('new-product-loc');     // NEW
             addProductButton = document.getElementById('add-product-button');
             productListBody = document.getElementById('product-list');
 
@@ -2871,6 +3121,10 @@
             printHistoricalReceiptBtn = document.getElementById('print-historical-receipt');
             returnItemsButton = document.getElementById('return-items-button');
 
+            transactionIdForPointsInput = document.getElementById('transaction-id-for-points'); // New
+            customerPhoneForPointsInput = document.getElementById('customer-phone-for-points'); // New
+            assignPointsButton = document.getElementById('assign-points-button'); // New
+
             reportLastHourSpan = document.getElementById('report-last-hour');
             reportLast24HoursSpan = document.getElementById('report-last-24-hours');
             reportLastMonthSpan = document.getElementById('report-last-month');
@@ -2885,6 +3139,10 @@
             uploadLogoButton = document.getElementById('upload-logo-button');
             currentLogoPreview = document.getElementById('current-logo-preview');
             saveSettingsButton = document.getElementById('save-settings-button');
+
+            displayRecommendedCouponsToggle = document.getElementById('display-recommended-coupons-toggle'); // NEW
+            numRecommendedCouponsInput = document.getElementById('num-recommended-coupons-input');      // NEW
+            numRecommendedCouponsGroup = document.getElementById('num-recommended-coupons-group');     // NEW
 
             receiptPrintArea = document.getElementById('receipt-print-area');
             messageBox = document.getElementById('message-box');
@@ -2906,6 +3164,7 @@
             loyaltyContinueButton = document.getElementById('loyalty-continue-button');
             loyaltySignupButton = document.getElementById('loyalty-signup-button');
             loyaltySkipButton = document.getElementById('loyalty-skip-button');
+            applyRewardsButton = document.getElementById('apply-rewards-button'); // New
 
             signUpStep = document.getElementById('sign-up-step');
             signupPhoneInput = document.getElementById('signup-phone');
@@ -2938,6 +3197,9 @@
             totalRefundAmountSpan = document.getElementById('total-refund-amount');
             processReturnButton = document.getElementById('process-return-button');
             cancelReturnButton = document.getElementById('cancel-return-button');
+
+            itemSearchBarcodeInput = document.getElementById('item-search-barcode-input'); // NEW
+            itemSearchResultsDiv = document.getElementById('item-search-results');   // NEW
 
             // Assign keyboard instruction modal elements here, BEFORE any event listeners use them
             keyboardInstructionsModal = document.getElementById('keyboard-instructions-modal');
@@ -3010,12 +3272,18 @@
                 const barcode = newProductBarcodeInput.value.trim();
                 const name = newProductNameInput.value.trim();
                 const price = parseFloat(newProductPriceInput.value);
+                const aisle = newProductAisleInput.value.trim(); // NEW
+                const bay = newProductBayInput.value.trim();     // NEW
+                const loc = newProductLocInput.value.trim();     // NEW
 
                 if (barcode && name && !isNaN(price) && price > 0) {
-                    if (addProduct(barcode, name, price)) {
+                    if (addProduct(barcode, name, price, aisle, bay, loc)) {
                         newProductBarcodeInput.value = '';
                         newProductNameInput.value = '';
                         newProductPriceInput.value = '';
+                        newProductAisleInput.value = ''; // Clear new fields
+                        newProductBayInput.value = '';   // Clear new fields
+                        newProductLocInput.value = '';   // Clear new fields
                         showMessageBox('Product added successfully!');
                     }
                 } else {
@@ -3171,11 +3439,12 @@
                     if (customer) {
                         customerInfoDisplay.textContent = `Welcome ${customer.name || 'Loyalty Member'}! Points: ${customer.points || 0}`;
                         currentCustomer = customer;
-                        displayLoyaltyDeals(customer);
+                        // Don't auto-display deals here, let "Apply Rewards" button do it
+                        loyaltyDealsDisplayArea.classList.add('hidden');
                     } else {
                         customerInfoDisplay.textContent = 'New customer or phone not found. Sign Up to earn points!';
                         currentCustomer = null;
-                        loyaltyDealsDisplayArea.classList.add('hidden'); // Hide deals if no customer
+                        loyaltyDealsDisplayArea.classList.add('hidden');
                     }
                 } else {
                     customerInfoDisplay.textContent = 'Enter phone number to check loyalty.';
@@ -3211,6 +3480,17 @@
                 showCheckoutStep(paymentMethodStep); // Skip to payment method
             });
 
+            // New: Apply Rewards Button
+            applyRewardsButton.addEventListener('click', () => {
+                if (!currentCustomer) {
+                    showMessageBox('Please enter a customer phone number first to apply rewards.');
+                    customerPhoneInput.focus();
+                    return;
+                }
+                loyaltyDealsDisplayArea.classList.remove('hidden');
+                displayLoyaltyDeals(currentCustomer);
+            });
+
             // Sign Up Step Buttons
             completeSignupButton.addEventListener('click', () => {
                 const phone = cleanPhoneNumber(signupPhoneInput.value);
@@ -3234,7 +3514,7 @@
                     currentCustomer = existingCustomerCheck;
                     customerPhoneInput.value = existingCustomerCheck.phoneNumber;
                     customerInfoDisplay.textContent = `Welcome ${existingCustomerCheck.name || 'Loyalty Member'}! Points: ${existingCustomerCheck.points || 0}`;
-                    displayLoyaltyDeals(existingCustomerCheck); // show deals for existing
+                    loyaltyDealsDisplayArea.classList.add('hidden'); // Hide deals until "Apply Rewards" is clicked
                     showCheckoutStep(loyaltyStep);
                     return;
                 }
@@ -3265,6 +3545,7 @@
 
                 if (availableDeals.length > 0) {
                     loyaltyDealsDisplayArea.classList.remove('hidden');
+                    noLoyaltyDealsMessage.classList.add('hidden'); // Hide "no deals" message
                     availableDeals.forEach(deal => {
                         const dealItem = document.createElement('div');
                         dealItem.className = 'loyalty-deal-item cursor-pointer p-3 mb-2 rounded-lg bg-gray-700 hover:bg-gray-600 flex justify-between items-center';
@@ -3286,6 +3567,7 @@
                 } else {
                     loyaltyDealsDisplayArea.classList.remove('hidden'); // Still show area but with message
                     noLoyaltyDealsMessage.classList.remove('hidden'); // Ensure message is visible if no deals
+                    noLoyaltyDealsMessage.textContent = 'No deals available or not enough points.';
                 }
             }
 
@@ -3449,6 +3731,25 @@
                 }
             });
 
+            // New: Assign Points Button
+            assignPointsButton.addEventListener('click', assignPointsToCustomerFromReceipt);
+            customerPhoneForPointsInput.addEventListener('input', (event) => {
+                const rawPhone = event.target.value.replace(/\D/g, ''); // Remove non-digits
+                event.target.value = formatPhoneNumber(rawPhone);
+            });
+            transactionIdForPointsInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    customerPhoneForPointsInput.focus();
+                }
+            });
+            customerPhoneForPointsInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    assignPointsButton.click();
+                }
+            });
+
 
             // Keyboard Instructions Modal Buttons Event Listeners (Moved here)
             if (closeKeyboardInstructionsModalBtn) {
@@ -3477,6 +3778,9 @@
             uploadLogoButton.addEventListener('click', () => logoFileInput.click());
             logoFileInput.addEventListener('change', handleLogoUpload);
 
+            // NEW: Recommended Coupons Settings Event Listeners
+            displayRecommendedCouponsToggle.addEventListener('change', toggleNumRecommendedCouponsInput);
+
             // Settings: Add Loyalty Deal Button (NEW)
             addLoyaltyDealButton.addEventListener('click', () => {
                 const name = newLoyaltyDealNameInput.value.trim();
@@ -3496,6 +3800,13 @@
                 newLoyaltyDealTypeSelect.value = 'percentage';
                 newLoyaltyDealValueInput.value = '';
                 newLoyaltyDealPointsRequiredInput.value = '';
+            });
+
+            // NEW: Item Search Tab Event Listeners
+            itemSearchBarcodeInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    searchItemByBarcode();
+                }
             });
 
             // Global hotkey listener for Ctrl + I
