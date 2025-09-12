@@ -181,6 +181,16 @@
             </div>
         </div>
 
+        <!-- Workout Selection View -->
+        <div id="workout-selection-view" class="view hidden">
+            <h2 class="text-3xl font-bold text-gray-800 text-center mb-4">Choose a Workout</h2>
+            <div class="flex-center flex-col sm:flex-row gap-4">
+                <button id="startCoreBtn" class="button btn-primary w-full">Core Workout</button>
+                <button id="startStretchesBtn" class="button btn-secondary w-full">Leg Stretches</button>
+            </div>
+            <button id="selectionBackBtn" class="button btn-light w-full mt-4">Back</button>
+        </div>
+
         <!-- Session View -->
         <div id="session-view" class="view hidden">
             <h2 class="text-3xl font-bold text-gray-800 text-center mb-4">Session</h2>
@@ -190,6 +200,7 @@
                 <p class="text-lg font-medium text-gray-600 mt-2">
                     Round <span id="currentRoundDisplay">1</span> of <span id="totalRoundsDisplay">3</span>
                 </p>
+                <p id="pointsPerSecondDisplay" class="text-sm text-gray-500 mt-1 hidden">(1 point per second)</p>
             </div>
             <div class="text-center mb-6">
                 <p id="timerDisplay" class="text-6xl font-bold text-red-500">60</p>
@@ -222,7 +233,7 @@
 
                 <!-- Set Rounds Control -->
                 <div class="flex items-center justify-between p-4 bg-gray-100 rounded-xl">
-                    <span class="text-lg font-semibold text-gray-800">Set Exercise Rounds</span>
+                    <span class="text-lg font-semibold text-gray-800">Set Core Rounds</span>
                     <input type="number" id="roundsInput" min="1" value="3" class="w-24 px-3 py-2 border border-gray-300 rounded-lg text-center font-medium">
                 </div>
 
@@ -309,23 +320,27 @@
     </div>
 
     <!-- Audio Element for timer end sound -->
-    <audio id="timerEndSound" src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YRIAAACuDwAApEwAAGY6AAC/PQAA+z0AAH87AAAHOQAAnDkAAJ88AACXOwAAu0MAAMw9AABrRAAA+zwAAN48AADiPAAA9jwAALRAAAA="></audio>
+    <audio id="timerEndSound" src="data:audio/wav;base64,UklGRiwAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAAACABAAZGF0YRIBAABGAABa+D8A1wAAAA=="></audio>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const views = document.querySelectorAll('.view');
             const totalPointsDisplay = document.getElementById('totalPointsDisplay');
             const startSessionBtn = document.getElementById('startSessionBtn');
+            const startCoreBtn = document.getElementById('startCoreBtn');
+            const startStretchesBtn = document.getElementById('startStretchesBtn');
             const rewardsBtn = document.getElementById('rewardsBtn');
             const parentLoginBtn = document.getElementById('parentLoginBtn');
             const parentBackBtn = document.getElementById('parentBackBtn');
             const rewardsBackBtn = document.getElementById('rewardsBackBtn');
+            const selectionBackBtn = document.getElementById('selectionBackBtn');
             const clearDataBtn = document.getElementById('clearDataBtn');
             const sessionView = document.getElementById('session-view');
             const exerciseName = document.getElementById('exerciseName');
             const currentRoundDisplay = document.getElementById('currentRoundDisplay');
             const totalRoundsDisplay = document.getElementById('totalRoundsDisplay');
             const timerDisplay = document.getElementById('timerDisplay');
+            const pointsPerSecondDisplay = document.getElementById('pointsPerSecondDisplay');
             const nextBtn = document.getElementById('nextBtn');
             const endSessionBtn = document.getElementById('endSessionBtn');
             const timerEndSound = document.getElementById('timerEndSound');
@@ -372,6 +387,7 @@
                 currentExerciseIndex: 0,
                 timerSeconds: 0,
                 sessionPoints: 0,
+                totalRounds: 3 // Default value
             };
 
             let exercises = {
@@ -381,6 +397,10 @@
                     { name: 'Squats', duration: 60, points: 5 },
                     { name: 'Sit-ups', duration: 45, points: 5 },
                     { name: 'Plank', duration: 60, points: 5 }
+                ],
+                stretches: [
+                    { name: 'Right Leg Stretch', duration: 180, manual: false },
+                    { name: 'Left Leg Stretch', duration: 180, manual: false }
                 ]
             };
 
@@ -469,6 +489,7 @@
                     currentExerciseIndex: 0,
                     timerSeconds: 0,
                     sessionPoints: 0,
+                    totalRounds: 3
                 };
             }
 
@@ -495,14 +516,14 @@
                         if (isTimerSoundEnabled) {
                             timerEndSound.play();
                         }
-                        sessionState.sessionPoints += currentExercise.points;
+                        sessionState.sessionPoints += sessionState.typeKey === 'stretches' ? currentExercise.duration : currentExercise.points;
                         nextBtn.textContent = 'Continue';
                     }
                 }, 1000);
             }
 
             function loadExercise() {
-                if (sessionState.currentRound > exerciseRounds) {
+                if (sessionState.currentRound > sessionState.totalRounds) {
                     endSession();
                     return;
                 }
@@ -510,7 +531,13 @@
                 const exercise = currentExercisesSequence[sessionState.currentExerciseIndex];
                 exerciseName.textContent = exercise.name;
                 currentRoundDisplay.textContent = sessionState.currentRound;
-                totalRoundsDisplay.textContent = exerciseRounds;
+                totalRoundsDisplay.textContent = sessionState.totalRounds;
+
+                if (sessionState.typeKey === 'stretches') {
+                    pointsPerSecondDisplay.classList.remove('hidden');
+                } else {
+                    pointsPerSecondDisplay.classList.add('hidden');
+                }
 
                 if (exercise.manual) {
                     timerDisplay.classList.add('hidden');
@@ -534,6 +561,7 @@
                 sessionState.currentExerciseIndex = 0;
                 sessionState.sessionPoints = 0;
                 currentExercisesSequence = exercises[typeKey];
+                sessionState.totalRounds = typeKey === 'stretches' ? 3 : exerciseRounds;
                 renderView('session-view');
                 loadExercise();
             }
@@ -786,7 +814,19 @@
 
             // --- Event Listeners ---
             startSessionBtn.onclick = () => {
+                renderView('workout-selection-view');
+            };
+
+            startCoreBtn.onclick = () => {
                 startSession('timed');
+            };
+
+            startStretchesBtn.onclick = () => {
+                startSession('stretches');
+            };
+
+            selectionBackBtn.onclick = () => {
+                renderView('main-view');
             };
 
             rewardsBtn.onclick = () => {
@@ -801,10 +841,19 @@
             nextBtn.onclick = () => {
                 const currentExercise = currentExercisesSequence[sessionState.currentExerciseIndex];
                 if (currentExercise.manual) {
+                    // Manual exercises add points on completion
                      sessionState.sessionPoints += currentExercise.points;
                 } else if (sessionState.timerSeconds > 0) {
+                    // Timed exercises add points when skipped
                     clearInterval(timerInterval);
-                    sessionState.sessionPoints += currentExercise.points;
+                    if (sessionState.typeKey === 'stretches') {
+                        // Stretches earn points based on duration completed
+                        const pointsEarned = currentExercise.duration - sessionState.timerSeconds;
+                        sessionState.sessionPoints += pointsEarned;
+                    } else {
+                        // Core exercises have a fixed point value
+                        sessionState.sessionPoints += currentExercise.points;
+                    }
                 }
                 
                 sessionState.currentExerciseIndex++;
@@ -843,7 +892,7 @@
                     timerSoundToggle.checked = true;
                     exerciseRounds = 3;
                     roundsInput.value = 3;
-                    exercises = { timed: [] };
+                    exercises.timed = [];
                     rewards = [];
                     clearSessionProgress();
                     renderExerciseList();
