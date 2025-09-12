@@ -237,6 +237,21 @@
                     <input type="number" id="roundsInput" min="1" value="3" class="w-24 px-3 py-2 border border-gray-300 rounded-lg text-center font-medium">
                 </div>
 
+                <!-- Audio Recorder -->
+                <div class="mt-4">
+                    <h3 class="text-2xl font-semibold text-gray-800 mb-2">Custom Timer Sound</h3>
+                    <div id="audioRecorder" class="bg-gray-100 p-4 rounded-xl mb-4 text-center">
+                        <p id="recorderStatus" class="text-sm text-gray-600 mb-2">Ready to record...</p>
+                        <div class="flex-center gap-2">
+                            <button id="recordBtn" class="button btn-primary w-full">Record</button>
+                            <button id="stopBtn" class="button btn-light w-full hidden">Stop</button>
+                            <button id="playBtn" class="button btn-secondary w-full hidden">Play</button>
+                            <button id="saveBtn" class="button btn-primary w-full hidden">Save</button>
+                            <button id="clearAudioBtn" class="button btn-danger w-full hidden">Clear</button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Exercise Management -->
                 <div class="mt-4">
                     <h3 class="text-2xl font-semibold text-gray-800 mb-2">Manage Exercises</h3>
@@ -320,7 +335,7 @@
     </div>
 
     <!-- Audio Element for timer end sound -->
-    <audio id="timerEndSound" src="data:audio/wav;base64,UklGRiwAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAAACABAAZGF0YRIBAABGAABa+D8A1wAAAA=="></audio>
+    <audio id="timerEndSound" src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAAACABAAZGF0YSAAAAAsAAAABwAAADoAAAADgAAAAoAAAAaAAAAIAAAAEAAAABFAAAAoAAAAKAAAAGgAAAA0AAAAMAAAA"></audio>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -372,6 +387,14 @@
             const confirmYesBtn = document.getElementById('confirmYesBtn');
             const confirmNoBtn = document.getElementById('confirmNoBtn');
 
+            // New audio recorder elements
+            const recorderStatus = document.getElementById('recorderStatus');
+            const recordBtn = document.getElementById('recordBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            const playBtn = document.getElementById('playBtn');
+            const saveBtn = document.getElementById('saveBtn');
+            const clearAudioBtn = document.getElementById('clearAudioBtn');
+
             let totalPoints = 0;
             let currentExercisesSequence = [];
             let timerInterval = null;
@@ -405,6 +428,11 @@
             };
 
             let rewards = [];
+
+            // Audio recorder variables
+            let mediaRecorder;
+            let audioChunks = [];
+            const defaultTimerSoundSrc = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAAACABAAZGF0YSAAAAAsAAAABwAAADoAAAADgAAAAoAAAAaAAAAIAAAAEAAAABFAAAAoAAAAKAAAAGgAAAA0AAAAMAAAA";
 
             // --- Core Functions ---
             function renderView(viewId) {
@@ -474,6 +502,19 @@
                 if (savedRewards) {
                     rewards = JSON.parse(savedRewards);
                 }
+
+                // Load custom audio if it exists
+                const savedAudio = localStorage.getItem('customTimerSound');
+                if (savedAudio) {
+                    const audioBlob = b64toBlob(savedAudio, 'audio/wav');
+                    timerEndSound.src = URL.createObjectURL(audioBlob);
+                    playBtn.classList.remove('hidden');
+                    clearAudioBtn.classList.remove('hidden');
+                } else {
+                    timerEndSound.src = defaultTimerSoundSrc;
+                    playBtn.classList.add('hidden');
+                    clearAudioBtn.classList.add('hidden');
+                }
             }
 
             function saveSessionProgress() {
@@ -500,6 +541,20 @@
                 const formattedMinutes = String(minutes).padStart(1, '0');
                 const formattedSeconds = String(remainingSeconds).padStart(2, '0');
                 return `${formattedMinutes}:${formattedSeconds}`;
+            }
+
+            // --- Audio Initialization Function ---
+            function initializeAudio() {
+                try {
+                    timerEndSound.play().then(() => {
+                        timerEndSound.pause();
+                        timerEndSound.currentTime = 0;
+                    }).catch(error => {
+                        console.error('Audio playback failed:', error);
+                    });
+                } catch (error) {
+                    console.error('Audio initialization failed:', error);
+                }
             }
 
             // --- Session & Exercise Logic ---
@@ -555,6 +610,7 @@
                     showMessageBox('No exercises available. Please add some in the Parent Zone.');
                     return;
                 }
+                initializeAudio();
                 sessionState.isActive = true;
                 sessionState.typeKey = typeKey;
                 sessionState.currentRound = 1;
@@ -574,6 +630,96 @@
                 clearSessionProgress();
                 saveData();
                 renderView('main-view');
+            }
+
+            // --- Audio Recorder Functions ---
+            // Helper function to convert Base64 string to a Blob
+            function b64toBlob(b64Data, contentType = '', sliceSize = 512) {
+                const byteCharacters = atob(b64Data);
+                const byteArrays = [];
+                for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+                    const slice = byteCharacters.slice(offset, offset + sliceSize);
+                    const byteNumbers = new Array(slice.length);
+                    for (let i = 0; i < slice.length; i++) {
+                        byteNumbers[i] = slice.charCodeAt(i);
+                    }
+                    const byteArray = new Uint8Array(byteNumbers);
+                    byteArrays.push(byteArray);
+                }
+                const blob = new Blob(byteArrays, { type: contentType });
+                return blob;
+            }
+
+            // Helper function to convert a Blob to a Base64 string
+            function blobToBase64(blob) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        const base64String = reader.result.split(',')[1];
+                        resolve(base64String);
+                    };
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                });
+            }
+
+            async function startRecording() {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+                    mediaRecorder.ondataavailable = event => {
+                        audioChunks.push(event.data);
+                    };
+                    mediaRecorder.onstop = () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                        timerEndSound.src = URL.createObjectURL(audioBlob);
+                        playBtn.classList.remove('hidden');
+                        saveBtn.classList.remove('hidden');
+                        clearAudioBtn.classList.add('hidden');
+                        recorderStatus.textContent = 'Recording stopped. Preview or save.';
+                    };
+                    mediaRecorder.start();
+                    recorderStatus.textContent = 'Recording...';
+                    recordBtn.classList.add('hidden');
+                    stopBtn.classList.remove('hidden');
+                    playBtn.classList.add('hidden');
+                    saveBtn.classList.add('hidden');
+                    clearAudioBtn.classList.add('hidden');
+                } catch (err) {
+                    recorderStatus.textContent = `Error: ${err.message}. Please allow microphone access.`;
+                    console.error('Microphone access denied:', err);
+                }
+            }
+
+            function stopRecording() {
+                if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                    mediaRecorder.stop();
+                }
+                recordBtn.classList.remove('hidden');
+                stopBtn.classList.add('hidden');
+            }
+
+            async function saveAudio() {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                const base64String = await blobToBase64(audioBlob);
+                localStorage.setItem('customTimerSound', base64String);
+                recorderStatus.textContent = 'Custom sound saved!';
+                saveBtn.classList.add('hidden');
+                clearAudioBtn.classList.remove('hidden');
+            }
+
+            function clearCustomAudio() {
+                localStorage.removeItem('customTimerSound');
+                timerEndSound.src = defaultTimerSoundSrc;
+                recorderStatus.textContent = 'Custom sound cleared.';
+                playBtn.classList.add('hidden');
+                saveBtn.classList.add('hidden');
+                clearAudioBtn.classList.add('hidden');
+                recordBtn.classList.remove('hidden');
+                
+                // Reset audio to the default sound
+                timerEndSound.src = defaultTimerSoundSrc;
             }
 
             // --- Exercise Management Functions ---
@@ -895,6 +1041,7 @@
                     exercises.timed = [];
                     rewards = [];
                     clearSessionProgress();
+                    clearCustomAudio();
                     renderExerciseList();
                     renderRewardList();
                     showMessageBox('All data has been cleared.');
@@ -941,6 +1088,13 @@
             cancelRewardEditBtn.onclick = clearRewardForm;
             rewardList.addEventListener('click', handleParentRewardListClick);
             redeemableRewardList.addEventListener('click', handleRedeemableRewardListClick);
+
+            // New audio recorder event listeners
+            recordBtn.onclick = startRecording;
+            stopBtn.onclick = stopRecording;
+            playBtn.onclick = () => timerEndSound.play();
+            saveBtn.onclick = saveAudio;
+            clearAudioBtn.onclick = clearCustomAudio;
 
             // --- Initial Load and Session Resume ---
             loadData();
