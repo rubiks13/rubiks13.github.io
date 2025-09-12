@@ -573,7 +573,6 @@
 
             // --- Session & Exercise Logic ---
             function startTimer() {
-                stopLoopingAudio();
                 clearInterval(timerInterval);
                 const currentExercise = currentExercisesSequence[sessionState.currentExerciseIndex];
                 sessionState.timerSeconds = currentExercise.duration;
@@ -586,7 +585,7 @@
                     if (sessionState.timerSeconds <= 0) {
                         clearInterval(timerInterval);
                         if (isTimerSoundEnabled) {
-                            timerEndSound.play();
+                            startLoopingAudio();
                         }
                         sessionState.sessionPoints += sessionState.typeKey === 'stretches' ? currentExercise.duration : currentExercise.points;
                         nextBtn.textContent = 'Continue';
@@ -628,7 +627,7 @@
                 startExerciseBtn.classList.remove('hidden');
                 timerDisplay.classList.remove('hidden');
                 timerDisplay.textContent = formatTime(exercise.duration);
-                startLoopingAudio();
+                
 
                 if (exercise.manual) {
                     timerDisplay.classList.add('hidden');
