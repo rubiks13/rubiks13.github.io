@@ -4,279 +4,123 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fitness Points Tracker</title>
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(to bottom right, #e0f7fa, #b3e5fc); /* Lighter, more vibrant blue gradient */
+            background-color: #e2e8f0;
             display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-            margin: 0;
-            padding: 0;
-            color: #334155; /* Default text color */
-        }
-        #app-container {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center; /* Center content vertically */
-            padding: 2rem; /* Increased padding */
-            padding-bottom: 7rem; /* Space for fixed footer */
-        }
-        .view {
-            display: none;
-            flex-grow: 1; /* Allow views to take available space */
-            width: 100%;
-            max-width: 450px; /* Slightly wider max-width for better content display */
-            padding: 1.5rem; /* Increased padding */
-            box-sizing: border-box;
-            overflow-y: auto; /* Enable scrolling for content */
-            animation: fadeIn 0.6s ease-out forwards; /* Slightly longer fade in animation */
-            min-height: 75vh; /* Ensure views have enough height */
-            justify-content: center; /* Center content within view */
-            align-items: center;
-            flex-direction: column;
-            position: relative; /* For potential absolute positioning of elements inside */
-        }
-        .view.active {
-            display: flex;
-        }
-
-        /* Keyframe for fade in animation */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .footer-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            background-color: #ffffff;
-            border-top: 1px solid #e2e8f0;
-            display: flex;
-            justify-content: space-around;
-            padding: 0.75rem 0; /* Slightly reduced padding */
-            box-shadow: 0 -8px 25px rgba(0, 0, 0, 0.2); /* Stronger, softer shadow */
-            z-index: 1000;
-            /* Initially hidden, shown after setup */
-            visibility: hidden;
-            opacity: 0;
-            transition: visibility 0s 0.6s, opacity 0.6s ease-in-out;
-        }
-        .footer-nav.visible {
-            visibility: visible;
-            opacity: 1;
-            transition: visibility 0s, opacity 0.6s ease-in-out;
-        }
-        .footer-nav button {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
             justify-content: center;
-            padding: 0.6rem 0.8rem; /* Reduced padding for touch targets */
-            font-size: 0.85rem; /* Slightly smaller font */
-            color: #64748b;
-            transition: color 0.3s ease-in-out, transform 0.3s ease-in-out, background-color 0.3s ease-in-out;
-            border-radius: 9999px; /* Full rounded corners for footer buttons */
-            min-width: 75px; /* Reduced min-width */
-            font-weight: 700; /* Bolder text */
-            position: relative;
-            overflow: hidden; /* For ripple effect */
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
         }
-        .footer-nav button.active {
-            color: #2563eb; /* Darker blue for active state */
-            transform: translateY(-8px); /* More pronounced lift */
-            background-color: #e0f2fe; /* Light blue background for active */
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
-        }
-        .footer-nav button svg {
-            width: 28px; /* Slightly smaller icons */
-            height: 28px;
-            margin-bottom: 0.3rem; /* Adjusted margin */
-        }
-
-        /* Custom Button Styles - Explicit border-radius */
-        .btn-primary {
-            background: linear-gradient(to right, #3b82f6, #2563eb); /* Blue gradient */
-            @apply text-white py-4 px-8 shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300 font-bold text-lg;
-            border: 2px solid #60a5fa; /* Added border for verification */
-            border-radius: 9999px; /* Explicitly set for primary buttons */
-            position: relative;
-            overflow: hidden;
-        }
-        .btn-secondary {
-            background: linear-gradient(to right, #cbd5e1, #94a3b8); /* Gray gradient */
-            @apply text-gray-800 py-4 px-8 shadow-md hover:shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-gray-300 font-semibold text-lg;
-            border: 2px solid #a1a1aa; /* Added border for verification */
-            border-radius: 9999px; /* Explicitly set for secondary buttons */
-            position: relative;
-            overflow: hidden;
-        }
-        .btn-danger {
-            background: linear-gradient(to right, #ef4444, #dc2626); /* Red gradient */
-            @apply text-white py-3 px-6 hover:shadow-md transition-all duration-200 ease-in-out transform hover:scale-105;
-            border: 2px solid #f87171; /* Added border for verification */
-            border-radius: 9999px; /* Explicitly set for danger buttons */
-            position: relative;
-            overflow: hidden;
-        }
-
-        /* Ripple effect for buttons */
-        .ripple {
-            position: absolute;
-            border-radius: 50%;
-            background-color: rgba(255, 255, 255, 0.7);
-            animation: ripple-animation 0.6s linear forwards;
-            transform: scale(0);
-            pointer-events: none;
-            opacity: 0;
-        }
-
-        @keyframes ripple-animation {
-            from { transform: scale(0); opacity: 1; }
-            to { transform: scale(4); opacity: 0; }
-        }
-
-        .input-field {
-            @apply w-full p-4 border border-gray-300 rounded-2xl focus:ring-3 focus:ring-blue-400 focus:border-transparent transition-all duration-200 ease-in-out text-gray-800 shadow-sm; /* More padding, stronger focus ring, shadow, more rounded */
+        .container {
+            max-width: 480px;
+            width: 100%;
         }
         .card {
-            background-color: #ffffff;
-            @apply rounded-3xl shadow-2xl p-8 mb-10 border border-blue-100; /* Even more rounded, stronger shadow, subtle border, more padding */
-            width: 100%; /* Ensure cards take full width of their container */
-            box-sizing: border-box;
-            animation: cardPopIn 0.5s ease-out forwards;
+            background-color: white;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            padding: 2rem;
+            margin-bottom: 1.5rem;
         }
-
-        @keyframes cardPopIn {
-            from { opacity: 0; transform: scale(0.95); }
-            to { opacity: 1; transform: scale(1); }
-        }
-
-        .message-box {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: linear-gradient(to bottom right, #ffffff, #f0f9ff); /* White to light blue gradient */
-            padding: 3.5rem; /* More padding */
-            border-radius: 3rem; /* Even more rounded */
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.35); /* Deeper shadow */
-            z-index: 1001;
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+        h1 {
+            font-size: 2.25rem;
+            font-weight: 700;
             text-align: center;
-            max-width: 90%;
-            border: 4px solid #3b82f6; /* Thicker blue border */
-            animation: popIn 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards; /* Bouncier popIn */
+            color: #1a202c;
+            margin-bottom: 1rem;
         }
-        .message-box.active {
-            display: flex;
-        }
-
-        @keyframes popIn {
-            from { opacity: 0; transform: translate(-50%, -50%) scale(0.7); }
-            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-        }
-
-        .overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.75); /* Darker overlay */
-            z-index: 1000;
-            display: none;
-        }
-        .overlay.active {
-            display: block;
-        }
-
-        /* Specific text styling */
         h2 {
-            @apply text-5xl font-extrabold text-blue-800 mb-12; /* Larger, bolder titles, more margin */
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.15);
-            letter-spacing: -0.025em; /* Slightly tighter letter spacing */
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
         }
-        h3 {
-            @apply text-2xl font-bold text-gray-800 mb-4;
+        #pointsDisplay {
+            font-size: 4rem;
+            font-weight: 800;
+            color: #3182ce;
+            text-align: center;
         }
-        p {
-            @apply text-gray-700;
+        .button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 2px solid transparent;
+            cursor: pointer;
         }
-        .text-blue-600 { /* For points display */
-            color: #2563eb; /* Darker blue for contrast */
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
         }
-        .text-5xl { /* For large point numbers */
-            font-size: 4.5rem; /* Even larger */
+        .btn-primary {
+            background-color: #48bb78;
+            color: white;
+            border-color: #38a169;
         }
-        .text-6xl { /* For timer display */
-            font-size: 5.5rem; /* Even larger */
-            font-weight: 900; /* Extra bold */
-            text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+        .btn-primary:hover {
+            background-color: #38a169;
         }
-        #helloGreeting {
-            @apply text-2xl font-semibold text-gray-700 mb-4;
+        .btn-secondary {
+            background-color: #4299e1;
+            color: white;
+            border-color: #3182ce;
         }
-        .message-box .button-group {
+        .btn-secondary:hover {
+            background-color: #3182ce;
+        }
+        .btn-danger {
+            background-color: #f56565;
+            color: white;
+            border-color: #e53e3e;
+        }
+        .btn-danger:hover {
+            background-color: #e53e3e;
+        }
+        .btn-light {
+            background-color: #cbd5e0;
+            color: #2d3748;
+            border-color: #a0aec0;
+        }
+        .btn-light:hover {
+            background-color: #a0aec0;
+        }
+        .flex-center {
             display: flex;
-            gap: 1.25rem; /* Increased gap */
-            margin-top: 1.75rem; /* Increased margin */
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
         }
-        /* Styles for in-place editing */
-        .exercise-item.editing .display-mode {
-            display: none;
+        .exercise-list, .reward-list {
+            list-style: none;
+            padding: 0;
         }
-        .exercise-item.editing .edit-mode {
+        .exercise-item, .reward-item {
             display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
         }
-        .exercise-item .edit-mode {
-            display: none;
+        .exercise-item:last-child, .reward-item:last-child {
+            border-bottom: none;
         }
-        .exercise-item .edit-mode .input-field {
-            padding: 0.6rem; /* Slightly more padding for edit inputs */
-            font-size: 0.95rem; /* Slightly larger font for edit inputs */
-            border-radius: 0.75rem; /* More rounded for edit inputs */
-        }
-        .exercise-item .edit-mode .button-group {
-            margin-top: 0.75rem; /* More margin */
-            justify-content: flex-end; /* Align buttons to the right */
-        }
-        /* Explicitly set border-radius for all buttons, overriding any default or Tailwind classes */
-        button {
-            border-radius: 9999px !important; /* Force full rounded corners on ALL buttons */
-        }
-        /* Ensure specific smaller buttons retain their padding/font-size */
-        .edit-exercise-btn, .delete-exercise-btn, .save-exercise-btn, .cancel-edit-btn {
-            padding: 0.6rem 1.1rem !important; /* Ensure padding is applied */
-            font-size: 0.85rem !important; /* Ensure font size is applied */
-        }
-
-        /* Toggle Switch Styles */
         .toggle-switch {
             position: relative;
             display: inline-block;
             width: 60px;
             height: 34px;
         }
-
         .toggle-switch input {
             opacity: 0;
             width: 0;
             height: 0;
         }
-
         .slider {
             position: absolute;
             cursor: pointer;
@@ -288,7 +132,6 @@
             transition: .4s;
             border-radius: 34px;
         }
-
         .slider:before {
             position: absolute;
             content: "";
@@ -300,1583 +143,775 @@
             transition: .4s;
             border-radius: 50%;
         }
-
         input:checked + .slider {
-            background-color: #2196F3;
+            background-color: #4CAF50;
         }
-
-        input:focus + .slider {
-            box-shadow: 0 0 1px #2196F3;
-        }
-
         input:checked + .slider:before {
             transform: translateX(26px);
         }
+        .message-box, .confirm-box {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            text-align: center;
+            max-width: 90%;
+        }
     </style>
 </head>
-<body class="bg-gray-100">
-    <div id="app-container" class="flex flex-col items-center justify-center p-4">
-        <!-- Message Box for alerts/confirmations -->
-        <div id="messageBox" class="message-box">
-            <p id="messageText" class="text-xl font-semibold mb-8"></p>
-            <div class="button-group">
-                <button id="messageBoxOk" class="btn-primary">Got It!</button>
-                <button id="messageBoxYes" class="btn-primary hidden">Yes</button>
-                <button id="messageBoxNo" class="btn-secondary hidden">No</button>
+<body>
+    <!-- Main Application Container -->
+    <div id="app-container" class="container bg-white p-6 rounded-3xl shadow-2xl transition-all duration-300">
+        <!-- Main View -->
+        <div id="main-view" class="view">
+            <h1 class="text-4xl font-extrabold text-gray-800 mb-6">Fitness Points</h1>
+            <div class="text-center mb-6">
+                <p class="text-xl font-semibold text-gray-600">Total Points</p>
+                <p id="totalPointsDisplay" class="text-6xl font-black text-green-500 mt-2">0</p>
             </div>
-        </div>
-        <div id="overlay" class="overlay"></div>
-
-        <!-- Audio element for timer completion sound -->
-        <audio id="timerEndSound" src="https://www.soundjay.com/misc/ding-ding-ding.mp3" preload="auto"></audio>
-
-        <!-- Initial Setup View -->
-        <div id="setup-view" class="view active">
-            <h2 class="text-center">Welcome!</h2>
-            <p class="text-center text-gray-600 mb-10">Let's get you set up. This will only happen once.</p>
-            <div class="card">
-                <div class="mb-5">
-                    <label for="userNameInput" class="block text-gray-700 text-base font-bold mb-2">Your Name:</label>
-                    <input type="text" id="userNameInput" class="input-field" placeholder="Enter your name">
-                </div>
-                <div class="mb-7">
-                    <label for="parentPasswordInput" class="block text-gray-700 text-base font-bold mb-2">Parent Password:</label>
-                    <input type="password" id="parentPasswordInput" class="input-field" placeholder="Create a password for parents">
-                </div>
-                <button id="setupSaveBtn" class="btn-primary w-full">Get Started</button>
+            <div class="flex-center flex-col sm:flex-row gap-4">
+                <button id="startSessionBtn" class="button btn-primary w-full">Start Session</button>
+                <button id="rewardsBtn" class="button btn-secondary w-full">Rewards</button>
+                <button id="parentLoginBtn" class="button btn-secondary w-full">Parent Zone</button>
             </div>
-        </div>
-
-        <!-- Home View -->
-        <div id="home-view" class="view">
-            <h2 class="text-center">Home</h2>
-            <p id="helloGreeting" class="text-center"></p>
-            <div class="card text-center mb-10">
-                <p class="text-xl text-gray-600 mb-3">Current Points:</p>
-                <p id="totalPointsDisplay" class="text-5xl font-extrabold text-blue-600">0</p>
-            </div>
-            <button id="startNewSessionBtnHome" class="btn-primary w-full">Start New Session</button>
         </div>
 
         <!-- Session View -->
-        <div id="session-view" class="view">
-            <h2 class="text-center">Session</h2>
-            <div id="session-intro" class="card text-center">
-                <p class="text-xl text-gray-600 mb-6">Choose your session type:</p>
-                <button id="chooseExercisesBtn" class="btn-primary w-full mb-4">Standard Exercises</button>
-                <button id="chooseLegStretchesBtn" class="btn-secondary w-full">Leg Stretches</button>
+        <div id="session-view" class="view hidden">
+            <h2 class="text-3xl font-bold text-gray-800 text-center mb-4">Session</h2>
+            <div class="text-center mb-6">
+                <p class="text-lg font-medium text-gray-600 mb-2">Current Exercise</p>
+                <p id="exerciseName" class="text-3xl font-bold text-blue-600">Jumping Jacks</p>
+                <p class="text-lg font-medium text-gray-600 mt-2">
+                    Round <span id="currentRoundDisplay">1</span> of <span id="totalRoundsDisplay">3</span>
+                </p>
             </div>
-
-            <div id="leg-stretches-options" class="card text-center hidden">
-                <p class="text-xl text-gray-600 mb-6">Select Leg Stretch Routine:</p>
-                <button id="start3MinLegStretchesBtn" class="btn-primary w-full mb-4">3 Minutes Each Leg (3 Rounds)</button>
-                <button id="start9MinLegStretchesBtn" class="btn-secondary w-full">9 Minutes Each Leg (Once) - Double Points!</button>
-                <button id="backToSessionIntroBtn" class="btn-secondary w-full mt-4">Back</button>
+            <div class="text-center mb-6">
+                <p id="timerDisplay" class="text-6xl font-bold text-red-500">60</p>
             </div>
-
-            <div id="session-active" class="hidden flex flex-col items-center w-full">
-                <div class="card w-full text-center mb-8">
-                    <p class="text-xl text-gray-600 mb-2">Current Round: <span id="currentRoundDisplay" class="font-bold text-blue-600">1</span></p>
-                    <p class="text-xl text-gray-600 mb-2">Points This Session: <span id="sessionPointsDisplay" class="font-bold text-blue-600">0</span></p>
-                </div>
-
-                <div id="exerciseCard" class="card w-full text-center">
-                    <h3 id="exerciseName" class="text-2xl font-bold text-gray-800 mb-4">Exercise Name</h3>
-                    <p id="exerciseDetails" class="text-lg text-gray-600 mb-4">Time: 0s | Points: 0</p>
-                    <div id="timerDisplay" class="text-6xl font-extrabold text-blue-600 mb-6">00:00</div>
-                    <button id="exerciseActionBtn" class="btn-primary w-full mb-4">Start</button>
-                    <p id="nextExerciseHint" class="text-sm text-gray-500 mt-2"></p>
-                </div>
-
-                <button id="endSessionNowBtn" class="btn-secondary w-full mt-8">End Session Now and Earn <span id="endSessionPoints">0</span> Points</button>
-            </div>
-
-            <div id="session-complete" class="hidden card text-center w-full">
-                <h3 class="text-2xl font-bold text-gray-800 mb-4">Session Complete!</h3>
-                <p class="text-xl text-gray-600 mb-3">You've earned:</p>
-                <p id="finalSessionPoints" class="text-5xl font-extrabold text-blue-600 mb-8">0</p>
-                <button id="backToHomeBtn" class="btn-primary w-full">Back to Home</button>
+            <div class="flex-center gap-4">
+                <button id="nextBtn" class="button btn-primary">Next</button>
+                <button id="endSessionBtn" class="button btn-danger">End Session</button>
             </div>
         </div>
 
-        <!-- Stats View -->
-        <div id="stats-view" class="view">
-            <h2 class="text-center">Your Stats</h2>
-            <div class="card text-center">
-                <h3 class="text-xl font-bold text-gray-800 mb-4">Total Sessions Completed</h3>
-                <div class="grid grid-cols-2 gap-4 text-left mb-6">
-                    <div>
-                        <p class="text-gray-600 font-semibold">Last Week:</p>
-                        <ul id="statsLastWeek" class="list-disc list-inside text-gray-700"></ul>
-                    </div>
-                    <div>
-                        <p class="text-gray-600 font-semibold">Last Month:</p>
-                        <ul id="statsLastMonth" class="list-disc list-inside text-gray-700"></ul>
-                    </div>
-                    <div>
-                        <p class="text-gray-600 font-semibold">Last Year:</p>
-                        <ul id="statsLastYear" class="list-disc list-inside text-gray-700"></ul>
-                    </div>
-                    <div>
-                        <p class="text-gray-600 font-semibold">All Time:</p>
-                        <ul id="statsAllTime" class="list-disc list-inside text-gray-700"></ul>
-                    </div>
-                </div>
-                <p class="text-sm text-gray-500 mt-4">Stats are based on completed sessions.</p>
-            </div>
+        <!-- Rewards View (for children to redeem) -->
+        <div id="rewards-view" class="view hidden">
+            <h2 class="text-3xl font-bold text-gray-800 text-center mb-4">Redeem Rewards</h2>
+            <ul id="redeemableRewardList" class="bg-white rounded-xl divide-y divide-gray-200 shadow"></ul>
+            <button id="rewardsBackBtn" class="button btn-light w-full mt-4">Back</button>
         </div>
 
-        <!-- Redeem View -->
-        <div id="redeem-view" class="view">
-            <h2 class="text-center">Redeem Points</h2>
-            <div id="redeemableItemsList" class="flex flex-col gap-5 w-full">
-                <!-- Redeemable items will be dynamically loaded here -->
-                <p id="noRedeemablesMessage" class="text-center text-gray-500 card py-10">There are no redeemable items here yet. Ask a parent to add some!</p>
-            </div>
-        </div>
-
-        <!-- Parent View -->
-        <div id="parent-view" class="view">
-            <h2 class="text-center">Parent Zone</h2>
-            <div id="parent-login" class="card">
-                <div class="mb-6">
-                    <label for="parentPasswordLogin" class="block text-gray-700 text-base font-bold mb-2">Parent Password:</label>
-                    <input type="password" id="parentPasswordLogin" class="input-field" placeholder="Enter parent password">
-                </div>
-                <button id="parentLoginBtn" class="btn-primary w-full">Login</button>
-                <!-- New button for clearing data when password is forgotten -->
-                <button id="clearDataPreLoginBtn" class="btn-danger w-full mt-4">Forgot Password? Clear All Data</button>
-            </div>
-
-            <div id="parent-dashboard" class="hidden flex flex-col w-full">
-                <!-- Change Password Section -->
-                <div class="card mb-8">
-                    <h3 class="text-xl font-bold text-gray-800 mb-4">Change Parent Password</h3>
-                    <div class="mb-5">
-                        <label for="newParentPasswordInput" class="block text-gray-700 text-base font-bold mb-2">New Password:</label>
-                        <input type="password" id="newParentPasswordInput" class="input-field" placeholder="Enter new password">
-                    </div>
-                    <div class="mb-7">
-                        <label for="confirmNewParentPasswordInput" class="block text-gray-700 text-base font-bold mb-2">Confirm New Password:</label>
-                        <input type="password" id="confirmNewParentPasswordInput" class="input-field" placeholder="Confirm new password">
-                    </div>
-                    <button id="changeParentPasswordBtn" class="btn-primary w-full">Change Password</button>
+        <!-- Parent Zone View -->
+        <div id="parent-zone-view" class="view hidden">
+            <h2 class="text-3xl font-bold text-gray-800 text-center mb-4">Parent Zone</h2>
+            <div class="flex flex-col gap-4">
+                <!-- Sound Toggle -->
+                <div class="flex items-center justify-between p-4 bg-gray-100 rounded-xl">
+                    <span class="text-lg font-semibold text-gray-800">Timer Sound</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="timerSoundToggle" checked>
+                        <span class="slider"></span>
+                    </label>
                 </div>
 
-                <!-- Sound Control Section -->
-                <div class="card mb-8">
-                    <h3 class="text-xl font-bold text-gray-800 mb-4">Sound Settings</h3>
-                    <div class="flex items-center justify-between">
-                        <span class="text-gray-700 text-base font-bold">Timer Sound:</span>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="timerSoundToggle">
-                            <span class="slider"></span>
-                        </label>
-                    </div>
+                <!-- Set Rounds Control -->
+                <div class="flex items-center justify-between p-4 bg-gray-100 rounded-xl">
+                    <span class="text-lg font-semibold text-gray-800">Set Exercise Rounds</span>
+                    <input type="number" id="roundsInput" min="1" value="3" class="w-24 px-3 py-2 border border-gray-300 rounded-lg text-center font-medium">
                 </div>
 
-                <!-- Manage Exercises Section -->
-                <div class="card mb-8">
-                    <h3 class="text-xl font-bold text-gray-800 mb-4">Manage Exercises</h3>
-                    <div class="mb-5">
-                        <label for="exerciseCategorySelect" class="block text-gray-700 text-base font-bold mb-2">Select Category:</label>
-                        <select id="exerciseCategorySelect" class="input-field">
-                            <option value="exercises">Standard Exercises</option>
-                            <option value="legStretches3min">Leg Stretches (3 min)</option>
-                            <option value="legStretches9min">Leg Stretches (9 min)</option>
-                        </select>
+                <!-- Exercise Management -->
+                <div class="mt-4">
+                    <h3 class="text-2xl font-semibold text-gray-800 mb-2">Manage Exercises</h3>
+                    <div id="exerciseForm" class="bg-gray-100 p-4 rounded-xl mb-4">
+                        <div class="mb-2">
+                            <label for="exerciseNameInput" class="block text-sm font-medium text-gray-700">Name</label>
+                            <input type="text" id="exerciseNameInput" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        </div>
+                        <div class="flex items-center justify-between gap-4">
+                            <div class="mb-2 w-full">
+                                <label for="durationInput" class="block text-sm font-medium text-gray-700">Duration (seconds)</label>
+                                <input type="number" id="durationInput" min="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            </div>
+                            <div class="flex items-center gap-2 mb-2">
+                                <input type="checkbox" id="manualExerciseToggle" class="rounded text-blue-500 focus:ring-blue-500">
+                                <label for="manualExerciseToggle" class="text-sm font-medium text-gray-700">Manual</label>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label for="pointsInput" class="block text-sm font-medium text-gray-700">Points</label>
+                            <input type="number" id="pointsInput" min="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        </div>
+                        <div class="flex-center gap-2">
+                            <button id="addExerciseBtn" class="button btn-primary w-full">Add Exercise</button>
+                            <button id="cancelEditBtn" class="button btn-light hidden">Cancel Edit</button>
+                        </div>
                     </div>
-
-                    <h4 class="text-lg font-semibold text-gray-700 mb-3 mt-6">Current Exercises:</h4>
-                    <div id="currentExercisesList" class="flex flex-col gap-3 mb-8">
-                        <p class="text-center text-gray-500 py-4">Loading exercises...</p>
-                    </div>
-
-                    <h4 class="text-lg font-semibold text-gray-700 mb-3">Add New Exercise:</h4>
-                    <div class="mb-4">
-                        <label for="newExerciseName" class="block text-gray-700 text-base font-bold mb-2">Name:</label>
-                        <input type="text" id="newExerciseName" class="input-field" placeholder="e.g., Jumping Jacks">
-                    </div>
-                    <div class="mb-4">
-                        <label for="newExerciseType" class="block text-gray-700 text-base font-bold mb-2">Type:</label>
-                        <select id="newExerciseType" class="input-field">
-                            <option value="timed">Timed</option>
-                            <option value="done">Manual (Done)</option>
-                        </select>
-                    </div>
-                    <div id="newExerciseTimedOptions" class="mb-4">
-                        <label for="newExerciseTime" class="block text-gray-700 text-base font-bold mb-2">Time (seconds):</label>
-                        <input type="number" id="newExerciseTime" class="input-field" placeholder="e.g., 60" min="1">
-                        <label for="newExercisePointsPerSecond" class="block text-gray-700 text-base font-bold mb-2 mt-4">Points per Second:</label>
-                        <input type="number" id="newExercisePointsPerSecond" class="input-field" placeholder="e.g., 1" min="1">
-                    </div>
-                    <div id="newExerciseDoneOptions" class="mb-4 hidden">
-                        <label for="newExercisePoints" class="block text-gray-700 text-base font-bold mb-2">Points for Completion:</label>
-                        <input type="number" id="newExercisePoints" class="input-field" placeholder="e.g., 10" min="1">
-                    </div>
-                    <button id="addNewExerciseBtn" class="btn-primary w-full">Add Exercise</button>
+                    
+                    <ul id="exerciseList" class="bg-white rounded-xl divide-y divide-gray-200 shadow"></ul>
                 </div>
 
-
-                <!-- Add Points Manually Section -->
-                <div class="card mb-8">
-                    <h3 class="text-xl font-bold text-gray-800 mb-4">Manually Add Points</h3>
-                    <div class="mb-5">
-                        <label for="manualPointsInput" class="block text-gray-700 text-base font-bold mb-2">Points to Add:</label>
-                        <input type="number" id="manualPointsInput" class="input-field" placeholder="e.g., 50" min="1">
+                <!-- Reward Management -->
+                <div class="mt-4">
+                    <h3 class="text-2xl font-semibold text-gray-800 mb-2">Manage Rewards</h3>
+                    <div id="rewardForm" class="bg-gray-100 p-4 rounded-xl mb-4">
+                        <div class="mb-2">
+                            <label for="rewardNameInput" class="block text-sm font-medium text-gray-700">Reward Name</label>
+                            <input type="text" id="rewardNameInput" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        </div>
+                        <div class="mb-2">
+                            <label for="rewardPointsInput" class="block text-sm font-medium text-gray-700">Points Cost</label>
+                            <input type="number" id="rewardPointsInput" min="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        </div>
+                        <div class="flex items-center justify-between gap-4">
+                            <div class="mb-4 w-full">
+                                <label for="rewardUsesInput" class="block text-sm font-medium text-gray-700">Number of Uses</label>
+                                <input type="number" id="rewardUsesInput" min="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            </div>
+                            <div class="flex items-center gap-2 mb-4">
+                                <input type="checkbox" id="unlimitedUsesToggle" class="rounded text-blue-500 focus:ring-blue-500">
+                                <label for="unlimitedUsesToggle" class="text-sm font-medium text-gray-700">Unlimited</label>
+                            </div>
+                        </div>
+                        <div class="flex-center gap-2">
+                            <button id="addRewardBtn" class="button btn-primary w-full">Add Reward</button>
+                            <button id="cancelRewardEditBtn" class="button btn-light hidden">Cancel Edit</button>
+                        </div>
                     </div>
-                    <button id="addManualPointsBtn" class="btn-primary w-full">Add Points</button>
+                    
+                    <ul id="rewardList" class="bg-white rounded-xl divide-y divide-gray-200 shadow"></ul>
                 </div>
 
-                <div class="card mb-8">
-                    <h3 class="text-xl font-bold text-gray-800 mb-4">Add New Redeemable Item</h3>
-                    <div class="mb-5">
-                        <label for="redeemItemName" class="block text-gray-700 text-base font-bold mb-2">Item Name:</label>
-                        <input type="text" id="redeemItemName" class="input-field" placeholder="e.g., 30 mins screen time">
-                    </div>
-                    <div class="mb-7">
-                        <label for="redeemItemCost" class="block text-gray-700 text-base font-bold mb-2">Point Cost:</label>
-                        <input type="number" id="redeemItemCost" class="input-field" placeholder="e.g., 100" min="1">
-                    </div>
-                    <div class="mb-7">
-                        <label for="redeemItemUsageLimit" class="block text-gray-700 text-base font-bold mb-2">Usage Limit (leave blank for unlimited):</label>
-                        <input type="number" id="redeemItemUsageLimit" class="input-field" placeholder="e.g., 3" min="-1">
-                        <p class="text-sm text-gray-500 mt-1">Enter -1 for unlimited uses, or a positive number.</p>
-                    </div>
-                    <button id="addRedeemableBtn" class="btn-primary w-full">Add Item</button>
-                </div>
-
-                <div class="card mb-8">
-                    <h3 class="text-xl font-bold text-gray-800 mb-4">Manage Data</h3>
-                    <button id="signOutBtn" class="btn-danger w-full">Sign Out & Clear All Data</button>
-                </div>
-
-                <div class="card">
-                    <h3 class="text-xl font-bold text-gray-800 mb-4">Existing Redeemable Items</h3>
-                    <div id="parentRedeemableList" class="flex flex-col gap-4">
-                        <p id="noParentRedeemablesMessage" class="text-center text-gray-500 py-6">No redeemable items added yet.</p>
-                        <!-- Existing redeemable items will be listed here with delete buttons -->
-                    </div>
-                </div>
+                <!-- Clear All Data Button -->
+                <button id="clearDataBtn" class="button btn-danger w-full mt-4">Clear All Data</button>
+                <button id="parentBackBtn" class="button btn-light w-full">Back</button>
             </div>
         </div>
     </div>
 
-    <!-- Footer Navigation -->
-    <nav id="footerNav" class="footer-nav">
-        <button id="navHomeBtn" class="active">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
-                <path d="M11.47 3.84a.75.75 0 0 1 1.06 0l8.69 8.69a1.5 1.5 0 0 0 2.12 0.049l-1.49-1.49c-.272-.271-.497-.56-.676-.864l-4.935-4.935a.75.75 0 0 0-1.06 0L9.47 9.16a.75.75 0 1 1-1.06-1.06l7.16-7.16Z" />
-                <path fill-rule="evenodd" d="M12.53 16.22a.75.75 0 0 0-1.06 0l-7.5 7.5a.75.75 0 0 0 1.06 1.06L12 17.78l6.97 6.97a.75.75 0 1 0 1.06-1.06l-7.5-7.5Z" clip-rule="evenodd" />
-                <path fill-rule="evenodd" d="M12 1.5a.75.75 0 0 1 .75.75V4.5a.75.75 0 0 1-1.5 0V2.25A.75.75 0 0 1 12 1.5Z" clip-rule="evenodd" />
-            </svg>
-            Home
-        </button>
-        <button id="navSessionBtn">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
-                <path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12.75 6a.75.75 0 0 0-1.5 0v6c0 .414.336.75.75.75h4.5a.75.75 0 0 0 0-1.5h-3.75V6Z" clip-rule="evenodd" />
-            </svg>
-            Session
-        </button>
-        <button id="navStatsBtn">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
-                <path fill-rule="evenodd" d="M2.25 11.25a.75.75 0 0 1 .75-.75h2.25a.75.75 0 0 1 .75.75v6.75a.75.75 0 0 1-.75.75H3a.75.75 0 0 1-.75-.75v-6.75ZM7.5 9A.75.75 0 0 1 8.25 8.25h2.25a.75.75 0 0 1 .75.75v9A.75.75 0 0 1 10.5 18h-2.25a.75.75 0 0 1-.75-.75V9ZM12.75 6A.75.75 0 0 1 13.5 5.25h2.25a.75.75 0 0 1 .75.75v12.75a.75.75 0 0 1-.75.75H13.5a.75.75 0 0 1-.75-.75V6ZM18 2.25A.75.75 0 0 1 18.75 1.5h2.25a.75.75 0 0 1 .75.75v16.5a.75.75 0 0 1-.75.75H18.75a.75.75 0 0 1-.75-.75V2.25Z" clip-rule="evenodd" />
-            </svg>
-            Stats
-        </button>
-        <button id="navRedeemBtn">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
-                <path d="M12 9a3.75 3.75 0 1 0 0 7.5A3.75 3.75 0 0 0 12 9Z" />
-                <path fill-rule="evenodd" d="M9.344 3.071a49.52 49.52 0 0 0-1.05 1.954A9.755 9.755 0 0 0 12 21.75c3.218 0 6.355-.676 9.205-1.954.38-.165.657-.439.757-.776l.004-.01c.041-.12.029-.25-.022-.363-.01-.02-.023-.038-.037-.056A49.953 49.953 0 0 0 12 3.071ZM12 2.25c-1.074 0-2.09-.07-3.071-.204A50.363 50.363 0 0 1 12 2.25Z" clip-rule="evenodd" />
-            </svg>
-            Redeem
-        </button>
-        <button id="navParentBtn">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
-                <path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.438-.695Z" clip-rule="evenodd" />
-            </svg>
-            Parent
-        </button>
-    </nav>
+    <!-- Message & Confirm Boxes (for no alerts) -->
+    <div id="messageBox" class="message-box hidden">
+        <p id="messageText" class="text-gray-800 text-lg mb-4"></p>
+        <button id="closeMessageBtn" class="button btn-primary">OK</button>
+    </div>
+    <div id="confirmBox" class="confirm-box hidden">
+        <p id="confirmText" class="text-gray-800 text-lg mb-4"></p>
+        <div class="flex-center gap-4">
+            <button id="confirmYesBtn" class="button btn-primary">Yes</button>
+            <button id="confirmNoBtn" class="button btn-light">No</button>
+        </div>
+    </div>
+
+    <!-- Audio Element for timer end sound -->
+    <audio id="timerEndSound" src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YRIAAACuDwAApEwAAGY6AAC/PQAA+z0AAH87AAAHOQAAnDkAAJ88AACXOwAAu0MAAMw9AABrRAAA+zwAAN48AADiPAAA9jwAALRAAAA="></audio>
 
     <script>
-        // Global state variables
-        let userName = '';
-        let parentPassword = '';
-        let totalPoints = 0;
-        let redeemableItems = []; // { name: "Item Name", cost: 100, id: "unique-id", usageLimit: -1, timesUsed: 0 }
-        let sessionHistory = []; // { type: 'exercises'|'legStretches3min'|'legStretches9min', timestamp: Date.now(), roundsCompleted: number }
-        let isTimerSoundEnabled = true; // New state variable for sound control
-        let timerInterval = null; // Declare timerInterval globally here
-
-        // Session specific state (now consolidated into one object for easier saving/loading)
-        let sessionState = {
-            isActive: false,
-            typeKey: null,
-            currentRound: 1,
-            currentExerciseIndex: 0,
-            timerSeconds: 0,
-            sessionPoints: 0
-        };
-
-        // Exercise definitions for different session types
-        const initialSessionTypes = { // Use a constant for initial, modify a mutable copy
-            'exercises': {
-                name: "Standard Exercises",
-                sequence: [
-                    { id: 'ex1', name: "Front Plank", time: 90, pointsPerSecond: 1, type: "timed" },
-                    { id: 'ex2', name: "Hollow Hold", time: 40, pointsPerSecond: 1, type: "timed" },
-                    { id: 'ex3', name: "Pushups", time: 0, points: 5, type: "done" },
-                    { id: 'ex4', name: "Wall Sit", time: 90, pointsPerSecond: 1, type: "timed" }
-                ],
-                rounds: 3
-            },
-            'legStretches3min': {
-                name: "Leg Stretches (3 min rounds)",
-                sequence: [
-                    { id: 'ls3r1', name: "Right Leg Stretch", time: 180, pointsPerSecond: 1, type: "timed" },
-                    { id: 'ls3r2', name: "Left Leg Stretch", time: 180, pointsPerSecond: 1, type: "timed" }
-                ],
-                rounds: 3 // This means 3 pairs of (Right, Left)
-            },
-            'legStretches9min': {
-                name: "Leg Stretches (9 min single)",
-                sequence: [
-                    { id: 'ls9s1', name: "Right Leg Stretch", time: 540, pointsPerSecond: 2, type: "timed" }, // double points
-                    { id: 'ls9s2', name: "Left Leg Stretch", time: 540, pointsPerSecond: 2, type: "timed" }  // double points
-                ],
-                rounds: 1 // Only one pair
-            }
-        };
-        let sessionTypes = {}; // This will be the mutable copy loaded from storage or initial
-
-        let currentExercisesSequence = []; // The actual sequence for the current session
-
-        // DOM Elements
-        const setupView = document.getElementById('setup-view');
-        const userNameInput = document.getElementById('userNameInput');
-        const parentPasswordInput = document.getElementById('parentPasswordInput');
-        const setupSaveBtn = document.getElementById('setupSaveBtn');
-
-        const homeView = document.getElementById('home-view');
-        const helloGreeting = document.getElementById('helloGreeting');
-        const totalPointsDisplay = document.getElementById('totalPointsDisplay');
-        const startNewSessionBtnHome = document.getElementById('startNewSessionBtnHome');
-
-        const sessionView = document.getElementById('session-view');
-        const sessionIntro = document.getElementById('session-intro');
-        const chooseExercisesBtn = document.getElementById('chooseExercisesBtn');
-        const chooseLegStretchesBtn = document.getElementById('chooseLegStretchesBtn');
-        const legStretchesOptions = document.getElementById('leg-stretches-options');
-        const start3MinLegStretchesBtn = document.getElementById('start3MinLegStretchesBtn');
-        const start9MinLegStretchesBtn = document.getElementById('start9MinLegStretchesBtn');
-        const backToSessionIntroBtn = document.getElementById('backToSessionIntroBtn');
-
-        const sessionActive = document.getElementById('session-active');
-        const currentRoundDisplay = document.getElementById('currentRoundDisplay');
-        const sessionPointsDisplay = document.getElementById('sessionPointsDisplay');
-        const exerciseCard = document.getElementById('exerciseCard');
-        const exerciseName = document.getElementById('exerciseName');
-        const exerciseDetails = document.getElementById('exerciseDetails');
-        const timerDisplay = document.getElementById('timerDisplay');
-        const exerciseActionBtn = document.getElementById('exerciseActionBtn');
-        const nextExerciseHint = document.getElementById('nextExerciseHint');
-        const endSessionNowBtn = document.getElementById('endSessionNowBtn');
-        const endSessionPoints = document.getElementById('endSessionPoints');
-        const sessionComplete = document.getElementById('session-complete');
-        const finalSessionPoints = document.getElementById('finalSessionPoints');
-        const backToHomeBtn = document.getElementById('backToHomeBtn');
-
-        const statsView = document.getElementById('stats-view');
-        const statsLastWeek = document.getElementById('statsLastWeek');
-        const statsLastMonth = document.getElementById('statsLastMonth');
-        const statsLastYear = document.getElementById('statsLastYear');
-        const statsAllTime = document.getElementById('statsAllTime');
-
-
-        const redeemView = document.getElementById('redeem-view');
-        const redeemableItemsList = document.getElementById('redeemableItemsList');
-        const noRedeemablesMessage = document.getElementById('noRedeemablesMessage');
-
-        const parentView = document.getElementById('parent-view');
-        const parentLogin = document.getElementById('parent-login');
-        const clearDataPreLoginBtn = document.getElementById('clearDataPreLoginBtn');
-        const parentPasswordLogin = document.getElementById('parentPasswordLogin');
-        const parentLoginBtn = document.getElementById('parentLoginBtn');
-        const parentDashboard = document.getElementById('parent-dashboard');
-        const newParentPasswordInput = document.getElementById('newParentPasswordInput');
-        const confirmNewParentPasswordInput = document.getElementById('confirmNewParentPasswordInput');
-        const changeParentPasswordBtn = document.getElementById('changeParentPasswordBtn');
-        const manualPointsInput = document.getElementById('manualPointsInput');
-        const addManualPointsBtn = document.getElementById('addManualPointsBtn');
-        const redeemItemName = document.getElementById('redeemItemName');
-        const redeemItemCost = document.getElementById('redeemItemCost');
-        const redeemItemUsageLimit = document.getElementById('redeemItemUsageLimit');
-        const addRedeemableBtn = document.getElementById('addRedeemableBtn');
-        const parentRedeemableList = document.getElementById('parentRedeemableList');
-        const noParentRedeemablesMessage = document.getElementById('noParentRedeemablesMessage');
-        const signOutBtn = document.getElementById('signOutBtn');
-
-        // Elements for Exercise Management
-        const exerciseCategorySelect = document.getElementById('exerciseCategorySelect');
-        const currentExercisesList = document.getElementById('currentExercisesList');
-        const newExerciseName = document.getElementById('newExerciseName');
-        const newExerciseType = document.getElementById('newExerciseType');
-        const newExerciseTimedOptions = document.getElementById('newExerciseTimedOptions');
-        const newExerciseTime = document.getElementById('newExerciseTime');
-        const newExercisePointsPerSecond = document.getElementById('newExercisePointsPerSecond');
-        const newExerciseDoneOptions = document.getElementById('newExerciseDoneOptions');
-        const newExercisePoints = document.getElementById('newExercisePoints');
-        const addNewExerciseBtn = document.getElementById('addNewExerciseBtn');
-
-        // New DOM element for sound toggle
-        const timerSoundToggle = document.getElementById('timerSoundToggle');
-
-        const footerNav = document.getElementById('footerNav');
-
-        const navHomeBtn = document.getElementById('navHomeBtn');
-        const navSessionBtn = document.getElementById('navSessionBtn');
-        const navStatsBtn = document.getElementById('navStatsBtn');
-        const navRedeemBtn = document.getElementById('navRedeemBtn');
-        const navParentBtn = document.getElementById('navParentBtn');
-
-        const messageBox = document.getElementById('messageBox');
-        const messageText = document.getElementById('messageText');
-        const messageBoxOk = document.getElementById('messageBoxOk');
-        const messageBoxYes = document.getElementById('messageBoxYes');
-        const messageBoxNo = document.getElementById('messageBoxNo');
-        const overlay = document.getElementById('overlay');
-
-        const timerEndSound = document.getElementById('timerEndSound');
-
-        /**
-         * Generates a unique ID (UUID v4).
-         * @returns {string} A unique ID.
-         */
-        function generateUUID() {
-            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-                return v.toString(16);
-            });
-        }
-
-        /**
-         * Adds a ripple effect to a clicked button.
-         * @param {Event} event - The click event.
-         */
-        function addRippleEffect(event) {
-            const button = event.currentTarget;
-            const ripple = document.createElement('span');
-            const diameter = Math.max(button.clientWidth, button.clientHeight);
-            const radius = diameter / 2;
-
-            ripple.style.width = ripple.style.height = `${diameter}px`;
-            ripple.style.left = `${event.clientX - (button.getBoundingClientRect().left + radius)}px`;
-            ripple.style.top = `${event.clientY - (button.getBoundingClientRect().top + radius)}px`;
-            ripple.classList.add('ripple');
-
-            const existingRipple = button.querySelector('.ripple');
-            if (existingRipple) {
-                existingRipple.remove();
-            }
-            button.appendChild(ripple);
-        }
-
-        /**
-         * Shows a custom message box for simple alerts.
-         * @param {string} message - The message to display.
-         * @param {function} [onOkCallback] - Optional callback for OK button.
-         */
-        function showMessageBox(message, onOkCallback) {
-            messageText.textContent = message;
-            messageBoxOk.classList.remove('hidden');
-            messageBoxYes.classList.add('hidden');
-            messageBoxNo.classList.add('hidden');
-
-            messageBoxOk.onclick = (event) => {
-                addRippleEffect(event);
-                hideMessageBox();
-                if (onOkCallback) onOkCallback();
-            };
-
-            messageBox.classList.add('active');
-            overlay.classList.add('active');
-        }
-
-        /**
-         * Shows a custom message box for confirmation (Yes/No).
-         * @param {string} message - The confirmation message.
-         * @param {function} onConfirmCallback - Function to call if 'Yes' is clicked.
-         * @param {function} [onCancelCallback] - Optional function to call if 'No' is clicked.
-         */
-        function showConfirmBox(message, onConfirmCallback, onCancelCallback) {
-            messageText.textContent = message;
-            messageBoxOk.classList.add('hidden');
-            messageBoxYes.classList.remove('hidden');
-            messageBoxNo.classList.remove('hidden');
-
-            // Clear previous listeners to prevent multiple calls
-            messageBoxYes.onclick = null;
-            messageBoxNo.onclick = null;
-
-            messageBoxYes.onclick = (event) => {
-                addRippleEffect(event);
-                hideMessageBox(); // Hide the box first
-                onConfirmCallback(); // Execute the callback
-            };
-            messageBoxNo.onclick = (event) => {
-                addRippleEffect(event);
-                hideMessageBox(); // Just hide the box
-                if (onCancelCallback) onCancelCallback();
-            };
-
-            messageBox.classList.add('active');
-            overlay.classList.add('active');
-        }
-
-        /**
-         * Hides the custom message box.
-         */
-        function hideMessageBox() {
-            messageBox.classList.remove('active');
-            overlay.classList.remove('active');
-        }
-
-        /**
-         * Plays the timer end sound if enabled.
-         */
-        function playTimerEndSound() {
-            if (isTimerSoundEnabled && timerEndSound) {
-                timerEndSound.currentTime = 0; // Rewind to start
-                timerEndSound.play().catch(e => console.error("Error playing sound:", e));
-            }
-        }
-
-        /**
-         * Saves current application data to local storage.
-         * @private
-         */
-        function saveData() {
-            localStorage.setItem('userName', userName);
-            localStorage.setItem('parentPassword', parentPassword);
-            localStorage.setItem('totalPoints', totalPoints.toString());
-            localStorage.setItem('redeemableItems', JSON.stringify(redeemableItems));
-            localStorage.setItem('sessionTypes', JSON.stringify(sessionTypes)); // Save dynamic session types
-            localStorage.setItem('sessionHistory', JSON.stringify(sessionHistory)); // Save session history
-            localStorage.setItem('isTimerSoundEnabled', isTimerSoundEnabled.toString()); // Save sound preference
-            localStorage.setItem('sessionState', JSON.stringify(sessionState)); // Save current session state
-            localStorage.setItem('hasVisitedBefore', 'true');
-        }
-
-        /**
-         * Loads application data from local storage.
-         * @private
-         */
-        function loadData() {
-            userName = localStorage.getItem('userName') || '';
-            parentPassword = localStorage.getItem('parentPassword') || '';
-            totalPoints = parseInt(localStorage.getItem('totalPoints') || '0');
-
-            try {
-                redeemableItems = JSON.parse(localStorage.getItem('redeemableItems') || '[]');
-                // Ensure new fields exist for old data
-                redeemableItems.forEach(item => {
-                    if (item.usageLimit === undefined) item.usageLimit = -1; // Default to unlimited
-                    if (item.timesUsed === undefined) item.timesUsed = 0;
-                });
-            } catch (e) {
-                console.error("Error parsing redeemable items from local storage:", e);
-                redeemableItems = []; // Reset if corrupted
-            }
-
-            try {
-                const storedSessionTypes = JSON.parse(localStorage.getItem('sessionTypes'));
-                if (!storedSessionTypes) { // If no custom session types, use initial ones
-                    sessionTypes = JSON.parse(JSON.stringify(initialSessionTypes)); // Deep copy
-                } else {
-                    sessionTypes = storedSessionTypes;
-                    // Ensure all initial session types exist and have IDs for old data
-                    for (const key in initialSessionTypes) {
-                        if (!sessionTypes[key]) {
-                            sessionTypes[key] = initialSessionTypes[key];
-                        }
-                        // Ensure exercises within sessionTypes have IDs
-                        sessionTypes[key].sequence.forEach(exercise => {
-                            if (!exercise.id) {
-                                exercise.id = generateUUID();
-                            }
-                        });
-                    }
-                }
-            } catch (e) {
-                console.error("Error parsing session types from local storage:", e);
-                sessionTypes = JSON.parse(JSON.stringify(initialSessionTypes)); // Reset to initial if corrupted
-            }
-
-            try {
-                sessionHistory = JSON.parse(localStorage.getItem('sessionHistory') || '[]');
-            } catch (e) {
-                console.error("Error parsing session history from local storage:", e);
-                sessionHistory = []; // Reset if corrupted
-            }
-
-            // Load sound preference, default to true if not found
-            isTimerSoundEnabled = localStorage.getItem('isTimerSoundEnabled') === 'true';
-
-            // Load session state
-            try {
-                const storedSessionState = JSON.parse(localStorage.getItem('sessionState'));
-                if (storedSessionState && storedSessionState.isActive) {
-                    sessionState = storedSessionState;
-                    // Ensure currentExercisesSequence is correctly set based on loaded typeKey
-                    if (sessionState.typeKey && sessionTypes[sessionState.typeKey]) {
-                        currentExercisesSequence = sessionTypes[sessionState.typeKey].sequence;
-                    }
-                } else {
-                    // Reset sessionState if not active or corrupted
-                    sessionState = { isActive: false, typeKey: null, currentRound: 1, currentExerciseIndex: 0, timerSeconds: 0, sessionPoints: 0 };
-                }
-            } catch (e) {
-                console.error("Error parsing session state from local storage:", e);
-                sessionState = { isActive: false, typeKey: null, currentRound: 1, currentExerciseIndex: 0, timerSeconds: 0, sessionPoints: 0 };
-            }
-        }
-
-        /**
-         * Renders the specified view and hides others.
-         * @param {string} viewId - The ID of the view to activate (e.g., 'home-view').
-         */
-        function renderView(viewId) {
-            // If setup is not complete, force to setup view
-            if (!localStorage.getItem('hasVisitedBefore') && viewId !== 'setup-view') {
-                viewId = 'setup-view';
-            }
-
-            const views = [setupView, homeView, sessionView, statsView, redeemView, parentView]; // Added statsView
-            views.forEach(view => {
-                if (view.id === viewId) {
-                    view.classList.add('active');
-                } else {
-                    view.classList.remove('active');
-                }
-            });
-
-            // Control footer navigation visibility
-            if (localStorage.getItem('hasVisitedBefore')) {
-                footerNav.classList.add('visible');
-            } else {
-                footerNav.classList.remove('visible');
-            }
-
-            // Update footer button active state
-            const navButtons = [navHomeBtn, navSessionBtn, navStatsBtn, navRedeemBtn, navParentBtn]; // Added navStatsBtn
-            navButtons.forEach(btn => btn.classList.remove('active'));
-            if (viewId === 'home-view') navHomeBtn.classList.add('active');
-            else if (viewId === 'session-view') navSessionBtn.classList.add('active');
-            else if (viewId === 'stats-view') navStatsBtn.classList.add('active'); // Activate stats button
-            else if (viewId === 'redeem-view') navRedeemBtn.classList.add('active');
-            else if (viewId === 'parent-view') navParentBtn.classList.add('active');
-
-            // Specific view rendering logic
-            if (viewId === 'home-view') {
-                renderHome();
-            } else if (viewId === 'session-view') {
-                renderSession();
-            } else if (viewId === 'stats-view') { // New stats rendering
-                renderStats();
-            } else if (viewId === 'redeem-view') {
-                renderRedeem();
-            } else if (viewId === 'parent-view') {
-                // Reset parent dashboard view state on entry
-                parentLogin.classList.remove('hidden');
-                parentDashboard.classList.add('hidden');
-                parentPasswordLogin.value = ''; // Clear password input
-                // Clear password change inputs when entering parent view
-                newParentPasswordInput.value = '';
-                confirmNewParentPasswordInput.value = '';
-                // Set the initial state of the sound toggle
-                timerSoundToggle.checked = isTimerSoundEnabled;
-                // Render exercises list for default category
-                renderExercisesList(exerciseCategorySelect.value);
-            }
-        }
-
-        /**
-         * Renders the Home view content.
-         */
-        function renderHome() {
-            totalPointsDisplay.textContent = totalPoints;
-            if (userName) {
-                helloGreeting.textContent = `Hello, ${userName}!`;
-                helloGreeting.classList.remove('hidden');
-            } else {
-                helloGreeting.classList.add('hidden');
-            }
-        }
-
-        /**
-         * Renders the Session view content based on session state.
-         */
-        function renderSession() {
-            // If a session is active, ensure the active session UI is shown
-            if (sessionState.isActive) {
-                sessionIntro.classList.add('hidden');
-                legStretchesOptions.classList.add('hidden'); // Hide stretch options too
-                sessionActive.classList.remove('hidden');
-                sessionComplete.classList.add('hidden');
-                loadExercise(); // Load the exercise from the saved state
-            } else {
-                // If no session is active, show the intro to start one
-                sessionIntro.classList.remove('hidden');
-                legStretchesOptions.classList.add('hidden'); // Ensure hidden initially
-                sessionActive.classList.add('hidden');
-                sessionComplete.classList.add('hidden');
-            }
-            endSessionPoints.textContent = sessionState.sessionPoints;
-        }
-
-        /**
-         * Starts a new exercise session based on the chosen type.
-         * @param {string} sessionTypeKey - Key from sessionTypes object.
-         */
-        function startSession(sessionTypeKey) {
-            sessionState.isActive = true;
-            sessionState.typeKey = sessionTypeKey;
-            sessionState.currentRound = 1;
-            sessionState.currentExerciseIndex = 0;
-            sessionState.sessionPoints = 0;
-            sessionState.timerSeconds = 0; // Reset timer for new session
-
-            currentExercisesSequence = sessionTypes[sessionState.typeKey].sequence; // Set sequence for current session
-
-            sessionIntro.classList.add('hidden');
-            legStretchesOptions.classList.add('hidden');
-            sessionActive.classList.remove('hidden');
-            sessionComplete.classList.add('hidden');
-            saveSessionProgress(); // Save initial session state
-            loadExercise();
-        }
-
-        /**
-         * Loads and displays the current exercise.
-         */
-        function loadExercise() {
-            // Check if all rounds are complete for the current session type
-            if (sessionState.currentRound > sessionTypes[sessionState.typeKey].rounds) {
-                endSession();
-                return;
-            }
-
-            // Check if all exercises in the current sequence are done for the current round
-            if (sessionState.currentExerciseIndex >= currentExercisesSequence.length) {
-                sessionState.currentRound++;
-                sessionState.currentExerciseIndex = 0; // Reset for next exercise in the new round
-                if (sessionState.currentRound <= sessionTypes[sessionState.typeKey].rounds) {
-                    exerciseName.textContent = `Round ${sessionState.currentRound} Ready!`;
-                    exerciseDetails.textContent = `Click 'Continue' to start Round ${sessionState.currentRound}.`;
-                    timerDisplay.textContent = ""; // Clear timer
-                    exerciseActionBtn.textContent = `Continue to Round ${sessionState.currentRound}`;
-                    exerciseActionBtn.disabled = false;
-                    exerciseActionBtn.onclick = (event) => { addRippleEffect(event); loadExercise(); };
-                    nextExerciseHint.textContent = "";
-                    updateSessionUI();
-                    saveSessionProgress(); // Save state after round transition
-                    return;
-                } else {
-                    endSession(); // All rounds and exercises complete
-                    return;
-                }
-            }
-
-            const exercise = currentExercisesSequence[sessionState.currentExerciseIndex];
-            exerciseName.textContent = exercise.name;
-            currentRoundDisplay.textContent = sessionState.currentRound;
-            sessionPointsDisplay.textContent = sessionState.sessionPoints;
-            endSessionPoints.textContent = sessionState.sessionPoints;
-
-            clearInterval(timerInterval); // Clear any existing timer
-
-            if (exercise.type === "timed") {
-                sessionState.timerSeconds = exercise.time; // Use sessionState.timerSeconds
-                exerciseDetails.textContent = `Time: ${exercise.time}s | Points: ${exercise.time * exercise.pointsPerSecond} (at ${exercise.pointsPerSecond} point/sec)`;
-                exerciseActionBtn.textContent = "Start Timer";
-                exerciseActionBtn.disabled = false;
-                exerciseActionBtn.onclick = (event) => { addRippleEffect(event); startTimer(); };
-                updateTimerDisplay();
-                const nextHint = sessionState.currentExerciseIndex + 1 < currentExercisesSequence.length ?
-                                 currentExercisesSequence[sessionState.currentExerciseIndex + 1].name :
-                                 (sessionState.currentRound < sessionTypes[sessionState.typeKey].rounds ? `Round ${sessionState.currentRound + 1}` : "Session End");
-                nextExerciseHint.textContent = "Next: " + nextHint;
-            } else if (exercise.type === "done") {
-                sessionState.timerSeconds = 0; // Ensure timer is reset for manual
-                exerciseDetails.textContent = `Points: ${exercise.points}`;
-                timerDisplay.textContent = "Manual";
-                exerciseActionBtn.textContent = "Done";
-                exerciseActionBtn.disabled = false;
-                exerciseActionBtn.onclick = (event) => { addRippleEffect(event); completeManualExercise(); };
-                const nextHint = sessionState.currentExerciseIndex + 1 < currentExercisesSequence.length ?
-                                 currentExercisesSequence[sessionState.currentExerciseIndex + 1].name :
-                                 (sessionState.currentRound < sessionTypes[sessionState.typeKey].rounds ? `Round ${sessionState.currentRound + 1}` : "Session End");
-                nextExerciseHint.textContent = "Next: " + nextHint;
-            }
-            saveSessionProgress(); // Save state after loading exercise
-        }
-
-
-        /**
-         * Starts the timer for a timed exercise.
-         */
-        function startTimer() {
-            const exercise = currentExercisesSequence[sessionState.currentExerciseIndex];
-            exerciseActionBtn.textContent = "Running...";
-            exerciseActionBtn.disabled = true; // Disable button during timer
-            timerInterval = setInterval(() => {
-                if (sessionState.timerSeconds > 0) {
-                    sessionState.timerSeconds--;
-                    sessionState.sessionPoints += exercise.pointsPerSecond; // Earn points based on exercise definition
-                    updateTimerDisplay();
-                    sessionPointsDisplay.textContent = sessionState.sessionPoints;
-                    endSessionPoints.textContent = sessionState.sessionPoints;
-                } else {
-                    clearInterval(timerInterval);
-                    playTimerEndSound(); // Play sound when timer ends
-                    exerciseActionBtn.textContent = "Next Exercise"; // Change button text
-                    exerciseActionBtn.disabled = false; // Re-enable button
-                    exerciseActionBtn.onclick = (event) => { addRippleEffect(event); proceedToNextExercise(); }; // Set new handler
-                }
-                saveSessionProgress(); // Save progress every second
-            }, 1000);
-        }
-
-        /**
-         * Updates the timer display.
-         */
-        function updateTimerDisplay() {
-            const minutes = Math.floor(sessionState.timerSeconds / 60);
-            const seconds = sessionState.timerSeconds % 60;
-            timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-        }
-
-        /**
-         * Proceeds to the next exercise after a timed exercise completes and user clicks.
-         */
-        function proceedToNextExercise() {
-            sessionState.currentExerciseIndex++;
-            saveSessionProgress(); // Save state before loading next
-            loadExercise(); // Load next exercise or round
-        }
-
-        /**
-         * Completes a manual exercise (e.g., Pushups).
-         */
-        function completeManualExercise() {
-            const exercise = currentExercisesSequence[sessionState.currentExerciseIndex];
-            sessionState.sessionPoints += exercise.points; // Add fixed points
-            sessionPointsDisplay.textContent = sessionState.sessionPoints;
-            endSessionPoints.textContent = sessionState.sessionPoints;
-            sessionState.currentExerciseIndex++;
-            saveSessionProgress(); // Save state after manual completion
-            loadExercise(); // Load next exercise or round
-        }
-
-        /**
-         * Updates the session UI elements.
-         */
-        function updateSessionUI() {
-            currentRoundDisplay.textContent = sessionState.currentRound;
-            sessionPointsDisplay.textContent = sessionState.sessionPoints;
-            endSessionPoints.textContent = sessionState.sessionPoints;
-        }
-
-        /**
-         * Saves the current session progress to local storage.
-         */
-        function saveSessionProgress() {
-            localStorage.setItem('sessionState', JSON.stringify(sessionState));
-            saveData(); // Call main saveData to ensure all data is consistent
-        }
-
-        /**
-         * Ends the current session and updates total points.
-         */
-        function endSession() {
-            clearInterval(timerInterval);
-            const earnedPoints = sessionState.sessionPoints; // Capture points before reset
-            totalPoints += earnedPoints;
-            // Record session completion in history
-            sessionHistory.push({
-                type: sessionState.typeKey,
-                timestamp: Date.now(),
-                roundsCompleted: sessionState.currentRound - 1 // Store the number of rounds actually completed
-            });
-            // Reset session state
-            sessionState = { isActive: false, typeKey: null, currentRound: 1, currentExerciseIndex: 0, timerSeconds: 0, sessionPoints: 0 };
-            saveData(); // Save updated total points and history, and clear session state
-            sessionActive.classList.add('hidden');
-            sessionComplete.classList.remove('hidden');
-            finalSessionPoints.textContent = earnedPoints; // Use captured points for display
-            renderHome(); // Update home view points
-        }
-
-        /**
-         * Renders the Stats view content.
-         */
-        function renderStats() {
-            const now = Date.now();
-            const oneWeekAgo = now - (7 * 24 * 60 * 60 * 1000);
-            const oneMonthAgo = now - (30 * 24 * 60 * 60 * 1000); // Approximation
-            const oneYearAgo = now - (365 * 24 * 60 * 60 * 1000); // Approximation
-
-            const filterSessions = (startTime) => {
-                return sessionHistory.filter(session => session.timestamp >= startTime);
-            };
-
-            const calculateStats = (filteredSessions) => {
-                const stats = {};
-                for (const typeKey in sessionTypes) {
-                    stats[typeKey] = {
-                        sessions: 0,
-                        rounds: 0
-                    };
-                }
-
-                filteredSessions.forEach(session => {
-                    if (stats[session.type]) {
-                        stats[session.type].sessions++;
-                        stats[session.type].rounds += session.roundsCompleted;
-                    }
-                });
-                return stats;
-            };
-
-            const displayStats = (elementId, stats) => {
-                const ul = document.getElementById(elementId);
-                ul.innerHTML = '';
-                let hasStats = false;
-                for (const typeKey in stats) {
-                    if (stats[typeKey].sessions > 0) {
-                        const li = document.createElement('li');
-                        li.textContent = `${sessionTypes[typeKey].name}: ${stats[typeKey].sessions} sessions, ${stats[typeKey].rounds} rounds`;
-                        ul.appendChild(li);
-                        hasStats = true;
-                    }
-                }
-                if (!hasStats) {
-                    const li = document.createElement('li');
-                    li.textContent = 'No data.';
-                    ul.appendChild(li);
-                }
-            };
-
-            displayStats('statsLastWeek', calculateStats(filterSessions(oneWeekAgo)));
-            displayStats('statsLastMonth', calculateStats(filterSessions(oneMonthAgo)));
-            displayStats('statsLastYear', calculateStats(filterSessions(oneYearAgo)));
-            displayStats('statsAllTime', calculateStats(sessionHistory));
-        }
-
-
-        /**
-         * Renders the Redeem view content.
-         */
-        function renderRedeem() {
-            redeemableItemsList.innerHTML = ''; // Clear previous list
-            if (redeemableItems.length === 0) {
-                noRedeemablesMessage.classList.remove('hidden');
-            } else {
-                noRedeemablesMessage.classList.add('hidden');
-                redeemableItems.forEach(item => {
-                    const remainingUses = item.usageLimit === -1 ? "Unlimited" : (item.usageLimit - item.timesUsed);
-                    const canRedeem = totalPoints >= item.cost && (item.usageLimit === -1 || item.timesUsed < item.usageLimit);
-                    const buttonClass = canRedeem ? "btn-primary" : "btn-secondary opacity-50 cursor-not-allowed";
-                    const buttonDisabled = !canRedeem;
-
-                    const itemDiv = document.createElement('div');
-                    itemDiv.className = 'card flex justify-between items-center py-5 px-6';
-                    itemDiv.innerHTML = `
-                        <div>
-                            <p class="text-xl font-semibold text-gray-800">${item.name}</p>
-                            <p class="text-lg text-gray-600">${item.cost} Points</p>
-                            <p class="text-sm text-gray-500">Uses Remaining: ${remainingUses}</p>
-                        </div>
-                        <button class="${buttonClass} redeem-btn" data-id="${item.id}" ${buttonDisabled ? 'disabled' : ''}>Redeem</button>
-                    `;
-                    redeemableItemsList.appendChild(itemDiv);
-                });
-
-                // Attach event listeners to new redeem buttons
-                document.querySelectorAll('.redeem-btn').forEach(button => {
-                    if (!button.disabled) {
-                        button.onclick = (event) => { addRippleEffect(event); redeemItem(event.target.dataset.id); };
-                    }
-                });
-            }
-        }
-
-        /**
-         * Redeems an item, deducting points and tracking usage.
-         * @param {string} itemId - The ID of the item to redeem.
-         */
-        function redeemItem(itemId) {
-            const itemIndex = redeemableItems.findIndex(item => item.id === itemId);
-            if (itemIndex > -1) {
-                const item = redeemableItems[itemIndex];
-                if (totalPoints < item.cost) {
-                    showMessageBox(`You don't have enough points to redeem "${item.name}". You need ${item.cost} points, but you only have ${totalPoints}.`);
-                    return;
-                }
-                if (item.usageLimit !== -1 && item.timesUsed >= item.usageLimit) {
-                    showMessageBox(`"${item.name}" has reached its usage limit (${item.usageLimit} times) and cannot be redeemed again.`);
-                    return;
-                }
-
-                totalPoints -= item.cost;
-                item.timesUsed++; // Increment usage count
-                saveData();
-                showMessageBox(`You have redeemed "${item.name}" for ${item.cost} points! Your new total is ${totalPoints} points.`);
-
-                // Check if usage limit is reached after this redemption
-                if (item.usageLimit !== -1 && item.timesUsed >= item.usageLimit) {
-                    // Automatically delete the item if its limit is reached
-                    deleteRedeemableItem(item.id); // This will also re-render the list
-                    showMessageBox(`"${item.name}" has been fully used and removed from the list.`);
-                } else {
-                    renderHome(); // Update home view
-                    renderRedeem(); // Re-render redeem list to show updated uses
-                }
-            }
-        }
-
-        /**
-         * Renders the list of redeemable items in the Parent dashboard.
-         */
-        function renderParentRedeemableList() {
-            parentRedeemableList.innerHTML = ''; // Clear previous list
-            if (redeemableItems.length === 0) {
-                noParentRedeemablesMessage.classList.remove('hidden');
-            } else {
-                noParentRedeemablesMessage.classList.add('hidden');
-                redeemableItems.forEach(item => {
-                    const usageInfo = item.usageLimit === -1 ? "Unlimited" : `${item.timesUsed} / ${item.usageLimit} uses`;
-                    const itemDiv = document.createElement('div');
-                    itemDiv.className = 'flex justify-between items-center p-4 bg-gray-50 rounded-xl shadow-sm border border-gray-200';
-                    itemDiv.innerHTML = `
-                        <div>
-                            <p class="font-semibold text-gray-800">${item.name}</p>
-                            <p class="text-sm text-gray-600">${item.cost} Points</p>
-                            <p class="text-xs text-gray-500">Usage: ${usageInfo}</p>
-                        </div>
-                        <button class="btn-danger delete-redeem-btn" data-id="${item.id}">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
-                                <path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.518.148.023a.75.75 0 0 0 .23-1.482A10.004 10.004 0 0 0 14 4.193V3.75A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.828 0 1.5.672 1.5 1.5V12a.75.75 0 0 1-1.5 0V5.5c0-.828.672-1.5 1.5-1.5ZM8.5 5.5a.75.75 0 0 0-1.5 0V12a.75.75 0 0 0 1.5 0V5.5ZM12.25 5.5a.75.75 0 0 0-1.5 0V12a.75.75 0 0 0 1.5 0V5.5Z" clip-rule="evenodd" />
-                            </svg>
-                        </button>
-                    `;
-                    parentRedeemableList.appendChild(itemDiv);
-                });
-
-                // Attach event listeners to delete buttons
-                document.querySelectorAll('.delete-redeem-btn').forEach(button => {
-                    button.onclick = (event) => { addRippleEffect(event); deleteRedeemableItem(event.target.closest('button').dataset.id); };
-                });
-            }
-        }
-
-        /**
-         * Deletes a redeemable item from the list.
-         * @param {string} itemId - The ID of the item to delete.
-         */
-        function deleteRedeemableItem(itemId) {
-            redeemableItems = redeemableItems.filter(item => item.id !== itemId);
-            saveData();
-            renderParentRedeemableList(); // Re-render parent list
-            renderRedeem(); // Re-render user redeem list
-            // showMessageBox("Item deleted successfully!"); // Removed to avoid double message on auto-delete
-        }
-
-        /**
-         * Handles adding points manually from the parent dashboard.
-         */
-        function addManualPoints(event) {
-            addRippleEffect(event);
-            const pointsToAdd = parseInt(manualPointsInput.value);
-
-            if (!isNaN(pointsToAdd) && pointsToAdd > 0) {
-                totalPoints += pointsToAdd;
-                saveData();
-                manualPointsInput.value = ''; // Clear input field
-                showMessageBox(`${pointsToAdd} points added successfully! Total points: ${totalPoints}`);
-                renderHome(); // Update home view to reflect new total
-            } else {
-                showMessageBox("Please enter a valid positive number of points to add.");
-            }
-        }
-
-        /**
-         * Handles changing the parent password.
-         */
-        function changeParentPassword(event) {
-            addRippleEffect(event);
-            const newPass = newParentPasswordInput.value.trim();
-            const confirmPass = confirmNewParentPasswordInput.value.trim();
-
-            if (!newPass) {
-                showMessageBox("New password cannot be empty.");
-                return;
-            }
-            if (newPass !== confirmPass) {
-                showMessageBox("New password and confirmation do not match.");
-                return;
-            }
-
-            parentPassword = newPass;
-            saveData();
-            newParentPasswordInput.value = '';
-            confirmNewParentPasswordInput.value = '';
-            showMessageBox("Parent password successfully changed!");
-        }
-
-        /**
-         * Renders the list of exercises for the selected category in the parent dashboard.
-         * @param {string} categoryKey - The key for the exercise category (e.g., 'exercises', 'legStretches3min').
-         */
-        function renderExercisesList(categoryKey) {
-            const exercises = sessionTypes[categoryKey].sequence;
-            currentExercisesList.innerHTML = ''; // Clear previous list
-
-            if (exercises.length === 0) {
-                currentExercisesList.innerHTML = '<p class="text-center text-gray-500 py-4">No exercises in this category yet.</p>';
-                return;
-            }
-
-            exercises.forEach(exercise => {
-                const exerciseDiv = document.createElement('div');
-                exerciseDiv.className = 'exercise-item flex flex-col p-4 bg-gray-50 rounded-xl shadow-sm border border-gray-200';
-                exerciseDiv.dataset.id = exercise.id; // Store ID on the div
-
-                let details = `Type: ${exercise.type === 'timed' ? 'Timed' : 'Manual'}`;
-                if (exercise.type === 'timed') {
-                    details += ` | Time: ${exercise.time}s | Points/Sec: ${exercise.pointsPerSecond}`;
-                } else {
-                    details += ` | Points: ${exercise.points}`;
-                }
-
-                exerciseDiv.innerHTML = `
-                    <div class="display-mode">
-                        <p class="font-semibold text-gray-800">${exercise.name}</p>
-                        <p class="text-sm text-gray-600">${details}</p>
-                        <div class="flex gap-2 mt-3">
-                            <button class="btn-secondary text-sm px-3 py-1 edit-exercise-btn" data-category="${categoryKey}" data-id="${exercise.id}">Edit</button>
-                            <button class="btn-danger text-sm px-3 py-1 delete-exercise-btn" data-category="${categoryKey}" data-id="${exercise.id}">Delete</button>
-                        </div>
-                    </div>
-                    <div class="edit-mode">
-                        <label for="editName-${exercise.id}" class="block text-gray-700 text-sm font-bold mb-1">Name:</label>
-                        <input type="text" id="editName-${exercise.id}" class="input-field mb-2" value="${exercise.name}">
-
-                        <label for="editType-${exercise.id}" class="block text-gray-700 text-sm font-bold mb-1">Type:</label>
-                        <select id="editType-${exercise.id}" class="input-field mb-2">
-                            <option value="timed" ${exercise.type === 'timed' ? 'selected' : ''}>Timed</option>
-                            <option value="done" ${exercise.type === 'done' ? 'selected' : ''}>Manual (Done)</option>
-                        </select>
-
-                        <div id="editTimedOptions-${exercise.id}" class="${exercise.type === 'timed' ? '' : 'hidden'}">
-                            <label for="editTime-${exercise.id}" class="block text-gray-700 text-sm font-bold mb-1">Time (seconds):</label>
-                            <input type="number" id="editTime-${exercise.id}" class="input-field mb-2" value="${exercise.time || ''}" min="1">
-                            <label for="editPointsPerSecond-${exercise.id}" class="block text-gray-700 text-sm font-bold mb-1">Points per Second:</label>
-                            <input type="number" id="editPointsPerSecond-${exercise.id}" class="input-field mb-2" value="${exercise.pointsPerSecond || ''}" min="1">
-                        </div>
-
-                        <div id="editDoneOptions-${exercise.id}" class="${exercise.type === 'done' ? '' : 'hidden'}">
-                            <label for="editPoints-${exercise.id}" class="block text-gray-700 text-sm font-bold mb-1">Points for Completion:</label>
-                            <input type="number" id="editPoints-${exercise.id}" class="input-field mb-2" value="${exercise.points || ''}" min="1">
-                        </div>
-
-                        <div class="button-group flex justify-end gap-2">
-                            <button class="btn-primary text-sm px-3 py-1 save-exercise-btn" data-category="${categoryKey}" data-id="${exercise.id}">Save</button>
-                            <button class="btn-secondary text-sm px-3 py-1 cancel-edit-btn" data-category="${categoryKey}" data-id="${exercise.id}">Cancel</button>
-                        </div>
-                    </div>
-                `;
-                currentExercisesList.appendChild(exerciseDiv);
-            });
-
-            // Attach event listeners for edit and delete buttons
-            document.querySelectorAll('.edit-exercise-btn').forEach(button => {
-                button.onclick = (event) => {
-                    addRippleEffect(event);
-                    const category = event.target.dataset.category;
-                    const id = event.target.dataset.id;
-                    toggleEditMode(category, id, true); // Enable edit mode
-                };
-            });
-            document.querySelectorAll('.delete-exercise-btn').forEach(button => {
-                button.onclick = (event) => {
-                    addRippleEffect(event);
-                    const category = event.target.dataset.category;
-                    const id = event.target.dataset.id;
-                    deleteExercise(category, id);
-                };
-            });
-            // Attach event listeners for save and cancel buttons (newly created)
-            document.querySelectorAll('.save-exercise-btn').forEach(button => {
-                button.onclick = (event) => {
-                    addRippleEffect(event);
-                    const category = event.target.dataset.category;
-                    const id = event.target.dataset.id;
-                    saveEditedExercise(category, id);
-                };
-            });
-            document.querySelectorAll('.cancel-edit-btn').forEach(button => {
-                button.onclick = (event) => {
-                    addRippleEffect(event);
-                    const category = event.target.dataset.category;
-                    const id = event.target.dataset.id;
-                    toggleEditMode(category, id, false); // Disable edit mode
-                };
-            });
-            // Attach change listeners for type select within edit mode
-            document.querySelectorAll('[id^="editType-"]').forEach(select => {
-                select.onchange = (event) => {
-                    const exerciseId = event.target.id.split('-')[1];
-                    const timedOptions = document.getElementById(`editTimedOptions-${exerciseId}`);
-                    const doneOptions = document.getElementById(`editDoneOptions-${exerciseId}`);
-                    if (event.target.value === 'timed') {
-                        timedOptions.classList.remove('hidden');
-                        doneOptions.classList.add('hidden');
-                    } else {
-                        timedOptions.classList.add('hidden');
-                        doneOptions.classList.remove('hidden');
-                    }
-                };
-            });
-        }
-
-        /**
-         * Toggles the edit mode for a specific exercise item.
-         * @param {string} categoryKey - The key for the exercise category.
-         * @param {string} exerciseId - The ID of the exercise item.
-         * @param {boolean} enable - True to enable edit mode, false to disable.
-         */
-        function toggleEditMode(categoryKey, exerciseId, enable) {
-            const exerciseDiv = document.querySelector(`.exercise-item[data-id="${exerciseId}"]`);
-            if (exerciseDiv) {
-                if (enable) {
-                    exerciseDiv.classList.add('editing');
-                } else {
-                    exerciseDiv.classList.remove('editing');
-                    // Re-render the list to reset inputs if cancelled
-                    renderExercisesList(categoryKey);
-                }
-            }
-        }
-
-        /**
-         * Saves the changes made to an exercise in edit mode.
-         * @param {string} categoryKey - The key for the exercise category.
-         * @param {string} exerciseId - The ID of the exercise to save.
-         */
-        function saveEditedExercise(categoryKey, exerciseId) {
-            const exerciseIndex = sessionTypes[categoryKey].sequence.findIndex(ex => ex.id === exerciseId);
-            if (exerciseIndex === -1) {
-                showMessageBox("Error: Exercise not found for saving.");
-                return;
-            }
-
-            const nameInput = document.getElementById(`editName-${exerciseId}`);
-            const typeSelect = document.getElementById(`editType-${exerciseId}`);
-            const timeInput = document.getElementById(`editTime-${exerciseId}`);
-            const pointsPerSecondInput = document.getElementById(`editPointsPerSecond-${exercise.id}`);
-            const pointsInput = document.getElementById(`editPoints-${exerciseId}`);
-
-            const newName = nameInput.value.trim();
-            const newType = typeSelect.value;
-            let updatedExercise = { id: exerciseId, name: newName, type: newType };
-
-            if (!newName) {
-                showMessageBox("Exercise name cannot be empty.");
-                return;
-            }
-
-            if (newType === 'timed') {
-                const newTime = parseInt(timeInput.value);
-                const newPointsPerSecond = parseInt(pointsPerSecondInput.value);
-                if (isNaN(newTime) || newTime <= 0 || isNaN(newPointsPerSecond) || newPointsPerSecond <= 0) {
-                    showMessageBox("For timed exercises, please enter valid positive numbers for Time and Points per Second.");
-                    return;
-                }
-                updatedExercise.time = newTime;
-                updatedExercise.pointsPerSecond = newPointsPerSecond;
-                // Ensure other type properties are removed if type changes
-                delete updatedExercise.points;
-            } else if (newType === 'done') {
-                const newPoints = parseInt(pointsInput.value);
-                if (isNaN(newPoints) || newPoints <= 0) {
-                    showMessageBox("For manual exercises, please enter a valid positive number for Points.");
-                    return;
-                }
-                updatedExercise.points = newPoints;
-                // Ensure other type properties are removed if type changes
-                delete updatedExercise.time;
-                delete updatedExercise.pointsPerSecond;
-            }
-
-            sessionTypes[categoryKey].sequence[exerciseIndex] = updatedExercise;
-            saveData();
-            showMessageBox(`"${newName}" updated successfully!`);
-            renderExercisesList(categoryKey); // Re-render the list to show updated values and exit edit mode
-        }
-
-
-        /**
-         * Handles adding a new exercise to the selected category.
-         */
-        function addNewExercise(event) {
-            addRippleEffect(event);
-            const categoryKey = exerciseCategorySelect.value;
-            const name = newExerciseName.value.trim();
-            const type = newExerciseType.value;
-            let newExercise = { id: generateUUID(), name: name, type: type };
-
-            if (!name) {
-                showMessageBox("Exercise name cannot be empty.");
-                return;
-            }
-
-            if (type === 'timed') {
-                const time = parseInt(newExerciseTime.value);
-                const pointsPerSecond = parseInt(newExercisePointsPerSecond.value);
-                if (isNaN(time) || time <= 0 || isNaN(pointsPerSecond) || pointsPerSecond <= 0) {
-                    showMessageBox("For timed exercises, please enter valid positive numbers for Time and Points per Second.");
-                    return;
-                }
-                newExercise.time = time;
-                newExercise.pointsPerSecond = pointsPerSecond;
-            } else if (type === 'done') {
-                const points = parseInt(newExercisePoints.value);
-                if (isNaN(points) || points <= 0) {
-                    showMessageBox("For manual exercises, please enter a valid positive number for Points.");
-                    return;
-                }
-                newExercise.points = points;
-            }
-
-            sessionTypes[categoryKey].sequence.push(newExercise);
-            saveData();
-            showMessageBox(`"${name}" added to ${sessionTypes[categoryKey].name}.`);
-            newExerciseName.value = '';
-            newExerciseTime.value = '';
-            newExercisePointsPerSecond.value = '';
-            newExercisePoints.value = '';
-            renderExercisesList(categoryKey); // Re-render the list
-        }
-
-
-        /**
-         * Handles deleting an exercise from the selected category.
-         * @param {string} categoryKey - The key for the exercise category.
-         * @param {string} exerciseId - The ID of the exercise to delete.
-         */
-        function deleteExercise(categoryKey, exerciseId) {
-            showConfirmBox("Are you sure you want to delete this exercise?", () => {
-                sessionTypes[categoryKey].sequence = sessionTypes[categoryKey].sequence.filter(ex => ex.id !== exerciseId);
-                saveData();
-                showMessageBox("Exercise deleted successfully!");
-                renderExercisesList(categoryKey); // Re-render the list
-            });
-        }
-
-
-        /**
-         * Signs out the user and clears all local storage data.
-         * This function is now also used for the pre-login clear data button.
-         */
-        function signOut() {
-            showConfirmBox("Are you sure you want to sign out and delete ALL your data? This action cannot be undone.", () => {
-                localStorage.clear(); // Clear all local storage
-                userName = '';
-                parentPassword = '';
-                totalPoints = 0;
-                redeemableItems = [];
-                sessionHistory = []; // Clear history
-                sessionState = { isActive: false, typeKey: null, currentRound: 1, currentExerciseIndex: 0, timerSeconds: 0, sessionPoints: 0 }; // Reset session state
-                clearInterval(timerInterval); // Clear any active timers
-                isTimerSoundEnabled = true; // Reset sound preference
-
-                showMessageBox("All data has been cleared. You are now signed out.", () => {
-                     renderView('setup-view'); // Go back to setup screen after message
-                });
-            });
-        }
-
-        // --- Event Listeners ---
-
-        // Initial Setup
-        setupSaveBtn.onclick = (event) => {
-            addRippleEffect(event);
-            const name = userNameInput.value.trim();
-            const password = parentPasswordInput.value.trim();
-
-            if (name && password) {
-                userName = name;
-                parentPassword = password;
-                saveData();
-                renderView('home-view');
-            } else {
-                showMessageBox("Please enter both your name and a parent password.");
-            }
-        };
-
-        // Navigation Buttons
-        navHomeBtn.onclick = (event) => { addRippleEffect(event); renderView('home-view'); };
-        navSessionBtn.onclick = (event) => { addRippleEffect(event); renderView('session-view'); };
-        navStatsBtn.onclick = (event) => { addRippleEffect(event); renderView('stats-view'); };
-        navRedeemBtn.onclick = (event) => { addRippleEffect(event); renderView('redeem-view'); };
-        navParentBtn.onclick = (event) => { addRippleEffect(event); renderView('parent-view'); };
-
-        // Home View
-        startNewSessionBtnHome.onclick = (event) => { addRippleEffect(event); renderView('session-view'); };
-
-        // Session View - Choose Session Type
-        chooseExercisesBtn.onclick = (event) => { addRippleEffect(event); startSession('exercises'); };
-        chooseLegStretchesBtn.onclick = (event) => {
-            addRippleEffect(event);
-            sessionIntro.classList.add('hidden');
-            legStretchesOptions.classList.remove('hidden');
-        };
-        backToSessionIntroBtn.onclick = (event) => {
-            addRippleEffect(event);
-            legStretchesOptions.classList.add('hidden');
-            sessionIntro.classList.remove('hidden');
-        };
-        start3MinLegStretchesBtn.onclick = (event) => { addRippleEffect(event); startSession('legStretches3min'); };
-        start9MinLegStretchesBtn.onclick = (event) => { addRippleEffect(event); startSession('legStretches9min'); };
-
-        // Session Active Buttons
-        endSessionNowBtn.onclick = (event) => { addRippleEffect(event); endSession(); };
-        backToHomeBtn.onclick = (event) => {
-            addRippleEffect(event);
-            renderView('home-view');
-            // Reset session view to intro state when going back from complete
-            sessionIntro.classList.remove('hidden');
-            sessionActive.classList.add('hidden');
-            sessionComplete.classList.add('hidden');
-            legStretchesOptions.classList.add('hidden'); // Ensure hidden
-        };
-
-
-        // Parent View
-        parentLoginBtn.onclick = (event) => {
-            addRippleEffect(event);
-            const enteredPassword = parentPasswordLogin.value;
-            if (enteredPassword === parentPassword) {
-                parentLogin.classList.add('hidden');
-                parentDashboard.classList.remove('hidden');
-                // Set the initial state of the sound toggle
-                timerSoundToggle.checked = isTimerSoundEnabled;
-                renderParentRedeemableList(); // Load items for parent dashboard
-                renderExercisesList(exerciseCategorySelect.value); // Load exercises list
-            } else {
-                showMessageBox("Incorrect parent password.");
-            }
-        };
-
-        // Event listener for the timer sound toggle
-        timerSoundToggle.onchange = () => {
-            isTimerSoundEnabled = timerSoundToggle.checked;
-            saveData(); // Save the updated preference
-            showMessageBox(`Timer sound is now ${isTimerSoundEnabled ? 'ON' : 'OFF'}.`);
-        };
-
-        addRedeemableBtn.onclick = (event) => {
-            addRippleEffect(event);
-            const itemName = redeemItemName.value.trim();
-            const itemCost = parseInt(redeemItemCost.value);
-            let itemUsageLimit = redeemItemUsageLimit.value.trim();
-
-            // Handle empty or non-numeric usage limit as unlimited (-1)
-            if (itemUsageLimit === '' || isNaN(parseInt(itemUsageLimit))) {
-                itemUsageLimit = -1;
-            } else {
-                itemUsageLimit = parseInt(itemUsageLimit);
-            }
-
-            if (itemName && !isNaN(itemCost) && itemCost > 0 && (itemUsageLimit === -1 || itemUsageLimit >= 0)) {
-                const newItem = {
-                    id: crypto.randomUUID(), // Unique ID for each item
-                    name: itemName,
-                    cost: itemCost,
-                    usageLimit: itemUsageLimit,
-                    timesUsed: 0 // Initialize times used
-                };
-                redeemableItems.push(newItem);
-                saveData();
-                redeemItemName.value = '';
-                redeemItemCost.value = '';
-                redeemItemUsageLimit.value = ''; // Clear new input
-                renderParentRedeemableList(); // Update parent list
-                showMessageBox("Redeemable item added successfully!");
-            } else {
-                showMessageBox("Please enter a valid item name, a positive point cost, and a valid usage limit (positive number or -1 for unlimited).");
-            }
-        };
-
-        // Event listener for manual point addition
-        addManualPointsBtn.onclick = addManualPoints;
-
-        // Event listener for Change Parent Password
-        changeParentPasswordBtn.onclick = changeParentPassword;
-
-        // Event listener for Sign Out (from dashboard)
-        signOutBtn.onclick = (event) => { addRippleEffect(event); signOut(); };
-
-        // New Event listener for Clear Data (from pre-login parent portal)
-        clearDataPreLoginBtn.onclick = (event) => { addRippleEffect(event); signOut(); };
-
-        // Exercise management listeners
-        exerciseCategorySelect.onchange = () => renderExercisesList(exerciseCategorySelect.value);
-        newExerciseType.onchange = () => {
-            if (newExerciseType.value === 'timed') {
-                newExerciseTimedOptions.classList.remove('hidden');
-                newExerciseDoneOptions.classList.add('hidden');
-            } else {
-                newExerciseTimedOptions.classList.add('hidden');
-                newExerciseDoneOptions.classList.remove('hidden');
-            }
-        };
-        addNewExerciseBtn.onclick = addNewExercise;
-
-        // Handle page reload/close to save session state
-        window.addEventListener('beforeunload', saveSessionProgress);
-
-
-        // --- Initial Load ---
         document.addEventListener('DOMContentLoaded', () => {
-            loadData();
+            const views = document.querySelectorAll('.view');
+            const totalPointsDisplay = document.getElementById('totalPointsDisplay');
+            const startSessionBtn = document.getElementById('startSessionBtn');
+            const rewardsBtn = document.getElementById('rewardsBtn');
+            const parentLoginBtn = document.getElementById('parentLoginBtn');
+            const parentBackBtn = document.getElementById('parentBackBtn');
+            const rewardsBackBtn = document.getElementById('rewardsBackBtn');
+            const clearDataBtn = document.getElementById('clearDataBtn');
+            const sessionView = document.getElementById('session-view');
+            const exerciseName = document.getElementById('exerciseName');
+            const currentRoundDisplay = document.getElementById('currentRoundDisplay');
+            const totalRoundsDisplay = document.getElementById('totalRoundsDisplay');
+            const timerDisplay = document.getElementById('timerDisplay');
+            const nextBtn = document.getElementById('nextBtn');
+            const endSessionBtn = document.getElementById('endSessionBtn');
+            const timerEndSound = document.getElementById('timerEndSound');
+            const timerSoundToggle = document.getElementById('timerSoundToggle');
+            const roundsInput = document.getElementById('roundsInput');
 
-            // Check if a session needs to be resumed
-            if (sessionState.isActive) {
-                showConfirmBox(
-                    "It looks like you have an active session. Would you like to resume it?",
-                    () => {
-                        renderView('session-view'); // This will call loadExercise() based on sessionState
-                    },
-                    () => {
-                        // User chose NOT to resume, clear session state and go to home
-                        sessionState = { isActive: false, typeKey: null, currentRound: 1, currentExerciseIndex: 0, timerSeconds: 0, sessionPoints: 0 };
-                        saveData(); // Save cleared state
-                        renderView('home-view');
+            const exerciseNameInput = document.getElementById('exerciseNameInput');
+            const durationInput = document.getElementById('durationInput');
+            const pointsInput = document.getElementById('pointsInput');
+            const addExerciseBtn = document.getElementById('addExerciseBtn');
+            const cancelEditBtn = document.getElementById('cancelEditBtn');
+            const manualExerciseToggle = document.getElementById('manualExerciseToggle');
+            const exerciseList = document.getElementById('exerciseList');
+
+            const rewardNameInput = document.getElementById('rewardNameInput');
+            const rewardPointsInput = document.getElementById('rewardPointsInput');
+            const rewardUsesInput = document.getElementById('rewardUsesInput');
+            const unlimitedUsesToggle = document.getElementById('unlimitedUsesToggle');
+            const addRewardBtn = document.getElementById('addRewardBtn');
+            const cancelRewardEditBtn = document.getElementById('cancelRewardEditBtn');
+            const rewardList = document.getElementById('rewardList');
+            const redeemableRewardList = document.getElementById('redeemableRewardList');
+
+            const messageBox = document.getElementById('messageBox');
+            const messageText = document.getElementById('messageText');
+            const closeMessageBtn = document.getElementById('closeMessageBtn');
+            const confirmBox = document.getElementById('confirmBox');
+            const confirmText = document.getElementById('confirmText');
+            const confirmYesBtn = document.getElementById('confirmYesBtn');
+            const confirmNoBtn = document.getElementById('confirmNoBtn');
+
+            let totalPoints = 0;
+            let currentExercisesSequence = [];
+            let timerInterval = null;
+            let isTimerSoundEnabled = true;
+            let exerciseRounds = 3;
+            let editingExerciseIndex = -1; 
+            let editingRewardIndex = -1;
+
+            let sessionState = {
+                isActive: false,
+                typeKey: '',
+                currentRound: 1,
+                currentExerciseIndex: 0,
+                timerSeconds: 0,
+                sessionPoints: 0,
+            };
+
+            let exercises = {
+                timed: [
+                    { name: 'Jumping Jacks', duration: 60, points: 5 },
+                    { name: 'Push-ups', duration: 45, points: 5 },
+                    { name: 'Squats', duration: 60, points: 5 },
+                    { name: 'Sit-ups', duration: 45, points: 5 },
+                    { name: 'Plank', duration: 60, points: 5 }
+                ]
+            };
+
+            let rewards = [];
+
+            // --- Core Functions ---
+            function renderView(viewId) {
+                views.forEach(view => {
+                    view.classList.add('hidden');
+                });
+                document.getElementById(viewId).classList.remove('hidden');
+            }
+
+            function showMessageBox(message) {
+                messageText.textContent = message;
+                messageBox.classList.remove('hidden');
+            }
+
+            function showConfirmBox(message) {
+                return new Promise((resolve) => {
+                    confirmText.textContent = message;
+                    confirmBox.classList.remove('hidden');
+                    confirmYesBtn.onclick = () => {
+                        confirmBox.classList.add('hidden');
+                        resolve(true);
+                    };
+                    confirmNoBtn.onclick = () => {
+                        confirmBox.classList.add('hidden');
+                        resolve(false);
+                    };
+                });
+            }
+
+            function updatePointsDisplay() {
+                totalPointsDisplay.textContent = totalPoints;
+                totalPointsDisplay.classList.add('animate-pulse');
+                setTimeout(() => totalPointsDisplay.classList.remove('animate-pulse'), 500);
+            }
+
+            function saveData() {
+                localStorage.setItem('totalPoints', totalPoints.toString());
+                localStorage.setItem('isTimerSoundEnabled', isTimerSoundEnabled.toString());
+                localStorage.setItem('exerciseRounds', exerciseRounds.toString());
+                localStorage.setItem('exercises', JSON.stringify(exercises));
+                localStorage.setItem('rewards', JSON.stringify(rewards));
+            }
+
+            function loadData() {
+                const savedPoints = localStorage.getItem('totalPoints');
+                if (savedPoints) {
+                    totalPoints = parseInt(savedPoints, 10);
+                }
+                updatePointsDisplay();
+
+                const savedSound = localStorage.getItem('isTimerSoundEnabled');
+                if (savedSound !== null) {
+                    isTimerSoundEnabled = savedSound === 'true';
+                }
+
+                const savedRounds = localStorage.getItem('exerciseRounds');
+                if (savedRounds !== null) {
+                    exerciseRounds = parseInt(savedRounds, 10);
+                }
+
+                const savedExercises = localStorage.getItem('exercises');
+                if (savedExercises) {
+                    exercises = JSON.parse(savedExercises);
+                }
+
+                const savedRewards = localStorage.getItem('rewards');
+                if (savedRewards) {
+                    rewards = JSON.parse(savedRewards);
+                }
+            }
+
+            function saveSessionProgress() {
+                localStorage.setItem('sessionState', JSON.stringify(sessionState));
+            }
+
+            function clearSessionProgress() {
+                localStorage.removeItem('sessionState');
+                sessionState = {
+                    isActive: false,
+                    typeKey: '',
+                    currentRound: 1,
+                    currentExerciseIndex: 0,
+                    timerSeconds: 0,
+                    sessionPoints: 0,
+                };
+            }
+
+            // --- Utility Function to Format Time ---
+            function formatTime(seconds) {
+                const minutes = Math.floor(seconds / 60);
+                const remainingSeconds = seconds % 60;
+                const formattedMinutes = String(minutes).padStart(1, '0');
+                const formattedSeconds = String(remainingSeconds).padStart(2, '0');
+                return `${formattedMinutes}:${formattedSeconds}`;
+            }
+
+            // --- Session & Exercise Logic ---
+            function startTimer() {
+                clearInterval(timerInterval);
+                const currentExercise = currentExercisesSequence[sessionState.currentExerciseIndex];
+                sessionState.timerSeconds = currentExercise.duration;
+                timerDisplay.textContent = formatTime(sessionState.timerSeconds);
+                timerInterval = setInterval(() => {
+                    sessionState.timerSeconds--;
+                    timerDisplay.textContent = formatTime(sessionState.timerSeconds);
+                    if (sessionState.timerSeconds <= 0) {
+                        clearInterval(timerInterval);
+                        if (isTimerSoundEnabled) {
+                            timerEndSound.play();
+                        }
+                        sessionState.sessionPoints += currentExercise.points;
+                        nextBtn.textContent = 'Continue';
                     }
-                );
-            } else {
-                // If no session to resume, proceed with normal view rendering
-                if (localStorage.getItem('hasVisitedBefore')) {
-                    renderView('home-view');
+                }, 1000);
+            }
+
+            function loadExercise() {
+                if (sessionState.currentRound > exerciseRounds) {
+                    endSession();
+                    return;
+                }
+                
+                const exercise = currentExercisesSequence[sessionState.currentExerciseIndex];
+                exerciseName.textContent = exercise.name;
+                currentRoundDisplay.textContent = sessionState.currentRound;
+                totalRoundsDisplay.textContent = exerciseRounds;
+
+                if (exercise.manual) {
+                    timerDisplay.classList.add('hidden');
+                    nextBtn.textContent = 'Done';
                 } else {
-                    renderView('setup-view');
+                    timerDisplay.classList.remove('hidden');
+                    nextBtn.textContent = 'Skip';
+                    startTimer();
+                }
+                saveSessionProgress();
+            }
+
+            function startSession(typeKey) {
+                if (exercises[typeKey].length === 0) {
+                    showMessageBox('No exercises available. Please add some in the Parent Zone.');
+                    return;
+                }
+                sessionState.isActive = true;
+                sessionState.typeKey = typeKey;
+                sessionState.currentRound = 1;
+                sessionState.currentExerciseIndex = 0;
+                sessionState.sessionPoints = 0;
+                currentExercisesSequence = exercises[typeKey];
+                renderView('session-view');
+                loadExercise();
+            }
+
+            function endSession() {
+                clearInterval(timerInterval);
+                totalPoints += sessionState.sessionPoints;
+                updatePointsDisplay();
+                showMessageBox(`Session Complete! You earned ${sessionState.sessionPoints} points.`);
+                clearSessionProgress();
+                saveData();
+                renderView('main-view');
+            }
+
+            // --- Exercise Management Functions ---
+            function renderExerciseList() {
+                exerciseList.innerHTML = '';
+                exercises.timed.forEach((exercise, index) => {
+                    const durationText = exercise.manual ? '(Manual)' : `${exercise.duration}s`;
+                    const li = document.createElement('li');
+                    li.classList.add('flex', 'justify-between', 'items-center', 'p-4', 'bg-white', 'rounded-xl', 'mb-2', 'shadow-sm', 'exercise-item');
+                    li.innerHTML = `
+                        <div>
+                            <span class="font-semibold text-gray-800">${exercise.name}</span>
+                            <p class="text-sm text-gray-500">${durationText}, ${exercise.points} pts</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button data-index="${index}" class="edit-btn text-blue-500 hover:text-blue-700 font-bold">Edit</button>
+                            <button data-index="${index}" class="delete-btn text-red-500 hover:text-red-700 font-bold">Delete</button>
+                        </div>
+                    `;
+                    exerciseList.appendChild(li);
+                });
+            }
+
+            function clearExerciseForm() {
+                exerciseNameInput.value = '';
+                durationInput.value = '';
+                pointsInput.value = '';
+                manualExerciseToggle.checked = false;
+                durationInput.disabled = false;
+                addExerciseBtn.textContent = 'Add Exercise';
+                cancelEditBtn.classList.add('hidden');
+                editingExerciseIndex = -1;
+            }
+
+            function addOrUpdateExercise() {
+                const name = exerciseNameInput.value.trim();
+                const isManual = manualExerciseToggle.checked;
+                let duration = parseInt(durationInput.value, 10);
+                const points = parseInt(pointsInput.value, 10);
+
+                if (!name || isNaN(points) || points < 1 || (!isManual && (isNaN(duration) || duration < 1))) {
+                    showMessageBox('Please fill out all fields with valid numbers.');
+                    return;
+                }
+
+                if (isManual) {
+                    duration = 0; // Set duration to 0 for manual exercises
+                }
+
+                const newExercise = { name, duration, points, manual: isManual };
+
+                if (editingExerciseIndex === -1) {
+                    // Add new exercise
+                    exercises.timed.push(newExercise);
+                    showMessageBox(`Added new exercise: ${name}`);
+                } else {
+                    // Update existing exercise
+                    exercises.timed[editingExerciseIndex] = newExercise;
+                    showMessageBox(`Updated exercise: ${name}`);
+                }
+                
+                saveData();
+                renderExerciseList();
+                clearExerciseForm();
+            }
+
+            function deleteExercise(index) {
+                exercises.timed.splice(index, 1);
+                saveData();
+                renderExerciseList();
+                showMessageBox('Exercise deleted.');
+            }
+
+            function handleExerciseListClick(event) {
+                const target = event.target;
+                if (target.classList.contains('edit-btn')) {
+                    const index = parseInt(target.dataset.index, 10);
+                    const exercise = exercises.timed[index];
+                    exerciseNameInput.value = exercise.name;
+                    pointsInput.value = exercise.points;
+                    manualExerciseToggle.checked = exercise.manual || false;
+                    durationInput.disabled = exercise.manual;
+                    if (!exercise.manual) {
+                        durationInput.value = exercise.duration;
+                    }
+                    addExerciseBtn.textContent = 'Update Exercise';
+                    cancelEditBtn.classList.remove('hidden');
+                    editingExerciseIndex = index;
+                } else if (target.classList.contains('delete-btn')) {
+                    const index = parseInt(target.dataset.index, 10);
+                    showConfirmBox('Are you sure you want to delete this exercise?').then(confirmed => {
+                        if (confirmed) {
+                            deleteExercise(index);
+                        }
+                    });
+                }
+            }
+
+            // --- Reward Management Functions ---
+            function renderRewardList() {
+                rewardList.innerHTML = '';
+                rewards.forEach((reward, index) => {
+                    const usesText = reward.uses === null ? 'Unlimited' : `Uses Left: ${reward.uses}`;
+                    const li = document.createElement('li');
+                    li.classList.add('flex', 'justify-between', 'items-center', 'p-4', 'bg-white', 'rounded-xl', 'mb-2', 'shadow-sm', 'reward-item');
+                    li.innerHTML = `
+                        <div>
+                            <span class="font-semibold text-gray-800">${reward.name}</span>
+                            <p class="text-sm text-gray-500">${reward.points} pts, ${usesText}</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button data-index="${index}" class="edit-reward-btn text-blue-500 hover:text-blue-700 font-bold">Edit</button>
+                            <button data-index="${index}" class="delete-reward-btn text-red-500 hover:text-red-700 font-bold">Delete</button>
+                        </div>
+                    `;
+                    rewardList.appendChild(li);
+                });
+            }
+
+            function renderRedeemableRewards() {
+                redeemableRewardList.innerHTML = '';
+                rewards.forEach((reward, index) => {
+                    const usesText = reward.uses === null ? 'Unlimited' : `Uses Left: ${reward.uses}`;
+                    const redeemDisabled = totalPoints < reward.points || (reward.uses !== null && reward.uses <= 0);
+                    const li = document.createElement('li');
+                    li.classList.add('flex', 'justify-between', 'items-center', 'p-4', 'bg-white', 'rounded-xl', 'mb-2', 'shadow-sm', 'reward-item');
+                    li.innerHTML = `
+                        <div>
+                            <span class="font-semibold text-gray-800">${reward.name}</span>
+                            <p class="text-sm text-gray-500">${reward.points} pts, ${usesText}</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button data-index="${index}" class="redeem-btn button btn-primary ${redeemDisabled ? 'opacity-50 cursor-not-allowed' : ''}" ${redeemDisabled ? 'disabled' : ''}>Redeem</button>
+                        </div>
+                    `;
+                    redeemableRewardList.appendChild(li);
+                });
+            }
+
+            function clearRewardForm() {
+                rewardNameInput.value = '';
+                rewardPointsInput.value = '';
+                rewardUsesInput.value = '';
+                unlimitedUsesToggle.checked = false;
+                rewardUsesInput.disabled = false;
+                addRewardBtn.textContent = 'Add Reward';
+                cancelRewardEditBtn.classList.add('hidden');
+                editingRewardIndex = -1;
+            }
+
+            function addOrUpdateReward() {
+                const name = rewardNameInput.value.trim();
+                const points = parseInt(rewardPointsInput.value, 10);
+                const isUnlimited = unlimitedUsesToggle.checked;
+                let uses = isUnlimited ? null : parseInt(rewardUsesInput.value, 10);
+
+                if (!name || isNaN(points) || points < 1 || (!isUnlimited && (isNaN(uses) || uses < 1))) {
+                    showMessageBox('Please fill out all fields with valid numbers.');
+                    return;
+                }
+
+                const newReward = { name, points, uses };
+
+                if (editingRewardIndex === -1) {
+                    rewards.push(newReward);
+                    showMessageBox(`Added new reward: ${name}`);
+                } else {
+                    rewards[editingRewardIndex] = newReward;
+                    showMessageBox(`Updated reward: ${name}`);
+                }
+                saveData();
+                renderRewardList();
+                renderRedeemableRewards();
+                clearRewardForm();
+            }
+            
+            function deleteReward(index) {
+                rewards.splice(index, 1);
+                saveData();
+                renderRewardList();
+                renderRedeemableRewards();
+                showMessageBox('Reward deleted.');
+            }
+
+            function redeemReward(index) {
+                const reward = rewards[index];
+                if (totalPoints >= reward.points) {
+                    if (reward.uses !== null && reward.uses <= 0) {
+                        showMessageBox('This reward has no more uses left.');
+                        return;
+                    }
+                    totalPoints -= reward.points;
+                    if (reward.uses !== null) {
+                        reward.uses--;
+                    }
+                    updatePointsDisplay();
+                    saveData();
+                    renderRewardList();
+                    renderRedeemableRewards();
+                    showMessageBox(`Redeemed ${reward.name}!`);
+                } else {
+                    showMessageBox('Not enough points to redeem this reward.');
+                }
+            }
+
+            function handleParentRewardListClick(event) {
+                const target = event.target;
+                if (target.classList.contains('edit-reward-btn')) {
+                    const index = parseInt(target.dataset.index, 10);
+                    const reward = rewards[index];
+                    rewardNameInput.value = reward.name;
+                    rewardPointsInput.value = reward.points;
+                    unlimitedUsesToggle.checked = reward.uses === null;
+                    rewardUsesInput.disabled = reward.uses === null;
+                    if (reward.uses !== null) {
+                        rewardUsesInput.value = reward.uses;
+                    }
+                    addRewardBtn.textContent = 'Update Reward';
+                    cancelRewardEditBtn.classList.remove('hidden');
+                    editingRewardIndex = index;
+                } else if (target.classList.contains('delete-reward-btn')) {
+                    const index = parseInt(target.dataset.index, 10);
+                    showConfirmBox('Are you sure you want to delete this reward?').then(confirmed => {
+                        if (confirmed) {
+                            deleteReward(index);
+                        }
+                    });
+                }
+            }
+
+            function handleRedeemableRewardListClick(event) {
+                const target = event.target;
+                if (target.classList.contains('redeem-btn')) {
+                    const index = parseInt(target.dataset.index, 10);
+                    redeemReward(index);
+                }
+            }
+
+            // --- Event Listeners ---
+            startSessionBtn.onclick = () => {
+                startSession('timed');
+            };
+
+            rewardsBtn.onclick = () => {
+                renderView('rewards-view');
+                renderRedeemableRewards();
+            };
+
+            rewardsBackBtn.onclick = () => {
+                renderView('main-view');
+            };
+
+            nextBtn.onclick = () => {
+                const currentExercise = currentExercisesSequence[sessionState.currentExerciseIndex];
+                if (currentExercise.manual) {
+                     sessionState.sessionPoints += currentExercise.points;
+                } else if (sessionState.timerSeconds > 0) {
+                    clearInterval(timerInterval);
+                    sessionState.sessionPoints += currentExercise.points;
+                }
+                
+                sessionState.currentExerciseIndex++;
+                if (sessionState.currentExerciseIndex >= currentExercisesSequence.length) {
+                    sessionState.currentExerciseIndex = 0;
+                    sessionState.currentRound++;
+                }
+                loadExercise();
+            };
+
+            endSessionBtn.onclick = () => {
+                endSession();
+            };
+
+            parentLoginBtn.onclick = () => {
+                renderView('parent-zone-view');
+                timerSoundToggle.checked = isTimerSoundEnabled;
+                roundsInput.value = exerciseRounds;
+                renderExerciseList();
+                renderRewardList();
+                clearExerciseForm();
+                clearRewardForm();
+            };
+
+            parentBackBtn.onclick = () => {
+                renderView('main-view');
+            };
+
+            clearDataBtn.onclick = async () => {
+                const confirmed = await showConfirmBox('Are you sure you want to clear all data? This cannot be undone.');
+                if (confirmed) {
+                    localStorage.clear();
+                    totalPoints = 0;
+                    updatePointsDisplay();
+                    isTimerSoundEnabled = true;
+                    timerSoundToggle.checked = true;
+                    exerciseRounds = 3;
+                    roundsInput.value = 3;
+                    exercises = { timed: [] };
+                    rewards = [];
+                    clearSessionProgress();
+                    renderExerciseList();
+                    renderRewardList();
+                    showMessageBox('All data has been cleared.');
+                }
+            };
+
+            closeMessageBtn.onclick = () => {
+                messageBox.classList.add('hidden');
+            };
+
+            timerSoundToggle.onchange = () => {
+                isTimerSoundEnabled = timerSoundToggle.checked;
+                saveData();
+                showMessageBox(`Timer sound is now ${isTimerSoundEnabled ? 'on' : 'off'}.`);
+            };
+
+            roundsInput.addEventListener('input', () => {
+                const newRounds = parseInt(roundsInput.value, 10);
+                if (!isNaN(newRounds) && newRounds >= 1) {
+                    exerciseRounds = newRounds;
+                    saveData();
+                }
+            });
+
+            manualExerciseToggle.addEventListener('change', () => {
+                durationInput.disabled = manualExerciseToggle.checked;
+                if (manualExerciseToggle.checked) {
+                    durationInput.value = '';
+                }
+            });
+
+            unlimitedUsesToggle.addEventListener('change', () => {
+                rewardUsesInput.disabled = unlimitedUsesToggle.checked;
+                if (unlimitedUsesToggle.checked) {
+                    rewardUsesInput.value = '';
+                }
+            });
+
+            addExerciseBtn.onclick = addOrUpdateExercise;
+            cancelEditBtn.onclick = clearExerciseForm;
+            exerciseList.addEventListener('click', handleExerciseListClick);
+
+            addRewardBtn.onclick = addOrUpdateReward;
+            cancelRewardEditBtn.onclick = clearRewardForm;
+            rewardList.addEventListener('click', handleParentRewardListClick);
+            redeemableRewardList.addEventListener('click', handleRedeemableRewardListClick);
+
+            // --- Initial Load and Session Resume ---
+            loadData();
+            const savedSessionState = localStorage.getItem('sessionState');
+            if (savedSessionState) {
+                const parsedState = JSON.parse(savedSessionState);
+                if (parsedState.isActive) {
+                    sessionState = parsedState;
+                    currentExercisesSequence = exercises[sessionState.typeKey];
+                    showConfirmBox('A session is in progress. Do you want to resume?').then(resume => {
+                        if (resume) {
+                            renderView('session-view');
+                            loadExercise();
+                        } else {
+                            clearSessionProgress();
+                        }
+                    });
                 }
             }
         });
-
     </script>
 </body>
 </html>
