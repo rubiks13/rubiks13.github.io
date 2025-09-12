@@ -206,7 +206,8 @@
                 <p id="timerDisplay" class="text-6xl font-bold text-red-500">60</p>
             </div>
             <div class="flex-center gap-4">
-                <button id="nextBtn" class="button btn-primary">Next</button>
+                <button id="startExerciseBtn" class="button btn-primary">Start</button>
+                <button id="nextBtn" class="button btn-primary hidden">Next</button>
                 <button id="endSessionBtn" class="button btn-danger">End Session</button>
             </div>
         </div>
@@ -336,6 +337,7 @@
 
     <!-- Audio Element for timer end sound -->
     <audio id="timerEndSound" src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAAACABAAZGF0YSAAAAAsAAAABwAAADoAAAADgAAAAoAAAAaAAAAIAAAAEAAAABFAAAAoAAAAKAAAAGgAAAA0AAAAMAAAA"></audio>
+    <audio id="customAudioPlayer"></audio>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -356,9 +358,11 @@
             const totalRoundsDisplay = document.getElementById('totalRoundsDisplay');
             const timerDisplay = document.getElementById('timerDisplay');
             const pointsPerSecondDisplay = document.getElementById('pointsPerSecondDisplay');
+            const startExerciseBtn = document.getElementById('startExerciseBtn');
             const nextBtn = document.getElementById('nextBtn');
             const endSessionBtn = document.getElementById('endSessionBtn');
             const timerEndSound = document.getElementById('timerEndSound');
+            const customAudioPlayer = document.getElementById('customAudioPlayer');
             const timerSoundToggle = document.getElementById('timerSoundToggle');
             const roundsInput = document.getElementById('roundsInput');
 
@@ -413,7 +417,8 @@
                 totalRounds: 3 // Default value
             };
 
-            let exercises = {
+            // Define default exercises and rewards
+            const defaultExercises = {
                 timed: [
                     { name: 'Jumping Jacks', duration: 60, points: 5 },
                     { name: 'Push-ups', duration: 45, points: 5 },
@@ -422,11 +427,12 @@
                     { name: 'Plank', duration: 60, points: 5 }
                 ],
                 stretches: [
-                    { name: 'Right Leg Stretch', duration: 180, manual: false },
-                    { name: 'Left Leg Stretch', duration: 180, manual: false }
+                    { name: 'Hamstring Stretch', duration: 180, manual: false },
+                    { name: 'Quadriceps Stretch', duration: 180, manual: false }
                 ]
             };
 
+            let exercises = defaultExercises;
             let rewards = [];
 
             // Audio recorder variables
@@ -493,9 +499,17 @@
                     exerciseRounds = parseInt(savedRounds, 10);
                 }
 
+                // Load exercises and fall back to defaults if data is missing
                 const savedExercises = localStorage.getItem('exercises');
                 if (savedExercises) {
-                    exercises = JSON.parse(savedExercises);
+                    try {
+                        const parsedExercises = JSON.parse(savedExercises);
+                        if (parsedExercises.timed) exercises.timed = parsedExercises.timed;
+                        if (parsedExercises.stretches) exercises.stretches = parsedExercises.stretches;
+                    } catch (e) {
+                        console.error("Failed to parse exercises from localStorage, using defaults.");
+                        exercises = defaultExercises;
+                    }
                 }
 
                 const savedRewards = localStorage.getItem('rewards');
@@ -507,11 +521,11 @@
                 const savedAudio = localStorage.getItem('customTimerSound');
                 if (savedAudio) {
                     const audioBlob = b64toBlob(savedAudio, 'audio/wav');
-                    timerEndSound.src = URL.createObjectURL(audioBlob);
+                    customAudioPlayer.src = URL.createObjectURL(audioBlob);
                     playBtn.classList.remove('hidden');
                     clearAudioBtn.classList.remove('hidden');
                 } else {
-                    timerEndSound.src = defaultTimerSoundSrc;
+                    customAudioPlayer.src = defaultTimerSoundSrc;
                     playBtn.classList.add('hidden');
                     clearAudioBtn.classList.add('hidden');
                 }
@@ -545,7 +559,7 @@
 
             // --- Audio Initialization Function ---
             function initializeAudio() {
-                try {
+                 try {
                     timerEndSound.play().then(() => {
                         timerEndSound.pause();
                         timerEndSound.currentTime = 0;
@@ -559,10 +573,13 @@
 
             // --- Session & Exercise Logic ---
             function startTimer() {
+                stopLoopingAudio();
                 clearInterval(timerInterval);
                 const currentExercise = currentExercisesSequence[sessionState.currentExerciseIndex];
                 sessionState.timerSeconds = currentExercise.duration;
                 timerDisplay.textContent = formatTime(sessionState.timerSeconds);
+                nextBtn.classList.remove('hidden');
+                startExerciseBtn.classList.add('hidden');
                 timerInterval = setInterval(() => {
                     sessionState.timerSeconds--;
                     timerDisplay.textContent = formatTime(sessionState.timerSeconds);
@@ -575,6 +592,18 @@
                         nextBtn.textContent = 'Continue';
                     }
                 }, 1000);
+            }
+
+            function startLoopingAudio() {
+                if (isTimerSoundEnabled) {
+                    customAudioPlayer.loop = true;
+                    customAudioPlayer.play().catch(e => console.error("Audio playback error:", e));
+                }
+            }
+            
+            function stopLoopingAudio() {
+                customAudioPlayer.pause();
+                customAudioPlayer.currentTime = 0;
             }
 
             function loadExercise() {
@@ -593,20 +622,28 @@
                 } else {
                     pointsPerSecondDisplay.classList.add('hidden');
                 }
+                
+                // Set up the UI for the new state
+                nextBtn.classList.add('hidden');
+                startExerciseBtn.classList.remove('hidden');
+                timerDisplay.classList.remove('hidden');
+                timerDisplay.textContent = formatTime(exercise.duration);
+                startLoopingAudio();
 
                 if (exercise.manual) {
                     timerDisplay.classList.add('hidden');
+                    startExerciseBtn.classList.add('hidden');
+                    nextBtn.classList.remove('hidden');
                     nextBtn.textContent = 'Done';
+                    stopLoopingAudio();
                 } else {
-                    timerDisplay.classList.remove('hidden');
-                    nextBtn.textContent = 'Skip';
-                    startTimer();
+                    nextBtn.textContent = 'Next';
                 }
                 saveSessionProgress();
             }
 
             function startSession(typeKey) {
-                if (exercises[typeKey].length === 0) {
+                if (!exercises[typeKey] || exercises[typeKey].length === 0) {
                     showMessageBox('No exercises available. Please add some in the Parent Zone.');
                     return;
                 }
@@ -624,6 +661,7 @@
 
             function endSession() {
                 clearInterval(timerInterval);
+                stopLoopingAudio();
                 totalPoints += sessionState.sessionPoints;
                 updatePointsDisplay();
                 showMessageBox(`Session Complete! You earned ${sessionState.sessionPoints} points.`);
@@ -673,7 +711,7 @@
                     };
                     mediaRecorder.onstop = () => {
                         const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                        timerEndSound.src = URL.createObjectURL(audioBlob);
+                        customAudioPlayer.src = URL.createObjectURL(audioBlob);
                         playBtn.classList.remove('hidden');
                         saveBtn.classList.remove('hidden');
                         clearAudioBtn.classList.add('hidden');
@@ -711,7 +749,7 @@
 
             function clearCustomAudio() {
                 localStorage.removeItem('customTimerSound');
-                timerEndSound.src = defaultTimerSoundSrc;
+                customAudioPlayer.src = defaultTimerSoundSrc;
                 recorderStatus.textContent = 'Custom sound cleared.';
                 playBtn.classList.add('hidden');
                 saveBtn.classList.add('hidden');
@@ -719,7 +757,7 @@
                 recordBtn.classList.remove('hidden');
                 
                 // Reset audio to the default sound
-                timerEndSound.src = defaultTimerSoundSrc;
+                customAudioPlayer.src = defaultTimerSoundSrc;
             }
 
             // --- Exercise Management Functions ---
@@ -985,19 +1023,17 @@
             };
 
             nextBtn.onclick = () => {
+                clearInterval(timerInterval);
+                stopLoopingAudio();
+                
                 const currentExercise = currentExercisesSequence[sessionState.currentExerciseIndex];
                 if (currentExercise.manual) {
-                    // Manual exercises add points on completion
-                     sessionState.sessionPoints += currentExercise.points;
+                    sessionState.sessionPoints += currentExercise.points;
                 } else if (sessionState.timerSeconds > 0) {
-                    // Timed exercises add points when skipped
-                    clearInterval(timerInterval);
                     if (sessionState.typeKey === 'stretches') {
-                        // Stretches earn points based on duration completed
                         const pointsEarned = currentExercise.duration - sessionState.timerSeconds;
                         sessionState.sessionPoints += pointsEarned;
                     } else {
-                        // Core exercises have a fixed point value
                         sessionState.sessionPoints += currentExercise.points;
                     }
                 }
@@ -1008,6 +1044,10 @@
                     sessionState.currentRound++;
                 }
                 loadExercise();
+            };
+
+            startExerciseBtn.onclick = () => {
+                startTimer();
             };
 
             endSessionBtn.onclick = () => {
@@ -1038,7 +1078,7 @@
                     timerSoundToggle.checked = true;
                     exerciseRounds = 3;
                     roundsInput.value = 3;
-                    exercises.timed = [];
+                    exercises = JSON.parse(JSON.stringify(defaultExercises));
                     rewards = [];
                     clearSessionProgress();
                     clearCustomAudio();
@@ -1092,7 +1132,7 @@
             // New audio recorder event listeners
             recordBtn.onclick = startRecording;
             stopBtn.onclick = stopRecording;
-            playBtn.onclick = () => timerEndSound.play();
+            playBtn.onclick = () => customAudioPlayer.play();
             saveBtn.onclick = saveAudio;
             clearAudioBtn.onclick = clearCustomAudio;
 
