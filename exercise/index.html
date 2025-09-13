@@ -572,13 +572,19 @@
             }
 
             // --- Session & Exercise Logic ---
-            function startTimer() {
+            function startOrResumeTimer() {
                 clearInterval(timerInterval);
                 const currentExercise = currentExercisesSequence[sessionState.currentExerciseIndex];
-                sessionState.timerSeconds = currentExercise.duration;
-                timerDisplay.textContent = formatTime(sessionState.timerSeconds);
+
+                // Check if timerSeconds is 0 to start a new timer, otherwise resume
+                if (sessionState.timerSeconds <= 0) {
+                    sessionState.timerSeconds = currentExercise.duration;
+                }
+
+                nextBtn.textContent = 'Pause';
                 nextBtn.classList.remove('hidden');
                 startExerciseBtn.classList.add('hidden');
+
                 timerInterval = setInterval(() => {
                     sessionState.timerSeconds--;
                     timerDisplay.textContent = formatTime(sessionState.timerSeconds);
@@ -588,9 +594,18 @@
                             startLoopingAudio();
                         }
                         sessionState.sessionPoints += sessionState.typeKey === 'stretches' ? currentExercise.duration : currentExercise.points;
-                        nextBtn.textContent = 'Continue';
+                        nextBtn.textContent = 'Next';
+                        nextBtn.classList.remove('hidden');
+                        startExerciseBtn.classList.add('hidden');
                     }
                 }, 1000);
+            }
+
+            function pauseTimer() {
+                clearInterval(timerInterval);
+                stopLoopingAudio();
+                nextBtn.textContent = 'Resume';
+                startExerciseBtn.classList.add('hidden'); // Keep Start hidden when paused
             }
 
             function startLoopingAudio() {
@@ -635,8 +650,6 @@
                     nextBtn.classList.remove('hidden');
                     nextBtn.textContent = 'Done';
                     stopLoopingAudio();
-                } else {
-                    nextBtn.textContent = 'Next';
                 }
                 saveSessionProgress();
             }
@@ -1022,31 +1035,39 @@
             };
 
             nextBtn.onclick = () => {
-                clearInterval(timerInterval);
-                stopLoopingAudio();
-                
-                const currentExercise = currentExercisesSequence[sessionState.currentExerciseIndex];
-                if (currentExercise.manual) {
-                    sessionState.sessionPoints += currentExercise.points;
-                } else if (sessionState.timerSeconds > 0) {
-                    if (sessionState.typeKey === 'stretches') {
-                        const pointsEarned = currentExercise.duration - sessionState.timerSeconds;
-                        sessionState.sessionPoints += pointsEarned;
-                    } else {
+                // Handle Pause/Resume functionality
+                if (nextBtn.textContent === 'Pause') {
+                    pauseTimer();
+                    startExerciseBtn.classList.remove('hidden');
+                } else if (nextBtn.textContent === 'Resume') {
+                    startOrResumeTimer();
+                } else {
+                    // This is the "Next" functionality after the timer has ended
+                    clearInterval(timerInterval);
+                    stopLoopingAudio();
+                    const currentExercise = currentExercisesSequence[sessionState.currentExerciseIndex];
+                    if (currentExercise.manual) {
                         sessionState.sessionPoints += currentExercise.points;
+                    } else if (sessionState.timerSeconds > 0) {
+                        if (sessionState.typeKey === 'stretches') {
+                            const pointsEarned = currentExercise.duration - sessionState.timerSeconds;
+                            sessionState.sessionPoints += pointsEarned;
+                        } else {
+                            sessionState.sessionPoints += currentExercise.points;
+                        }
                     }
+                    
+                    sessionState.currentExerciseIndex++;
+                    if (sessionState.currentExerciseIndex >= currentExercisesSequence.length) {
+                        sessionState.currentExerciseIndex = 0;
+                        sessionState.currentRound++;
+                    }
+                    loadExercise();
                 }
-                
-                sessionState.currentExerciseIndex++;
-                if (sessionState.currentExerciseIndex >= currentExercisesSequence.length) {
-                    sessionState.currentExerciseIndex = 0;
-                    sessionState.currentRound++;
-                }
-                loadExercise();
             };
 
             startExerciseBtn.onclick = () => {
-                startTimer();
+                startOrResumeTimer();
             };
 
             endSessionBtn.onclick = () => {
