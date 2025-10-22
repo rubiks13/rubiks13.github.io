@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant Delivery Simulator</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load JsBarcode for generating barcodes -->
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+    <style>
+        /* Custom font for a modern look */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f7f7;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 2rem;
+        }
+        .logo-card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            cursor: pointer;
+            position: relative;
+        }
+        .logo-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+        .logo-card.selected {
+            border: 4px solid #3b82f6; /* Blue border for selection */
+            transform: scale(1.03);
+            box-shadow: 0 10px 20px rgba(59, 130, 246, 0.5);
+        }
+        .hidden {
+            display: none;
+        }
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+        }
+        /* Custom styles for the 80mm Receipt simulation */
+        #receipt-content {
+            width: 80mm; /* Standard receipt width */
+            font-family: 'Courier New', Courier, monospace; /* Monospaced font for receipt feel */
+            font-size: 10px;
+            color: #1f2937; /* Dark text */
+            line-height: 1.2;
+            padding: 0.75rem; /* Smaller padding inside the receipt area */
+        }
+        .receipt-separator {
+            border-top: 1px dashed #9ca3af;
+            margin: 0.5rem 0;
+        }
+
+        /* --- Print Styles --- */
+        @media print {
+            /* Hide everything except the receipt box when printing */
+            body > * {
+                visibility: hidden;
+            }
+            #receipt-box, #receipt-box * {
+                visibility: visible;
+            }
+            #receipt-box {
+                position: absolute;
+                left: 0;
+                top: 0;
+                margin: 0;
+                padding: 0;
+                box-shadow: none;
+                /* Reset Tailwind utility that might interfere */
+                max-width: none; 
+            }
+            /* Hide the "Start Over" button on the printed receipt */
+            #receipt-box > .bg-gray-100 {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="max-w-4xl w-full">
+    <!-- Header Section -->
+    <header class="text-center mb-6 p-4 bg-white rounded-xl shadow-lg">
+        <h1 class="text-4xl font-extrabold text-gray-800 mb-2">
+            The Delivery Decision
+        </h1>
+        <p class="text-xl text-gray-500 mb-4">
+            Select your favorite restaurant to generate a delivery receipt!
+        </p>
+        <button onclick="showLogoManager()" class="py-2 px-4 bg-purple-500 text-white font-semibold rounded-lg shadow-md hover:bg-purple-600 transition-colors">
+            Manage Logos & Addresses
+        </button>
+    </header>
+
+    <!-- Logo Selection Grid (Initial View) -->
+    <div id="logo-grid" class="grid grid-cols-2 md:grid-cols-4 gap-6">
+
+        <!-- Card 1: Panda Express -->
+        <div id="panda_express" data-id="panda_express" data-restaurant="Panda Express" data-color="#D9534F" class="logo-card bg-white p-6 rounded-xl shadow-md border-2 border-gray-100 flex flex-col items-center text-center">
+            <img class="logo-img rounded-full mb-4 ring-4 ring-red-500/50 w-[120px] h-[120px] object-cover" 
+                 src="https://placehold.co/120x120/D9534F/FFFFFF?text=PANDA" 
+                 alt="Panda Express Logo Representation">
+            <h2 class="text-2xl font-semibold text-gray-800">Panda Express</h2>
+            <p class="text-gray-500 text-sm mt-1">Chinese-American</p>
+        </div>
+
+        <!-- Card 2: McDonald's -->
+        <div id="mcdonalds" data-id="mcdonalds" data-restaurant="McDonald's" data-color="#FFC107" class="logo-card bg-white p-6 rounded-xl shadow-md border-2 border-gray-100 flex flex-col items-center text-center">
+            <img class="logo-img rounded-full mb-4 ring-4 ring-yellow-500/50 w-[120px] h-[120px] object-cover" 
+                 src="https://placehold.co/120x120/FFC107/D9534F?text=M" 
+                 alt="McDonald's Logo Representation">
+            <h2 class="text-2xl font-semibold text-gray-800">McDonald's</h2>
+            <p class="text-gray-500 text-sm mt-1">Burgers & Fries</p>
+        </div>
+
+        <!-- Card 3: Chipotle -->
+        <div id="chipotle" data-id="chipotle" data-restaurant="Chipotle" data-color="#4CAF50" class="logo-card bg-white p-6 rounded-xl shadow-md border-2 border-gray-100 flex flex-col items-center text-center">
+            <img class="logo-img rounded-full mb-4 ring-4 ring-green-500/50 w-[120px] h-[120px] object-cover" 
+                 src="https://placehold.co/120x120/4CAF50/FFFFFF?text=CHIPOTLE" 
+                 alt="Chipotle Logo Representation">
+            <h2 class="text-2xl font-semibold text-gray-800">Chipotle</h2>
+            <p class="text-gray-500 text-sm mt-1">Mexican Grill</p>
+        </div>
+
+        <!-- Card 4: Popeyes -->
+        <div id="popeyes" data-id="popeyes" data-restaurant="Popeyes" data-color="#E54D3D" class="logo-card bg-white p-6 rounded-xl shadow-md border-2 border-gray-100 flex flex-col items-center text-center">
+            <img class="logo-img rounded-full mb-4 ring-4 ring-amber-700/50 w-[120px] h-[120px] object-cover" 
+                 src="https://placehold.co/120x120/E54D3D/FFFFFF?text=CHICKEN" 
+                 alt="Popeyes Logo Representation">
+            <h2 class="text-2xl font-semibold text-gray-800">Popeyes</h2>
+            <p class="text-gray-500 text-sm mt-1">Fried Chicken</p>
+        </div>
+    </div>
+
+    <!-- Receipt Display Section (New View) -->
+    <div id="receipt-box" class="mt-12 mx-auto hidden bg-white shadow-2xl rounded-lg">
+        <div id="receipt-content" class="p-4" style="width: 80mm; background-color: white;">
+            <!-- Receipt content will be generated here by JS -->
+        </div>
+        <div class="p-4 bg-gray-100 border-t flex justify-center rounded-b-lg">
+             <button onclick="resetSelection()" class="py-2 px-4 bg-gray-400 text-white rounded-lg hover:bg-gray-500 transition-colors font-medium shadow-md">
+                Start Over
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Logo & Address Manager Modal -->
+<div id="logo-manager-modal" class="modal hidden">
+    <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-lg overflow-y-auto max-h-[90vh]">
+        <h2 class="text-3xl font-bold text-gray-800 mb-6 border-b pb-2">Manage Logos & Addresses</h2>
+        
+        <!-- Logo Upload Section -->
+        <h3 class="text-xl font-bold text-gray-700 mb-3">Upload Custom Logos (Saved Locally)</h3>
+        <div id="logo-upload-form" class="space-y-4 border p-4 rounded-lg bg-gray-50">
+            <!-- Upload row 1 -->
+            <div class="flex items-center space-x-4">
+                <span class="w-32 font-medium text-gray-700">Panda Express:</span>
+                <input type="file" accept="image/*" data-id="panda_express" class="logo-file-input flex-grow p-2 border rounded-lg">
+                <span id="status-panda_express" class="text-sm"></span>
+            </div>
+            <!-- Upload row 2 -->
+            <div class="flex items-center space-x-4">
+                <span class="w-32 font-medium text-gray-700">McDonald's:</span>
+                <input type="file" accept="image/*" data-id="mcdonalds" class="logo-file-input flex-grow p-2 border rounded-lg">
+                <span id="status-mcdonalds" class="text-sm"></span>
+            </div>
+            <!-- Upload row 3 -->
+            <div class="flex items-center space-x-4">
+                <span class="w-32 font-medium text-gray-700">Chipotle:</span>
+                <input type="file" accept="image/*" data-id="chipotle" class="logo-file-input flex-grow p-2 border rounded-lg">
+                <span id="status-chipotle" class="text-sm"></span>
+            </div>
+            <!-- Upload row 4 -->
+            <div class="flex items-center space-x-4">
+                <span class="w-32 font-medium text-gray-700">Popeyes:</span>
+                <input type="file" accept="image/*" data-id="popeyes" class="logo-file-input flex-grow p-2 border rounded-lg">
+                <span id="status-popeyes" class="text-sm"></span>
+            </div>
+        </div>
+        
+        <!-- Address Manager Section -->
+        <h3 class="text-xl font-bold text-gray-700 mb-3 mt-6">Manage Delivery Addresses (Saved Locally)</h3>
+        <div class="border p-4 rounded-lg bg-gray-50">
+            <div id="address-list" class="space-y-2 mb-4 max-h-40 overflow-y-auto p-1">
+                <!-- Addresses will be injected here -->
+                <p class="text-gray-500 text-sm italic text-center" id="no-addresses-message">No saved addresses yet. Add one below!</p>
+            </div>
+            <div class="flex space-x-2">
+                <input type="text" id="new-address-input" placeholder="e.g., 123 Main St, Anytown, CA 90210" class="flex-grow p-2 border rounded-lg focus:ring-purple-500 focus:border-purple-500">
+                <button onclick="addAddress()" class="py-2 px-4 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition-colors">Add</button>
+            </div>
+        </div>
+
+        <p class="text-xs text-gray-500 mt-6 text-center">All changes are saved only to your browser's local storage.</p>
+        
+        <div class="mt-6 flex justify-end">
+            <button onclick="hideLogoManager()" class="py-2 px-4 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors">
+                Close Manager
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Main Script -->
+<script>
+    // Constants for LocalStorage Keys
+    const RESTAURANTS = [
+        'panda_express', 
+        'mcdonalds', 
+        'chipotle', 
+        'popeyes'
+    ];
+    const ADDRESS_KEY = 'delivery_addresses';
+
+    // Global flags/timers
+    let isPrinting = false; 
+    let reloadTimerId = null; // Stores the ID for the delayed reload timer
+
+    // --- LocalStorage Operations (Logos) ---
+
+    /**
+     * Loads the saved logo URLs from LocalStorage and updates the main grid.
+     */
+    function loadLogosFromLocalStorage() {
+        RESTAURANTS.forEach(restaurantId => {
+            const localStorageKey = `logo_${restaurantId}`;
+            const logoUrl = localStorage.getItem(localStorageKey);
+            
+            if (logoUrl) {
+                const cardElement = document.getElementById(restaurantId);
+                if (cardElement) {
+                    const imgElement = cardElement.querySelector('.logo-img');
+                    if (imgElement) {
+                        imgElement.src = logoUrl;
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Saves a new logo Data URL (Base64) to LocalStorage.
+     */
+    function saveLogoToLocalStorage(restaurantId, logoUrl) {
+        const localStorageKey = `logo_${restaurantId}`;
+        
+        try {
+            localStorage.setItem(localStorageKey, logoUrl);
+            
+            // Show status in the modal
+            const statusEl = document.getElementById(`status-${restaurantId}`);
+            if (statusEl) {
+                statusEl.textContent = 'Saved!';
+                statusEl.classList.remove('text-red-500');
+                statusEl.classList.add('text-green-500');
+                setTimeout(() => {
+                    statusEl.textContent = '';
+                    statusEl.classList.remove('text-green-500');
+                }, 3000);
+            }
+            
+            // Immediately update the main grid image
+            const cardElement = document.getElementById(restaurantId);
+            if (cardElement) {
+                const imgElement = cardElement.querySelector('.logo-img');
+                if (imgElement) {
+                    imgElement.src = logoUrl;
+                }
+            }
+
+        } catch (e) {
+            console.error("Error saving logo to LocalStorage: ", e);
+            const statusEl = document.getElementById(`status-${restaurantId}`);
+            if (statusEl) {
+                statusEl.textContent = 'Error saving! Storage full?';
+                statusEl.classList.remove('text-green-500');
+                statusEl.classList.add('text-red-500');
+            }
+        }
+    }
+
+    // --- LocalStorage Operations (Addresses) ---
+
+    /**
+     * Retrieves the array of saved addresses.
+     */
+    function getAddresses() {
+        const json = localStorage.getItem(ADDRESS_KEY);
+        return json ? JSON.parse(json) : [];
+    }
+    
+    /**
+     * Saves the array of addresses to LocalStorage.
+     */
+    function saveAddresses(addresses) {
+        localStorage.setItem(ADDRESS_KEY, JSON.stringify(addresses));
+        renderAddressManager(); // Refresh the list in the modal
+    }
+
+    /**
+     * Adds a new address from the input field.
+     */
+    window.addAddress = function() {
+        const input = document.getElementById('new-address-input');
+        const newAddress = input.value.trim();
+
+        if (newAddress.length > 5) {
+            const addresses = getAddresses();
+            addresses.push(newAddress);
+            saveAddresses(addresses);
+            input.value = ''; // Clear input
+        }
+    }
+
+    /**
+     * Deletes an address by index.
+     */
+    window.deleteAddress = function(index) {
+        const addresses = getAddresses();
+        if (index >= 0 && index < addresses.length) {
+            addresses.splice(index, 1);
+            saveAddresses(addresses);
+        }
+    }
+
+    /**
+     * Renders the list of saved addresses in the modal.
+     */
+    function renderAddressManager() {
+        const listEl = document.getElementById('address-list');
+        const addresses = getAddresses();
+        listEl.innerHTML = '';
+        
+        if (addresses.length === 0) {
+            listEl.innerHTML = '<p class="text-gray-500 text-sm italic text-center" id="no-addresses-message">No saved addresses yet. Add one below!</p>';
+        } else {
+            addresses.forEach((addr, index) => {
+                const item = document.createElement('div');
+                item.className = 'flex items-center justify-between p-2 bg-white rounded-lg shadow-sm';
+                item.innerHTML = `
+                    <span class="text-sm text-gray-800 truncate">${addr}</span>
+                    <button onclick="deleteAddress(${index})" class="text-red-500 hover:text-red-700 text-xs font-bold ml-2 transition-colors">
+                        Delete
+                    </button>
+                `;
+                listEl.appendChild(item);
+            });
+        }
+    }
+
+    // --- Receipt Generation Logic ---
+
+    /**
+     * Generates a random integer between min and max (inclusive).
+     */
+    function getRandomInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    /**
+     * Generates the receipt HTML and updates the view.
+     */
+    function generateReceipt(restaurantId) {
+        const card = document.getElementById(restaurantId);
+        const name = card.getAttribute('data-restaurant');
+        const logoUrl = card.querySelector('.logo-img').src;
+        
+        const addresses = getAddresses();
+        const deliveryAddress = addresses.length > 0 
+            ? addresses[getRandomInt(0, addresses.length - 1)]
+            : "No Address Saved (Please add one in the manager)";
+        
+        const orderNumber = String(getRandomInt(100000000, 999999999)); // 9-digit random number
+        const itemCount = getRandomInt(1, 19); // Random 1 or 2 digit number under 20
+        const barcodeData = String(Math.floor(Math.random() * 10**19)).padStart(19, '0'); // 19-digit random number
+        const currentDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' });
+        const currentTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+        const receiptHtml = `
+            <div class="flex justify-center mb-3">
+                <img src="${logoUrl}" alt="${name} Logo" style="width: 50px; height: 50px; object-fit: cover; border-radius: 50%;">
+            </div>
+            <p class="text-center font-bold text-lg mb-2">${name} DELIVERY</p>
+            <div class="receipt-separator"></div>
+
+            <p class="text-center">ORDER CONFIRMATION - THANK YOU</p>
+            <div class="receipt-separator"></div>
+
+            <p><strong>Order #:</strong> ${orderNumber}</p>
+            <p><strong>Date:</strong> ${currentDate} &nbsp; <strong>Time:</strong> ${currentTime}</p>
+            
+            <div class="receipt-separator"></div>
+
+            <p class="text-center text-xs">DELIVER TO:</p>
+            <p class="text-center font-extrabold text-lg my-1">${deliveryAddress.toUpperCase()}</p>
+            
+            <div class="receipt-separator"></div>
+
+            <p class="text-center font-bold">ORDER DETAILS</p>
+            <p class="my-1">ITEMS: <span class="float-right font-bold">${itemCount}</span></p>
+
+            <!-- Mock items for visual effect -->
+            <p>1x &nbsp; ${name === 'Panda Express' ? 'Orange Chicken Plate' : name === 'McDonald\'s' ? 'Big Mac Meal' : name === 'Chipotle' ? 'Burrito Bowl' : '3pc Chicken Combo'}</p>
+            <p>... and ${itemCount - 1} other delicious items</p>
+            
+            <div class="receipt-separator"></div>
+            <p class="font-bold my-2">TOTAL: <span class="float-right">$${(itemCount * 12.50).toFixed(2)}</span></p>
+            <div class="receipt-separator"></div>
+
+            <p class="text-center mt-3 text-xs">A random 19-digit identifier is below:</p>
+            <div class="flex justify-center mt-1">
+                <svg id="barcode-svg"></svg>
+            </div>
+            <p class="text-center mt-1 text-xs">${barcodeData}</p>
+            <p class="text-center mt-3">ENJOY YOUR MEAL!</p>
+        `;
+
+        document.getElementById('receipt-content').innerHTML = receiptHtml;
+        
+        // Generate the Code 128 barcode
+        try {
+            JsBarcode("#barcode-svg", barcodeData, {
+                format: "CODE128", // Code 128 supports 19 digits
+                displayValue: false,
+                height: 30,
+                width: 1.5,
+                margin: 0
+            });
+        } catch (e) {
+            console.error("Barcode generation failed:", e);
+            document.getElementById('barcode-svg').outerHTML = '<p class="text-red-500 text-center">Barcode Error</p>';
+        }
+
+        // Hide grid, show receipt
+        document.getElementById('logo-grid').classList.add('hidden');
+        document.getElementById('receipt-box').classList.remove('hidden');
+        document.getElementById('receipt-box').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        // --- Start of Delayed Reload Logic ---
+        isPrinting = true;
+        
+        // Set up the event listener for when the window regains focus (print dialog closes).
+        window.onfocus = function() {
+            if (isPrinting) {
+                // Reset the flag and listener immediately
+                isPrinting = false;
+                window.onfocus = null; 
+                
+                console.log("Print dialog closed. Reloading page in 5 seconds...");
+
+                // Set the 5-second timer and store the ID
+                reloadTimerId = setTimeout(() => {
+                    window.location.reload(); 
+                }, 5000); 
+            }
+        };
+
+        // Trigger print
+        window.print();
+    }
+
+    // --- UI Element Setup ---
+    
+    const logoCards = document.querySelectorAll('.logo-card');
+    const logoManagerModal = document.getElementById('logo-manager-modal');
+    const logoFileInputs = document.querySelectorAll('.logo-file-input');
+
+    /**
+     * Handles the logo card selection click.
+     */
+    function selectLogo(event) {
+        const selectedCard = event.currentTarget;
+        
+        // Deselect all for visual effect, even if we are switching views
+        logoCards.forEach(card => card.classList.remove('selected'));
+        selectedCard.classList.add('selected');
+
+        const restaurantId = selectedCard.getAttribute('data-id');
+        
+        // Check if addresses exist before generating. If not, prompt user.
+        if (getAddresses().length === 0) {
+            console.warn("Please add at least one delivery address in the 'Manage Logos & Addresses' modal before generating a receipt!");
+            showLogoManager(); // Open the manager automatically
+            selectedCard.classList.remove('selected');
+            return;
+        }
+
+        // Generate the receipt and switch view
+        generateReceipt(restaurantId);
+    }
+
+    /**
+     * Clears the current selection and returns to the grid view.
+     */
+    window.resetSelection = function() {
+        // Clear the pending reload timer if it exists (safety feature)
+        if (reloadTimerId !== null) {
+            clearTimeout(reloadTimerId);
+            reloadTimerId = null;
+            console.log("Automatic reload canceled by 'Start Over' button.");
+        }
+        
+        logoCards.forEach(card => {
+            card.classList.remove('selected');
+        });
+        document.getElementById('receipt-box').classList.add('hidden');
+        document.getElementById('logo-grid').classList.remove('hidden');
+        
+        document.getElementById('logo-grid').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    
+    /**
+     * Shows the logo and address management modal.
+     */
+    window.showLogoManager = function() {
+        renderAddressManager(); // Make sure address list is up-to-date
+        logoManagerModal.classList.remove('hidden');
+    }
+
+    /**
+     * Hides the logo and address management modal.
+     */
+    window.hideLogoManager = function() {
+        logoManagerModal.classList.add('hidden');
+    }
+
+    // --- File Upload Logic (Base64 to LocalStorage) ---
+    
+    logoFileInputs.forEach(input => {
+        input.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            const restaurantId = event.target.getAttribute('data-id');
+            const statusEl = document.getElementById(`status-${restaurantId}`);
+            
+            if (!file) return;
+            if (file.size > 1024 * 1024 * 5) { // 5MB limit
+                statusEl.textContent = 'File too large (Max 5MB)!';
+                statusEl.classList.remove('text-green-500');
+                statusEl.classList.add('text-red-500');
+                return;
+            }
+
+            statusEl.textContent = 'Uploading...';
+            statusEl.classList.remove('text-red-500', 'text-green-500');
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const logoUrl = e.target.result;
+                saveLogoToLocalStorage(restaurantId, logoUrl);
+            };
+            reader.onerror = () => {
+                statusEl.textContent = 'Error reading file!';
+                statusEl.classList.add('text-red-500');
+                console.error("Error reading file:", file);
+            };
+            reader.readAsDataURL(file);
+        });
+    });
+
+    // Attach click listeners and load data on initial load
+    document.addEventListener('DOMContentLoaded', () => {
+        loadLogosFromLocalStorage(); 
+        
+        // Setup click listeners for the cards
+        logoCards.forEach(card => {
+            card.addEventListener('click', selectLogo);
+        });
+    });
+
+</script>
+
+</body>
+</html>
