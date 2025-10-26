@@ -3,585 +3,675 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Restaurant Delivery Simulator</title>
-    <!-- Load Tailwind CSS -->
+    <title>Custom Receipt Generator</title>
+    <!-- Load Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Load JsBarcode for generating barcodes -->
-    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
     <style>
-        /* Custom font for a modern look */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f7f7f7;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            padding: 2rem;
-        }
-        .logo-card {
-            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-            cursor: pointer;
-            position: relative;
-        }
-        .logo-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
-        }
-        .logo-card.selected {
-            border: 4px solid #3b82f6; /* Blue border for selection */
-            transform: scale(1.03);
-            box-shadow: 0 10px 20px rgba(59, 130, 246, 0.5);
-        }
-        .hidden {
-            display: none;
-        }
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.6);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 50;
-        }
-        /* Custom styles for the 80mm Receipt simulation */
-        #receipt-content {
-            width: 80mm; /* Standard receipt width */
-            font-family: 'Courier New', Courier, monospace; /* Monospaced font for receipt feel */
+        /* Define a custom font for the receipt */
+        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap');
+
+        /* Custom styles for the 80mm receipt width */
+        .receipt-container {
+            width: 80mm; /* Standard thermal receipt width */
+            background-color: #ffffff;
+            color: #000000;
+            font-family: 'Roboto Mono', monospace; /* Monospaced font for that thermal look */
             font-size: 10px;
-            color: #1f2937; /* Dark text */
-            line-height: 1.2;
-            padding: 0.75rem; /* Smaller padding inside the receipt area */
+            padding: 10px;
+            margin: 20px auto;
+            border: 1px dashed #ccc; /* Border to show the edge on screen */
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
         }
-        .receipt-separator {
-            border-top: 1px dashed #9ca3af;
-            margin: 0.5rem 0;
+        
+        /* Style for action buttons (Edit/Delete) */
+        .action-btn {
+            @apply p-1 rounded hover:bg-gray-200 text-gray-500 transition duration-150;
         }
 
-        /* --- Print Styles --- */
+        /* Print-specific styles */
         @media print {
-            /* Hide everything except the receipt box when printing */
-            body > * {
-                visibility: hidden;
+            /* Hide the main UI and only show the receipt */
+            #main-ui {
+                display: none !important;
             }
-            #receipt-box, #receipt-box * {
-                visibility: visible;
+            #receipt-output {
+                display: block !important;
             }
-            #receipt-box {
-                position: absolute;
-                left: 0;
-                top: 0;
+            body {
+                /* Reset margins and padding for printing */
                 margin: 0;
                 padding: 0;
-                box-shadow: none;
-                /* Reset Tailwind utility that might interfere */
-                max-width: none; 
             }
-            /* Hide the "Start Over" button on the printed receipt */
-            #receipt-box > .bg-gray-100 {
-                display: none;
+            .receipt-container {
+                /* Ensure no border/shadow appears on the actual printout */
+                border: none;
+                box-shadow: none;
+                width: 80mm;
+                margin: 0;
+                padding: 0;
             }
         }
     </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
 </head>
-<body>
+<body class="bg-gray-50 flex flex-col min-h-screen font-sans">
 
-<div class="max-w-4xl w-full">
-    <!-- Header Section -->
-    <header class="text-center mb-6 p-4 bg-white rounded-xl shadow-lg">
-        <h1 class="text-4xl font-extrabold text-gray-800 mb-2">
-            The Delivery Decision
-        </h1>
-        <p class="text-xl text-gray-500 mb-4">
-            Select your favorite restaurant to generate a delivery receipt!
-        </p>
-        <button onclick="showLogoManager()" class="py-2 px-4 bg-purple-500 text-white font-semibold rounded-lg shadow-md hover:bg-purple-600 transition-colors">
-            Manage Logos & Addresses
-        </button>
-    </header>
+    <div id="main-ui" class="flex-grow container mx-auto p-4 md:p-8">
+        <div class="max-w-xl mx-auto bg-white p-6 md:p-10 rounded-xl shadow-2xl">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">Custom Receipt Generator</h1>
+            <p class="text-gray-600 mb-8">Manage your custom addresses and restaurants below, then click a restaurant button to generate an order!</p>
 
-    <!-- Logo Selection Grid (Initial View) -->
-    <div id="logo-grid" class="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <!-- Feedback message (instead of alert) -->
+            <div id="error-message" class="hidden text-sm border-2 rounded-lg text-gray-800 border-indigo-400 bg-indigo-100 p-2 text-center mb-6"></div>
 
-        <!-- Card 1: Panda Express -->
-        <div id="panda_express" data-id="panda_express" data-restaurant="Panda Express" data-color="#D9534F" class="logo-card bg-white p-6 rounded-xl shadow-md border-2 border-gray-100 flex flex-col items-center text-center">
-            <img class="logo-img rounded-full mb-4 ring-4 ring-red-500/50 w-[120px] h-[120px] object-cover" 
-                 src="https://placehold.co/120x120/D9534F/FFFFFF?text=PANDA" 
-                 alt="Panda Express Logo Representation">
-            <h2 class="text-2xl font-semibold text-gray-800">Panda Express</h2>
-            <p class="text-gray-500 text-sm mt-1">Chinese-American</p>
-        </div>
+            <!-- --- 1. Address Manager Section --- -->
+            <div class="mb-8 p-4 bg-indigo-50 rounded-lg border-indigo-200 border">
+                <h2 class="text-xl font-semibold text-indigo-700 mb-4 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.727A8 8 0 016.343 3.273L4 5h16l-2.343-2.273zM12 18v-6m0 0l-2-2m2 2l2-2" /></svg>
+                    1. Delivery Address Manager (Randomly Picked)
+                </h2>
 
-        <!-- Card 2: McDonald's -->
-        <div id="mcdonalds" data-id="mcdonalds" data-restaurant="McDonald's" data-color="#FFC107" class="logo-card bg-white p-6 rounded-xl shadow-md border-2 border-gray-100 flex flex-col items-center text-center">
-            <img class="logo-img rounded-full mb-4 ring-4 ring-yellow-500/50 w-[120px] h-[120px] object-cover" 
-                 src="https://placehold.co/120x120/FFC107/D9534F?text=M" 
-                 alt="McDonald's Logo Representation">
-            <h2 class="text-2xl font-semibold text-gray-800">McDonald's</h2>
-            <p class="text-gray-500 text-sm mt-1">Burgers & Fries</p>
-        </div>
-
-        <!-- Card 3: Chipotle -->
-        <div id="chipotle" data-id="chipotle" data-restaurant="Chipotle" data-color="#4CAF50" class="logo-card bg-white p-6 rounded-xl shadow-md border-2 border-gray-100 flex flex-col items-center text-center">
-            <img class="logo-img rounded-full mb-4 ring-4 ring-green-500/50 w-[120px] h-[120px] object-cover" 
-                 src="https://placehold.co/120x120/4CAF50/FFFFFF?text=CHIPOTLE" 
-                 alt="Chipotle Logo Representation">
-            <h2 class="text-2xl font-semibold text-gray-800">Chipotle</h2>
-            <p class="text-gray-500 text-sm mt-1">Mexican Grill</p>
-        </div>
-
-        <!-- Card 4: Popeyes -->
-        <div id="popeyes" data-id="popeyes" data-restaurant="Popeyes" data-color="#E54D3D" class="logo-card bg-white p-6 rounded-xl shadow-md border-2 border-gray-100 flex flex-col items-center text-center">
-            <img class="logo-img rounded-full mb-4 ring-4 ring-amber-700/50 w-[120px] h-[120px] object-cover" 
-                 src="https://placehold.co/120x120/E54D3D/FFFFFF?text=CHICKEN" 
-                 alt="Popeyes Logo Representation">
-            <h2 class="text-2xl font-semibold text-gray-800">Popeyes</h2>
-            <p class="text-gray-500 text-sm mt-1">Fried Chicken</p>
-        </div>
-    </div>
-
-    <!-- Receipt Display Section (New View) -->
-    <div id="receipt-box" class="mt-12 mx-auto hidden bg-white shadow-2xl rounded-lg">
-        <div id="receipt-content" class="p-4" style="width: 80mm; background-color: white;">
-            <!-- Receipt content will be generated here by JS -->
-        </div>
-        <div class="p-4 bg-gray-100 border-t flex justify-center rounded-b-lg">
-             <button onclick="resetSelection()" class="py-2 px-4 bg-gray-400 text-white rounded-lg hover:bg-gray-500 transition-colors font-medium shadow-md">
-                Start Over
-            </button>
-        </div>
-    </div>
-</div>
-
-<!-- Logo & Address Manager Modal -->
-<div id="logo-manager-modal" class="modal hidden">
-    <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-lg overflow-y-auto max-h-[90vh]">
-        <h2 class="text-3xl font-bold text-gray-800 mb-6 border-b pb-2">Manage Logos & Addresses</h2>
-        
-        <!-- Logo Upload Section -->
-        <h3 class="text-xl font-bold text-gray-700 mb-3">Upload Custom Logos (Saved Locally)</h3>
-        <div id="logo-upload-form" class="space-y-4 border p-4 rounded-lg bg-gray-50">
-            <!-- Upload row 1 -->
-            <div class="flex items-center space-x-4">
-                <span class="w-32 font-medium text-gray-700">Panda Express:</span>
-                <input type="file" accept="image/*" data-id="panda_express" class="logo-file-input flex-grow p-2 border rounded-lg">
-                <span id="status-panda_express" class="text-sm"></span>
-            </div>
-            <!-- Upload row 2 -->
-            <div class="flex items-center space-x-4">
-                <span class="w-32 font-medium text-gray-700">McDonald's:</span>
-                <input type="file" accept="image/*" data-id="mcdonalds" class="logo-file-input flex-grow p-2 border rounded-lg">
-                <span id="status-mcdonalds" class="text-sm"></span>
-            </div>
-            <!-- Upload row 3 -->
-            <div class="flex items-center space-x-4">
-                <span class="w-32 font-medium text-gray-700">Chipotle:</span>
-                <input type="file" accept="image/*" data-id="chipotle" class="logo-file-input flex-grow p-2 border rounded-lg">
-                <span id="status-chipotle" class="text-sm"></span>
-            </div>
-            <!-- Upload row 4 -->
-            <div class="flex items-center space-x-4">
-                <span class="w-32 font-medium text-gray-700">Popeyes:</span>
-                <input type="file" accept="image/*" data-id="popeyes" class="logo-file-input flex-grow p-2 border rounded-lg">
-                <span id="status-popeyes" class="text-sm"></span>
-            </div>
-        </div>
-        
-        <!-- Address Manager Section -->
-        <h3 class="text-xl font-bold text-gray-700 mb-3 mt-6">Manage Delivery Addresses (Saved Locally)</h3>
-        <div class="border p-4 rounded-lg bg-gray-50">
-            <div id="address-list" class="space-y-2 mb-4 max-h-40 overflow-y-auto p-1">
-                <!-- Addresses will be injected here -->
-                <p class="text-gray-500 text-sm italic text-center" id="no-addresses-message">No saved addresses yet. Add one below!</p>
-            </div>
-            <div class="flex space-x-2">
-                <input type="text" id="new-address-input" placeholder="e.g., 123 Main St, Anytown, CA 90210" class="flex-grow p-2 border rounded-lg focus:ring-purple-500 focus:border-purple-500">
-                <button onclick="addAddress()" class="py-2 px-4 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition-colors">Add</button>
-            </div>
-        </div>
-
-        <p class="text-xs text-gray-500 mt-6 text-center">All changes are saved only to your browser's local storage.</p>
-        
-        <div class="mt-6 flex justify-end">
-            <button onclick="hideLogoManager()" class="py-2 px-4 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors">
-                Close Manager
-            </button>
-        </div>
-    </div>
-</div>
-
-<!-- Main Script -->
-<script>
-    // Constants for LocalStorage Keys
-    const RESTAURANTS = [
-        'panda_express', 
-        'mcdonalds', 
-        'chipotle', 
-        'popeyes'
-    ];
-    const ADDRESS_KEY = 'delivery_addresses';
-
-    // Global flags/timers
-    let isPrinting = false; 
-    let reloadTimerId = null; // Stores the ID for the delayed reload timer
-
-    // --- LocalStorage Operations (Logos) ---
-
-    /**
-     * Loads the saved logo URLs from LocalStorage and updates the main grid.
-     */
-    function loadLogosFromLocalStorage() {
-        RESTAURANTS.forEach(restaurantId => {
-            const localStorageKey = `logo_${restaurantId}`;
-            const logoUrl = localStorage.getItem(localStorageKey);
-            
-            if (logoUrl) {
-                const cardElement = document.getElementById(restaurantId);
-                if (cardElement) {
-                    const imgElement = cardElement.querySelector('.logo-img');
-                    if (imgElement) {
-                        imgElement.src = logoUrl;
-                    }
-                }
-            }
-        });
-    }
-
-    /**
-     * Saves a new logo Data URL (Base64) to LocalStorage.
-     */
-    function saveLogoToLocalStorage(restaurantId, logoUrl) {
-        const localStorageKey = `logo_${restaurantId}`;
-        
-        try {
-            localStorage.setItem(localStorageKey, logoUrl);
-            
-            // Show status in the modal
-            const statusEl = document.getElementById(`status-${restaurantId}`);
-            if (statusEl) {
-                statusEl.textContent = 'Saved!';
-                statusEl.classList.remove('text-red-500');
-                statusEl.classList.add('text-green-500');
-                setTimeout(() => {
-                    statusEl.textContent = '';
-                    statusEl.classList.remove('text-green-500');
-                }, 3000);
-            }
-            
-            // Immediately update the main grid image
-            const cardElement = document.getElementById(restaurantId);
-            if (cardElement) {
-                const imgElement = cardElement.querySelector('.logo-img');
-                if (imgElement) {
-                    imgElement.src = logoUrl;
-                }
-            }
-
-        } catch (e) {
-            console.error("Error saving logo to LocalStorage: ", e);
-            const statusEl = document.getElementById(`status-${restaurantId}`);
-            if (statusEl) {
-                statusEl.textContent = 'Error saving! Storage full?';
-                statusEl.classList.remove('text-green-500');
-                statusEl.classList.add('text-red-500');
-            }
-        }
-    }
-
-    // --- LocalStorage Operations (Addresses) ---
-
-    /**
-     * Retrieves the array of saved addresses.
-     */
-    function getAddresses() {
-        const json = localStorage.getItem(ADDRESS_KEY);
-        return json ? JSON.parse(json) : [];
-    }
-    
-    /**
-     * Saves the array of addresses to LocalStorage.
-     */
-    function saveAddresses(addresses) {
-        localStorage.setItem(ADDRESS_KEY, JSON.stringify(addresses));
-        renderAddressManager(); // Refresh the list in the modal
-    }
-
-    /**
-     * Adds a new address from the input field.
-     */
-    window.addAddress = function() {
-        const input = document.getElementById('new-address-input');
-        const newAddress = input.value.trim();
-
-        if (newAddress.length > 5) {
-            const addresses = getAddresses();
-            addresses.push(newAddress);
-            saveAddresses(addresses);
-            input.value = ''; // Clear input
-        }
-    }
-
-    /**
-     * Deletes an address by index.
-     */
-    window.deleteAddress = function(index) {
-        const addresses = getAddresses();
-        if (index >= 0 && index < addresses.length) {
-            addresses.splice(index, 1);
-            saveAddresses(addresses);
-        }
-    }
-
-    /**
-     * Renders the list of saved addresses in the modal.
-     */
-    function renderAddressManager() {
-        const listEl = document.getElementById('address-list');
-        const addresses = getAddresses();
-        listEl.innerHTML = '';
-        
-        if (addresses.length === 0) {
-            listEl.innerHTML = '<p class="text-gray-500 text-sm italic text-center" id="no-addresses-message">No saved addresses yet. Add one below!</p>';
-        } else {
-            addresses.forEach((addr, index) => {
-                const item = document.createElement('div');
-                item.className = 'flex items-center justify-between p-2 bg-white rounded-lg shadow-sm';
-                item.innerHTML = `
-                    <span class="text-sm text-gray-800 truncate">${addr}</span>
-                    <button onclick="deleteAddress(${index})" class="text-red-500 hover:text-red-700 text-xs font-bold ml-2 transition-colors">
-                        Delete
+                <!-- Input and Save -->
+                <div class="flex space-x-2 mb-4">
+                    <input type="text" id="new-address-input" placeholder="Enter a new delivery address" class="flex-grow p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                    <button onclick="saveAddress()" class="px-4 py-2 bg-indigo-500 text-white font-medium rounded-lg hover:bg-indigo-600 transition duration-150 shadow-md flex-shrink-0">
+                        Save Address
                     </button>
-                `;
-                listEl.appendChild(item);
-            });
-        }
-    }
-
-    // --- Receipt Generation Logic ---
-
-    /**
-     * Generates a random integer between min and max (inclusive).
-     */
-    function getRandomInt(min, max) {
-        return Math.floor(Math.random() * (max - min + 1)) + min;
-    }
-
-    /**
-     * Generates the receipt HTML and updates the view.
-     */
-    function generateReceipt(restaurantId) {
-        const card = document.getElementById(restaurantId);
-        const name = card.getAttribute('data-restaurant');
-        const logoUrl = card.querySelector('.logo-img').src;
-        
-        const addresses = getAddresses();
-        const deliveryAddress = addresses.length > 0 
-            ? addresses[getRandomInt(0, addresses.length - 1)]
-            : "No Address Saved (Please add one in the manager)";
-        
-        const orderNumber = String(getRandomInt(100000000, 999999999)); // 9-digit random number
-        const itemCount = getRandomInt(1, 19); // Random 1 or 2 digit number under 20
-        const barcodeData = String(Math.floor(Math.random() * 10**19)).padStart(19, '0'); // 19-digit random number
-        const currentDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' });
-        const currentTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-
-        const receiptHtml = `
-            <div class="flex justify-center mb-3">
-                <img src="${logoUrl}" alt="${name} Logo" style="width: 50px; height: 50px; object-fit: cover; border-radius: 50%;">
-            </div>
-            <p class="text-center font-bold text-lg mb-2">${name} DELIVERY</p>
-            <div class="receipt-separator"></div>
-
-            <p class="text-center">ORDER CONFIRMATION - THANK YOU</p>
-            <div class="receipt-separator"></div>
-
-            <p><strong>Order #:</strong> ${orderNumber}</p>
-            <p><strong>Date:</strong> ${currentDate} &nbsp; <strong>Time:</strong> ${currentTime}</p>
-            
-            <div class="receipt-separator"></div>
-
-            <p class="text-center text-xs">DELIVER TO:</p>
-            <p class="text-center font-extrabold text-lg my-1">${deliveryAddress.toUpperCase()}</p>
-            
-            <div class="receipt-separator"></div>
-
-            <p class="text-center font-bold">ORDER DETAILS</p>
-            <p class="my-1">ITEMS: <span class="float-right font-bold">${itemCount}</span></p>
-
-            <!-- Mock items for visual effect -->
-            <p>1x &nbsp; ${name === 'Panda Express' ? 'Orange Chicken Plate' : name === 'McDonald\'s' ? 'Big Mac Meal' : name === 'Chipotle' ? 'Burrito Bowl' : '3pc Chicken Combo'}</p>
-            <p>... and ${itemCount - 1} other delicious items</p>
-            
-            <div class="receipt-separator"></div>
-            <p class="font-bold my-2">TOTAL: <span class="float-right">$${(itemCount * 12.50).toFixed(2)}</span></p>
-            <div class="receipt-separator"></div>
-
-            <p class="text-center mt-3 text-xs">A random 19-digit identifier is below:</p>
-            <div class="flex justify-center mt-1">
-                <svg id="barcode-svg"></svg>
-            </div>
-            <p class="text-center mt-1 text-xs">${barcodeData}</p>
-            <p class="text-center mt-3">ENJOY YOUR MEAL!</p>
-        `;
-
-        document.getElementById('receipt-content').innerHTML = receiptHtml;
-        
-        // Generate the Code 128 barcode
-        try {
-            JsBarcode("#barcode-svg", barcodeData, {
-                format: "CODE128", // Code 128 supports 19 digits
-                displayValue: false,
-                height: 30,
-                width: 1.5,
-                margin: 0
-            });
-        } catch (e) {
-            console.error("Barcode generation failed:", e);
-            document.getElementById('barcode-svg').outerHTML = '<p class="text-red-500 text-center">Barcode Error</p>';
-        }
-
-        // Hide grid, show receipt
-        document.getElementById('logo-grid').classList.add('hidden');
-        document.getElementById('receipt-box').classList.remove('hidden');
-        document.getElementById('receipt-box').scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-        // --- Start of Delayed Reload Logic ---
-        isPrinting = true;
-        
-        // Set up the event listener for when the window regains focus (print dialog closes).
-        window.onfocus = function() {
-            if (isPrinting) {
-                // Reset the flag and listener immediately
-                isPrinting = false;
-                window.onfocus = null; 
+                </div>
                 
-                console.log("Print dialog closed. Reloading page in 5 seconds...");
+                <!-- Saved Addresses List -->
+                <div id="saved-addresses-list" class="space-y-2 mt-4 max-h-40 overflow-y-auto p-1 bg-white rounded-lg border border-gray-200">
+                    <!-- Addresses will be injected here -->
+                </div>
+            </div>
 
-                // Set the 5-second timer and store the ID
-                reloadTimerId = setTimeout(() => {
-                    window.location.reload(); 
-                }, 5000); 
+            <!-- --- 2. Restaurant Manager Section --- -->
+            <div class="mb-8 p-4 bg-purple-50 rounded-lg border-purple-200 border">
+                <h2 class="text-xl font-semibold text-purple-700 mb-4 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-purple-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                    2. Custom Restaurant Manager
+                </h2>
+
+                <!-- Input and Save -->
+                <div class="flex space-x-2 mb-4">
+                    <input type="text" id="new-restaurant-input" placeholder="Enter a custom restaurant name" class="flex-grow p-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500">
+                    <button onclick="saveCustomRestaurant()" class="px-4 py-2 bg-purple-500 text-white font-medium rounded-lg hover:bg-purple-600 transition duration-150 shadow-md flex-shrink-0">
+                        Save Restaurant
+                    </button>
+                </div>
+                
+                <!-- Saved Restaurants List -->
+                <div id="custom-restaurants-list" class="space-y-2 mt-4 max-h-40 overflow-y-auto p-1 bg-white rounded-lg border border-gray-200">
+                    <!-- Custom restaurants will be injected here -->
+                </div>
+            </div>
+
+            <!-- --- 3. Restaurant Selector Section --- -->
+            <div id="options-container" class="space-y-4">
+                <h2 class="text-xl font-semibold text-indigo-600 mb-4 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                    3. Click to Order (Uses Saved Restaurants):
+                </h2>
+                <!-- Restaurant buttons will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- The receipt area - Hidden by default, only shown on print -->
+    <div id="receipt-output" class="hidden">
+        <div id="receipt-content" class="receipt-container">
+            <!-- Receipt HTML will be injected here -->
+        </div>
+    </div>
+
+    <script>
+        // Default (seed) restaurant names and items (used if custom lists are empty)
+        const defaultFastFoodNames = [
+            "Burger Blast", "Taco Titan", "Waffle Wizard", "Pizza Portal"
+        ];
+        
+        const menuItems = [
+            { name: "Super Burger Deluxe", price: 12.99 },
+            { name: "Crispy Chicken Sandwich", price: 9.50 },
+            { name: "Loaded Chili Cheese Fries", price: 6.75 },
+            { name: "Milkshake (Vanilla)", price: 4.50 },
+            { name: "Jumbo Soft Taco", price: 3.25 },
+            { name: "Large Soda", price: 2.50 },
+            { name: "Spicy Wing Basket", price: 11.25 },
+            { name: "Onion Rings", price: 5.00 },
+            { name: "Chocolate Chip Cookie", price: 1.50 },
+            { name: "Water Bottle", price: 1.00 },
+        ];
+
+        const driverNames = [
+            "Mia A.", "Ethan R.", "Sophie L.", "Liam K.", "Chloe B.", "Noah P."
+        ];
+
+        // Local Storage Keys
+        const ADDRESS_KEY = 'savedAddresses';
+        const RESTAURANT_KEY = 'customRestaurants';
+        
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        
+        // State variables
+        let addresses = [];
+        let customRestaurants = [];
+
+        // --- Helper Functions ---
+        const getRandomElement = (arr) => arr[Math.floor(Math.random() * arr.length)];
+        const getRandomFloat = (min, max) => (Math.random() * (max - min) + min).toFixed(2);
+        const getRandomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+        
+        /**
+         * Displays a temporary message to the user.
+         */
+        function showTemporaryMessage(message, className) {
+            const messageBox = document.getElementById('error-message');
+            messageBox.textContent = message;
+            messageBox.className = `mt-4 p-3 border-2 rounded-lg font-medium text-center transition duration-300 ${className}`;
+            messageBox.classList.remove('hidden');
+            setTimeout(() => messageBox.classList.add('hidden'), 5000);
+        }
+
+        // --- Local Storage Sync ---
+
+        function saveStateToLocalStorage(key, data) {
+            try {
+                localStorage.setItem(key, JSON.stringify(data));
+            } catch (e) {
+                console.error(`Error saving ${key} to local storage:`, e);
+                showTemporaryMessage("Failed to save data due to browser storage issue.", 'text-red-800 border-red-400 bg-red-100');
             }
-        };
-
-        // Trigger print
-        window.print();
-    }
-
-    // --- UI Element Setup ---
-    
-    const logoCards = document.querySelectorAll('.logo-card');
-    const logoManagerModal = document.getElementById('logo-manager-modal');
-    const logoFileInputs = document.querySelectorAll('.logo-file-input');
-
-    /**
-     * Handles the logo card selection click.
-     */
-    function selectLogo(event) {
-        const selectedCard = event.currentTarget;
-        
-        // Deselect all for visual effect, even if we are switching views
-        logoCards.forEach(card => card.classList.remove('selected'));
-        selectedCard.classList.add('selected');
-
-        const restaurantId = selectedCard.getAttribute('data-id');
-        
-        // Check if addresses exist before generating. If not, prompt user.
-        if (getAddresses().length === 0) {
-            console.warn("Please add at least one delivery address in the 'Manage Logos & Addresses' modal before generating a receipt!");
-            showLogoManager(); // Open the manager automatically
-            selectedCard.classList.remove('selected');
-            return;
         }
 
-        // Generate the receipt and switch view
-        generateReceipt(restaurantId);
-    }
-
-    /**
-     * Clears the current selection and returns to the grid view.
-     */
-    window.resetSelection = function() {
-        // Clear the pending reload timer if it exists (safety feature)
-        if (reloadTimerId !== null) {
-            clearTimeout(reloadTimerId);
-            reloadTimerId = null;
-            console.log("Automatic reload canceled by 'Start Over' button.");
+        function loadStateFromLocalStorage(key) {
+            try {
+                const stored = localStorage.getItem(key);
+                return stored ? JSON.parse(stored) : [];
+            } catch (e) {
+                console.error(`Error loading ${key} from local storage:`, e);
+                return [];
+            }
         }
-        
-        logoCards.forEach(card => {
-            card.classList.remove('selected');
-        });
-        document.getElementById('receipt-box').classList.add('hidden');
-        document.getElementById('logo-grid').classList.remove('hidden');
-        
-        document.getElementById('logo-grid').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-    
-    /**
-     * Shows the logo and address management modal.
-     */
-    window.showLogoManager = function() {
-        renderAddressManager(); // Make sure address list is up-to-date
-        logoManagerModal.classList.remove('hidden');
-    }
 
-    /**
-     * Hides the logo and address management modal.
-     */
-    window.hideLogoManager = function() {
-        logoManagerModal.classList.add('hidden');
-    }
+        // --- Address Management (CRUD) ---
 
-    // --- File Upload Logic (Base64 to LocalStorage) ---
-    
-    logoFileInputs.forEach(input => {
-        input.addEventListener('change', (event) => {
-            const file = event.target.files[0];
-            const restaurantId = event.target.getAttribute('data-id');
-            const statusEl = document.getElementById(`status-${restaurantId}`);
+        function loadAddresses() {
+            addresses = loadStateFromLocalStorage(ADDRESS_KEY);
+            renderAddressOptions();
+        }
+
+        window.saveAddress = function(editId) {
+            const input = document.getElementById(editId ? `address-input-${editId}` : 'new-address-input');
+            const addressText = input.value.trim();
             
-            if (!file) return;
-            if (file.size > 1024 * 1024 * 5) { // 5MB limit
-                statusEl.textContent = 'File too large (Max 5MB)!';
-                statusEl.classList.remove('text-green-500');
-                statusEl.classList.add('text-red-500');
+            if (!addressText) {
+                showTemporaryMessage("Please enter a valid address.", 'text-red-800 border-red-400 bg-red-100');
                 return;
             }
 
-            statusEl.textContent = 'Uploading...';
-            statusEl.classList.remove('text-red-500', 'text-green-500');
+            if (editId) {
+                // Update existing
+                const index = addresses.findIndex(a => a.id === editId);
+                if (index > -1) {
+                    addresses[index].text = addressText;
+                    saveStateToLocalStorage(ADDRESS_KEY, addresses);
+                    showTemporaryMessage("Address updated!", 'text-green-800 border-green-400 bg-green-100');
+                }
+            } else {
+                // Add new
+                const newAddress = {
+                    id: Date.now().toString(),
+                    text: addressText,
+                    isEditing: false
+                };
+                addresses.push(newAddress);
+                saveStateToLocalStorage(ADDRESS_KEY, addresses);
+                showTemporaryMessage("Address saved!", 'text-green-800 border-green-400 bg-green-100');
+            }
+            input.value = ''; // Clear input
+            renderAddressOptions();
+        }
 
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const logoUrl = e.target.result;
-                saveLogoToLocalStorage(restaurantId, logoUrl);
-            };
-            reader.onerror = () => {
-                statusEl.textContent = 'Error reading file!';
-                statusEl.classList.add('text-red-500');
-                console.error("Error reading file:", file);
-            };
-            reader.readAsDataURL(file);
-        });
-    });
+        window.deleteAddress = function(id) {
+            if (addresses.length <= 1) {
+                if (!window.confirm("This is your last address. Are you sure you want to delete it?")) {
+                    return;
+                }
+            } else {
+                if (!window.confirm("Are you sure you want to delete this address?")) {
+                    return;
+                }
+            }
 
-    // Attach click listeners and load data on initial load
-    document.addEventListener('DOMContentLoaded', () => {
-        loadLogosFromLocalStorage(); 
+            addresses = addresses.filter(a => a.id !== id);
+            saveStateToLocalStorage(ADDRESS_KEY, addresses);
+            renderAddressOptions();
+            showTemporaryMessage("Address deleted.", 'text-red-800 border-red-400 bg-red-100');
+        }
+
+        window.startEditAddress = function(id) {
+            addresses = addresses.map(a => ({
+                ...a,
+                isEditing: a.id === id ? true : false // Only set one item to editing mode
+            }));
+            renderAddressOptions();
+            // Focus the input field after render
+            setTimeout(() => {
+                const input = document.getElementById(`address-input-${id}`);
+                if (input) input.focus();
+            }, 0);
+        }
+
+        window.cancelEditAddress = function() {
+             addresses = addresses.map(a => ({ ...a, isEditing: false }));
+             renderAddressOptions();
+        }
+
+        /**
+         * Renders the list of saved addresses with edit/delete controls.
+         */
+        function renderAddressOptions() {
+            const container = document.getElementById('saved-addresses-list');
+            container.innerHTML = '';
+            
+            if (addresses.length === 0) {
+                container.innerHTML = '<p class="text-sm text-gray-500 italic p-3 text-center">No saved addresses yet. Save one above!</p>';
+                return;
+            }
+
+            addresses.forEach(addr => {
+                const div = document.createElement('div');
+                div.className = "flex items-center justify-between p-2 border-b border-gray-100 last:border-b-0";
+
+                if (addr.isEditing) {
+                    div.innerHTML = `
+                        <input type="text" id="address-input-${addr.id}" value="${addr.text}" class="flex-grow p-1 text-sm border rounded focus:ring-indigo-500 focus:border-indigo-500 mr-2">
+                        <button onclick="saveAddress('${addr.id}')" class="px-2 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 mr-1">Save</button>
+                        <button onclick="cancelEditAddress()" class="px-2 py-1 bg-gray-400 text-white text-xs rounded hover:bg-gray-500">Cancel</button>
+                    `;
+                } else {
+                    div.innerHTML = `
+                        <span class="text-sm text-gray-800 truncate">${addr.text}</span>
+                        <div class="flex space-x-1 flex-shrink-0">
+                            <button onclick="startEditAddress('${addr.id}')" class="action-btn" title="Edit">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                            </button>
+                            <button onclick="deleteAddress('${addr.id}')" class="action-btn hover:text-red-500" title="Delete">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                        </div>
+                    `;
+                }
+                container.appendChild(div);
+            });
+        }
+
+
+        // --- Restaurant Management (CRUD) ---
+
+        function loadCustomRestaurants() {
+            customRestaurants = loadStateFromLocalStorage(RESTAURANT_KEY);
+            // If no custom restaurants exist, seed with defaults for first-time use
+            if (customRestaurants.length === 0) {
+                 defaultFastFoodNames.forEach(name => {
+                    customRestaurants.push({ id: Date.now().toString() + Math.random(), name: name, isEditing: false });
+                 });
+                 saveStateToLocalStorage(RESTAURANT_KEY, customRestaurants);
+            }
+            renderCustomRestaurantOptions();
+            generateNameOptions(); // Update buttons
+        }
+
+        window.saveCustomRestaurant = function(editId) {
+            const input = document.getElementById(editId ? `restaurant-input-${editId}` : 'new-restaurant-input');
+            const nameText = input.value.trim();
+            
+            if (!nameText) {
+                showTemporaryMessage("Please enter a valid restaurant name.", 'text-red-800 border-red-400 bg-red-100');
+                return;
+            }
+
+            if (editId) {
+                // Update existing
+                const index = customRestaurants.findIndex(r => r.id === editId);
+                if (index > -1) {
+                    customRestaurants[index].name = nameText;
+                    saveStateToLocalStorage(RESTAURANT_KEY, customRestaurants);
+                    showTemporaryMessage("Restaurant name updated!", 'text-green-800 border-green-400 bg-green-100');
+                }
+            } else {
+                // Add new
+                const newRestaurant = {
+                    id: Date.now().toString(),
+                    name: nameText,
+                    isEditing: false
+                };
+                customRestaurants.push(newRestaurant);
+                saveStateToLocalStorage(RESTAURANT_KEY, customRestaurants);
+                showTemporaryMessage(`Restaurant "${nameText}" saved!`, 'text-green-800 border-green-400 bg-green-100');
+            }
+            input.value = '';
+            renderCustomRestaurantOptions();
+            generateNameOptions(); // Update buttons
+        }
+
+        window.deleteRestaurant = function(id) {
+            if (customRestaurants.length <= 1) {
+                 if (!window.confirm("This is your last restaurant. Are you sure you want to delete it?")) {
+                    return;
+                }
+            } else {
+                 if (!window.confirm("Are you sure you want to delete this restaurant?")) {
+                    return;
+                }
+            }
+           
+            customRestaurants = customRestaurants.filter(r => r.id !== id);
+            saveStateToLocalStorage(RESTAURANT_KEY, customRestaurants);
+            renderCustomRestaurantOptions();
+            generateNameOptions(); // Update buttons
+            showTemporaryMessage("Restaurant deleted.", 'text-red-800 border-red-400 bg-red-100');
+        }
+
+        window.startEditRestaurant = function(id) {
+            customRestaurants = customRestaurants.map(r => ({
+                ...r,
+                isEditing: r.id === id ? true : false // Only set one item to editing mode
+            }));
+            renderCustomRestaurantOptions();
+            // Focus the input field after render
+            setTimeout(() => {
+                const input = document.getElementById(`restaurant-input-${id}`);
+                if (input) input.focus();
+            }, 0);
+        }
         
-        // Setup click listeners for the cards
-        logoCards.forEach(card => {
-            card.addEventListener('click', selectLogo);
-        });
-    });
+        window.cancelEditRestaurant = function() {
+             customRestaurants = customRestaurants.map(r => ({ ...r, isEditing: false }));
+             renderCustomRestaurantOptions();
+             generateNameOptions();
+        }
 
-</script>
+        /**
+         * Renders the list of saved custom restaurants with edit/delete controls.
+         */
+        function renderCustomRestaurantOptions() {
+            const container = document.getElementById('custom-restaurants-list');
+            container.innerHTML = '';
+            
+            if (customRestaurants.length === 0) {
+                container.innerHTML = '<p class="text-sm text-gray-500 italic p-3 text-center">No saved restaurants. Please add one!</p>';
+                return;
+            }
 
+            customRestaurants.forEach(restaurant => {
+                const div = document.createElement('div');
+                div.className = "flex items-center justify-between p-2 border-b border-gray-100 last:border-b-0";
+
+                if (restaurant.isEditing) {
+                    div.innerHTML = `
+                        <input type="text" id="restaurant-input-${restaurant.id}" value="${restaurant.name}" class="flex-grow p-1 text-sm border rounded focus:ring-purple-500 focus:border-purple-500 mr-2">
+                        <button onclick="saveCustomRestaurant('${restaurant.id}')" class="px-2 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 mr-1">Save</button>
+                        <button onclick="cancelEditRestaurant()" class="px-2 py-1 bg-gray-400 text-white text-xs rounded hover:bg-gray-500">Cancel</button>
+                    `;
+                } else {
+                    div.innerHTML = `
+                        <span class="text-sm text-gray-800 truncate">${restaurant.name}</span>
+                        <div class="flex space-x-1 flex-shrink-0">
+                            <button onclick="startEditRestaurant('${restaurant.id}')" class="action-btn" title="Edit">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                            </button>
+                            <button onclick="deleteRestaurant('${restaurant.id}')" class="action-btn hover:text-red-500" title="Delete">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                        </div>
+                    `;
+                }
+                container.appendChild(div);
+            });
+        }
+
+        // --- Restaurant Selection Buttons ---
+
+        /**
+         * Renders buttons for all custom restaurants.
+         */
+        window.generateNameOptions = function() {
+            const container = document.getElementById('options-container');
+            // Clear only the buttons, keep the heading
+            container.querySelectorAll('button').forEach(btn => {
+                if(btn.parentNode === container) btn.remove();
+            });
+            
+            if (customRestaurants.length === 0) {
+                const message = document.createElement('p');
+                message.className = 'text-center text-red-500 font-medium p-4 border border-red-300 rounded-lg';
+                message.textContent = 'Please add a restaurant in the manager section above to create an order.';
+                container.appendChild(message);
+                return;
+            }
+
+            customRestaurants.forEach(restaurant => {
+                const button = document.createElement('button');
+                button.textContent = restaurant.name;
+                button.className = "w-full py-4 px-4 text-white font-bold bg-indigo-500 rounded-lg shadow-lg hover:bg-indigo-600 active:translate-y-0.5 transition duration-150 transform tracking-wider text-lg";
+                button.onclick = () => handleSelection(restaurant.name);
+                container.appendChild(button);
+            });
+        }
+
+        /**
+         * Generates the detailed receipt content as HTML string.
+         */
+        function generateReceipt(restaurantName, deliveryAddress) {
+            const now = new Date();
+            const orderDate = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            const orderTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+            const orderId = `${appId.substring(0, 4).toUpperCase()}-${getRandomInt(1000, 9999)}-${getRandomInt(10, 99)}`;
+            const taxRate = 0.0825; // Example tax rate
+
+            let subtotal = 0;
+            const items = [];
+            
+            // Randomly select between 4 and 10 item types
+            const numItemTypes = getRandomInt(4, 10);
+            const menuCopy = [...menuItems]; 
+
+            for (let i = 0; i < numItemTypes; i++) {
+                const itemIndex = getRandomInt(0, menuCopy.length - 1);
+                // Ensure we get a valid item, even if menuCopy runs out
+                const item = menuCopy.splice(itemIndex, 1)[0] || menuItems[i % menuItems.length]; 
+                const quantity = getRandomInt(1, 3);
+                const lineTotal = (item.price * quantity);
+                subtotal += lineTotal;
+                items.push({
+                    name: item.name,
+                    qty: quantity,
+                    total: lineTotal.toFixed(2),
+                    price: item.price
+                });
+            }
+
+            // Calculate overall item counts for the summary
+            const totalItems = items.reduce((sum, item) => sum + item.qty, 0); 
+            const firstItem = items[0] || { name: "Placeholder Item", qty: 1, total: "0.00" }; // Fallback
+            const itemsToSummarize = totalItems - firstItem.qty; 
+
+
+            const tax = subtotal * taxRate;
+            const serviceFee = parseFloat(getRandomFloat(1.5, 3.5));
+            const deliveryFee = 0.00; 
+            const customerTip = parseFloat(getRandomFloat(2.00, 5.00));
+            const total = subtotal + tax + serviceFee + deliveryFee + customerTip;
+
+            const divider = "----------------------------------------";
+            
+            // Format the address for BIG LETTERS on the receipt
+            const addressDisplay = deliveryAddress 
+                ? `<div style="text-align: center; margin: 15px 0; padding: 5px; border-bottom: 1px dashed black; border-top: 1px dashed black;">
+                      <p style="font-size: 16px; font-weight: bold; line-height: 1.2;">DELIVERY TO:</p>
+                      <p style="font-size: 18px; font-weight: 700; line-height: 1.2; word-wrap: break-word;">${deliveryAddress.toUpperCase()}</p>
+                   </div>
+                   <p>${divider}</p>`
+                : `<div style="text-align: center; margin: 15px 0; padding: 5px; border-bottom: 1px dashed black; border-top: 1px dashed black;">
+                      <p style="font-size: 14px; color: #cc0000; font-weight: bold;">[NO DELIVERY ADDRESS SAVED OR SELECTED]</p>
+                   </div>
+                   <p>${divider}</p>`;
+
+
+            let receiptHTML = `
+                <div style="text-align: center; margin-bottom: 10px;">
+                    <span style="font-size: 14px; font-weight: bold;">U B E R &nbsp; E A T S</span><br>
+                    <span style="font-size: 8px;">ORDER CONFIRMATION</span>
+                </div>
+
+                ${addressDisplay}
+                
+                <div style="text-align: center; font-size: 16px; font-weight: bold; margin-bottom: 5px;">
+                    ${restaurantName.toUpperCase()}
+                </div>
+
+                <p style="text-align: center; margin-bottom: 10px; font-size: 10px;">
+                    123 Fictional Lane, City, State 90210<br>
+                    (555) 123-4567
+                </p>
+
+                <p>${divider}</p>
+
+                <p style="font-size: 11px; font-weight: bold; text-align: center; margin: 10px 0;">
+                    ORDER #: ${orderId}
+                </p>
+                <p style="margin: 5px 0;">
+                    DATE: ${orderDate} &nbsp; &nbsp; &nbsp; TIME: ${orderTime}
+                </p>
+                <p>
+                    PICKUP: ${getRandomInt(8, 15)} min after order<br>
+                    DELIVERY: ${getRandomInt(15, 25)} min after order
+                </p>
+
+                <p>${divider}</p>
+
+                <div style="font-size: 11px;">
+                    <div style="display: flex; justify-content: space-between; font-weight: bold;">
+                        <span>ITEM</span>
+                        <span>QTY &nbsp; AMT</span>
+                    </div>
+                    
+                    <!-- Display only the first item -->
+                    <div style="display: flex; justify-content: space-between; margin-top: 5px;">
+                        <span style="max-width: 60%; overflow-wrap: break-word;">${firstItem.name}</span>
+                        <span>${firstItem.qty} &nbsp; $${firstItem.total}</span>
+                    </div>
+
+                    <!-- Display the summary line if there are other items -->
+                    ${itemsToSummarize > 0 ? `
+                        <div style="display: flex; justify-content: space-between; margin-top: 5px; font-style: italic;">
+                            <span style="max-width: 60%;">+ ${itemsToSummarize} Other Delicious Items</span>
+                            <span>-</span>
+                        </div>
+                    ` : ''}
+
+                </div>
+
+                <p style="margin-top: 5px;">${divider}</p>
+
+                <div style="font-size: 11px;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>SUBTOTAL</span>
+                        <span>$${subtotal.toFixed(2)}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>TAX (${(taxRate * 100).toFixed(2)}%)</span>
+                        <span>$${tax.toFixed(2)}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>SERVICE FEE</span>
+                        <span>$${serviceFee.toFixed(2)}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>DELIVERY FEE</span>
+                        <span>$${deliveryFee.toFixed(2)}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>CUSTOMER TIP</span>
+                        <span>$${customerTip.toFixed(2)}</span>
+                    </div>
+
+                    <p style="margin: 5px 0;">${divider}</p>
+
+                    <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold;">
+                        <span>TOTAL CHARGED</span>
+                        <span>$${total.toFixed(2)}</span>
+                    </div>
+                </div>
+
+                <p style="margin: 5px 0;">${divider}</p>
+
+                <div style="text-align: center; font-size: 11px; margin-top: 15px;">
+                    <p style="font-weight: bold; margin-bottom: 5px;">
+                        DELIVERED BY UBER DRIVER:
+                    </p>
+                    <p style="font-size: 14px; font-weight: bold;">
+                        ${getRandomElement(driverNames)}
+                    </p>
+                    <p style="margin-top: 10px;">
+                        Thank you for your order!
+                    </p>
+                </div>
+
+                <p style="margin-top: 15px;">${divider}</p>
+
+                <div style="text-align: center; font-size: 9px; margin-top: 10px;">
+                    <p>Order processed through Uber Eats Platform.</p>
+                    <p>Powered by ${appId}</p>
+                    <p style="margin-top: 5px;">&copy; 2025 Uber Technologies Inc.</p>
+                </div>
+            `;
+            return receiptHTML;
+        }
+
+        /**
+         * Handles the button click: generates receipt, injects HTML, and prints.
+         */
+        function handleSelection(restaurantName) {
+            // Randomly select an address from the saved list
+            const randomAddress = addresses.length > 0 ? getRandomElement(addresses) : null;
+            const deliveryAddressText = randomAddress ? randomAddress.text : null;
+            
+            if (!deliveryAddressText) {
+                 showTemporaryMessage("Please save at least one address in the manager section before placing an order.", 'text-red-800 border-red-400 bg-red-100');
+                 return;
+            }
+
+            // 1. Generate receipt content
+            const receiptHTML = generateReceipt(restaurantName, deliveryAddressText);
+            
+            // 2. Inject into the hidden container
+            document.getElementById('receipt-content').innerHTML = receiptHTML;
+
+            // 3. Trigger the print dialog
+            // Note: Using a custom modal is preferred over window.alert/confirm for better user experience.
+            // For simple confirmation, we'll use window.confirm here to quickly fulfill the delete functionality.
+            window.print();
+        }
+
+        // Initialize on load: Load addresses and custom restaurants, then update selection buttons
+        window.onload = function() {
+            loadAddresses();
+            loadCustomRestaurants();
+            // generateNameOptions() is called inside loadCustomRestaurants()
+        };
+    </script>
 </body>
 </html>
