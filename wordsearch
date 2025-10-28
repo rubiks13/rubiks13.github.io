@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canvas Word Search Maker</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Load jsPDF library for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fc;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+        }
+        .app-container {
+            width: 100%;
+            max-width: 480px; /* Tablet/Mobile friendly max-width */
+            padding: 1rem;
+        }
+        /* Style for the canvas container to maintain aspect ratio and centering */
+        #canvasContainer {
+            width: 100%;
+            aspect-ratio: 1 / 1; 
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            background-color: #fff;
+            overflow: hidden;
+            border: 1px solid #e5e7eb;
+        }
+
+        /* Canvas will be sized by JS */
+        #puzzleCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Loading Spinner Animation */
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app" class="app-container pt-8">
+    <header class="text-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-800">Word Search Puzzle Maker (Canvas)</h1>
+        <p class="text-sm text-gray-500 mt-1">Enter words, generate, and print instantly.</p>
+    </header>
+
+    <!-- Input and Control Area -->
+    <div class="bg-white p-5 shadow-lg rounded-xl mb-6">
+        <label for="wordInput" class="block text-sm font-medium text-gray-700 mb-2">
+            Enter Words (Max 15, one per line or separated by commas):
+        </label>
+        <textarea 
+            id="wordInput" 
+            rows="4" 
+            class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-150"
+            placeholder="e.g. GEMINI, CANVAS, JAVASCRIPT, PRINT, SHARE, PUZZLE"
+        >GEMINI
+CANVAS
+JAVASCRIPT
+PRINT
+SHARE
+PUZZLE</textarea>
+
+        <div class="mt-4 flex flex-col space-y-3">
+            <button 
+                id="generateButton" 
+                class="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg shadow-md hover:bg-blue-700 transition duration-150 active:scale-95 disabled:bg-blue-400 flex items-center justify-center"
+                onclick="generatePuzzle()"
+            >
+                Generate Puzzle
+            </button>
+            <button 
+                id="printButton" 
+                onclick="printWordSearch()"
+                class="w-full bg-green-500 text-white font-semibold py-3 rounded-lg shadow-lg hover:bg-green-600 transition duration-150 active:scale-95 disabled:bg-gray-400 disabled:shadow-none"
+                disabled
+            >
+                Print / Save as PDF
+            </button>
+        </div>
+    </div>
+
+    <!-- Puzzle and Word List Display -->
+    <div id="puzzleOutput" class="hidden bg-white p-5 shadow-lg rounded-xl mb-6">
+        <h2 class="text-xl font-bold text-gray-800 mb-3">Your Puzzle</h2>
+        
+        <!-- Canvas Grid -->
+        <div id="canvasContainer">
+            <canvas id="puzzleCanvas"></canvas>
+        </div>
+
+        <h3 class="text-lg font-bold text-gray-800 mt-6 mb-2">Words to Find:</h3>
+        <ul id="wordList" class="grid grid-cols-2 gap-2 text-sm text-gray-700">
+            <!-- Word list will be injected here -->
+        </ul>
+    </div>
+    
+    <!-- Custom Notification Area -->
+    <div id="notificationArea" class="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50">
+    </div>
+</div>
+
+<script>
+    // Constants
+    const GRID_SIZE = 15;
+    const DIRECTIONS = [
+        [0, 1], [1, 1], [1, 0], [1, -1], [0, -1], [-1, -1], [-1, 0], [-1, 1] // All 8 directions
+    ];
+    const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+    // Global state
+    let currentGrid = [];
+    let placedWords = [];
+    let puzzleWords = [];
+
+    // Canvas Globals
+    let canvas, ctx;
+
+    // DOM elements
+    const generateButton = document.getElementById('generateButton');
+    const printButton = document.getElementById('printButton');
+    const wordListElement = document.getElementById('wordList');
+    const puzzleOutputElement = document.getElementById('puzzleOutput');
+    const notificationArea = document.getElementById('notificationArea');
+
+    // --- UTILITY FUNCTIONS ---
+
+    /** Displays a temporary notification message to the user. */
+    function showNotification(message, type = 'success') {
+        const classes = {
+            success: 'bg-green-500',
+            error: 'bg-red-500',
+            info: 'bg-blue-500'
+        };
+        const element = document.createElement('div');
+        element.className = \`px-4 py-2 text-white text-sm rounded-lg shadow-xl mb-2 \${classes[type]} transition-opacity duration-300\`;
+        element.textContent = message;
+
+        notificationArea.appendChild(element);
+
+        setTimeout(() => {
+            element.classList.add('opacity-0');
+            setTimeout(() => {
+                notificationArea.removeChild(element);
+            }, 300);
+        }, 3000);
+    }
+
+    /** Cleans up and validates the input words. */
+    function parseWords(input) {
+        const words = input.toUpperCase()
+            .split(/[\s,]+/)
+            .filter(w => w.length > 0 && w.length <= GRID_SIZE)
+            .slice(0, 15);
+
+        return [...new Set(words)];
+    }
+
+    // --- PUZZLE GENERATION LOGIC (UNCHANGED) ---
+
+    function initializeGrid() { return Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill('')); }
+    function fillBlanks(grid) {
+        for (let r = 0; r < GRID_SIZE; r++) {
+            for (let c = 0; c < GRID_SIZE; c++) {
+                if (grid[r][c] === '') {
+                    grid[r][c] = ALPHABET[Math.floor(Math.random() * ALPHABET.length)];
+                }
+            }
+        }
+        return grid;
+    }
+    function canPlace(grid, word, r, c, dr, dc) {
+        const length = word.length;
+        for (let i = 0; i < length; i++) {
+            const nr = r + i * dr;
+            const nc = c + i * dc;
+            if (nr < 0 || nr >= GRID_SIZE || nc < 0 || nc >= GRID_SIZE) return false;
+            if (grid[nr][nc] !== '' && grid[nr][nc] !== word[i]) return false;
+        }
+        return true;
+    }
+    function placeWord(grid, word, r, c, dr, dc) {
+        const length = word.length;
+        for (let i = 0; i < length; i++) {
+            grid[r + i * dr][c + i * dc] = word[i];
+        }
+    }
+    function tryPlaceWord(grid, word) {
+        let attempts = 0;
+        const maxAttempts = 500;
+        const shuffledDirections = [...DIRECTIONS].sort(() => Math.random() - 0.5);
+
+        while (attempts < maxAttempts) {
+            const r = Math.floor(Math.random() * GRID_SIZE);
+            const c = Math.floor(Math.random() * GRID_SIZE);
+            const [dr, dc] = shuffledDirections[attempts % shuffledDirections.length];
+
+            if (canPlace(grid, word, r, c, dr, dc)) {
+                placeWord(grid, word, r, c, dr, dc);
+                return true;
+            }
+            attempts++;
+        }
+        return false;
+    }
+    function generateWordSearch(words) {
+        let grid = initializeGrid();
+        let successfulWords = [];
+        const sortedWords = words.sort((a, b) => b.length - a.length);
+
+        sortedWords.forEach(word => {
+            if (tryPlaceWord(grid, word)) {
+                successfulWords.push(word);
+            }
+        });
+
+        currentGrid = fillBlanks(grid);
+        placedWords = successfulWords;
+        puzzleWords = words;
+    }
+
+    // --- CANVAS RENDERING FUNCTIONS (NEW) ---
+
+    /** Draws the puzzle grid and letters onto the canvas. */
+    function drawPuzzleOnCanvas() {
+        if (!canvas || !ctx) return;
+
+        // Set high resolution for better visual quality and printing
+        const scale = 2; // Scale factor for retina displays/print quality
+        canvas.width = canvas.clientWidth * scale;
+        canvas.height = canvas.clientHeight * scale;
+        ctx.scale(scale, scale);
+
+        const canvasSize = canvas.clientWidth;
+        const cellSize = canvasSize / GRID_SIZE;
+
+        // Clear canvas
+        ctx.clearRect(0, 0, canvasSize, canvasSize);
+
+        // Draw grid lines and letters
+        ctx.strokeStyle = '#e5e7eb'; // Gray border
+        ctx.lineWidth = 1;
+        ctx.font = \`\${Math.round(cellSize * 0.4)}px 'Inter'\`; // Set font size based on cell size
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#374151'; // Dark text color
+
+        for (let r = 0; r < GRID_SIZE; r++) {
+            for (let c = 0; c < GRID_SIZE; c++) {
+                const x = c * cellSize;
+                const y = r * cellSize;
+                
+                // Draw Cell Letter
+                ctx.fillText(currentGrid[r][c], x + cellSize / 2, y + cellSize / 2);
+
+                // Draw Cell Borders (Vertical)
+                ctx.beginPath();
+                ctx.moveTo(x + cellSize, y);
+                ctx.lineTo(x + cellSize, y + cellSize);
+                ctx.stroke();
+
+                // Draw Cell Borders (Horizontal)
+                ctx.beginPath();
+                ctx.moveTo(x, y + cellSize);
+                ctx.lineTo(x + cellSize, y + cellSize);
+                ctx.stroke();
+            }
+        }
+        
+        // Draw the outer border of the puzzle
+        ctx.strokeStyle = '#9ca3af'; // Darker border
+        ctx.lineWidth = 2;
+        ctx.strokeRect(0, 0, canvasSize, canvasSize);
+    }
+    
+    /** Renders the generated grid and word list to the UI. */
+    function renderPuzzle() {
+        // Render the puzzle canvas
+        drawPuzzleOnCanvas();
+        
+        // Render the word list
+        wordListElement.innerHTML = '';
+        puzzleWords.forEach(word => {
+            const li = document.createElement('li');
+            
+            if (placedWords.includes(word)) {
+                 li.textContent = word;
+                 li.className = 'text-gray-800 font-medium';
+            } else {
+                 li.textContent = word + ' (Unplaced)';
+                 li.className = 'text-red-500 line-through italic';
+                 li.title = 'Word was too long or could not be placed.';
+            }
+            wordListElement.appendChild(li);
+        });
+
+        puzzleOutputElement.classList.remove('hidden');
+        printButton.disabled = false;
+    }
+
+
+    // --- EVENT HANDLERS ---
+
+    window.generatePuzzle = function() {
+        const input = document.getElementById('wordInput').value;
+        const words = parseWords(input);
+
+        if (words.length === 0) {
+            showNotification("Please enter at least one valid word (max 15 letters long).", 'error');
+            return;
+        }
+
+        // Disable buttons and show loading effect
+        generateButton.disabled = true;
+        generateButton.innerHTML = '<span class="spinner"></span> Generating...';
+        printButton.disabled = true;
+
+        setTimeout(() => {
+            try {
+                generateWordSearch(words);
+                renderPuzzle();
+                showNotification(`Successfully placed ${placedWords.length} of ${words.length} words!`, 'success');
+            } catch (error) {
+                console.error("Puzzle generation failed:", error);
+                showNotification("An unexpected error occurred during puzzle generation.", 'error');
+            } finally {
+                generateButton.disabled = false;
+                generateButton.textContent = 'Generate Puzzle';
+            }
+        }, 50); 
+    }
+    
+    /** Generates the PDF in memory and triggers the browser's print window. */
+    window.printWordSearch = function() {
+        if (placedWords.length === 0) {
+            showNotification("No puzzle generated yet. Please create a puzzle first.", 'error');
+            return;
+        }
+        
+        printButton.disabled = true;
+        printButton.textContent = "Preparing Print...";
+
+        try {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'mm', 'a4');
+            const margin = 20;
+            let y = margin;
+            const pageSize = doc.internal.pageSize;
+            
+            // --- Title ---
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(24);
+            doc.text("Custom Word Search Puzzle", margin, y);
+            y += 10;
+
+            // --- Word List Header ---
+            doc.setFontSize(14);
+            doc.text("Words to Find:", margin, y);
+            y += 8;
+            
+            // --- Word List ---
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10);
+            
+            const listX = margin;
+            const listY = y;
+            const colWidth = (pageSize.getWidth() - 2 * margin) / 2;
+            let col1Y = listY;
+            let col2Y = listY;
+            const lineHeight = 5;
+
+            puzzleWords.forEach((word, index) => {
+                const isPlaced = placedWords.includes(word);
+                const prefix = isPlaced ? "• " : "X ";
+                
+                doc.setTextColor(isPlaced ? '#000000' : '#FF0000');
+                doc.setFont('helvetica', isPlaced ? 'normal' : 'italic');
+
+                if (index % 2 === 0) {
+                    doc.text(prefix + word, listX, col1Y);
+                    col1Y += lineHeight;
+                } else {
+                    doc.text(prefix + word, listX + colWidth, col2Y);
+                    col2Y += lineHeight;
+                }
+            });
+
+            // Set Y position below the word list
+            y = Math.max(col1Y, col2Y) + 10;
+            
+            // --- Puzzle Grid (Vector Text for best print quality) ---
+            doc.setFont('courier', 'bold'); 
+            doc.setFontSize(10);
+            
+            const gridWidth = pageSize.getWidth() - 2 * margin; 
+            const cellHeight = (gridWidth / GRID_SIZE); 
+            const startX = margin;
+            const startY = y;
+
+            for (let r = 0; r < GRID_SIZE; r++) {
+                let rowLetters = '';
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    rowLetters += currentGrid[r][c] + ' ';
+                }
+                // Draw the row of letters
+                doc.text(rowLetters.trim(), startX, startY + r * cellHeight + (cellHeight / 2) + 0.5); 
+            }
+
+            // Draw the grid lines
+            doc.setLineWidth(0.2);
+            doc.setDrawColor(150); 
+            for (let i = 0; i <= GRID_SIZE; i++) {
+                // Vertical lines
+                doc.line(startX + i * cellHeight, startY, startX + i * cellHeight, startY + gridWidth);
+                // Horizontal lines
+                doc.line(startX, startY + i * cellHeight, startX + gridWidth, startY + i * cellHeight);
+            }
+            
+            // Trigger print in a new window
+            doc.output('dataurlnewwindow');
+            
+            showNotification("Print window opened! You can print or save as PDF there.", 'success');
+        } catch (error) {
+            console.error("Print generation error:", error);
+            showNotification("Failed to prepare for print. Check console for details.", 'error');
+        } finally {
+            printButton.disabled = false;
+            printButton.textContent = "Print / Save as PDF";
+        }
+    }
+    
+    /** Handles window resize to keep the canvas display responsive. */
+    window.addEventListener('resize', () => {
+        if (currentGrid.length > 0) {
+            drawPuzzleOnCanvas();
+        }
+    });
+
+    /** Initial setup on page load. */
+    window.onload = function() {
+        canvas = document.getElementById('puzzleCanvas');
+        ctx = canvas.getContext('2d');
+        generatePuzzle(); 
+    }
+
+</script>
+</body>
+</html>
+
