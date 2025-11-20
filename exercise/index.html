@@ -223,7 +223,7 @@
                     <button id="nextBtn" class="button btn-primary hidden flex-1">Next</button>
                     <button id="endSessionBtn" class="button btn-danger flex-1">End Session</button>
                 </div>
-                <!-- New Audible Button -->
+                <!-- New Audible Button with Deep Link -->
                 <button id="audibleBtn" class="button btn-audible w-full text-lg font-bold">Audible App</button>
             </div>
         </div>
@@ -1091,11 +1091,22 @@
                 endSession();
             };
 
-            // New Audible Button Handler
+            // ** UPDATED Audible Button Logic for Deep Linking **
             audibleBtn.onclick = () => {
-                // Open Audible website in a new tab
-                window.open('https://www.audible.com/', '_blank');
-                showMessageBox('Opening Audible in a new tab...');
+                // Use the custom URL scheme for the Audible app. 
+                // This is the correct way to try and launch a native app from a browser.
+                const audibleDeepLink = 'audible://';
+                
+                // We use window.location.href to trigger the native app launch.
+                window.location.href = audibleDeepLink;
+                
+                // Fallback to the website after a short delay, in case the app isn't installed.
+                // This is a common pattern for deep linking on mobile web.
+                setTimeout(() => {
+                    showMessageBox('Attempting to open Audible app. If it does not open, please check if the app is installed or try clicking the button again.');
+                    // You could uncomment this fallback to open the website if the app fails to launch:
+                    // window.open('https://www.audible.com/', '_blank'); 
+                }, 500); // 500ms delay to give the app a chance to launch
             };
 
             parentLoginBtn.onclick = () => {
