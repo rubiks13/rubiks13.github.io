@@ -90,6 +90,15 @@
         .btn-light:hover {
             background-color: #a0aec0;
         }
+        /* New Audible Button Style */
+        .btn-audible {
+            background-color: #f97316; /* Tailwind orange-500 */
+            color: white;
+            border-color: #ea580c; /* Tailwind orange-600 */
+        }
+        .btn-audible:hover {
+            background-color: #ea580c; /* Tailwind orange-600 */
+        }
         .flex-center {
             display: flex;
             justify-content: center;
@@ -205,10 +214,17 @@
             <div class="text-center mb-6">
                 <p id="timerDisplay" class="text-6xl font-bold text-red-500">60</p>
             </div>
-            <div class="flex-center gap-4">
-                <button id="startExerciseBtn" class="button btn-primary">Start</button>
-                <button id="nextBtn" class="button btn-primary hidden">Next</button>
-                <button id="endSessionBtn" class="button btn-danger">End Session</button>
+            
+            <!-- Controls Block -->
+            <div class="flex flex-col gap-4">
+                <!-- Main Controls (Start/Pause/Next and End Session) -->
+                <div class="flex-center gap-4">
+                    <button id="startExerciseBtn" class="button btn-primary flex-1">Start</button>
+                    <button id="nextBtn" class="button btn-primary hidden flex-1">Next</button>
+                    <button id="endSessionBtn" class="button btn-danger flex-1">End Session</button>
+                </div>
+                <!-- New Audible Button -->
+                <button id="audibleBtn" class="button btn-audible w-full text-lg font-bold">Audible App</button>
             </div>
         </div>
 
@@ -361,6 +377,7 @@
             const startExerciseBtn = document.getElementById('startExerciseBtn');
             const nextBtn = document.getElementById('nextBtn');
             const endSessionBtn = document.getElementById('endSessionBtn');
+            const audibleBtn = document.getElementById('audibleBtn'); // New button element
             const timerEndSound = document.getElementById('timerEndSound');
             const customAudioPlayer = document.getElementById('customAudioPlayer');
             const timerSoundToggle = document.getElementById('timerSoundToggle');
@@ -594,7 +611,7 @@
                             startLoopingAudio();
                         }
                         sessionState.sessionPoints += sessionState.typeKey === 'stretches' ? currentExercise.duration : currentExercise.points;
-                        nextBtn.textContent = 'Next';
+                        nextBtn.textContent = sessionState.typeKey === 'stretches' ? 'Continue' : 'Next'; // Use 'Continue' for stretches
                         nextBtn.classList.remove('hidden');
                         startExerciseBtn.classList.add('hidden');
                     }
@@ -1072,6 +1089,13 @@
 
             endSessionBtn.onclick = () => {
                 endSession();
+            };
+
+            // New Audible Button Handler
+            audibleBtn.onclick = () => {
+                // Open Audible website in a new tab
+                window.open('https://www.audible.com/', '_blank');
+                showMessageBox('Opening Audible in a new tab...');
             };
 
             parentLoginBtn.onclick = () => {
