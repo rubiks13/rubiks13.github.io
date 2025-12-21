@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fly USA Boarding Pass Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Libre+Barcode+128&display=swap');
+
+        :root {
+            --printer-width: 80mm;
+        }
+
+        body {
+            background-color: #f3f4f6;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            transition: background-color 0.3s;
+        }
+
+        /* Screen-only styling for the thermal pass */
+        .boarding-pass-thermal {
+            width: var(--printer-width);
+            background: white;
+            color: black;
+            padding: 5mm;
+            box-sizing: border-box;
+            border: 1px dashed #ccc;
+        }
+
+        .barcode {
+            font-family: 'Libre Barcode 128', cursive;
+            font-size: 40px;
+            line-height: 1;
+        }
+
+        .dashed-line {
+            border-top: 1px dashed black;
+            margin: 10px 0;
+        }
+
+        .label {
+            font-size: 8pt;
+            text-transform: uppercase;
+            font-weight: 600;
+            color: #444;
+        }
+
+        .value {
+            font-size: 11pt;
+            font-weight: 800;
+        }
+
+        /* Printing logic */
+        @media print {
+            body { background: white !important; }
+            .no-print { display: none !important; }
+            #print-view { 
+                display: block !important; 
+                position: absolute !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100% !important;
+            }
+            @page {
+                size: 80mm auto;
+                margin: 0;
+            }
+        }
+
+        /* Classes to toggle between Home and Print Page */
+        .page-hidden { display: none !important; }
+        .page-visible { display: flex !important; }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <!-- HOME PAGE SECTION -->
+    <div id="home-page" class="p-4 md:p-8 max-w-4xl mx-auto page-visible flex-col no-print">
+        <!-- Main Quick Action Bar -->
+        <div class="mb-6 bg-white p-6 rounded-2xl shadow-lg border-4 border-blue-500 text-center">
+            <h1 class="text-2xl font-black mb-2 uppercase tracking-tight">Bike Route Station</h1>
+            <p class="text-gray-600 mb-6">Hit the button or scan a ticket to ride!</p>
+            
+            <div class="flex flex-col gap-4">
+                <button onclick="goToPrintPage()" class="w-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-3xl font-black py-10 rounded-2xl shadow-xl transition-all flex flex-col items-center justify-center gap-2">
+                    <div class="flex items-center gap-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12.2 2h-.4a2 2 0 0 0-2 2v1.2a2 2 0 0 1-1.2 1.8l-1.5.7a2 2 0 0 1-2.4-.7l-.8-1a2 2 0 0 0-2.8-.2l-.3.3a2 2 0 0 0-.2 2.8l1 1a2 2 0 0 1 .7 2.4l-.7 1.5a2 2 0 0 1-1.8 1.2H2.2a2 2 0 0 0-2 2v.4a2 2 0 0 0 2 2h1.2a2 2 0 0 1 1.8 1.2l.7 1.5a2 2 0 0 1-.7 2.4l-1 1a2 2 0 0 0 .2 2.8l.3.3a2 2 0 0 0 2.8-.2l.8-1a2 2 0 0 1 2.4-.7l1.5.7a2 2 0 0 1 1.2 1.8v1.2a2 2 0 0 0 2 2h.4a2 2 0 0 0 2-2v-1.2a2 2 0 0 1 1.2-1.8l1.5-.7a2 2 0 0 1 2.4.7l.8 1a2 2 0 0 0 2.8.2l.3-.3a2 2 0 0 0 2.8-.2l.8-1a2 2 0 0 1 2.4-.7l1.5.7a2 2 0 0 1 1.2 1.8V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                        NEW RIDE
+                    </div>
+                </button>
+
+                <div class="bg-gray-100 p-4 rounded-xl border-2 border-dashed border-gray-300">
+                    <p class="text-xs font-bold text-gray-500 uppercase mb-2">Scan Returning Ticket Flight ID</p>
+                    <input type="text" id="scanner-input" oninput="handleScan(this.value)" placeholder="SCAN BARCODE HERE..." class="w-full bg-white border border-gray-300 p-3 rounded-lg font-mono text-center text-xl uppercase tracking-widest focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+            </div>
+            
+            <div class="mt-4 flex justify-between text-xs text-gray-400 font-bold uppercase">
+                <span>Ctrl + S: Settings</span>
+                <span id="stored-count">0 Flights Logged</span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Information Panel -->
+            <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold italic tracking-tight uppercase">Route History</h2>
+                    <button onclick="clearHistory()" class="text-[10pt] font-bold text-red-500 hover:text-red-700 uppercase tracking-tighter">Clear All</button>
+                </div>
+                <div id="logs" class="space-y-2 font-mono text-xs text-gray-500 overflow-y-auto max-h-40">
+                    <p>> System ready...</p>
+                </div>
+            </div>
+            
+            <div class="bg-blue-50 p-6 rounded-xl border border-blue-100 flex flex-col items-center justify-center text-blue-600 font-bold text-center italic">
+                <p id="status-text">Scan a Flight ID to continue a journey.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- PRINT PAGE SECTION -->
+    <div id="print-view" class="page-hidden fixed inset-0 bg-white z-[50] flex flex-col items-center justify-center">
+        <div class="no-print mb-8 text-center animate-pulse">
+            <h2 class="text-2xl font-black text-blue-600 uppercase">Printing Receipt...</h2>
+            <p class="text-gray-500">Connecting to thermal printer.</p>
+        </div>
+
+        <div id="print-area">
+            <div class="boarding-pass-thermal mx-auto shadow-none">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="font-black text-xl italic tracking-tighter">FLY USA</div>
+                    <div class="text-xs font-bold border border-black px-2 py-0.5">BOARDING PASS</div>
+                </div>
+                <div class="dashed-line"></div>
+                <div class="mb-4">
+                    <div class="label">Passenger</div>
+                    <div class="value" id="view-name">---</div>
+                </div>
+                <div class="flex justify-between mb-4">
+                    <div>
+                        <div class="label">From</div>
+                        <div class="text-2xl font-black" id="view-from">---</div>
+                    </div>
+                    <div class="flex items-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg></div>
+                    <div class="text-right">
+                        <div class="label">To</div>
+                        <div class="text-2xl font-black" id="view-to">---</div>
+                    </div>
+                </div>
+                <div class="flex justify-between gap-4 mb-4">
+                    <div class="flex-1">
+                        <div class="label">Route ID</div>
+                        <div class="value" id="view-flight">US000000000</div>
+                    </div>
+                    <div class="text-right flex-1">
+                        <div class="label">Date</div>
+                        <div class="value" id="view-date">-- --- ----</div>
+                    </div>
+                </div>
+                <div class="dashed-line"></div>
+                <div class="grid grid-cols-3 gap-2 mb-6 text-center bg-gray-50 p-2">
+                    <div><div class="label">Gate</div><div class="value" id="view-gate">--</div></div>
+                    <div class="border-x border-gray-200"><div class="label">Bike</div><div class="value" id="view-seat">--</div></div>
+                    <div><div class="label">Leaving</div><div class="value" id="view-time">--:--</div></div>
+                </div>
+                <div class="flex flex-col items-center gap-4">
+                    <div id="qrcode" class="bg-white p-1"></div>
+                    <div class="barcode text-center" id="view-barcode">US000000000</div>
+                    <div class="text-[8pt] font-mono tracking-widest opacity-70 uppercase">Official Route Ticket</div>
+                </div>
+                <div class="mt-6 text-center text-[7pt] border-t pt-2 border-gray-200 italic">Valid for specified date. Ride safe.</div>
+            </div>
+        </div>
+
+        <button onclick="goHome()" class="no-print mt-10 bg-gray-800 text-white px-8 py-3 rounded-full font-bold hover:bg-black transition-colors">
+            ← BACK TO STATION
+        </button>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-[100] px-4">
+        <div class="bg-white p-8 rounded-2xl max-w-lg w-full shadow-2xl">
+            <h3 class="text-2xl font-bold mb-2">Configure Station</h3>
+            <p class="text-gray-500 mb-6 text-sm">Add locations separated by commas.</p>
+            <textarea id="airport-list" rows="5" class="w-full border p-4 rounded-xl mb-4 font-mono uppercase tracking-widest text-lg" placeholder="HOME, PARK, SHOP..."></textarea>
+            <div class="flex gap-2">
+                <button onclick="saveAirports()" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold">Save Settings</button>
+                <button onclick="closeSettings()" class="bg-gray-200 px-6 py-3 rounded-xl font-bold">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const defaultAirports = ["HOME", "PARK", "SHOP", "SCHOOL", "TRAIL", "HILL", "LAKE", "BRIDGE", "CENTER"];
+        const names = [
+            "Alex River", "Jamie Smith", "Casey Lane", "Taylor Reed", "Morgan Hill", 
+            "Jordan West", "Skyler Blue", "Riley Quinn", "Peyton Ross", "Charlie Day", 
+            "Sam Foster", "Drew Miles", "Blake Hart", "Logan Gray", "Avery Park", 
+            "Dakota Sun", "Parker Ash", "Emerson Sky", "Phoenix Ray", "Sage Brooks", 
+            "Rowan Lake", "Quinn Vale", "Hayden Cole", "River Moon", "Sawyer Finn", 
+            "Oakley Dawn", "Remi Stone", "Elliot Snow", "Marlowe Rae", "Sidney Leaf", 
+            "Justice Joy", "Robin Song", "Lane Forest", "Bailey True", "Kendall Hope", 
+            "Adrian Cruz", "Jules King", "Micah Bell", "Cameron Dale", "Sasha Rose"
+        ];
+
+        const qrcode = new QRCode(document.getElementById("qrcode"), { width: 120, height: 120 });
+
+        // Database Logic
+        function getFlightDb() {
+            const db = localStorage.getItem('flyusa_flights');
+            return db ? JSON.parse(db) : {};
+        }
+
+        function saveFlightToDb(data) {
+            const db = getFlightDb();
+            db[data.flight] = {
+                name: data.name,
+                from: data.from,
+                to: data.to
+            };
+            localStorage.setItem('flyusa_flights', JSON.stringify(db));
+            updateLogDisplay();
+        }
+
+        function removeFlightFromDb(flightId) {
+            const db = getFlightDb();
+            delete db[flightId];
+            localStorage.setItem('flyusa_flights', JSON.stringify(db));
+            updateLogDisplay();
+        }
+
+        function clearHistory() {
+            localStorage.removeItem('flyusa_flights');
+            updateLogDisplay();
+            addLog("Route history cleared.");
+        }
+
+        function updateLogDisplay() {
+            const db = getFlightDb();
+            const count = Object.keys(db).length;
+            document.getElementById('stored-count').textContent = `${count} Flights Logged`;
+            
+            const logs = document.getElementById('logs');
+            logs.innerHTML = '';
+            
+            // Sort by most recent (assuming browser storage order or just showing last entries)
+            const keys = Object.keys(db);
+            keys.slice(-10).reverse().forEach(id => {
+                const p = document.createElement('p');
+                p.textContent = `> ${id}: ${db[id].from} -> ${db[id].to}`;
+                logs.appendChild(p);
+            });
+            
+            if (count === 0) logs.innerHTML = '<p>> No records found.</p>';
+        }
+
+        // Scanner Logic
+        function handleScan(value) {
+            const db = getFlightDb();
+            const cleanVal = value.trim().toUpperCase();
+            
+            if (db[cleanVal]) {
+                const oldFlight = db[cleanVal];
+                addLog(`Recognized ${cleanVal}. Returning from ${oldFlight.to}...`);
+                
+                // Generate next journey starting from previous destination (oldFlight.to)
+                // We pass oldFlight.from as a restricted destination to avoid going back immediately
+                const nextRide = generateRandomRide(oldFlight.to, oldFlight.name, oldFlight.from);
+                
+                // Delete old flight ID
+                removeFlightFromDb(cleanVal);
+                
+                // Print new ticket
+                document.getElementById('scanner-input').value = '';
+                populateTicket(nextRide);
+                executePrintSequence(nextRide);
+            }
+        }
+
+        function addLog(msg) {
+            const logs = document.getElementById('logs');
+            const p = document.createElement('p');
+            p.textContent = `> ${msg}`;
+            logs.prepend(p);
+        }
+
+        // Print & Navigation Sequence
+        function goToPrintPage() {
+            const data = generateRandomRide();
+            populateTicket(data);
+            executePrintSequence(data);
+        }
+
+        function executePrintSequence(data) {
+            saveFlightToDb(data);
+            
+            document.getElementById('home-page').classList.replace('page-visible', 'page-hidden');
+            document.getElementById('print-view').classList.replace('page-hidden', 'page-visible');
+            document.body.style.backgroundColor = "white";
+
+            setTimeout(() => {
+                window.onafterprint = () => { goHome(); };
+                window.print();
+                
+                const onFocus = () => {
+                    goHome();
+                    window.removeEventListener('focus', onFocus);
+                };
+                window.addEventListener('focus', onFocus, { once: true });
+            }, 800);
+        }
+
+        function goHome() {
+            document.getElementById('print-view').classList.replace('page-visible', 'page-hidden');
+            document.getElementById('home-page').classList.replace('page-hidden', 'page-visible');
+            document.body.style.backgroundColor = "#f3f4f6";
+            document.getElementById('scanner-input').focus();
+        }
+
+        function generateRandomRide(customFrom = null, customName = null, restrictedTo = null) {
+            const pool = getAirports();
+            let from = customFrom ? customFrom : pool[Math.floor(Math.random() * pool.length)];
+            let to;
+            
+            // Generate a 'to' that isn't 'from' AND isn't the 'restrictedTo' (the original source)
+            do { 
+                to = pool[Math.floor(Math.random() * pool.length)]; 
+            } while (to === from || (restrictedTo && to === restrictedTo));
+
+            const now = new Date();
+            return {
+                name: customName ? customName : names[Math.floor(Math.random() * names.length)].toUpperCase(),
+                flight: "US" + Math.floor(100000000 + Math.random() * 900000000),
+                from: from,
+                to: to,
+                gate: String.fromCharCode(65 + Math.floor(Math.random() * 4)) + Math.floor(Math.random() * 9 + 1),
+                seat: (Math.floor(Math.random() * 12) + 1) + "B",
+                time: String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0'),
+                date: now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()
+            };
+        }
+
+        function populateTicket(data) {
+            document.getElementById('view-name').textContent = data.name;
+            document.getElementById('view-from').textContent = data.from;
+            document.getElementById('view-to').textContent = data.to;
+            document.getElementById('view-flight').textContent = data.flight;
+            document.getElementById('view-date').textContent = data.date;
+            document.getElementById('view-gate').textContent = data.gate;
+            document.getElementById('view-seat').textContent = data.seat;
+            document.getElementById('view-time').textContent = data.time;
+            document.getElementById('view-barcode').textContent = data.flight;
+            
+            qrcode.clear();
+            qrcode.makeCode(`${data.name}|${data.flight}`);
+        }
+
+        // Settings Logic
+        window.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 's') { e.preventDefault(); openSettings(); }
+        });
+
+        function openSettings() {
+            const list = localStorage.getItem('flyusa_airports') || defaultAirports.join(", ");
+            document.getElementById('airport-list').value = list;
+            document.getElementById('settings-modal').classList.remove('hidden');
+        }
+
+        function closeSettings() { document.getElementById('settings-modal').classList.add('hidden'); }
+
+        function saveAirports() {
+            const val = document.getElementById('airport-list').value;
+            localStorage.setItem('flyusa_airports', val);
+            closeSettings();
+        }
+
+        function getAirports() {
+            const stored = localStorage.getItem('flyusa_airports');
+            if (!stored) return defaultAirports;
+            return stored.split(',').map(s => s.trim().toUpperCase()).filter(s => s.length > 0);
+        }
+
+        window.onload = () => {
+            updateLogDisplay();
+            const data = { name: "READY", flight: "US000000000", from: "---", to: "---", gate: "--", seat: "--", time: "--:--", date: "00 XXX 0000" };
+            populateTicket(data);
+            document.getElementById('scanner-input').focus();
+        };
+    </script>
+</body>
+</html>
