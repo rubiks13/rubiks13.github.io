@@ -51,6 +51,18 @@
             max-width: 100%;
             height: auto;
         }
+
+        .timeout-warning {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 10px;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen p-4 pb-20">
@@ -97,7 +109,33 @@
         </div>
     </div>
 
+    <!-- Inactivity Message -->
+    <div class="timeout-warning no-print">
+        Inactivity redirect in 5s
+    </div>
+
     <script>
+        // --- INACTIVITY REDIRECT LOGIC ---
+        let idleTimer;
+        const idleLimit = 5000; // 5 seconds
+        const redirectUrl = "https://rubiks13.github.io/bikes/";
+
+        function resetTimer() {
+            clearTimeout(idleTimer);
+            idleTimer = setTimeout(() => {
+                window.location.href = redirectUrl;
+            }, idleLimit);
+        }
+
+        // Listen for mouse movement or keyboard activity
+        window.onload = resetTimer;
+        window.onmousemove = resetTimer;
+        window.onmousedown = resetTimer; 
+        window.ontouchstart = resetTimer;
+        window.onclick = resetTimer;     
+        window.onkeydown = resetTimer;   
+
+        // --- APP LOGIC ---
         let savedAddresses = JSON.parse(localStorage.getItem('fieldAddresses') || '[]');
 
         const itemPool = [
@@ -114,12 +152,12 @@
             
             if (name) {
                 savedAddresses.push({ id: Date.now(), name, seq });
-                // Sort by sequence to ensure the list is clean
                 savedAddresses.sort((a, b) => a.seq - b.seq);
                 localStorage.setItem('fieldAddresses', JSON.stringify(savedAddresses));
                 renderAddressList();
                 document.getElementById('newAddressName').value = '';
                 document.getElementById('addressSequence').value = '';
+                resetTimer();
             }
         }
 
@@ -127,6 +165,7 @@
             savedAddresses = savedAddresses.filter(a => a.id !== id);
             localStorage.setItem('fieldAddresses', JSON.stringify(savedAddresses));
             renderAddressList();
+            resetTimer();
         }
 
         function renderAddressList() {
@@ -162,15 +201,13 @@
             const preview = document.getElementById('receipt-preview');
             preview.innerHTML = '';
             
-            // Randomly select 1-5 stops from our saved list
             const maxStops = Math.min(savedAddresses.length, 5);
             const stopCount = Math.floor(Math.random() * maxStops) + 1;
             
-            // Pick random addresses by shuffling and slicing
             const selectedStops = [...savedAddresses]
-                .sort(() => 0.5 - Math.random()) // Shuffle everything
-                .slice(0, stopCount)            // Pick a random amount of items (this creates the gaps like 1, 4, 5)
-                .sort((a, b) => a.seq - b.seq);  // Sort them back into numerical order so we don't backtrack
+                .sort(() => 0.5 - Math.random())
+                .slice(0, stopCount)
+                .sort((a, b) => a.seq - b.seq);
 
             const now = new Date().toLocaleString();
 
@@ -212,7 +249,6 @@
                 
                 preview.appendChild(section);
 
-                // Generate barcode for this specific order
                 JsBarcode(`#${barcodeId}`, orderNum, {
                     format: "CODE128",
                     width: 1.1,
@@ -222,13 +258,12 @@
                 });
             });
 
-            // Small delay to ensure barcodes render before print
             setTimeout(() => {
                 window.print();
+                resetTimer(); // Reset after print window closed
             }, 500);
         });
 
-        // Initialize address list on load
         renderAddressList();
     </script>
 </body>
