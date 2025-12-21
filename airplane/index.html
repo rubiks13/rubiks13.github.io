@@ -248,7 +248,6 @@
             const logs = document.getElementById('logs');
             logs.innerHTML = '';
             
-            // Sort by most recent (assuming browser storage order or just showing last entries)
             const keys = Object.keys(db);
             keys.slice(-10).reverse().forEach(id => {
                 const p = document.createElement('p');
@@ -268,9 +267,8 @@
                 const oldFlight = db[cleanVal];
                 addLog(`Recognized ${cleanVal}. Returning from ${oldFlight.to}...`);
                 
-                // Generate next journey starting from previous destination (oldFlight.to)
-                // We pass oldFlight.from as a restricted destination to avoid going back immediately
-                const nextRide = generateRandomRide(oldFlight.to, oldFlight.name, oldFlight.from);
+                // Pass oldFlight.name as a restricted name to ensure a DIFFERENT person is picked
+                const nextRide = generateRandomRide(oldFlight.to, null, oldFlight.from, oldFlight.name);
                 
                 // Delete old flight ID
                 removeFlightFromDb(cleanVal);
@@ -322,19 +320,29 @@
             document.getElementById('scanner-input').focus();
         }
 
-        function generateRandomRide(customFrom = null, customName = null, restrictedTo = null) {
+        function generateRandomRide(customFrom = null, customName = null, restrictedTo = null, restrictedName = null) {
             const pool = getAirports();
             let from = customFrom ? customFrom : pool[Math.floor(Math.random() * pool.length)];
             let to;
             
-            // Generate a 'to' that isn't 'from' AND isn't the 'restrictedTo' (the original source)
+            // Location selection logic
             do { 
                 to = pool[Math.floor(Math.random() * pool.length)]; 
             } while (to === from || (restrictedTo && to === restrictedTo));
 
+            // Name selection logic: pick a name that isn't the restricted one
+            let selectedName;
+            if (customName) {
+                selectedName = customName;
+            } else {
+                do {
+                    selectedName = names[Math.floor(Math.random() * names.length)].toUpperCase();
+                } while (restrictedName && selectedName === restrictedName.toUpperCase());
+            }
+
             const now = new Date();
             return {
-                name: customName ? customName : names[Math.floor(Math.random() * names.length)].toUpperCase(),
+                name: selectedName,
                 flight: "US" + Math.floor(100000000 + Math.random() * 900000000),
                 from: from,
                 to: to,
@@ -356,8 +364,9 @@
             document.getElementById('view-time').textContent = data.time;
             document.getElementById('view-barcode').textContent = data.flight;
             
+            // QR Code now ONLY contains the flight ID
             qrcode.clear();
-            qrcode.makeCode(`${data.name}|${data.flight}`);
+            qrcode.makeCode(data.flight);
         }
 
         // Settings Logic
