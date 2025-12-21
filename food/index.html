@@ -135,6 +135,28 @@
     </div>
 
     <script>
+        // --- 4. Return to Home Logic ---
+        let inactivityTimeout;
+        const REDIRECT_URL = "https://rubiks13.github.io/bikes/";
+        const INACTIVITY_LIMIT = 5000; // 5 seconds
+
+        function resetInactivityTimer() {
+            clearTimeout(inactivityTimeout);
+            inactivityTimeout = setTimeout(() => {
+                window.location.href = REDIRECT_URL;
+            }, INACTIVITY_LIMIT);
+        }
+
+        // Event listeners for activity
+        window.addEventListener('mousemove', resetInactivityTimer);
+        window.addEventListener('keydown', resetInactivityTimer);
+        window.addEventListener('scroll', resetInactivityTimer);
+        window.addEventListener('mousedown', resetInactivityTimer);
+        window.addEventListener('touchstart', resetInactivityTimer);
+
+        // Start timer on load
+        resetInactivityTimer();
+
         // Default (seed) restaurant names and items (used if custom lists are empty)
         const defaultFastFoodNames = [
             "Burger Blast", "Taco Titan", "Waffle Wizard", "Pizza Portal"
