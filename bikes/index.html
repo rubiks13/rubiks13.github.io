@@ -41,14 +41,6 @@
             50% { transform: rotate(5deg); }
         }
 
-        .kbd-hint {
-            font-size: 0.7rem;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 2px 6px;
-            border-radius: 4px;
-            text-transform: uppercase;
-        }
-
         /* Lock Screen Overlay */
         #lock-screen {
             position: fixed;
@@ -59,7 +51,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            transition: opacity 2s ease-in-out, visibility 2s;
+            transition: opacity 1.5s ease-in-out, visibility 1.5s;
             opacity: 0;
             visibility: hidden;
         }
@@ -69,7 +61,6 @@
             visibility: visible;
         }
 
-        /* Hidden Input Logic */
         #password-input {
             position: absolute;
             top: 50%;
@@ -80,19 +71,30 @@
             opacity: 0;
             border: none;
             outline: none;
-            background: transparent;
         }
 
-        .lock-icon {
-            font-size: 4rem;
-            margin-bottom: 1rem;
-            color: #3b82f6;
-            animation: pulse 2s infinite;
+        .scanner-line {
+            width: 300px;
+            height: 2px;
+            background: rgba(59, 130, 246, 0.8);
+            box-shadow: 0 0 15px #3b82f6;
+            position: absolute;
+            top: 50%;
+            animation: scan 2s linear infinite;
         }
 
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.1); opacity: 0.7; }
+        @keyframes scan {
+            0% { top: 40%; opacity: 0; }
+            50% { top: 50%; opacity: 1; }
+            100% { top: 60%; opacity: 0; }
+        }
+
+        .barcode-icon {
+            font-size: 5rem;
+            color: white;
+            opacity: 0.3;
+            letter-spacing: -2px;
+            margin-bottom: 2rem;
         }
     </style>
 </head>
@@ -105,39 +107,38 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-3 11.5V14l-3-3 4-3 2 3h2"/></svg>
             </div>
             <h1 class="text-3xl font-bold tracking-tight mb-2">Bike Occupation</h1>
-            <p class="text-blue-300 text-sm opacity-80">Quick access to essential delivery hubs</p>
-            <p class="mt-2 text-[10px] uppercase tracking-widest text-gray-400">Press first letter to open</p>
+            <p class="text-blue-300 text-sm opacity-80">Link Directory & Scanner Hub</p>
         </div>
 
         <div id="links-container" class="space-y-4"></div>
 
-        <div class="mt-12 pt-6 border-t border-white/10">
-            <p class="text-xs text-gray-400">© 2024 Bike Occupation Directory</p>
-            <p class="text-[10px] text-gray-600 mt-2">Press Ctrl+S to set password</p>
+        <div class="mt-12 pt-6 border-t border-white/10 text-xs text-gray-500">
+            Press <span class="bg-white/10 px-1 rounded">Ctrl+S</span> for Key Settings
         </div>
     </div>
 
-    <!-- Lock Screen Overlay -->
+    <!-- Scanner Lock Screen -->
     <div id="lock-screen">
-        <div class="lock-icon">🔒</div>
-        <h2 class="text-white text-xl font-semibold mb-2">System Locked</h2>
-        <p class="text-gray-400 text-sm">Please type your password to continue</p>
-        <!-- The input is here in the middle, just invisible -->
+        <div class="barcode-icon">|| ||| | || ||| |</div>
+        <div class="scanner-line"></div>
+        <h2 class="text-blue-400 text-2xl font-bold tracking-widest mb-2">SCANNING...</h2>
+        <p class="text-gray-500 text-sm">Please scan barcode or enter key</p>
         <input type="password" id="password-input" autocomplete="off" autofocus>
     </div>
 
     <script>
         const linkData = [
-            { name: "Airport", url: "https://rubiks13.github.io/airplane/", icon: "✈️", id: "airport" },
-            { name: "Door Dash", url: "https://rubiks13.github.io/food/", icon: "🥡", id: "doordash" },
-            { name: "Amazon", url: "https://rubiks13.github.io/amazon/", icon: "📦", id: "amazon" }
+            { name: "Airport", url: "https://rubiks13.github.io/airplane/", id: "airport" },
+            { name: "Door Dash", url: "https://rubiks13.github.io/food/", id: "doordash" },
+            { name: "Amazon", url: "https://rubiks13.github.io/amazon/", id: "amazon" }
         ];
 
         const windowRefs = {};
         const lockScreen = document.getElementById('lock-screen');
         const passInput = document.getElementById('password-input');
         
-        let savedPassword = localStorage.getItem('bike_occ_pass') || "";
+        // Load multiple passwords (keys)
+        let savedKeys = JSON.parse(localStorage.getItem('bike_occ_keys')) || [];
 
         function openLink(link) {
             const windowId = link.id;
@@ -151,106 +152,89 @@
 
         function renderLinks() {
             const container = document.getElementById('links-container');
+            container.innerHTML = '';
             linkData.forEach(link => {
                 const btn = document.createElement('button');
-                btn.type = "button";
-                btn.className = "link-button block w-full py-4 px-6 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between group text-left";
+                btn.className = "link-button block w-full py-4 px-6 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between group text-left text-white";
                 btn.onclick = () => openLink(link);
-                const firstLetter = link.name.charAt(0).toUpperCase();
                 btn.innerHTML = `
-                    <span class="flex items-center">
-                        <span class="text-xl mr-4">${link.icon}</span>
-                        <span class="font-semibold text-lg">${link.name}</span>
-                    </span>
-                    <span class="flex items-center gap-3">
-                        <span class="kbd-hint text-gray-400 group-hover:text-white transition-colors">${firstLetter}</span>
-                        <svg class="w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
-                        </svg>
-                    </span>
+                    <span class="font-semibold text-lg">${link.name}</span>
+                    <svg class="w-5 h-5 opacity-50 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                    </svg>
                 `;
                 container.appendChild(btn);
             });
         }
 
         function lockSystem() {
-            if (!savedPassword) return;
+            if (savedKeys.length === 0) return;
             lockScreen.classList.add('active');
             passInput.value = "";
-            
-            // Try focusing multiple times to ensure the browser accepts the request
-            setTimeout(() => passInput.focus(), 10);
-            setTimeout(() => passInput.focus(), 100);
-            setTimeout(() => passInput.focus(), 500);
+            setTimeout(() => passInput.focus(), 50);
         }
 
         function unlockSystem() {
             lockScreen.classList.remove('active');
             passInput.value = "";
-            // Move focus away to avoid interfering with keyboard shortcuts
             passInput.blur();
         }
 
+        // Check if the typed content matches any of the stored keys
         passInput.addEventListener('input', () => {
-            if (passInput.value === savedPassword) {
+            if (savedKeys.includes(passInput.value)) {
                 unlockSystem();
             }
         });
 
-        // Forced focus logic: If user clicks or moves, keep the focus on the input
-        const keepFocus = () => {
-            if (lockScreen.classList.contains('active')) {
-                passInput.focus();
-            }
-        };
-
-        document.addEventListener('click', keepFocus);
-        document.addEventListener('mousemove', keepFocus);
-        document.addEventListener('touchstart', keepFocus);
+        // Forced focus
+        document.addEventListener('click', () => {
+            if (lockScreen.classList.contains('active')) passInput.focus();
+        });
 
         window.addEventListener('focus', () => {
-            if (savedPassword && !lockScreen.classList.contains('active')) {
+            if (savedKeys.length > 0 && !lockScreen.classList.contains('active')) {
                 lockSystem();
-            } else if (lockScreen.classList.contains('active')) {
+            }
+        });
+
+        function manageKeys() {
+            const action = prompt("Type 'ADD' to add a key, 'CLEAR' to delete all, or 'LIST' to see keys:");
+            if (!action) return;
+
+            const cmd = action.toUpperCase();
+            if (cmd === 'ADD') {
+                const newKey = prompt("Enter new key/barcode value:");
+                if (newKey) {
+                    savedKeys.push(newKey);
+                    localStorage.setItem('bike_occ_keys', JSON.stringify(savedKeys));
+                    alert("Key added!");
+                }
+            } else if (cmd === 'CLEAR') {
+                if(confirm("Delete all keys?")) {
+                    savedKeys = [];
+                    localStorage.removeItem('bike_occ_keys');
+                    unlockSystem();
+                }
+            } else if (cmd === 'LIST') {
+                alert("Saved keys: " + savedKeys.join(", "));
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                manageKeys();
+                return;
+            }
+            if (lockScreen.classList.contains('active')) {
                 passInput.focus();
             }
         });
 
-        function setupKeyboardNav() {
-            window.addEventListener('keydown', (event) => {
-                if (event.ctrlKey && event.key === 's') {
-                    event.preventDefault();
-                    const newPass = prompt("Set new system password:");
-                    if (newPass !== null) {
-                        savedPassword = newPass;
-                        localStorage.setItem('bike_occ_pass', newPass);
-                        alert("Password saved!");
-                    }
-                    return;
-                }
-
-                if (lockScreen.classList.contains('active')) {
-                    passInput.focus();
-                    return;
-                };
-
-                const pressedKey = event.key.toLowerCase();
-                const targetLink = linkData.find(link => 
-                    link.name.toLowerCase().startsWith(pressedKey)
-                );
-
-                if (targetLink) {
-                    openLink(targetLink);
-                }
-            });
-        }
-
         window.addEventListener('DOMContentLoaded', () => {
             renderLinks();
-            setupKeyboardNav();
-            if (savedPassword) {
-                lockSystem();
-            }
+            if (savedKeys.length > 0) lockSystem();
         });
     </script>
 </body>
