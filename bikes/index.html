@@ -73,28 +73,16 @@
             outline: none;
         }
 
-        .scanner-line {
-            width: 300px;
-            height: 2px;
-            background: rgba(59, 130, 246, 0.8);
-            box-shadow: 0 0 15px #3b82f6;
-            position: absolute;
-            top: 50%;
-            animation: scan 2s linear infinite;
-        }
-
-        @keyframes scan {
-            0% { top: 40%; opacity: 0; }
-            50% { top: 50%; opacity: 1; }
-            100% { top: 60%; opacity: 0; }
-        }
-
-        .barcode-icon {
+        .lock-icon {
             font-size: 5rem;
-            color: white;
-            opacity: 0.3;
-            letter-spacing: -2px;
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;
+            color: #3b82f6;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.7; }
         }
     </style>
 </head>
@@ -117,12 +105,11 @@
         </div>
     </div>
 
-    <!-- Scanner Lock Screen -->
+    <!-- Lock Screen Overlay -->
     <div id="lock-screen">
-        <div class="barcode-icon">|| ||| | || ||| |</div>
-        <div class="scanner-line"></div>
-        <h2 class="text-blue-400 text-2xl font-bold tracking-widest mb-2">SCANNING...</h2>
-        <p class="text-gray-500 text-sm">Please scan barcode or enter key</p>
+        <div class="lock-icon">🔒</div>
+        <h2 class="text-blue-400 text-2xl font-bold tracking-widest mb-2">LOCKED</h2>
+        <p class="text-gray-500 text-sm">Please scan your pass</p>
         <input type="password" id="password-input" autocomplete="off" autofocus>
     </div>
 
@@ -173,7 +160,6 @@
         }
 
         function lockSystem() {
-            // Always lock if keys exist OR if we need to set the first one
             lockScreen.classList.add('active');
             passInput.value = "";
             setTimeout(() => passInput.focus(), 50);
@@ -188,11 +174,7 @@
         passInput.addEventListener('input', () => {
             const val = passInput.value;
             
-            // 1. Check if it matches saved keys
-            // 2. Recovery check: If no keys are saved, '1' works once.
             if (savedKeys.includes(val) || (savedKeys.length === 0 && val === "1")) {
-                
-                // If it was the recovery password, force setup of a real key
                 if (savedKeys.length === 0 && val === "1") {
                     unlockSystem();
                     setTimeout(() => {
