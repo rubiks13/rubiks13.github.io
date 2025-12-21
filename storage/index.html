@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LocalStorage Usage Monitor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-primary: #1e293b;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #0f172a;
+                --card-bg: #1e293b;
+                --text-primary: #f1f5f9;
+            }
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s ease;
+        }
+
+        .storage-bar-container {
+            height: 24px;
+            background: #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .storage-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .dark .storage-bar-container {
+            background: #334155;
+        }
+
+        .custom-card {
+            background-color: var(--card-bg);
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .dark .custom-card {
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            background: #1e293b;
+            color: white;
+            transform: translateY(150%);
+            transition: transform 0.3s ease;
+            z-index: 50;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <header class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-3xl font-bold">Storage Analyzer</h1>
+                <p class="text-slate-500 dark:text-slate-400">Monitor and manage your browser's local storage.</p>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="addDummyData()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium">
+                    + Add Test Data
+                </button>
+                <button onclick="confirmClearAll()" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm font-medium">
+                    Clear All
+                </button>
+            </div>
+        </header>
+
+        <!-- Stats Overview -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="custom-card p-6 rounded-2xl shadow-sm">
+                <span class="text-sm text-slate-500 font-medium">Total Used</span>
+                <div class="text-2xl font-bold mt-1" id="total-used">0 KB</div>
+            </div>
+            <div class="custom-card p-6 rounded-2xl shadow-sm">
+                <span class="text-sm text-slate-500 font-medium">Item Count</span>
+                <div class="text-2xl font-bold mt-1" id="item-count">0</div>
+            </div>
+            <div class="custom-card p-6 rounded-2xl shadow-sm">
+                <span class="text-sm text-slate-500 font-medium">Estimated Limit</span>
+                <div class="text-2xl font-bold mt-1 text-slate-400">~5 MB</div>
+            </div>
+        </div>
+
+        <!-- Progress Section -->
+        <div class="custom-card p-6 rounded-2xl shadow-sm mb-8">
+            <div class="flex justify-between mb-2 text-sm font-medium">
+                <span>Usage Relative to 5MB Limit</span>
+                <span id="usage-percent">0%</span>
+            </div>
+            <div class="storage-bar-container">
+                <div id="storage-bar" class="storage-bar-fill" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <!-- Data Table -->
+        <div class="custom-card rounded-2xl shadow-sm overflow-hidden">
+            <div class="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                <h2 class="text-xl font-bold">Stored Items</h2>
+                <button onclick="refreshUI()" class="text-blue-500 hover:text-blue-600 text-sm font-medium">Refresh</button>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-500 text-sm">
+                        <tr>
+                            <th class="px-6 py-4 font-semibold">Key</th>
+                            <th class="px-6 py-4 font-semibold">Size (Estimated)</th>
+                            <th class="px-6 py-4 font-semibold text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="storage-table-body" class="divide-y divide-slate-100 dark:divide-slate-800">
+                        <!-- Rows injected here -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="empty-state" class="hidden p-12 text-center text-slate-400">
+                LocalStorage is currently empty.
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast">Action completed successfully</div>
+
+    <!-- Confirmation Modal -->
+    <div id="modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-sm w-full shadow-xl">
+            <h3 class="text-xl font-bold mb-2">Clear all data?</h3>
+            <p class="text-slate-500 mb-6">This action cannot be undone. All stored keys will be permanently deleted.</p>
+            <div class="flex gap-3 justify-end">
+                <button onclick="closeModal()" class="px-4 py-2 text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">Cancel</button>
+                <button onclick="clearAllStorage()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Delete Everything</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const tableBody = document.getElementById('storage-table-body');
+        const totalUsedEl = document.getElementById('total-used');
+        const itemCountEl = document.getElementById('item-count');
+        const usagePercentEl = document.getElementById('usage-percent');
+        const storageBar = document.getElementById('storage-bar');
+        const emptyState = document.getElementById('empty-state');
+        const toast = document.getElementById('toast');
+        const modal = document.getElementById('modal');
+
+        // Most browsers have a ~5MB limit (5242880 bytes)
+        const LIMIT_BYTES = 5 * 1024 * 1024;
+
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+
+        function calculateStorage() {
+            let totalBytes = 0;
+            const items = [];
+
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                // Each character in JS is 2 bytes (UTF-16)
+                const size = (key.length + value.length) * 2;
+                totalBytes += size;
+                items.push({ key, size });
+            }
+
+            return { totalBytes, items };
+        }
+
+        function refreshUI() {
+            const { totalBytes, items } = calculateStorage();
+            
+            // Update Stats
+            totalUsedEl.textContent = formatBytes(totalBytes);
+            itemCountEl.textContent = items.length;
+            
+            const percent = Math.min((totalBytes / LIMIT_BYTES) * 100, 100).toFixed(2);
+            usagePercentEl.textContent = `${percent}%`;
+            storageBar.style.width = `${percent}%`;
+
+            // Change bar color if nearing limit
+            if (percent > 80) {
+                storageBar.classList.remove('bg-blue-600');
+                storageBar.classList.add('bg-orange-500');
+            } else {
+                storageBar.classList.remove('bg-orange-500');
+            }
+
+            // Update Table
+            tableBody.innerHTML = '';
+            if (items.length === 0) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+                items.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="px-6 py-4 font-mono text-sm truncate max-w-[200px]">${item.key}</td>
+                        <td class="px-6 py-4 text-sm text-slate-500">${formatBytes(item.size)}</td>
+                        <td class="px-6 py-4 text-right">
+                            <button onclick="deleteItem('${item.key}')" class="text-red-500 hover:text-red-700 text-sm font-medium p-1 px-2 rounded hover:bg-red-50 dark:hover:bg-red-900/20">
+                                Delete
+                            </button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            }
+        }
+
+        function deleteItem(key) {
+            localStorage.removeItem(key);
+            showToast(`Deleted "${key}"`);
+            refreshUI();
+        }
+
+        function confirmClearAll() {
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() {
+            modal.style.display = 'none';
+        }
+
+        function clearAllStorage() {
+            localStorage.clear();
+            closeModal();
+            showToast('All storage cleared');
+            refreshUI();
+        }
+
+        function addDummyData() {
+            const id = Math.random().toString(36).substring(7);
+            const content = "x".repeat(Math.floor(Math.random() * 50000)); // ~50KB to 100KB chunks
+            localStorage.setItem(`test_data_${id}`, content);
+            showToast('Added test data');
+            refreshUI();
+        }
+
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // Initial Load
+        window.onload = refreshUI;
+    </script>
+</body>
+</html>
