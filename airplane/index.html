@@ -210,7 +210,6 @@
 
         const qrcode = new QRCode(document.getElementById("qrcode"), { width: 120, height: 120 });
 
-        // Database Logic
         function getFlightDb() {
             const db = localStorage.getItem('flyusa_flights');
             return db ? JSON.parse(db) : {};
@@ -218,11 +217,7 @@
 
         function saveFlightToDb(data) {
             const db = getFlightDb();
-            db[data.flight] = {
-                name: data.name,
-                from: data.from,
-                to: data.to
-            };
+            db[data.flight] = { name: data.name, from: data.from, to: data.to };
             localStorage.setItem('flyusa_flights', JSON.stringify(db));
             updateLogDisplay();
         }
@@ -244,36 +239,25 @@
             const db = getFlightDb();
             const count = Object.keys(db).length;
             document.getElementById('stored-count').textContent = `${count} Flights Logged`;
-            
             const logs = document.getElementById('logs');
             logs.innerHTML = '';
-            
             const keys = Object.keys(db);
             keys.slice(-10).reverse().forEach(id => {
                 const p = document.createElement('p');
                 p.textContent = `> ${id}: ${db[id].from} -> ${db[id].to}`;
                 logs.appendChild(p);
             });
-            
             if (count === 0) logs.innerHTML = '<p>> No records found.</p>';
         }
 
-        // Scanner Logic
         function handleScan(value) {
             const db = getFlightDb();
             const cleanVal = value.trim().toUpperCase();
-            
             if (db[cleanVal]) {
                 const oldFlight = db[cleanVal];
                 addLog(`Recognized ${cleanVal}. Returning from ${oldFlight.to}...`);
-                
-                // Pass oldFlight.name as a restricted name to ensure a DIFFERENT person is picked
                 const nextRide = generateRandomRide(oldFlight.to, null, oldFlight.from, oldFlight.name);
-                
-                // Delete old flight ID
                 removeFlightFromDb(cleanVal);
-                
-                // Print new ticket
                 document.getElementById('scanner-input').value = '';
                 populateTicket(nextRide);
                 executePrintSequence(nextRide);
@@ -287,7 +271,6 @@
             logs.prepend(p);
         }
 
-        // Print & Navigation Sequence
         function goToPrintPage() {
             const data = generateRandomRide();
             populateTicket(data);
@@ -297,20 +280,22 @@
         function executePrintSequence(data) {
             saveFlightToDb(data);
             
+            // Switch views immediately
             document.getElementById('home-page').classList.replace('page-visible', 'page-hidden');
             document.getElementById('print-view').classList.replace('page-hidden', 'page-visible');
             document.body.style.backgroundColor = "white";
 
+            // Small delay to ensure QR code and layout are rendered before printing
             setTimeout(() => {
-                window.onafterprint = () => { goHome(); };
                 window.print();
                 
-                const onFocus = () => {
+                // Return home as soon as user finishes with print dialog
+                const returnHome = () => {
                     goHome();
-                    window.removeEventListener('focus', onFocus);
+                    window.removeEventListener('focus', returnHome);
                 };
-                window.addEventListener('focus', onFocus, { once: true });
-            }, 800);
+                window.addEventListener('focus', returnHome);
+            }, 300);
         }
 
         function goHome() {
@@ -324,13 +309,9 @@
             const pool = getAirports();
             let from = customFrom ? customFrom : pool[Math.floor(Math.random() * pool.length)];
             let to;
-            
-            // Location selection logic
-            do { 
-                to = pool[Math.floor(Math.random() * pool.length)]; 
-            } while (to === from || (restrictedTo && to === restrictedTo));
+            do { to = pool[Math.floor(Math.random() * pool.length)]; } 
+            while (to === from || (restrictedTo && to === restrictedTo));
 
-            // Name selection logic: pick a name that isn't the restricted one
             let selectedName;
             if (customName) {
                 selectedName = customName;
@@ -363,13 +344,10 @@
             document.getElementById('view-seat').textContent = data.seat;
             document.getElementById('view-time').textContent = data.time;
             document.getElementById('view-barcode').textContent = data.flight;
-            
-            // QR Code now ONLY contains the flight ID
             qrcode.clear();
             qrcode.makeCode(data.flight);
         }
 
-        // Settings Logic
         window.addEventListener('keydown', (e) => {
             if (e.ctrlKey && e.key === 's') { e.preventDefault(); openSettings(); }
         });
