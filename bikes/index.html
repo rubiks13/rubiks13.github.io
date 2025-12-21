@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bike Occupation - Link Directory</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .link-button {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .link-button:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .bike-icon {
+            animation: wobble 3s ease-in-out infinite;
+        }
+
+        @keyframes wobble {
+            0%, 100% { transform: rotate(-5deg); }
+            50% { transform: rotate(5deg); }
+        }
+
+        .kbd-hint {
+            font-size: 0.7rem;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center p-4">
+
+    <div class="w-full max-w-md glass-card rounded-3xl p-8 text-white text-center shadow-2xl">
+        <!-- Header Section -->
+        <div class="mb-8">
+            <div class="inline-block p-4 bg-blue-500 rounded-full mb-4 bike-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-3 11.5V14l-3-3 4-3 2 3h2"/></svg>
+            </div>
+            <h1 class="text-3xl font-bold tracking-tight mb-2">Bike Occupation</h1>
+            <p class="text-blue-300 text-sm opacity-80">Quick access to essential delivery hubs</p>
+            <p class="mt-2 text-[10px] uppercase tracking-widest text-gray-400">Press first letter to open</p>
+        </div>
+
+        <!-- Links Container -->
+        <div id="links-container" class="space-y-4">
+            <!-- Links will be injected here by JavaScript -->
+        </div>
+
+        <!-- Footer -->
+        <div class="mt-12 pt-6 border-t border-white/10">
+            <p class="text-xs text-gray-400">© 2024 Bike Occupation Directory</p>
+        </div>
+    </div>
+
+    <script>
+        // Data for the directory
+        const linkData = [
+            { name: "Airport", url: "https://rubiks13.github.io/airplane/", icon: "✈️", id: "airport" },
+            { name: "Door Dash", url: "https://rubiks13.github.io/food/", icon: "🥡", id: "doordash" },
+            { name: "Amazon", url: "https://rubiks13.github.io/amazon/", icon: "📦", id: "amazon" }
+        ];
+
+        // Object to keep track of opened window references
+        const windowRefs = {};
+
+        /**
+         * Opens or focuses a link in a consistent tab
+         */
+        function openLink(link) {
+            const windowId = link.id;
+            
+            // If window reference exists and isn't closed, focus it and update URL
+            if (windowRefs[windowId] && !windowRefs[windowId].closed) {
+                windowRefs[windowId].location.href = link.url;
+                windowRefs[windowId].focus();
+            } else {
+                // Otherwise, open a new one and store the reference
+                windowRefs[windowId] = window.open(link.url, windowId);
+            }
+        }
+
+        function renderLinks() {
+            const container = document.getElementById('links-container');
+            
+            linkData.forEach(link => {
+                const btn = document.createElement('button');
+                btn.type = "button";
+                btn.className = "link-button block w-full py-4 px-6 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between group text-left";
+                
+                // Use the shared open function on click
+                btn.onclick = () => openLink(link);
+                
+                const firstLetter = link.name.charAt(0).toUpperCase();
+                
+                btn.innerHTML = `
+                    <span class="flex items-center">
+                        <span class="text-xl mr-4">${link.icon}</span>
+                        <span class="font-semibold text-lg">${link.name}</span>
+                    </span>
+                    <span class="flex items-center gap-3">
+                        <span class="kbd-hint text-gray-400 group-hover:text-white transition-colors">${firstLetter}</span>
+                        <svg class="w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                        </svg>
+                    </span>
+                `;
+                
+                container.appendChild(btn);
+            });
+        }
+
+        // Keyboard navigation logic
+        function setupKeyboardNav() {
+            window.addEventListener('keydown', (event) => {
+                const pressedKey = event.key.toLowerCase();
+                
+                // Find the link that starts with the pressed key
+                const targetLink = linkData.find(link => 
+                    link.name.toLowerCase().startsWith(pressedKey)
+                );
+
+                if (targetLink) {
+                    openLink(targetLink);
+                }
+            });
+        }
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', () => {
+            renderLinks();
+            setupKeyboardNav();
+        });
+    </script>
+</body>
+</html>
