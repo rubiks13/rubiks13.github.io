@@ -21,14 +21,26 @@
             transition: background-color 0.3s;
         }
 
-        /* Screen-only styling for the thermal pass */
-        .boarding-pass-thermal {
+        /* LAYOUT 1: THERMAL RECEIPT (Classic) */
+        .layout-thermal {
             width: var(--printer-width);
             background: white;
             color: black;
             padding: 5mm;
             box-sizing: border-box;
             border: 1px dashed #ccc;
+        }
+
+        /* LAYOUT 2: MODERN CARD (New) */
+        .layout-modern {
+            width: 120mm;
+            background: white;
+            color: #1a1a1a;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px solid #e5e7eb;
+            display: flex;
+            flex-direction: column;
         }
 
         .barcode {
@@ -46,7 +58,7 @@
             font-size: 8pt;
             text-transform: uppercase;
             font-weight: 600;
-            color: #444;
+            color: #666;
         }
 
         .value {
@@ -66,12 +78,11 @@
                 width: 100% !important;
             }
             @page {
-                size: 80mm auto;
+                size: auto;
                 margin: 0;
             }
         }
 
-        /* Classes to toggle between Home and Print Page */
         .page-hidden { display: none !important; }
         .page-visible { display: flex !important; }
     </style>
@@ -80,7 +91,6 @@
 
     <!-- HOME PAGE SECTION -->
     <div id="home-page" class="p-4 md:p-8 max-w-4xl mx-auto page-visible flex-col no-print">
-        <!-- Main Quick Action Bar -->
         <div class="mb-6 bg-white p-6 rounded-2xl shadow-lg border-4 border-blue-500 text-center">
             <h1 class="text-2xl font-black mb-2 uppercase tracking-tight">Bike Route Station</h1>
             <p class="text-gray-600 mb-6">Hit the button or scan a ticket to ride!</p>
@@ -88,25 +98,24 @@
             <div class="flex flex-col gap-4">
                 <button onclick="goToPrintPage()" class="w-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-3xl font-black py-10 rounded-2xl shadow-xl transition-all flex flex-col items-center justify-center gap-2">
                     <div class="flex items-center gap-4">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12.2 2h-.4a2 2 0 0 0-2 2v1.2a2 2 0 0 1-1.2 1.8l-1.5.7a2 2 0 0 1-2.4-.7l-.8-1a2 2 0 0 0-2.8-.2l-.3.3a2 2 0 0 0-.2 2.8l1 1a2 2 0 0 1 .7 2.4l-.7 1.5a2 2 0 0 1-1.8 1.2H2.2a2 2 0 0 0-2 2v.4a2 2 0 0 0 2 2h1.2a2 2 0 0 1 1.8 1.2l.7 1.5a2 2 0 0 1-.7 2.4l-1 1a2 2 0 0 0 .2 2.8l.3.3a2 2 0 0 0 2.8-.2l.8-1a2 2 0 0 1 2.4-.7l1.5.7a2 2 0 0 1 1.2 1.8v1.2a2 2 0 0 0 2 2h.4a2 2 0 0 0 2-2v-1.2a2 2 0 0 1 1.2-1.8l1.5-.7a2 2 0 0 1 2.4.7l.8 1a2 2 0 0 0 2.8.2l.3-.3a2 2 0 0 0 2.8-.2l.8-1a2 2 0 0 1 2.4-.7l1.5.7a2 2 0 0 1 1.2 1.8V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12.2 2h-.4a2 2 0 0 0-2 2v1.2a2 2 0 0 1-1.2 1.8l-1.5.7a2 2 0 0 1-2.4-.7l-.8-1a2 2 0 0 0-2.8-.2l-.3.3a2 2 0 0 0-.2 2.8l1 1a2 2 0 0 1 .7 2.4l-.7 1.5a2 2 0 0 1-1.8 1.2H2.2a2 2 0 0 0-2 2v.4a2 2 0 0 0 2 2h1.2a2 2 0 0 1 1.8 1.2l.7 1.5a2 2 0 0 1-.7 2.4l-1 1a2 2 0 0 0 .2 2.8l.3.3a2 2 0 0 0 2.8-.2l.8-1a2 2 0 0 1 2.4-.7l1.5.7a2 2 0 0 1 1.2 1.8v1.2a2 2 0 0 0 2 2h.4a2 2 0 0 0 2-2v-1.2a2 2 0 0 1 1.2-1.8l1.5-.7a2 2 0 0 1 2.4.7l.8 1a2 2 0 0 0 2.8-.2l.3-.3a2 2 0 0 0 2.8-.2l.8-1a2 2 0 0 1 2.4-.7l1.5.7a2 2 0 0 1 1.2 1.8V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
                         NEW RIDE
                     </div>
                 </button>
 
                 <div class="bg-gray-100 p-4 rounded-xl border-2 border-dashed border-gray-300">
                     <p class="text-xs font-bold text-gray-500 uppercase mb-2">Scan Returning Ticket Flight ID</p>
-                    <input type="text" id="scanner-input" oninput="handleScan(this.value)" placeholder="SCAN BARCODE HERE..." class="w-full bg-white border border-gray-300 p-3 rounded-lg font-mono text-center text-xl uppercase tracking-widest focus:ring-2 focus:ring-blue-500 outline-none">
+                    <input type="text" id="scanner-input" oninput="handleScan(this.value)" onkeydown="checkInputEnter(event)" placeholder="SCAN BARCODE HERE..." class="w-full bg-white border border-gray-300 p-3 rounded-lg font-mono text-center text-xl uppercase tracking-widest focus:ring-2 focus:ring-blue-500 outline-none">
                 </div>
             </div>
             
             <div class="mt-4 flex justify-between text-xs text-gray-400 font-bold uppercase">
-                <span>Ctrl + S: Settings</span>
+                <button onclick="openSettings()" class="hover:text-blue-600 transition-colors">Ctrl + S: Settings</button>
                 <span id="stored-count">0 Flights Logged</span>
             </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <!-- Information Panel -->
             <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-xl font-bold italic tracking-tight uppercase">Route History</h2>
@@ -116,64 +125,105 @@
                     <p>> System ready...</p>
                 </div>
             </div>
-            
             <div class="bg-blue-50 p-6 rounded-xl border border-blue-100 flex flex-col items-center justify-center text-blue-600 font-bold text-center italic">
-                <p id="status-text">Scan a Flight ID to continue a journey.</p>
+                <p id="status-text">Ready for departure. Scan or click New Ride.</p>
             </div>
         </div>
     </div>
 
     <!-- PRINT PAGE SECTION -->
-    <div id="print-view" class="page-hidden fixed inset-0 bg-white z-[50] flex flex-col items-center justify-center">
+    <div id="print-view" class="page-hidden fixed inset-0 bg-white z-[50] flex flex-col items-center justify-center overflow-auto p-4">
         <div class="no-print mb-8 text-center animate-pulse">
             <h2 class="text-2xl font-black text-blue-600 uppercase">Printing Receipt...</h2>
-            <p class="text-gray-500">Connecting to thermal printer.</p>
+            <p class="text-gray-500">Preparing layout for thermal printer.</p>
         </div>
 
         <div id="print-area">
-            <div class="boarding-pass-thermal mx-auto shadow-none">
+            <!-- LAYOUT 1: THERMAL -->
+            <div id="layout-view-thermal" class="layout-thermal mx-auto hidden">
                 <div class="flex justify-between items-center mb-4">
                     <div class="font-black text-xl italic tracking-tighter">FLY USA</div>
-                    <div class="text-xs font-bold border border-black px-2 py-0.5">BOARDING PASS</div>
+                    <div class="text-xs font-bold border border-black px-2 py-0.5 uppercase">Boarding Pass</div>
                 </div>
                 <div class="dashed-line"></div>
                 <div class="mb-4">
                     <div class="label">Passenger</div>
-                    <div class="value" id="view-name">---</div>
+                    <div class="value name-target">---</div>
                 </div>
                 <div class="flex justify-between mb-4">
                     <div>
                         <div class="label">From</div>
-                        <div class="text-2xl font-black" id="view-from">---</div>
+                        <div class="text-2xl font-black from-target">---</div>
                     </div>
-                    <div class="flex items-center"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg></div>
+                    <div class="flex items-center">✈</div>
                     <div class="text-right">
                         <div class="label">To</div>
-                        <div class="text-2xl font-black" id="view-to">---</div>
+                        <div class="text-2xl font-black to-target">---</div>
                     </div>
                 </div>
                 <div class="flex justify-between gap-4 mb-4">
                     <div class="flex-1">
                         <div class="label">Route ID</div>
-                        <div class="value" id="view-flight">US000000000</div>
+                        <div class="value flight-target">US000000000</div>
                     </div>
                     <div class="text-right flex-1">
                         <div class="label">Date</div>
-                        <div class="value" id="view-date">-- --- ----</div>
+                        <div class="value date-target">-- --- ----</div>
                     </div>
                 </div>
                 <div class="dashed-line"></div>
                 <div class="grid grid-cols-3 gap-2 mb-6 text-center bg-gray-50 p-2">
-                    <div><div class="label">Gate</div><div class="value" id="view-gate">--</div></div>
-                    <div class="border-x border-gray-200"><div class="label">Bike</div><div class="value" id="view-seat">--</div></div>
-                    <div><div class="label">Leaving</div><div class="value" id="view-time">--:--</div></div>
+                    <div><div class="label">Gate</div><div class="value gate-target">--</div></div>
+                    <div class="border-x border-gray-200"><div class="label">Bike</div><div class="value seat-target">--</div></div>
+                    <div><div class="label">Leaving</div><div class="value time-target">--:--</div></div>
                 </div>
                 <div class="flex flex-col items-center gap-4">
-                    <div id="qrcode" class="bg-white p-1"></div>
-                    <div class="barcode text-center" id="view-barcode">US000000000</div>
-                    <div class="text-[8pt] font-mono tracking-widest opacity-70 uppercase">Official Route Ticket</div>
+                    <div class="qr-target bg-white p-1"></div>
+                    <div class="barcode text-center barcode-target">US000000000</div>
                 </div>
-                <div class="mt-6 text-center text-[7pt] border-t pt-2 border-gray-200 italic">Valid for specified date. Ride safe.</div>
+            </div>
+
+            <!-- LAYOUT 2: MODERN CARD -->
+            <div id="layout-view-modern" class="layout-modern mx-auto hidden">
+                <div class="bg-blue-600 p-4 text-white flex justify-between items-center">
+                    <div>
+                        <div class="text-xs opacity-80 uppercase font-bold tracking-widest">Official Boarding Pass</div>
+                        <div class="text-2xl font-black italic">FLY USA</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xs opacity-80 uppercase font-bold">Flight No.</div>
+                        <div class="text-xl font-bold flight-target">US000</div>
+                    </div>
+                </div>
+                <div class="p-6 grid grid-cols-2 gap-6">
+                    <div>
+                        <div class="mb-4">
+                            <div class="label">Passenger Name</div>
+                            <div class="text-lg font-bold name-target">---</div>
+                        </div>
+                        <div class="flex justify-between items-end bg-gray-50 p-3 rounded-lg border border-gray-100">
+                            <div>
+                                <div class="label">Origin</div>
+                                <div class="text-2xl font-black text-blue-600 from-target">---</div>
+                            </div>
+                            <div class="pb-1 text-gray-300">→</div>
+                            <div class="text-right">
+                                <div class="label">Destination</div>
+                                <div class="text-2xl font-black text-blue-600 to-target">---</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-center justify-center border-l border-gray-100 pl-6">
+                        <div class="qr-target mb-2"></div>
+                        <div class="text-[7pt] font-mono barcode-target">US000</div>
+                    </div>
+                </div>
+                <div class="bg-gray-100 p-4 grid grid-cols-4 gap-2 text-center border-t border-gray-200">
+                    <div><div class="label">Gate</div><div class="font-bold gate-target">--</div></div>
+                    <div><div class="label">Seat</div><div class="font-bold seat-target">--</div></div>
+                    <div><div class="label">Time</div><div class="font-bold time-target">--:--</div></div>
+                    <div><div class="label">Date</div><div class="font-bold date-target">--/--</div></div>
+                </div>
             </div>
         </div>
 
@@ -182,33 +232,58 @@
         </button>
     </div>
 
+    <!-- Custom Modal for Clear History (avoiding window.confirm) -->
+    <div id="clear-confirm-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-[110] px-4">
+        <div class="bg-white p-6 rounded-2xl max-w-sm w-full shadow-2xl text-center">
+            <div class="text-red-500 mb-4 flex justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+            </div>
+            <h3 class="text-xl font-bold mb-2 uppercase">Clear History?</h3>
+            <p class="text-gray-500 mb-6 text-sm">This will delete all logged flight records. This action cannot be undone.</p>
+            <div class="flex gap-3">
+                <button onclick="executeClearHistory()" class="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold">Yes, Clear All</button>
+                <button onclick="closeClearModal()" class="flex-1 bg-gray-100 text-gray-600 py-3 rounded-xl font-bold">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Settings Modal -->
     <div id="settings-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-[100] px-4">
         <div class="bg-white p-8 rounded-2xl max-w-lg w-full shadow-2xl">
-            <h3 class="text-2xl font-bold mb-2">Configure Station</h3>
-            <p class="text-gray-500 mb-6 text-sm">Add locations separated by commas.</p>
-            <textarea id="airport-list" rows="5" class="w-full border p-4 rounded-xl mb-4 font-mono uppercase tracking-widest text-lg" placeholder="HOME, PARK, SHOP..."></textarea>
+            <h3 class="text-2xl font-bold mb-4">Station Settings</h3>
+            
+            <div class="mb-6">
+                <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Ticket Layout</label>
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="setLayout('thermal')" id="btn-layout-thermal" class="py-3 border-2 rounded-xl font-bold transition-all border-blue-600 bg-blue-50 text-blue-600">Thermal Receipt</button>
+                    <button onclick="setLayout('modern')" id="btn-layout-modern" class="py-3 border-2 rounded-xl font-bold transition-all border-gray-200 text-gray-400">Modern Card</button>
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Available Locations</label>
+                <textarea id="airport-list" rows="4" class="w-full border p-4 rounded-xl font-mono uppercase tracking-widest text-sm" placeholder="HOME, PARK, SHOP..."></textarea>
+            </div>
+
             <div class="flex gap-2">
-                <button onclick="saveAirports()" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold">Save Settings</button>
-                <button onclick="closeSettings()" class="bg-gray-200 px-6 py-3 rounded-xl font-bold">Close</button>
+                <button onclick="saveSettings()" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold">Save & Close</button>
+                <button onclick="closeSettings()" class="bg-gray-200 px-6 py-3 rounded-xl font-bold text-gray-600">Cancel</button>
             </div>
         </div>
     </div>
 
     <script>
         const defaultAirports = ["HOME", "PARK", "SHOP", "SCHOOL", "TRAIL", "HILL", "LAKE", "BRIDGE", "CENTER"];
-        const names = [
-            "Alex River", "Jamie Smith", "Casey Lane", "Taylor Reed", "Morgan Hill", 
-            "Jordan West", "Skyler Blue", "Riley Quinn", "Peyton Ross", "Charlie Day", 
-            "Sam Foster", "Drew Miles", "Blake Hart", "Logan Gray", "Avery Park", 
-            "Dakota Sun", "Parker Ash", "Emerson Sky", "Phoenix Ray", "Sage Brooks", 
-            "Rowan Lake", "Quinn Vale", "Hayden Cole", "River Moon", "Sawyer Finn", 
-            "Oakley Dawn", "Remi Stone", "Elliot Snow", "Marlowe Rae", "Sidney Leaf", 
-            "Justice Joy", "Robin Song", "Lane Forest", "Bailey True", "Kendall Hope", 
-            "Adrian Cruz", "Jules King", "Micah Bell", "Cameron Dale", "Sasha Rose"
-        ];
+        const names = ["Alex River", "Jamie Smith", "Casey Lane", "Taylor Reed", "Morgan Hill", "Jordan West", "Skyler Blue", "Riley Quinn", "Peyton Ross", "Charlie Day"];
 
-        const qrcode = new QRCode(document.getElementById("qrcode"), { width: 120, height: 120 });
+        let currentLayout = localStorage.getItem('flyusa_layout') || 'thermal';
+        let qrInstances = [];
+
+        function initQRs() {
+            document.querySelectorAll('.qr-target').forEach((el) => {
+                qrInstances.push(new QRCode(el, { width: 100, height: 100 }));
+            });
+        }
 
         function getFlightDb() {
             const db = localStorage.getItem('flyusa_flights');
@@ -230,24 +305,38 @@
         }
 
         function clearHistory() {
+            document.getElementById('clear-confirm-modal').classList.remove('hidden');
+        }
+
+        function closeClearModal() {
+            document.getElementById('clear-confirm-modal').classList.add('hidden');
+        }
+
+        function executeClearHistory() {
             localStorage.removeItem('flyusa_flights');
             updateLogDisplay();
             addLog("Route history cleared.");
+            closeClearModal();
         }
 
         function updateLogDisplay() {
             const db = getFlightDb();
             const count = Object.keys(db).length;
             document.getElementById('stored-count').textContent = `${count} Flights Logged`;
+            
             const logs = document.getElementById('logs');
             logs.innerHTML = '';
+            
             const keys = Object.keys(db);
-            keys.slice(-10).reverse().forEach(id => {
-                const p = document.createElement('p');
-                p.textContent = `> ${id}: ${db[id].from} -> ${db[id].to}`;
-                logs.appendChild(p);
-            });
-            if (count === 0) logs.innerHTML = '<p>> No records found.</p>';
+            if (keys.length === 0) {
+                logs.innerHTML = '<p>> No records found.</p>';
+            } else {
+                keys.slice(-10).reverse().forEach(id => {
+                    const p = document.createElement('p');
+                    p.textContent = `> ${id}: ${db[id].from} -> ${db[id].to}`;
+                    logs.appendChild(p);
+                });
+            }
         }
 
         function handleScan(value) {
@@ -255,12 +344,18 @@
             const cleanVal = value.trim().toUpperCase();
             if (db[cleanVal]) {
                 const oldFlight = db[cleanVal];
-                addLog(`Recognized ${cleanVal}. Returning from ${oldFlight.to}...`);
+                addLog(`Recognized ${cleanVal}. Returning...`);
                 const nextRide = generateRandomRide(oldFlight.to, null, oldFlight.from, oldFlight.name);
                 removeFlightFromDb(cleanVal);
                 document.getElementById('scanner-input').value = '';
                 populateTicket(nextRide);
                 executePrintSequence(nextRide);
+            }
+        }
+
+        function checkInputEnter(event) {
+            if (event.key === "Enter" && event.target.value.trim() === "") {
+                goToPrintPage();
             }
         }
 
@@ -279,103 +374,93 @@
 
         function executePrintSequence(data) {
             saveFlightToDb(data);
-            
-            // Switch views immediately
             document.getElementById('home-page').classList.replace('page-visible', 'page-hidden');
             document.getElementById('print-view').classList.replace('page-hidden', 'page-visible');
             document.body.style.backgroundColor = "white";
 
-            // Small delay to ensure QR code and layout are rendered before printing
+            document.getElementById('layout-view-thermal').classList.toggle('hidden', currentLayout !== 'thermal');
+            document.getElementById('layout-view-modern').classList.toggle('hidden', currentLayout !== 'modern');
+
+            window.onafterprint = () => { goHome(); window.onafterprint = null; };
             setTimeout(() => {
                 window.print();
-                
-                // Return home as soon as user finishes with print dialog
-                const returnHome = () => {
-                    goHome();
-                    window.removeEventListener('focus', returnHome);
-                };
-                window.addEventListener('focus', returnHome);
-            }, 300);
+                const backup = () => { goHome(); window.removeEventListener('focus', backup); };
+                window.addEventListener('focus', backup);
+            }, 400);
         }
 
         function goHome() {
             document.getElementById('print-view').classList.replace('page-visible', 'page-hidden');
             document.getElementById('home-page').classList.replace('page-hidden', 'page-visible');
             document.body.style.backgroundColor = "#f3f4f6";
-            document.getElementById('scanner-input').focus();
+            setTimeout(() => { document.getElementById('scanner-input').focus(); }, 100);
         }
 
         function generateRandomRide(customFrom = null, customName = null, restrictedTo = null, restrictedName = null) {
             const pool = getAirports();
-            let from = customFrom ? customFrom : pool[Math.floor(Math.random() * pool.length)];
+            let from = customFrom || pool[Math.floor(Math.random() * pool.length)];
             let to;
-            do { to = pool[Math.floor(Math.random() * pool.length)]; } 
-            while (to === from || (restrictedTo && to === restrictedTo));
-
-            let selectedName;
-            if (customName) {
-                selectedName = customName;
-            } else {
-                do {
-                    selectedName = names[Math.floor(Math.random() * names.length)].toUpperCase();
-                } while (restrictedName && selectedName === restrictedName.toUpperCase());
-            }
-
+            do { to = pool[Math.floor(Math.random() * pool.length)]; } while (to === from || (restrictedTo && to === restrictedTo));
+            let selectedName = customName || names[Math.floor(Math.random() * names.length)].toUpperCase();
             const now = new Date();
             return {
                 name: selectedName,
                 flight: "US" + Math.floor(100000000 + Math.random() * 900000000),
-                from: from,
-                to: to,
+                from, to,
                 gate: String.fromCharCode(65 + Math.floor(Math.random() * 4)) + Math.floor(Math.random() * 9 + 1),
                 seat: (Math.floor(Math.random() * 12) + 1) + "B",
                 time: String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0'),
-                date: now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()
+                date: now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }).toUpperCase()
             };
         }
 
         function populateTicket(data) {
-            document.getElementById('view-name').textContent = data.name;
-            document.getElementById('view-from').textContent = data.from;
-            document.getElementById('view-to').textContent = data.to;
-            document.getElementById('view-flight').textContent = data.flight;
-            document.getElementById('view-date').textContent = data.date;
-            document.getElementById('view-gate').textContent = data.gate;
-            document.getElementById('view-seat').textContent = data.seat;
-            document.getElementById('view-time').textContent = data.time;
-            document.getElementById('view-barcode').textContent = data.flight;
-            qrcode.clear();
-            qrcode.makeCode(data.flight);
+            document.querySelectorAll('.name-target').forEach(el => el.textContent = data.name);
+            document.querySelectorAll('.from-target').forEach(el => el.textContent = data.from);
+            document.querySelectorAll('.to-target').forEach(el => el.textContent = data.to);
+            document.querySelectorAll('.flight-target').forEach(el => el.textContent = data.flight);
+            document.querySelectorAll('.date-target').forEach(el => el.textContent = data.date);
+            document.querySelectorAll('.gate-target').forEach(el => el.textContent = data.gate);
+            document.querySelectorAll('.seat-target').forEach(el => el.textContent = data.seat);
+            document.querySelectorAll('.time-target').forEach(el => el.textContent = data.time);
+            document.querySelectorAll('.barcode-target').forEach(el => el.textContent = data.flight);
+            qrInstances.forEach(inst => {
+                inst.clear();
+                inst.makeCode(data.flight);
+            });
         }
 
-        window.addEventListener('keydown', (e) => {
-            if (e.ctrlKey && e.key === 's') { e.preventDefault(); openSettings(); }
-        });
+        function setLayout(type) {
+            currentLayout = type;
+            document.getElementById('btn-layout-thermal').className = type === 'thermal' ? 'py-3 border-2 rounded-xl font-bold border-blue-600 bg-blue-50 text-blue-600' : 'py-3 border-2 rounded-xl font-bold border-gray-200 text-gray-400';
+            document.getElementById('btn-layout-modern').className = type === 'modern' ? 'py-3 border-2 rounded-xl font-bold border-blue-600 bg-blue-50 text-blue-600' : 'py-3 border-2 rounded-xl font-bold border-gray-200 text-gray-400';
+        }
 
+        window.addEventListener('keydown', (e) => { if (e.ctrlKey && e.key === 's') { e.preventDefault(); openSettings(); } });
+        
         function openSettings() {
             const list = localStorage.getItem('flyusa_airports') || defaultAirports.join(", ");
             document.getElementById('airport-list').value = list;
+            setLayout(currentLayout);
             document.getElementById('settings-modal').classList.remove('hidden');
         }
-
+        
         function closeSettings() { document.getElementById('settings-modal').classList.add('hidden'); }
-
-        function saveAirports() {
-            const val = document.getElementById('airport-list').value;
-            localStorage.setItem('flyusa_airports', val);
+        
+        function saveSettings() {
+            localStorage.setItem('flyusa_airports', document.getElementById('airport-list').value);
+            localStorage.setItem('flyusa_layout', currentLayout);
             closeSettings();
         }
-
+        
         function getAirports() {
             const stored = localStorage.getItem('flyusa_airports');
-            if (!stored) return defaultAirports;
-            return stored.split(',').map(s => s.trim().toUpperCase()).filter(s => s.length > 0);
+            return stored ? stored.split(',').map(s => s.trim().toUpperCase()).filter(s => s.length > 0) : defaultAirports;
         }
 
         window.onload = () => {
+            initQRs();
             updateLogDisplay();
-            const data = { name: "READY", flight: "US000000000", from: "---", to: "---", gate: "--", seat: "--", time: "--:--", date: "00 XXX 0000" };
-            populateTicket(data);
             document.getElementById('scanner-input').focus();
         };
     </script>
