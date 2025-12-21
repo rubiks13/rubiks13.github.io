@@ -140,6 +140,11 @@
         // Load multiple passwords (keys)
         let savedKeys = JSON.parse(localStorage.getItem('bike_occ_keys')) || [];
 
+        // Check for recovery state
+        if (savedKeys.length === 0) {
+            console.log("Recovery Mode: Default key '1' is active.");
+        }
+
         function openLink(link) {
             const windowId = link.id;
             if (windowRefs[windowId] && !windowRefs[windowId].closed) {
@@ -168,7 +173,7 @@
         }
 
         function lockSystem() {
-            if (savedKeys.length === 0) return;
+            // Always lock if keys exist OR if we need to set the first one
             lockScreen.classList.add('active');
             passInput.value = "";
             setTimeout(() => passInput.focus(), 50);
@@ -180,26 +185,38 @@
             passInput.blur();
         }
 
-        // Check if the typed content matches any of the stored keys
         passInput.addEventListener('input', () => {
-            if (savedKeys.includes(passInput.value)) {
-                unlockSystem();
+            const val = passInput.value;
+            
+            // 1. Check if it matches saved keys
+            // 2. Recovery check: If no keys are saved, '1' works once.
+            if (savedKeys.includes(val) || (savedKeys.length === 0 && val === "1")) {
+                
+                // If it was the recovery password, force setup of a real key
+                if (savedKeys.length === 0 && val === "1") {
+                    unlockSystem();
+                    setTimeout(() => {
+                        alert("Recovery successful! Please set a permanent password now.");
+                        manageKeys('ADD');
+                    }, 500);
+                } else {
+                    unlockSystem();
+                }
             }
         });
 
-        // Forced focus
         document.addEventListener('click', () => {
             if (lockScreen.classList.contains('active')) passInput.focus();
         });
 
         window.addEventListener('focus', () => {
-            if (savedKeys.length > 0 && !lockScreen.classList.contains('active')) {
+            if (!lockScreen.classList.contains('active')) {
                 lockSystem();
             }
         });
 
-        function manageKeys() {
-            const action = prompt("Type 'ADD' to add a key, 'CLEAR' to delete all, or 'LIST' to see keys:");
+        function manageKeys(forcedAction = null) {
+            const action = forcedAction || prompt("Type 'ADD' to add a key, 'CLEAR' to delete all, or 'LIST' to see keys:");
             if (!action) return;
 
             const cmd = action.toUpperCase();
@@ -208,16 +225,20 @@
                 if (newKey) {
                     savedKeys.push(newKey);
                     localStorage.setItem('bike_occ_keys', JSON.stringify(savedKeys));
-                    alert("Key added!");
+                    alert("Key added successfully!");
                 }
             } else if (cmd === 'CLEAR') {
-                if(confirm("Delete all keys?")) {
+                if(confirm("Delete all keys? This will reset the system to recovery mode ('1').")) {
                     savedKeys = [];
                     localStorage.removeItem('bike_occ_keys');
-                    unlockSystem();
+                    lockSystem();
                 }
             } else if (cmd === 'LIST') {
-                alert("Saved keys: " + savedKeys.join(", "));
+                if (savedKeys.length === 0) {
+                    alert("No keys saved. System is in recovery mode (Key: 1)");
+                } else {
+                    alert("Saved keys: " + savedKeys.join(", "));
+                }
             }
         }
 
@@ -234,7 +255,7 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             renderLinks();
-            if (savedKeys.length > 0) lockSystem();
+            lockSystem();
         });
     </script>
 </body>
