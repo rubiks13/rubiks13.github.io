@@ -72,8 +72,15 @@
         /* Hidden Input Logic */
         #password-input {
             position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 1px;
+            height: 1px;
             opacity: 0;
-            pointer-events: none;
+            border: none;
+            outline: none;
+            background: transparent;
         }
 
         .lock-icon {
@@ -115,7 +122,8 @@
         <div class="lock-icon">🔒</div>
         <h2 class="text-white text-xl font-semibold mb-2">System Locked</h2>
         <p class="text-gray-400 text-sm">Please type your password to continue</p>
-        <input type="password" id="password-input" autocomplete="off">
+        <!-- The input is here in the middle, just invisible -->
+        <input type="password" id="password-input" autocomplete="off" autofocus>
     </div>
 
     <script>
@@ -129,7 +137,6 @@
         const lockScreen = document.getElementById('lock-screen');
         const passInput = document.getElementById('password-input');
         
-        // Load password from local storage
         let savedPassword = localStorage.getItem('bike_occ_pass') || "";
 
         function openLink(link) {
@@ -166,43 +173,51 @@
             });
         }
 
-        // Lock/Unlock Logic
         function lockSystem() {
-            if (!savedPassword) return; // Don't lock if no password set
+            if (!savedPassword) return;
             lockScreen.classList.add('active');
             passInput.value = "";
-            passInput.focus();
+            
+            // Try focusing multiple times to ensure the browser accepts the request
+            setTimeout(() => passInput.focus(), 10);
+            setTimeout(() => passInput.focus(), 100);
+            setTimeout(() => passInput.focus(), 500);
         }
 
         function unlockSystem() {
             lockScreen.classList.remove('active');
             passInput.value = "";
+            // Move focus away to avoid interfering with keyboard shortcuts
+            passInput.blur();
         }
 
-        // Handle password input
         passInput.addEventListener('input', () => {
             if (passInput.value === savedPassword) {
                 unlockSystem();
             }
         });
 
-        // Keep input focused when locked
-        document.addEventListener('click', () => {
+        // Forced focus logic: If user clicks or moves, keep the focus on the input
+        const keepFocus = () => {
             if (lockScreen.classList.contains('active')) {
                 passInput.focus();
             }
-        });
+        };
 
-        // Detect return from other tabs (Focus event)
+        document.addEventListener('click', keepFocus);
+        document.addEventListener('mousemove', keepFocus);
+        document.addEventListener('touchstart', keepFocus);
+
         window.addEventListener('focus', () => {
             if (savedPassword && !lockScreen.classList.contains('active')) {
                 lockSystem();
+            } else if (lockScreen.classList.contains('active')) {
+                passInput.focus();
             }
         });
 
         function setupKeyboardNav() {
             window.addEventListener('keydown', (event) => {
-                // Ctrl + S to set password
                 if (event.ctrlKey && event.key === 's') {
                     event.preventDefault();
                     const newPass = prompt("Set new system password:");
@@ -214,8 +229,10 @@
                     return;
                 }
 
-                // If locked, don't allow link navigation
-                if (lockScreen.classList.contains('active')) return;
+                if (lockScreen.classList.contains('active')) {
+                    passInput.focus();
+                    return;
+                };
 
                 const pressedKey = event.key.toLowerCase();
                 const targetLink = linkData.find(link => 
@@ -231,8 +248,6 @@
         window.addEventListener('DOMContentLoaded', () => {
             renderLinks();
             setupKeyboardNav();
-            
-            // Auto-lock on start if password exists
             if (savedPassword) {
                 lockSystem();
             }
