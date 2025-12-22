@@ -92,27 +92,34 @@
     <!-- HOME PAGE SECTION -->
     <div id="home-page" class="p-4 md:p-8 max-w-4xl mx-auto page-visible flex-col no-print">
         <div class="mb-6 bg-white p-6 rounded-2xl shadow-lg border-4 border-blue-500 text-center">
-            <h1 class="text-2xl font-black mb-2 uppercase tracking-tight">Bike Route Station</h1>
+            <div class="flex justify-between items-start mb-2">
+                <div class="text-left">
+                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Active Pilot</span>
+                    <div id="display-user" class="text-sm font-black text-blue-600 uppercase">Guest</div>
+                </div>
+                <h1 class="text-2xl font-black uppercase tracking-tight italic">Fly USA</h1>
+            </div>
+            
             <p class="text-gray-600 mb-6">Hit the button or scan a ticket to begin!</p>
             
             <div class="flex justify-center">
                 <!-- NEW RIDE BUTTON -->
                 <button onclick="goToPrintPage()" class="w-full max-w-md bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-2xl font-black py-12 rounded-2xl shadow-xl transition-all flex flex-col items-center justify-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12.2 2h-.4a2 2 0 0 0-2 2v1.2a2 2 0 0 1-1.2 1.8l-1.5.7a2 2 0 0 1-2.4-.7l-.8-1a2 2 0 0 0-2.8-.2l-.3.3a2 2 0 0 0-.2 2.8l1 1a2 2 0 0 1 .7 2.4l-.7 1.5a2 2 0 0 1-1.8 1.2H2.2a2 2 0 0 0-2 2v.4a2 2 0 0 0 2 2h1.2a2 2 0 0 1 1.8 1.2l.7 1.5a2 2 0 0 1-.7 2.4l-1 1a2 2 0 0 0 .2 2.8l.3.3a2 2 0 0 0 2.8-.2l.8-1a2 2 0 0 1 2.4-.7l1.5.7a2 2 0 0 1 1.2 1.8v1.2a2 2 0 0 0 2 2h.4a2 2 0 0 0 2-2v-1.2a2 2 0 0 1 1.2-1.8l1.5-.7a2 2 0 0 1 2.4.7l.8 1a2 2 0 0 0 2.8.2l.3-.3a2 2 0 0 0 2.8-.2l.8-1a2 2 0 0 1 2.4-.7l1.5.7a2 2 0 0 1 1.2 1.8V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-                    NEW RIDE
+                    START RIDE
                 </button>
             </div>
 
             <div class="mt-6 bg-gray-100 p-4 rounded-xl border-2 border-dashed border-gray-300">
-                <p class="text-xs font-bold text-gray-500 uppercase mb-2">General Scanner (Returning Ride)</p>
-                <input type="text" id="scanner-input" oninput="handleScan(this.value)" onkeydown="checkInputEnter(event)" placeholder="SCAN RIDE BARCODE..." class="w-full bg-white border border-gray-300 p-3 rounded-lg font-mono text-center text-xl uppercase tracking-widest focus:ring-2 focus:ring-blue-500 outline-none">
+                <p class="text-xs font-bold text-gray-500 uppercase mb-2">Gate Scanner (Scan to Return)</p>
+                <input type="text" id="scanner-input" oninput="handleScan(this.value)" onkeydown="checkInputEnter(event)" placeholder="SCAN BOARDING PASS..." class="w-full bg-white border border-gray-300 p-3 rounded-lg font-mono text-center text-xl uppercase tracking-widest focus:ring-2 focus:ring-blue-500 outline-none">
             </div>
             
             <div class="mt-4 flex justify-between text-xs text-gray-400 font-bold uppercase">
-                <button onclick="openSettings()" class="hover:text-blue-600 transition-colors">Ctrl + S: Settings</button>
+                <button onclick="openSettings()" class="hover:text-blue-600 transition-colors">Settings (Ctrl+S)</button>
                 <div class="flex items-center gap-4">
                     <span id="idle-warning" class="text-orange-500 hidden animate-pulse">Auto-return soon...</span>
-                    <span id="stored-count">0 Rides Logged</span>
+                    <span id="stored-count">0 Flights Logged</span>
                 </div>
             </div>
         </div>
@@ -120,7 +127,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold italic tracking-tight uppercase">Route History</h2>
+                    <h2 class="text-xl font-bold italic tracking-tight uppercase">Flight History</h2>
                     <button onclick="clearHistory()" class="text-[10pt] font-bold text-red-500 hover:text-red-700 uppercase tracking-tighter">Clear All</button>
                 </div>
                 <div id="logs" class="space-y-2 font-mono text-xs text-gray-500 overflow-y-auto max-h-40">
@@ -128,7 +135,8 @@
                 </div>
             </div>
             <div class="bg-blue-50 p-6 rounded-xl border border-blue-100 flex flex-col items-center justify-center text-blue-600 font-bold text-center italic">
-                <p id="status-text">Ready for departure. Start a new ride.</p>
+                <p id="status-text">Ready for departure. Earn $5.00 per flight.</p>
+                <a id="bank-link" href="#" class="mt-4 text-xs underline uppercase tracking-widest font-black hover:text-blue-800 transition-colors">Go to Bank App →</a>
             </div>
         </div>
     </div>
@@ -136,8 +144,8 @@
     <!-- PRINT PAGE SECTION -->
     <div id="print-view" class="page-hidden fixed inset-0 bg-white z-[50] flex flex-col items-center justify-center overflow-auto p-4">
         <div class="no-print mb-8 text-center animate-pulse">
-            <h2 class="text-2xl font-black text-blue-600 uppercase" id="print-title">Printing Receipt...</h2>
-            <p class="text-gray-500">Preparing layout for thermal printer.</p>
+            <h2 class="text-2xl font-black text-blue-600 uppercase" id="print-title">Printing Boarding Pass...</h2>
+            <p class="text-gray-500">Preparing layout for printer.</p>
         </div>
 
         <div id="print-area">
@@ -242,11 +250,12 @@
     <div id="settings-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-[100] px-4">
         <div class="bg-white p-8 rounded-2xl max-w-lg w-full shadow-2xl">
             <h3 class="text-2xl font-bold mb-4">Station Settings</h3>
+            <div class="mb-6 text-sm text-gray-500 font-mono">User: <span id="settings-user-display">---</span></div>
             <div class="mb-6">
                 <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Ticket Layout</label>
                 <div class="grid grid-cols-2 gap-3">
-                    <button onclick="setLayout('thermal')" id="btn-layout-thermal" class="py-3 border-2 rounded-xl font-bold transition-all border-blue-600 bg-blue-50 text-blue-600">Thermal Receipt</button>
-                    <button onclick="setLayout('modern')" id="btn-layout-modern" class="py-3 border-2 rounded-xl font-bold transition-all border-gray-200 text-gray-400">Modern Card</button>
+                    <button onclick="setLayout('thermal')" id="btn-layout-thermal" class="py-3 border-2 rounded-xl font-bold transition-all">Thermal Receipt</button>
+                    <button onclick="setLayout('modern')" id="btn-layout-modern" class="py-3 border-2 rounded-xl font-bold transition-all">Modern Card</button>
                 </div>
             </div>
             <div class="mb-6">
@@ -267,7 +276,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
             </div>
             <h3 class="text-xl font-bold mb-2 uppercase">Clear History?</h3>
-            <p class="text-gray-500 mb-6 text-sm">This will delete all flight records.</p>
+            <p class="text-gray-500 mb-6 text-sm">This will delete all local flight records.</p>
             <div class="flex gap-3">
                 <button onclick="executeClearHistory()" class="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold">Clear All</button>
                 <button onclick="closeClearModal()" class="flex-1 bg-gray-100 text-gray-600 py-3 rounded-xl font-bold">Cancel</button>
@@ -276,6 +285,17 @@
     </div>
 
     <script>
+        // BIKE BANK v2.7 PROTOCOL: USER DETECTION
+        function getActiveUser() {
+            const urlParams = new URLSearchParams(window.location.search);
+            let user = urlParams.get('user');
+            if (!user) {
+                user = localStorage.getItem('active_directory_user') || 'guest';
+            }
+            return user.toLowerCase();
+        }
+
+        const activeUser = getActiveUser();
         const defaultAirports = ["HOME", "PARK", "SHOP", "SCHOOL", "TRAIL", "HILL", "LAKE", "BRIDGE", "CENTER"];
         const names = ["Alex River", "Jamie Smith", "Casey Lane", "Taylor Reed", "Morgan Hill", "Jordan West", "Skyler Blue", "Riley Quinn", "Peyton Ross", "Charlie Day"];
 
@@ -284,22 +304,6 @@
         let idleTimer;
         const IDLE_TIME_LIMIT = 5000; // 5 seconds
         const REDIRECT_URL = "https://rubiks13.github.io/bikes/";
-
-        // BANK TIME LOGIC - SYNCED TO BANK APP
-        function getBankTime() {
-            let startTime = localStorage.getItem('sim_bank_start_real_time');
-            if (!startTime) {
-                startTime = Date.now();
-                localStorage.setItem('sim_bank_start_real_time', startTime);
-            }
-            const elapsedMins = (Date.now() - startTime) / 60000;
-            const bankHour = Math.floor(elapsedMins % 24);
-            const bankMinute = Math.floor((elapsedMins * 60) % 60);
-            const ampm = bankHour >= 12 ? 'PM' : 'AM';
-            const displayHour = bankHour % 12 || 12;
-            const displayMin = bankMinute.toString().padStart(2, '0');
-            return `${displayHour}:${displayMin} ${ampm}`;
-        }
 
         // IDLE REDIRECT LOGIC
         function resetIdleTimer() {
@@ -330,6 +334,22 @@
         window.addEventListener('touchstart', resetIdleTimer);
         window.addEventListener('mousedown', resetIdleTimer);
 
+        // BANK TIME LOGIC
+        function getBankTime() {
+            let startTime = localStorage.getItem('sim_bank_start_real_time');
+            if (!startTime) {
+                startTime = Date.now();
+                localStorage.setItem('sim_bank_start_real_time', startTime);
+            }
+            const elapsedMins = (Date.now() - startTime) / 60000;
+            const bankHour = Math.floor(elapsedMins % 24);
+            const bankMinute = Math.floor((elapsedMins * 60) % 60);
+            const ampm = bankHour >= 12 ? 'PM' : 'AM';
+            const displayHour = bankHour % 12 || 12;
+            const displayMin = bankMinute.toString().padStart(2, '0');
+            return `${displayHour}:${displayMin} ${ampm}`;
+        }
+
         function initQRs() {
             document.querySelectorAll('.qr-target').forEach((el) => {
                 qrInstances.push(new QRCode(el, { width: 100, height: 100 }));
@@ -337,43 +357,46 @@
         }
 
         function getFlightDb() {
-            const db = localStorage.getItem('flyusa_flights');
+            const db = localStorage.getItem(`flyusa_flights_${activeUser}`);
             return db ? JSON.parse(db) : {};
         }
 
         function saveFlightToDb(data) {
             const db = getFlightDb();
             db[data.flight] = { name: data.name, from: data.from, to: data.to, date: data.date, gate: data.gate, seat: data.seat, time: data.time };
-            localStorage.setItem('flyusa_flights', JSON.stringify(db));
+            localStorage.setItem(`flyusa_flights_${activeUser}`, JSON.stringify(db));
             updateLogDisplay();
         }
 
+        // BIKE BANK v2.7: TRANSACTION PROCESSING
         function handleJobCompletion(data) {
             const currentBankTime = getBankTime();
-            
-            // Populate bank time on the printed layout
             document.querySelectorAll('.bank-time-target').forEach(el => el.textContent = currentBankTime);
 
             window.print();
             
             setTimeout(() => {
-                let currentBal = parseFloat(localStorage.getItem('sim_bank_balance')) || 0;
-                let logs = JSON.parse(localStorage.getItem('sim_bank_logs')) || [];
+                // Shared storage keys per protocol
+                const balanceKey = `bank_${activeUser}_balance`;
+                const logsKey = `bank_${activeUser}_logs`;
 
-                localStorage.setItem('sim_bank_balance', (currentBal + 5.00).toFixed(2));
+                let currentBal = parseFloat(localStorage.getItem(balanceKey)) || 0;
+                let logs = JSON.parse(localStorage.getItem(logsKey)) || [];
 
+                const income = 5.00;
+                localStorage.setItem(balanceKey, (currentBal + income).toFixed(2));
+
+                // Transaction object structure per protocol
                 logs.unshift({
-                    type: 'Income',
-                    amount: 5.00,
                     job: `Pilot: ${data.from} to ${data.to}`,
-                    bankTime: currentBankTime, 
-                    date: new Date().toLocaleTimeString()
+                    amount: income,
+                    bankTime: currentBankTime
                 });
-                localStorage.setItem('sim_bank_logs', JSON.stringify(logs));
+                localStorage.setItem(logsKey, JSON.stringify(logs));
 
                 const alert = document.createElement('div');
-                alert.innerHTML = `💰 $5.00 sent to Bank! (${currentBankTime})`;
-                alert.style = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#2563eb; color:white; padding:15px 30px; border-radius:100px; font-weight:bold; z-index:10000; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);';
+                alert.innerHTML = `💰 $5.00 sent to ${activeUser.toUpperCase()}'s Bank!`;
+                alert.style = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#2563eb; color:white; padding:15px 30px; border-radius:100px; font-weight:bold; z-index:10000; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);';
                 document.body.appendChild(alert);
                 
                 setTimeout(() => alert.remove(), 4000);
@@ -384,32 +407,32 @@
         function removeFlightFromDb(flightId) {
             const db = getFlightDb();
             delete db[flightId];
-            localStorage.setItem('flyusa_flights', JSON.stringify(db));
+            localStorage.setItem(`flyusa_flights_${activeUser}`, JSON.stringify(db));
             updateLogDisplay();
         }
 
         function clearHistory() { document.getElementById('clear-confirm-modal').classList.remove('hidden'); }
         function closeClearModal() { document.getElementById('clear-confirm-modal').classList.add('hidden'); }
         function executeClearHistory() {
-            localStorage.removeItem('flyusa_flights');
+            localStorage.removeItem(`flyusa_flights_${activeUser}`);
             updateLogDisplay();
-            addLog("Route history cleared.");
+            addLog("Flight history cleared.");
             closeClearModal();
         }
 
         function updateLogDisplay() {
             const db = getFlightDb();
             const count = Object.keys(db).length;
-            document.getElementById('stored-count').textContent = `${count} Rides Logged`;
+            document.getElementById('stored-count').textContent = `${count} Flights Logged`;
             const logs = document.getElementById('logs');
             logs.innerHTML = '';
             const keys = Object.keys(db);
             if (keys.length === 0) {
-                logs.innerHTML = '<p>> No records found.</p>';
+                logs.innerHTML = '<p>> No current records.</p>';
             } else {
                 keys.slice(-10).reverse().forEach(id => {
                     const p = document.createElement('p');
-                    p.textContent = `> ${id}: ${db[id].from} -> ${db[id].to}`;
+                    p.textContent = `> ${id}: ${db[id].from} ✈ ${db[id].to}`;
                     logs.appendChild(p);
                 });
             }
@@ -420,7 +443,7 @@
             const cleanVal = value.trim().toUpperCase();
             if (db[cleanVal]) {
                 const oldFlight = db[cleanVal];
-                addLog(`Recognized ${cleanVal}. Returning...`);
+                addLog(`Recognized ${cleanVal}. Generating return flight...`);
                 const nextRide = generateRandomRide(oldFlight.to, null, oldFlight.from, oldFlight.name);
                 removeFlightFromDb(cleanVal);
                 document.getElementById('scanner-input').value = '';
@@ -525,24 +548,32 @@
         function openSettings() {
             const list = localStorage.getItem('flyusa_airports') || defaultAirports.join(", ");
             document.getElementById('airport-list').value = list;
+            document.getElementById('settings-user-display').textContent = activeUser;
             setLayout(currentLayout);
             document.getElementById('settings-modal').classList.remove('hidden');
         }
+
         function closeSettings() { 
             document.getElementById('settings-modal').classList.add('hidden');
             resetIdleTimer();
         }
+
         function saveSettings() {
             localStorage.setItem('flyusa_airports', document.getElementById('airport-list').value);
             localStorage.setItem('flyusa_layout', currentLayout);
             closeSettings();
         }
+
         function getAirports() {
             const stored = localStorage.getItem('flyusa_airports');
             return stored ? stored.split(',').map(s => s.trim().toUpperCase()).filter(s => s.length > 0) : defaultAirports;
         }
 
         window.onload = () => {
+            document.getElementById('display-user').textContent = activeUser;
+            // BIKE BANK v2.7 Link Structure
+            document.getElementById('bank-link').href = `https://rubiks13.github.io/bikes/bank_app.html?user=${activeUser}`;
+            
             initQRs();
             updateLogDisplay();
             document.getElementById('scanner-input').focus();
