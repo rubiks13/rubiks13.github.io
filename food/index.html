@@ -28,6 +28,15 @@
             @apply p-1 rounded hover:bg-gray-200 text-gray-500 transition duration-150;
         }
 
+        /* Animation for the success modal */
+        @keyframes bounce-short {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .animate-bounce-short {
+            animation: bounce-short 0.5s ease-in-out 1;
+        }
+
         /* Print-specific styles */
         @media print {
             #main-ui { display: none !important; }
@@ -69,7 +78,7 @@
                 </h2>
                 <div class="flex space-x-2 mb-4">
                     <input type="text" id="new-address-input" placeholder="Enter address" class="flex-grow p-2 border border-gray-300 rounded-lg text-sm">
-                    <button onclick="saveAddress()" class="px-4 py-2 bg-indigo-500 text-white font-medium rounded-lg text-sm">Save</button>
+                    <button onclick="saveAddress()" class="px-4 py-2 bg-indigo-500 text-white font-medium rounded-lg text-sm transition hover:bg-indigo-600">Save</button>
                 </div>
                 <div id="saved-addresses-list" class="space-y-2 mt-4 max-h-40 overflow-y-auto p-1 bg-white rounded-lg border border-gray-200"></div>
             </div>
@@ -79,7 +88,7 @@
                 <h2 class="text-lg font-semibold text-purple-700 mb-4">Restaurants</h2>
                 <div class="flex space-x-2 mb-4">
                     <input type="text" id="new-restaurant-input" placeholder="Restaurant name" class="flex-grow p-2 border border-gray-300 rounded-lg text-sm">
-                    <button onclick="saveCustomRestaurant()" class="px-4 py-2 bg-purple-500 text-white font-medium rounded-lg text-sm">Add</button>
+                    <button onclick="saveCustomRestaurant()" class="px-4 py-2 bg-purple-500 text-white font-medium rounded-lg text-sm transition hover:bg-purple-600">Add</button>
                 </div>
                 <div id="custom-restaurants-list" class="space-y-2 mt-4 max-h-40 overflow-y-auto p-1 bg-white rounded-lg border border-gray-200"></div>
             </div>
@@ -97,17 +106,17 @@
     </div>
 
     <script>
-        // --- Bike Bank v2.7 Protocol: Identity Management ---
+        // --- Identity & Protocol Initialization ---
         const urlParams = new URLSearchParams(window.location.search);
         const ACTIVE_USER = urlParams.get('user') || localStorage.getItem('active_directory_user') || 'guest';
         
-        // Protocol Storage Keys - Account Specific
+        // Storage Keys - Account Specific
         const BAL_KEY = `bank_${ACTIVE_USER}_balance`;
         const LOG_KEY = `bank_${ACTIVE_USER}_logs`;
         const ADDR_KEY = `receipt_${ACTIVE_USER}_addresses`; 
         const REST_KEY = `receipt_${ACTIVE_USER}_restaurants`;
 
-        // Update UI Identity and Bank Link
+        // Update UI Identity and Base Bank Link
         document.getElementById('user-display').textContent = `User: ${ACTIVE_USER}`;
         document.getElementById('bank-link').href = `https://rubiks13.github.io/bank/?user=${ACTIVE_USER}`;
 
@@ -151,7 +160,6 @@
         function saveState(key, data) { localStorage.setItem(key, JSON.stringify(data)); }
         function loadState(key) { return JSON.parse(localStorage.getItem(key)) || []; }
 
-        // --- UI Logic (Address/Restaurant) ---
         function initApp() {
             addresses = loadState(ADDR_KEY);
             if (addresses.length === 0) {
@@ -274,11 +282,12 @@
             window.print();
 
             setTimeout(() => {
+                // Game parameters
                 const amount = 5.00;
                 const missionName = "Uber Delivery";
                 const txid = Date.now();
                 
-                // 1. Update Local Storage for Session Persistence
+                // 1. Update Local Storage Persistence
                 let currentBal = parseFloat(localStorage.getItem(BAL_KEY)) || 0;
                 let logs = JSON.parse(localStorage.getItem(LOG_KEY)) || [];
 
@@ -291,8 +300,9 @@
                 });
                 localStorage.setItem(LOG_KEY, JSON.stringify(logs));
 
-                // 2. Generate the Deposit Link
-                const depositUrl = `https://rubiks13.github.io/bank/?user=${ACTIVE_USER}&deposit=${amount.toFixed(2)}&label=${encodeURIComponent(missionName)}&txid=${txid}`;
+                // 2. Generate the Dynamic Deposit Link
+                // Pattern: https://rubiks13.github.io/bank/?user=[NAME]&deposit=[AMOUNT]&label=[MISSION_NAME]&txid=[UNIQUE_ID]
+                const depositUrl = `https://rubiks13.github.io/bank/?user=${encodeURIComponent(ACTIVE_USER)}&deposit=${amount.toFixed(2)}&label=${encodeURIComponent(missionName)}&txid=${txid}`;
 
                 // 3. Show Success Notification with 'Go to Bank' Button
                 const alert = document.createElement('div');
@@ -301,13 +311,13 @@
                     <div class="bg-white rounded-2xl p-6 text-center shadow-2xl max-w-sm w-full transform transition-all animate-bounce-short">
                         <div class="text-4xl mb-4">💰</div>
                         <h3 class="text-xl font-bold text-gray-800 mb-2">$${amount.toFixed(2)} Earned!</h3>
-                        <p class="text-gray-600 mb-6 text-sm">Your delivery for ${restaurantName} is complete.</p>
+                        <p class="text-gray-600 mb-6 text-sm">Order for ${restaurantName} processed successfully.</p>
                         <div class="flex flex-col space-y-2">
                             <a href="${depositUrl}" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-xl transition duration-200">
                                 Go to Bank & Deposit
                             </a>
                             <button onclick="this.parentElement.parentElement.parentElement.remove()" class="text-gray-400 hover:text-gray-600 text-sm font-medium py-2">
-                                Close
+                                Stay on Page
                             </button>
                         </div>
                     </div>
