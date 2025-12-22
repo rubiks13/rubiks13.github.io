@@ -174,10 +174,13 @@
                     </div>
                 </div>
                 <div class="dashed-line"></div>
-                <div class="grid grid-cols-3 gap-2 mb-6 text-center bg-gray-50 p-2">
+                <div class="grid grid-cols-2 gap-2 mb-2 text-center bg-gray-50 p-2">
                     <div><div class="label">Gate</div><div class="value gate-target">--</div></div>
-                    <div class="border-x border-gray-200"><div class="label">Bike</div><div class="value seat-target">--</div></div>
-                    <div><div class="label">Leaving</div><div class="value time-target">--:--</div></div>
+                    <div class="border-l border-gray-200"><div class="label">Bike</div><div class="value seat-target">--</div></div>
+                </div>
+                <div class="grid grid-cols-2 gap-2 mb-6 text-center bg-gray-50 p-2 pt-0">
+                    <div><div class="label">Real Time</div><div class="value time-target">--:--</div></div>
+                    <div class="border-l border-gray-200"><div class="label">Bank Time</div><div class="value bank-time-target">--:-- --</div></div>
                 </div>
                 <div class="flex flex-col items-center gap-4">
                     <div class="qr-target bg-white p-1"></div>
@@ -220,11 +223,12 @@
                         <div class="text-[7pt] font-mono barcode-target">US000</div>
                     </div>
                 </div>
-                <div class="bg-gray-100 p-4 grid grid-cols-4 gap-2 text-center border-t border-gray-200">
-                    <div><div class="label">Gate</div><div class="font-bold gate-target">--</div></div>
-                    <div><div class="label">Seat</div><div class="font-bold seat-target">--</div></div>
-                    <div><div class="label">Time</div><div class="font-bold time-target">--:--</div></div>
-                    <div><div class="label">Date</div><div class="font-bold date-target">--/--</div></div>
+                <div class="bg-gray-100 p-4 grid grid-cols-5 gap-2 text-center border-t border-gray-200">
+                    <div><div class="label">Gate</div><div class="font-bold gate-target text-xs">--</div></div>
+                    <div><div class="label">Seat</div><div class="font-bold seat-target text-xs">--</div></div>
+                    <div><div class="label">Time</div><div class="font-bold time-target text-xs">--:--</div></div>
+                    <div><div class="label">Bank</div><div class="font-bold bank-time-target text-xs">--:--</div></div>
+                    <div><div class="label">Date</div><div class="font-bold date-target text-[10px]">--/--</div></div>
                 </div>
             </div>
         </div>
@@ -281,7 +285,7 @@
         const IDLE_TIME_LIMIT = 5000; // 5 seconds
         const REDIRECT_URL = "https://rubiks13.github.io/bikes/";
 
-        // BANK TIME LOGIC
+        // BANK TIME LOGIC - SYNCED TO BANK APP
         function getBankTime() {
             let startTime = localStorage.getItem('sim_bank_start_real_time');
             if (!startTime) {
@@ -314,7 +318,8 @@
             }, IDLE_TIME_LIMIT);
 
             setTimeout(() => {
-               if (window.location.href !== REDIRECT_URL) {
+               const isPrinting = !document.getElementById('print-view').classList.contains('page-hidden');
+               if (window.location.href !== REDIRECT_URL && !isPrinting) {
                    document.getElementById('idle-warning').classList.remove('hidden');
                }
             }, IDLE_TIME_LIMIT - 1500);
@@ -344,12 +349,14 @@
         }
 
         function handleJobCompletion(data) {
-            // 1. Run the print command
-            window.print();
+            const currentBankTime = getBankTime();
+            
+            // Populate bank time on the printed layout
+            document.querySelectorAll('.bank-time-target').forEach(el => el.textContent = currentBankTime);
 
-            // 2. This code runs AFTER the print window is closed
+            window.print();
+            
             setTimeout(() => {
-                // Bank Integration
                 let currentBal = parseFloat(localStorage.getItem('sim_bank_balance')) || 0;
                 let logs = JSON.parse(localStorage.getItem('sim_bank_logs')) || [];
 
@@ -358,22 +365,18 @@
                 logs.unshift({
                     type: 'Income',
                     amount: 5.00,
-                    job: `Pilot: ${data.from} to ${data.to}`, 
-                    bankTime: getBankTime(), // Fixes the N/A issue!
+                    job: `Pilot: ${data.from} to ${data.to}`,
+                    bankTime: currentBankTime, 
                     date: new Date().toLocaleTimeString()
                 });
                 localStorage.setItem('sim_bank_logs', JSON.stringify(logs));
 
-                // 3. Show visual confirmation
-                const alertBox = document.createElement('div');
-                alertBox.innerHTML = '💰 $5.00 sent to Bank!';
-                alertBox.style = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#2563eb; color:white; padding:15px 30px; border-radius:100px; font-weight:bold; z-index:10000; box-shadow:0 4px 15px rgba(0,0,0,0.3);';
-                document.body.appendChild(alertBox);
+                const alert = document.createElement('div');
+                alert.innerHTML = `💰 $5.00 sent to Bank! (${currentBankTime})`;
+                alert.style = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#2563eb; color:white; padding:15px 30px; border-radius:100px; font-weight:bold; z-index:10000; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);';
+                document.body.appendChild(alert);
                 
-                // Remove message after 4 seconds
-                setTimeout(() => alertBox.remove(), 4000);
-
-                // Auto return to home view
+                setTimeout(() => alert.remove(), 4000);
                 goHome();
             }, 500);
         }
@@ -462,7 +465,6 @@
                 document.getElementById('layout-view-modern').classList.remove('hidden');
             }
 
-            // Trigger the job completion flow
             setTimeout(() => {
                 handleJobCompletion(data);
             }, 500);
