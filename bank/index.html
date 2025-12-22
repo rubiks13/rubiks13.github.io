@@ -3,163 +3,202 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rider Bank | Digital Wallet</title>
+    <title>Rider Bank | Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
         
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
             background-color: #020617;
             color: #f8fafc;
-            -webkit-tap-highlight-color: transparent;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .glass-card {
-            background: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
 
-        .balance-gradient {
-            background: linear-gradient(135deg, #2563eb 0%, #4338ca 100%);
+        .gradient-border {
+            position: relative;
+            background: #0f172a;
+            border-radius: 1rem;
+        }
+        .gradient-border::before {
+            content: "";
+            position: absolute;
+            inset: -1px;
+            background: linear-gradient(45deg, #3b82f6, #6366f1, #a855f7);
+            border-radius: 1.1rem;
+            z-index: -1;
+            opacity: 0.3;
         }
 
-        .custom-scroll::-webkit-scrollbar {
-            width: 4px;
-        }
-        .custom-scroll::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        .custom-scroll::-webkit-scrollbar-thumb {
-            background: #1e293b;
-            border-radius: 10px;
-        }
-
-        /* Animation for appearance */
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-slide-up {
-            animation: slideUp 0.5s ease-out forwards;
+        /* Inactivity Progress Bar */
+        #inactivity-bar {
+            transition: width 5s linear;
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center p-4 md:p-8">
+<body class="h-screen flex">
 
-    <div class="w-full max-w-md">
-        <!-- Header -->
-        <header class="flex items-center justify-between mb-8">
-            <div class="flex items-center gap-3">
-                <div class="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-500/20">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-white"><circle cx="18.5" cy="17.5" r="3.5"/><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="15" cy="5" r="1"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/></svg>
-                </div>
-                <h1 class="text-xl font-extrabold tracking-tight text-white uppercase">Rider Bank</h1>
+    <!-- Navigation Sidebar -->
+    <aside class="sidebar w-20 hover:w-64 bg-slate-900 border-r border-slate-800 flex flex-col items-center py-6 group z-50">
+        <div class="mb-10 bg-blue-600 p-3 rounded-2xl shadow-lg shadow-blue-500/20">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17.5V14l-3-3 4-3 2 3h2"/><circle cx="18.5" cy="17.5" r="3.5"/><circle cx="5.5" cy="17.5" r="3.5"/></svg>
+        </div>
+        
+        <nav class="flex-1 w-full px-4 space-y-4">
+            <a href="#" class="flex items-center gap-4 p-3 rounded-xl bg-blue-600/10 text-blue-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+                <span class="opacity-0 group-hover:opacity-100 font-bold transition-opacity whitespace-nowrap">Dashboard</span>
+            </a>
+            <a href="https://rubiks13.github.io/bikes/" class="flex items-center gap-4 p-3 rounded-xl text-slate-500 hover:bg-slate-800 transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                <span class="opacity-0 group-hover:opacity-100 font-bold transition-opacity whitespace-nowrap">Back to Hub</span>
+            </a>
+        </nav>
+
+        <div class="mt-auto group-hover:px-4 w-full flex justify-center">
+            <div class="w-10 h-10 group-hover:w-full bg-slate-800 rounded-xl flex items-center justify-center gap-3 overflow-hidden transition-all">
+                <div class="min-w-[40px] flex justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg></div>
+                <span class="opacity-0 group-hover:opacity-100 text-[10px] font-black uppercase tracking-widest text-slate-400">Verified</span>
             </div>
-            <div id="status-badge" class="hidden flex items-center gap-2 bg-slate-900/80 px-3 py-1.5 rounded-full border border-slate-800 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                Secure Mode
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col p-6 overflow-hidden">
+        
+        <!-- Top Info Bar -->
+        <header class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-2xl font-black tracking-tight uppercase">Rider Terminal</h1>
+                <p class="text-xs text-slate-500 font-bold uppercase tracking-widest" id="account-status">Loading session...</p>
+            </div>
+            
+            <!-- Inactivity Timer UI -->
+            <div class="flex flex-col items-end">
+                <span class="text-[9px] font-bold text-slate-500 uppercase mb-1">Inactivity Timeout</span>
+                <div class="w-32 h-1 bg-slate-800 rounded-full overflow-hidden">
+                    <div id="inactivity-bar" class="w-0 h-full bg-blue-500"></div>
+                </div>
             </div>
         </header>
 
-        <!-- Main App Container -->
-        <main id="app-content" class="animate-slide-up">
+        <div class="max-w-4xl w-full mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1">
             
-            <!-- Create Account Section (Hidden by default) -->
-            <div id="create-account-view" class="hidden glass-card p-8 rounded-[2rem] shadow-2xl">
-                <div class="text-center mb-8">
-                    <div class="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-500/20">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <!-- Balance Card -->
+            <div class="lg:col-span-2 space-y-6">
+                <div class="gradient-border p-8 h-64 flex flex-col justify-center relative overflow-hidden">
+                    <div class="absolute right-0 top-0 w-64 h-64 bg-blue-600/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
+                    <p class="text-blue-400 text-xs font-bold uppercase tracking-[0.3em] mb-4">Current Earnings</p>
+                    <h2 id="balance-display" class="text-7xl font-black tracking-tighter tabular-nums">$0.00</h2>
+                    
+                    <div class="mt-8 flex items-center gap-6">
+                        <div class="flex flex-col">
+                            <span class="text-[10px] text-slate-500 font-bold uppercase">Account Owner</span>
+                            <span id="owner-display" class="font-bold text-lg">---</span>
+                        </div>
+                        <div class="h-8 w-[1px] bg-slate-800"></div>
+                        <div class="flex flex-col">
+                            <span class="text-[10px] text-slate-500 font-bold uppercase">Status</span>
+                            <span class="text-emerald-400 font-bold text-lg flex items-center gap-2">
+                                <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                                ACTIVE
+                            </span>
+                        </div>
                     </div>
-                    <h2 class="text-2xl font-bold mb-2">Welcome, Rider!</h2>
-                    <p class="text-slate-400 text-sm leading-relaxed" id="welcome-message">
-                        Open your digital wallet to manage your delivery earnings.
+                </div>
+
+                <!-- Info Box -->
+                <div class="glass-card p-6 rounded-2xl flex items-center gap-4 border-l-4 border-l-blue-500">
+                    <div class="bg-blue-500/20 p-3 rounded-xl text-blue-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                    </div>
+                    <p class="text-sm text-slate-400 leading-relaxed">
+                        This terminal automatically receives funds from your <span class="text-white font-bold">Pilot</span> and <span class="text-white font-bold">Delivery</span> apps. Manual adjustments are disabled for security.
                     </p>
                 </div>
-                
-                <div id="manual-name-entry" class="mb-6 hidden">
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Rider Name</label>
-                    <input type="text" id="new-rider-name" placeholder="Enter your name" class="w-full bg-slate-800/50 border border-slate-700 p-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-white font-semibold">
-                </div>
-
-                <button onclick="createNewAccount()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl transition shadow-lg shadow-blue-600/20 active:scale-[0.98]">
-                    Create Account & Get $100
-                </button>
             </div>
 
-            <!-- Dashboard Section (Hidden by default) -->
-            <div id="dashboard-view" class="hidden space-y-6">
-                <!-- Balance Card -->
-                <div class="balance-gradient p-8 rounded-[2rem] shadow-2xl relative overflow-hidden border border-white/10">
-                    <div class="absolute -right-8 -bottom-8 opacity-10 rotate-12">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
-                    </div>
-                    <div class="relative z-10">
-                        <p class="text-blue-100/70 text-[10px] font-bold uppercase tracking-[0.2em] mb-1">Total Savings</p>
-                        <h2 id="balance-display" class="text-5xl font-extrabold tracking-tighter mb-8 tabular-nums">$0</h2>
-                        <div class="flex items-center gap-2">
-                            <div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                            </div>
-                            <span id="owner-display" class="font-bold text-sm tracking-wide">Rider</span>
-                        </div>
-                    </div>
+            <!-- Side History -->
+            <div class="glass-card rounded-3xl flex flex-col overflow-hidden border border-slate-800 shadow-2xl">
+                <div class="p-6 border-b border-slate-800 bg-slate-900/50">
+                    <h3 class="text-xs font-black uppercase tracking-widest text-slate-400">Mission History</h3>
                 </div>
-
-                <!-- Action Panel -->
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="glass-card p-4 rounded-2xl">
-                        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2 ml-1">Amount</p>
-                        <div class="flex items-center gap-1 border-b border-slate-700/50 pb-2">
-                            <span class="text-slate-500 font-bold">$</span>
-                            <input type="number" id="txn-amount" placeholder="0.00" class="bg-transparent w-full text-xl font-black focus:outline-none placeholder:text-slate-700 text-white">
-                        </div>
-                    </div>
-                    <div class="flex flex-col gap-2">
-                        <button onclick="processTransaction('deposit')" class="flex-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-xl flex items-center justify-center gap-2 hover:bg-emerald-500/20 transition text-xs font-bold uppercase tracking-widest">
-                            Deposit
-                        </button>
-                        <button onclick="processTransaction('withdraw')" class="flex-1 bg-rose-500/10 text-rose-400 border border-rose-500/20 rounded-xl flex items-center justify-center gap-2 hover:bg-rose-500/20 transition text-xs font-bold uppercase tracking-widest">
-                            Withdraw
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Recent Activity -->
-                <div class="glass-card rounded-[1.5rem] overflow-hidden">
-                    <div class="p-5 border-b border-slate-800/50 flex items-center justify-between">
-                        <h3 class="text-xs font-bold uppercase tracking-[0.15em] text-slate-400 flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-blue-500"><path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0"/><path d="M12 7v5l3 3"/></svg>
-                            Recent Missions
-                        </h3>
-                    </div>
-                    <div id="transactions-list" class="max-h-64 overflow-y-auto custom-scroll">
-                        <!-- Items injected here -->
-                    </div>
+                <div id="transactions-list" class="flex-1 overflow-y-auto p-2 custom-scroll">
+                    <!-- History injected here -->
                 </div>
             </div>
-        </main>
+        </div>
 
-        <footer class="mt-12 text-center">
-            <p class="text-[10px] text-slate-600 font-bold uppercase tracking-[0.3em]">
-                Secure Offline Banking Protocol
-            </p>
-        </footer>
+    </main>
+
+    <!-- Create Account Overlay -->
+    <div id="create-overlay" class="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4">
+        <div class="glass-card p-8 rounded-[2.5rem] max-w-sm w-full text-center shadow-2xl border-blue-500/30">
+            <div class="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-blue-600/20 rotate-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="16" x2="22" y1="11" y2="11"/></svg>
+            </div>
+            <h2 class="text-2xl font-black mb-2 uppercase italic">Join the Fleet</h2>
+            <p id="welcome-msg" class="text-slate-400 text-sm mb-8">Setup your wallet to begin tracking mission revenue.</p>
+            
+            <div id="manual-name-entry" class="mb-6 hidden">
+                <input type="text" id="new-rider-name" placeholder="RIDER CALLSIGN" class="w-full bg-slate-900 border border-slate-800 p-4 rounded-2xl text-center font-black uppercase tracking-widest focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+
+            <button onclick="createNewAccount()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-2xl transition shadow-lg shadow-blue-600/30 active:scale-95 uppercase tracking-widest">
+                Initialize Bank
+            </button>
+        </div>
     </div>
 
     <script>
-        // State Management
         let currentAccount = null;
         const urlParams = new URLSearchParams(window.location.search);
         const urlUserName = urlParams.get('user');
+        
+        let inactivityTimer;
+        const REDIRECT_URL = "https://rubiks13.github.io/bikes/";
 
-        // Initialization
+        // 1. Inactivity Logic
+        function resetInactivityTimer() {
+            clearTimeout(inactivityTimer);
+            const bar = document.getElementById('inactivity-bar');
+            
+            // Reset bar
+            bar.style.transition = 'none';
+            bar.style.width = '0%';
+            
+            // Re-trigger animation and timer
+            setTimeout(() => {
+                bar.style.transition = 'width 5s linear';
+                bar.style.width = '100%';
+            }, 50);
+
+            inactivityTimer = setTimeout(() => {
+                window.location.href = REDIRECT_URL;
+            }, 5000);
+        }
+
+        // Listen for user interaction
+        ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(evt => {
+            window.addEventListener(evt, resetInactivityTimer);
+        });
+
+        // 2. Data Initialization
         window.onload = () => {
+            resetInactivityTimer();
             if (urlUserName) {
                 loadAccount(urlUserName);
             } else {
-                // If no URL param, check if there's a last used account
                 const lastUser = localStorage.getItem('last_rider_session');
                 if (lastUser) {
                     loadAccount(lastUser);
@@ -183,12 +222,9 @@
         }
 
         function showCreateView(nameFromUrl = null) {
-            document.getElementById('create-account-view').classList.remove('hidden');
-            document.getElementById('dashboard-view').classList.add('hidden');
-            
+            document.getElementById('create-overlay').classList.remove('hidden');
             if (nameFromUrl) {
-                document.getElementById('welcome-message').innerText = `We couldn't find a bank account for "${nameFromUrl}". Start your career now!`;
-                document.getElementById('manual-name-entry').classList.add('hidden');
+                document.getElementById('welcome-msg').innerText = `Registering new fleet member: ${nameFromUrl}`;
             } else {
                 document.getElementById('manual-name-entry').classList.remove('hidden');
             }
@@ -196,120 +232,57 @@
 
         function createNewAccount() {
             const nameToUse = urlUserName || document.getElementById('new-rider-name').value;
-            
-            if (!nameToUse || nameToUse.trim() === "") {
-                alert("Please enter a name for your rider account!");
-                return;
-            }
+            if (!nameToUse || nameToUse.trim() === "") return;
 
-            const newAccount = {
+            currentAccount = {
                 ownerName: nameToUse,
-                balance: 100,
-                transactions: [
-                    {
-                        id: Date.now(),
-                        type: 'deposit',
-                        amount: 100,
-                        label: 'Initial Funding',
-                        date: new Date().toISOString()
-                    }
-                ]
+                balance: 100, // New pilot bonus
+                transactions: [{
+                    id: Date.now(),
+                    type: 'deposit',
+                    amount: 100,
+                    label: 'Pilot Sign-on Bonus',
+                    date: new Date().toISOString()
+                }]
             };
 
             const storageKey = `rider_bank_${nameToUse.toLowerCase()}`;
-            localStorage.setItem(storageKey, JSON.stringify(newAccount));
+            localStorage.setItem(storageKey, JSON.stringify(currentAccount));
             localStorage.setItem('last_rider_session', nameToUse);
             
-            currentAccount = newAccount;
+            document.getElementById('create-overlay').classList.add('hidden');
             renderDashboard();
         }
 
         function renderDashboard() {
-            document.getElementById('create-account-view').classList.add('hidden');
-            document.getElementById('dashboard-view').classList.remove('hidden');
-            document.getElementById('status-badge').classList.remove('hidden');
-
-            document.getElementById('balance-display').innerText = `$${currentAccount.balance.toLocaleString()}`;
+            document.getElementById('balance-display').innerText = `$${currentAccount.balance.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
             document.getElementById('owner-display').innerText = currentAccount.ownerName;
+            document.getElementById('account-status').innerText = `SESSION: ${currentAccount.ownerName.toUpperCase()}_LOGGED_IN`;
 
             const list = document.getElementById('transactions-list');
             list.innerHTML = '';
 
-            if (currentAccount.transactions.length === 0) {
-                list.innerHTML = `<p class="p-8 text-center text-slate-600 text-xs font-bold uppercase tracking-widest">No activity</p>`;
-                return;
-            }
-
-            // Show latest first
             [...currentAccount.transactions].reverse().forEach(tx => {
-                const div = document.createElement('div');
-                div.className = "p-4 border-b border-slate-800/30 flex items-center justify-between hover:bg-white/5 transition";
+                const item = document.createElement('div');
+                item.className = "p-4 mb-2 rounded-2xl bg-slate-900/50 border border-slate-800/50 flex items-center justify-between";
                 
-                const isDeposit = tx.type === 'deposit';
-                const dateObj = new Date(tx.date);
-                const dateStr = dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-
-                div.innerHTML = `
+                const isDep = tx.type === 'deposit';
+                item.innerHTML = `
                     <div class="flex items-center gap-3">
-                        <div class="p-2 rounded-full ${isDeposit ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}">
-                            ${isDeposit ? 
-                                '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>' : 
-                                '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m17 14-5-5-5 5"/><path d="M12 19V9"/></svg>'}
+                        <div class="w-8 h-8 rounded-lg ${isDep ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'} flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="${isDep ? 'm7 10 5 5 5-5M12 15V3' : 'm17 14-5-5-5 5M12 19V9'}"/></svg>
                         </div>
                         <div>
-                            <p class="text-sm font-bold">${tx.label}</p>
-                            <p class="text-[10px] text-slate-500 uppercase font-bold tracking-widest">${dateStr}</p>
+                            <p class="text-[11px] font-black uppercase text-slate-300">${tx.label}</p>
+                            <p class="text-[8px] text-slate-600 font-bold uppercase">${new Date(tx.date).toLocaleDateString()}</p>
                         </div>
                     </div>
-                    <span class="font-black tabular-nums ${isDeposit ? 'text-emerald-400' : 'text-rose-400'}">
-                        ${isDeposit ? '+' : '-'}$${tx.amount.toLocaleString()}
+                    <span class="text-sm font-black tabular-nums ${isDep ? 'text-emerald-400' : 'text-rose-400'}">
+                        ${isDep ? '+' : '-'}$${tx.amount}
                     </span>
                 `;
-                list.appendChild(div);
+                list.appendChild(item);
             });
-        }
-
-        function processTransaction(type) {
-            const amountInput = document.getElementById('txn-amount');
-            const val = parseFloat(amountInput.value);
-
-            if (isNaN(val) || val <= 0) {
-                return;
-            }
-
-            if (type === 'withdraw' && currentAccount.balance < val) {
-                amountInput.classList.add('border-rose-500');
-                setTimeout(() => amountInput.classList.remove('border-rose-500'), 1000);
-                return;
-            }
-
-            if (type === 'deposit') {
-                currentAccount.balance += val;
-            } else {
-                currentAccount.balance -= val;
-            }
-
-            currentAccount.transactions.push({
-                id: Date.now(),
-                type: type,
-                amount: val,
-                label: type === 'deposit' ? 'Earnings' : 'Bank Withdrawal',
-                date: new Date().toISOString()
-            });
-
-            // Keep only last 50 transactions to save space
-            if (currentAccount.transactions.length > 50) {
-                currentAccount.transactions.shift();
-            }
-
-            saveCurrentData();
-            amountInput.value = '';
-            renderDashboard();
-        }
-
-        function saveCurrentData() {
-            const storageKey = `rider_bank_${currentAccount.ownerName.toLowerCase()}`;
-            localStorage.setItem(storageKey, JSON.stringify(currentAccount));
         }
     </script>
 </body>
