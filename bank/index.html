@@ -3,263 +3,279 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bike Bank | Secure Access</title>
+    <title>Bike Bank | Live Finance Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@700&display=swap');
         
-        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f1f5f9; overflow: hidden; }
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b; }
         
-        .bank-card { 
-            background: #1e293b; 
-            border-radius: 24px; 
-            border: 1px solid #334155; 
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2); 
+        .glass-card { 
+            background: white; 
+            border-radius: 32px; 
+            border: 1px solid #e2e8f0; 
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); 
         }
 
         .sidebar-item {
             transition: all 0.2s ease;
             cursor: pointer;
+            font-weight: 700;
         }
-        .sidebar-item:hover { background: #334155; }
+        .sidebar-item:hover { background: #f1f5f9; }
         .sidebar-item.active { background: #2563eb; color: white; }
 
         .custom-scroll::-webkit-scrollbar { width: 6px; }
         .custom-scroll::-webkit-scrollbar-track { background: transparent; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
-        
-        @media (max-width: 768px) {
-            .main-layout { flex-direction: column; overflow-y: auto; }
-            .sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid #334155; }
-            body { overflow: auto; }
-        }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
-        .time-display {
-            font-family: 'JetBrains Mono', monospace;
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-            border: 1px solid #334155;
-        }
-
-        #timeoutWarning {
-            position: fixed;
-            top: 1rem;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 300;
-            background: #ef4444;
-            color: white;
-            padding: 0.5rem 1.5rem;
-            border-radius: 99px;
-            font-weight: 800;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        .balance-glow {
+            text-shadow: 0 0 20px rgba(37, 99, 235, 0.1);
         }
     </style>
 </head>
-<body class="h-screen flex flex-col md:flex-row main-layout">
-
-    <div id="timeoutWarning" class="hidden">Auto-Logout in 2s... Move Mouse!</div>
+<body class="h-screen flex flex-col md:flex-row overflow-hidden bg-slate-50">
 
     <!-- LOGIN SCREEN -->
-    <div id="loginScreen" class="fixed inset-0 z-[200] bg-slate-950 flex flex-col items-center justify-center p-6">
+    <div id="loginScreen" class="fixed inset-0 z-[200] bg-white flex flex-col items-center justify-center p-6">
         <div class="max-w-md w-full text-center space-y-8">
-            <div class="bg-blue-600/20 p-8 rounded-full border-2 border-blue-500/30 inline-block">
-                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            <div class="bg-blue-600 p-8 rounded-[40px] shadow-2xl shadow-blue-200 inline-block text-white">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             </div>
-            <h1 class="text-3xl font-black">Access Restricted</h1>
-            <p class="text-slate-400">Please scan your badge at the Bike Directory terminal to enter the bank.</p>
-            <button onclick="logout()" class="px-8 py-3 bg-slate-800 hover:bg-slate-700 rounded-xl font-bold">Go to Directory</button>
-        </div>
-    </div>
-
-    <!-- REGISTRATION -->
-    <div id="registerScreen" class="fixed inset-0 z-[210] bg-slate-950 flex flex-col items-center justify-center p-6 hidden">
-        <div class="max-w-md w-full bank-card p-10 text-center space-y-6">
-            <h1 class="text-2xl font-black">New Account</h1>
-            <p class="text-slate-400">Hello, <span id="regUserName" class="text-blue-400 font-bold"></span>! Create your secure vault now.</p>
-            <button onclick="createNewAccount()" class="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black">Create My Account</button>
+            <h1 class="text-4xl font-black tracking-tight text-slate-900">Bike Bank</h1>
+            <p class="text-slate-500 font-medium">Access your personal vault via the Directory link.</p>
+            <button onclick="logout()" class="px-10 py-4 bg-slate-900 text-white rounded-2xl font-bold hover:scale-105 transition-transform">Back to Directory</button>
         </div>
     </div>
 
     <!-- Sidebar -->
-    <aside class="sidebar w-full md:w-72 bg-slate-900 flex flex-col border-r border-slate-800 p-6 z-20">
-        <div class="flex items-center gap-3 mb-10">
-            <div class="bg-blue-600 p-3 rounded-2xl text-white">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <aside class="w-full md:w-72 bg-white flex flex-col border-r border-slate-200 p-6 z-20">
+        <div class="flex items-center gap-3 mb-12">
+            <div class="bg-blue-600 p-3 rounded-2xl text-white shadow-lg shadow-blue-100">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
             </div>
-            <h1 class="font-black text-xl">Bike Bank</h1>
+            <h1 class="font-black text-xl tracking-tight">Financial Hub</h1>
         </div>
 
         <nav class="space-y-2 flex-1">
-            <div onclick="switchPage('dash')" id="nav-dash" class="sidebar-item active flex items-center gap-3 p-4 rounded-2xl font-bold">Dashboard</div>
-            <div onclick="switchPage('logs')" id="nav-logs" class="sidebar-item flex items-center gap-3 p-4 rounded-2xl font-bold text-slate-400">Statement</div>
+            <div onclick="switchPage('dash')" id="nav-dash" class="sidebar-item active flex items-center gap-3 p-4 rounded-2xl text-sm">Dashboard</div>
+            <div onclick="switchPage('logs')" id="nav-logs" class="sidebar-item flex items-center gap-3 p-4 rounded-2xl text-sm text-slate-500">History</div>
         </nav>
+
+        <div class="mt-auto p-4 bg-blue-50 rounded-2xl">
+            <div class="flex items-center gap-2 mb-1">
+                <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                <span class="text-[10px] font-black text-blue-600 uppercase">Live Sync Active</span>
+            </div>
+            <p class="text-[10px] text-blue-400 font-bold">Accepting payments from external systems...</p>
+        </div>
     </aside>
 
     <main class="flex-1 flex flex-col relative overflow-hidden">
         <header class="p-8 flex items-center justify-between">
-            <div id="pageTitle" class="text-2xl font-black">Dashboard</div>
-            <div class="time-display flex items-center gap-4 px-5 py-2 rounded-2xl">
+            <div>
+                <div id="pageTitle" class="text-3xl font-black text-slate-900">Dashboard</div>
+                <div id="activeUserId" class="text-xs font-bold text-blue-600 uppercase tracking-widest mt-1">...</div>
+            </div>
+            <div class="flex items-center gap-4 bg-white px-6 py-3 rounded-2xl border border-slate-200">
                 <div class="text-right">
-                    <span id="currentBankDay" class="text-[9px] font-black text-blue-400 uppercase block">Day 0</span>
-                    <span id="headerBankTime" class="text-lg font-bold text-white">12:00 AM</span>
+                    <span id="currentBankDay" class="text-[9px] font-black text-slate-400 uppercase block">Day 0</span>
+                    <span id="headerBankTime" class="text-lg font-bold text-slate-800 leading-tight">12:00 AM</span>
                 </div>
-                <div class="w-px h-8 bg-slate-700"></div>
-                <div id="activeUserId" class="text-[10px] text-blue-500 font-bold">...</div>
             </div>
         </header>
 
         <div class="flex-1 overflow-y-auto custom-scroll p-8 pt-0">
             <div id="page-dash" class="space-y-6">
-                <div class="bank-card p-10 border-l-4 border-l-blue-500">
-                    <span class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 block">Available Funds</span>
-                    <div id="balanceDisplay" class="text-6xl font-black text-white">$0.00</div>
+                <!-- Main Balance -->
+                <div class="glass-card p-10 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-8 opacity-5">
+                        <svg width="120" height="120" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1v22m11-18H1m11-4L1 5l11 4 11-4-11-4z"/></svg>
+                    </div>
+                    <span class="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 block">Net Worth</span>
+                    <div id="balanceDisplay" class="text-7xl font-black text-slate-900 balance-glow">$0.00</div>
+                </div>
+
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="glass-card p-6 border-l-4 border-l-green-500">
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Incoming</span>
+                        <div id="incomingStat" class="text-2xl font-black text-green-600">+$0.00</div>
+                    </div>
+                    <div class="glass-card p-6 border-l-4 border-l-red-500">
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Outgoing (Gas/Food)</span>
+                        <div id="outgoingStat" class="text-2xl font-black text-red-600">-$0.00</div>
+                    </div>
+                    <div class="glass-card p-6 border-l-4 border-l-blue-500">
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Taxes Paid</span>
+                        <div id="taxesStat" class="text-2xl font-black text-blue-600">$0.00</div>
+                    </div>
                 </div>
             </div>
 
+            <!-- Log Page -->
             <div id="page-logs" class="hidden">
-                <div id="logList" class="space-y-4"></div>
+                <div class="glass-card overflow-hidden">
+                    <div class="bg-slate-50 p-4 border-b border-slate-200 flex justify-between">
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Transaction Statement</span>
+                        <span id="logCount" class="text-[10px] font-black text-blue-600 uppercase">0 Records</span>
+                    </div>
+                    <div id="logList" class="divide-y divide-slate-100">
+                        <!-- Logs go here -->
+                    </div>
+                </div>
             </div>
         </div>
     </main>
 
     <script>
         let currentUser = null;
-        let idleTime = 0;
-        const IDLE_LIMIT = 5;
-
-        // Bridge function: Syncs money from central storage 'sim_bank_balance' to private storage
-        function syncPayments() {
-            if (!currentUser) return;
-            const k = getKeys(currentUser);
-            
-            const externalBalance = parseFloat(localStorage.getItem('sim_bank_balance'));
-            const externalLogs = JSON.parse(localStorage.getItem('sim_bank_logs') || "[]");
-
-            if (!isNaN(externalBalance) && externalBalance > 0) {
-                let currentBal = parseFloat(localStorage.getItem(k.BAL)) || 0;
-                let currentLogs = JSON.parse(localStorage.getItem(k.LOGS)) || [];
-
-                // Add external money and logs to the user's account
-                currentBal += externalBalance;
-                currentLogs = [...externalLogs, ...currentLogs];
-
-                localStorage.setItem(k.BAL, currentBal.toFixed(2));
-                localStorage.setItem(k.LOGS, JSON.stringify(currentLogs));
-
-                // Clear external keys so we don't double-collect
-                localStorage.removeItem('sim_bank_balance');
-                localStorage.removeItem('sim_bank_logs');
-                
-                loadData();
-            }
-        }
-
-        function resetTimer() { idleTime = 0; document.getElementById('timeoutWarning').classList.add('hidden'); }
-
-        function syncBikeTime() {
-            const savedTime = localStorage.getItem('bike_network_time') || "12:00 AM";
-            const savedDay = localStorage.getItem('bike_network_day') || "0";
-            document.getElementById('headerBankTime').innerText = savedTime;
-            document.getElementById('currentBankDay').innerText = `Day ${savedDay}`;
-        }
-
-        setInterval(() => {
-            syncBikeTime();
-            syncPayments();
-        }, 1000);
-
-        setInterval(() => {
-            if (!currentUser) return;
-            idleTime++;
-            if (idleTime >= IDLE_LIMIT - 2) {
-                const warn = document.getElementById('timeoutWarning');
-                warn.classList.remove('hidden');
-                warn.innerText = `Auto-Logout in ${IDLE_LIMIT - idleTime}s... Move Mouse!`;
-            }
-            if (idleTime >= IDLE_LIMIT) logout();
-        }, 1000);
+        let totals = { in: 0, out: 0, tax: 0 };
 
         function getKeys(user) {
             return {
                 REGISTERED: `bank_${user}_registered`,
                 BAL: `bank_${user}_balance`,
-                LOGS: `bank_${user}_logs`
+                LOGS: `bank_${user}_logs`,
+                TAX_PAID: `bank_${user}_tax_total`
             };
         }
 
-        function checkUrlLogin() {
-            const params = new URLSearchParams(window.location.search);
-            const user = params.get('user');
-            if (user && user.toLowerCase() !== 'guest') {
-                currentUser = user;
-                document.getElementById('loginScreen').classList.add('hidden');
-                const k = getKeys(user);
-                if (!localStorage.getItem(k.REGISTERED)) {
-                    document.getElementById('regUserName').innerText = user;
-                    document.getElementById('registerScreen').classList.remove('hidden');
-                } else {
-                    enterBank(user);
-                }
-            } else {
-                document.getElementById('loginScreen').classList.remove('hidden');
+        // BRIDGING: PULLS FROM OTHER APPS
+        function syncExternalSystems() {
+            if (!currentUser) return;
+            const k = getKeys(currentUser);
+            
+            // 1. Check for incoming money (Airplane, Jobs, etc)
+            const incomingVal = parseFloat(localStorage.getItem('sim_bank_balance'));
+            const incomingLogs = JSON.parse(localStorage.getItem('sim_bank_logs') || "[]");
+
+            if (!isNaN(incomingVal) && incomingVal > 0) {
+                let userBal = parseFloat(localStorage.getItem(k.BAL)) || 0;
+                let userLogs = JSON.parse(localStorage.getItem(k.LOGS)) || [];
+                
+                userBal += incomingVal;
+                // Merge external logs into user history
+                userLogs = [...incomingLogs, ...userLogs];
+
+                localStorage.setItem(k.BAL, userBal.toFixed(2));
+                localStorage.setItem(k.LOGS, JSON.stringify(userLogs));
+
+                // CLEAR the central keys so we don't double-charge
+                localStorage.removeItem('sim_bank_balance');
+                localStorage.removeItem('sim_bank_logs');
+                loadData();
+            }
+
+            // 2. Check for outgoing expenses (Gas Station, Grocery Store, Taxes)
+            // These systems usually write to 'sim_bank_expense' and 'sim_bank_expense_logs'
+            const expenseVal = parseFloat(localStorage.getItem('sim_bank_expense'));
+            const expenseLogs = JSON.parse(localStorage.getItem('sim_bank_expense_logs') || "[]");
+
+            if (!isNaN(expenseVal) && expenseVal > 0) {
+                let userBal = parseFloat(localStorage.getItem(k.BAL)) || 0;
+                let userLogs = JSON.parse(localStorage.getItem(k.LOGS)) || [];
+                
+                userBal -= expenseVal;
+                userLogs = [...expenseLogs, ...userLogs];
+
+                localStorage.setItem(k.BAL, userBal.toFixed(2));
+                localStorage.setItem(k.LOGS, JSON.stringify(userLogs));
+
+                // Tracking specific tax payments
+                expenseLogs.forEach(l => {
+                    if (l.job.toLowerCase().includes('tax')) {
+                        let totalTax = parseFloat(localStorage.getItem(k.TAX_PAID)) || 0;
+                        totalTax += Math.abs(l.amount);
+                        localStorage.setItem(k.TAX_PAID, totalTax.toFixed(2));
+                    }
+                });
+
+                localStorage.removeItem('sim_bank_expense');
+                localStorage.removeItem('sim_bank_expense_logs');
+                loadData();
             }
         }
 
-        function logout() {
-            const target = currentUser ? `https://rubiks13.github.io/bank/?user=${currentUser}` : "https://rubiks13.github.io/bank/";
-            window.location.href = target;
-        }
-
-        function createNewAccount() {
-            if(!currentUser) return;
-            const k = getKeys(currentUser);
-            localStorage.setItem(k.REGISTERED, "true");
-            localStorage.setItem(k.BAL, "100.00");
-            localStorage.setItem(k.LOGS, JSON.stringify([{ job: "Vault Opening", amount: 100, date: "System Init" }]));
-            document.getElementById('registerScreen').classList.add('hidden');
-            enterBank(currentUser);
-        }
-
-        function enterBank(user) {
-            document.getElementById('activeUserId').innerText = user;
-            loadData();
-            document.onmousemove = resetTimer;
-            document.onkeypress = resetTimer;
-            document.onclick = resetTimer;
+        function syncTime() {
+            document.getElementById('headerBankTime').innerText = localStorage.getItem('bike_network_time') || "12:00 AM";
+            document.getElementById('currentBankDay').innerText = `Day ${localStorage.getItem('bike_network_day') || "0"}`;
         }
 
         function loadData() {
-            if(!currentUser) return;
+            if (!currentUser) return;
             const k = getKeys(currentUser);
             const bal = parseFloat(localStorage.getItem(k.BAL)) || 0;
-            document.getElementById('balanceDisplay').innerText = `$${bal.toFixed(2)}`;
-            
             const logs = JSON.parse(localStorage.getItem(k.LOGS)) || [];
-            const list = document.getElementById('logList');
-            list.innerHTML = logs.map(l => `
-                <div class="bank-card p-4 flex justify-between items-center border-l-4 ${l.amount > 0 ? 'border-l-green-500' : 'border-l-red-500'}">
+            const taxes = parseFloat(localStorage.getItem(k.TAX_PAID)) || 0;
+
+            document.getElementById('balanceDisplay').innerText = `$${bal.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            document.getElementById('taxesStat').innerText = `$${taxes.toFixed(2)}`;
+
+            // Calculate In/Out stats
+            let inc = 0, out = 0;
+            logs.forEach(l => {
+                if (l.amount > 0) inc += l.amount;
+                else out += Math.abs(l.amount);
+            });
+            document.getElementById('incomingStat').innerText = `+$${inc.toFixed(2)}`;
+            document.getElementById('outgoingStat').innerText = `-$${out.toFixed(2)}`;
+
+            // Render Logs
+            document.getElementById('logCount').innerText = `${logs.length} Records`;
+            document.getElementById('logList').innerHTML = logs.map(l => `
+                <div class="p-4 flex justify-between items-center hover:bg-slate-50 transition-colors">
                     <div>
-                        <div class="font-bold">${l.job}</div>
-                        <div class="text-[10px] text-slate-500 uppercase font-black">${l.date}</div>
+                        <div class="font-bold text-slate-800">${l.job}</div>
+                        <div class="text-[10px] text-slate-400 font-black uppercase">${l.date || 'Record Date'}</div>
                     </div>
-                    <div class="font-black ${l.amount > 0 ? 'text-green-500' : 'text-red-500'}">
+                    <div class="font-black ${l.amount > 0 ? 'text-green-600' : 'text-red-500'}">
                         ${l.amount > 0 ? '+' : ''}${parseFloat(l.amount).toFixed(2)}
                     </div>
                 </div>
             `).join('');
         }
 
-        function switchPage(page) {
-            ['dash', 'logs'].forEach(p => document.getElementById('page-' + p).classList.add('hidden'));
-            document.getElementById('page-' + page).classList.remove('hidden');
-            document.getElementById('pageTitle').innerText = page.charAt(0).toUpperCase() + page.slice(1);
+        function checkLogin() {
+            const user = new URLSearchParams(window.location.search).get('user');
+            if (user && user.toLowerCase() !== 'guest') {
+                currentUser = user;
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('activeUserId').innerText = `ID: ${user}`;
+                
+                // Initialize account if new
+                const k = getKeys(user);
+                if (!localStorage.getItem(k.REGISTERED)) {
+                    localStorage.setItem(k.REGISTERED, "true");
+                    localStorage.setItem(k.BAL, "100.00");
+                    localStorage.setItem(k.LOGS, JSON.stringify([{job: "Opening Balance", amount: 100, date: "System Start"}]));
+                }
+                loadData();
+            }
         }
 
-        checkUrlLogin();
+        function logout() {
+            const user = new URLSearchParams(window.location.search).get('user');
+            window.location.href = user ? `https://rubiks13.github.io/bank/?user=${user}` : "https://rubiks13.github.io/bank/";
+        }
+
+        function switchPage(page) {
+            ['dash', 'logs'].forEach(p => {
+                document.getElementById('page-' + p).classList.add('hidden');
+                document.getElementById('nav-' + p).classList.remove('active');
+            });
+            document.getElementById('page-' + page).classList.remove('hidden');
+            document.getElementById('nav-' + page).classList.add('active');
+            document.getElementById('pageTitle').innerText = page === 'dash' ? 'Dashboard' : 'Statement';
+        }
+
+        setInterval(() => {
+            syncTime();
+            syncExternalSystems();
+        }, 1000);
+
+        checkLogin();
     </script>
 </body>
 </html>
