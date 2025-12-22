@@ -287,19 +287,16 @@
             document.getElementById('idle-warning').classList.add('hidden');
             
             idleTimer = setTimeout(() => {
-                // Check if we are currently printing or in a modal
                 const isPrinting = !document.getElementById('print-view').classList.contains('page-hidden');
                 const isSettingsOpen = !document.getElementById('settings-modal').classList.contains('hidden');
                 
                 if (!isPrinting && !isSettingsOpen) {
                     window.location.href = REDIRECT_URL;
                 } else {
-                    // If busy, check again in 5 seconds
                     resetIdleTimer();
                 }
             }, IDLE_TIME_LIMIT);
 
-            // Show warning slightly before redirect
             setTimeout(() => {
                if (window.location.href !== REDIRECT_URL) {
                    document.getElementById('idle-warning').classList.remove('hidden');
@@ -307,7 +304,6 @@
             }, IDLE_TIME_LIMIT - 1500);
         }
 
-        // Listen for activity
         window.addEventListener('mousemove', resetIdleTimer);
         window.addEventListener('keydown', resetIdleTimer);
         window.addEventListener('touchstart', resetIdleTimer);
@@ -328,6 +324,20 @@
             const db = getFlightDb();
             db[data.flight] = { name: data.name, from: data.from, to: data.to, date: data.date, gate: data.gate, seat: data.seat, time: data.time };
             localStorage.setItem('flyusa_flights', JSON.stringify(db));
+            
+            // --- BANK INTEGRATION START ---
+            let currentBal = parseFloat(localStorage.getItem('sim_bank_balance')) || 0;
+            let logs = JSON.parse(localStorage.getItem('sim_bank_logs')) || [];
+            localStorage.setItem('sim_bank_balance', (currentBal + 5.00).toFixed(2));
+            logs.unshift({
+                type: 'Income',
+                amount: 5.00,
+                job: `Ride ${data.from} to ${data.to}`,
+                date: new Date().toLocaleString([], {hour: '2-digit', minute:'2-digit'})
+            });
+            localStorage.setItem('sim_bank_logs', JSON.stringify(logs));
+            // --- BANK INTEGRATION END ---
+
             updateLogDisplay();
         }
 
@@ -499,7 +509,7 @@
             initQRs();
             updateLogDisplay();
             document.getElementById('scanner-input').focus();
-            resetIdleTimer(); // Start the timer on load
+            resetIdleTimer();
         };
     </script>
 </body>
