@@ -54,11 +54,20 @@
             70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
             100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
         }
+
+        .money-pop {
+            animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); color: #10b981; }
+            100% { transform: scale(1); }
+        }
     </style>
 </head>
 <body class="h-screen flex">
 
-    <!-- Navigation Sidebar -->
+    <!-- Sidebar -->
     <aside class="sidebar w-20 hover:w-64 bg-slate-900 border-r border-slate-800 flex flex-col items-center py-6 group z-50">
         <div class="mb-10 bg-blue-600 p-3 rounded-2xl shadow-lg shadow-blue-500/20">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17.5V14l-3-3 4-3 2 3h2"/><circle cx="18.5" cy="17.5" r="3.5"/><circle cx="5.5" cy="17.5" r="3.5"/></svg>
@@ -75,26 +84,23 @@
             </a>
         </nav>
 
-        <div class="mt-auto group-hover:px-4 w-full flex justify-center">
-            <div class="w-10 h-10 group-hover:w-full bg-slate-800 rounded-xl flex items-center justify-center gap-3 overflow-hidden transition-all">
-                <div class="min-w-[40px] flex justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg></div>
-                <span class="opacity-0 group-hover:opacity-100 text-[10px] font-black uppercase tracking-widest text-slate-400">Verified</span>
+        <div class="mt-auto group-hover:px-4 w-full flex justify-center border-t border-slate-800 pt-6">
+            <div class="w-10 h-10 group-hover:w-full bg-slate-800 rounded-xl flex items-center justify-center gap-3 overflow-hidden transition-all text-slate-400">
+                <div class="min-w-[40px] flex justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+                <span class="opacity-0 group-hover:opacity-100 text-[10px] font-black uppercase tracking-widest">Local Mode</span>
             </div>
         </div>
     </aside>
 
-    <!-- Main Content Area -->
     <main class="flex-1 flex flex-col p-6 overflow-hidden">
-        
-        <!-- Top Info Bar -->
         <header class="flex justify-between items-center mb-8">
             <div>
-                <h1 class="text-2xl font-black tracking-tight uppercase">Rider Terminal</h1>
-                <p class="text-xs text-slate-500 font-bold uppercase tracking-widest" id="account-status">Connecting to Storage...</p>
+                <h1 class="text-2xl font-black tracking-tight uppercase italic">Rider Bank <span class="text-blue-500 text-sm not-italic ml-2">Local</span></h1>
+                <p class="text-xs text-slate-500 font-bold uppercase tracking-widest" id="account-status">Monitoring Local Storage...</p>
             </div>
             
             <div class="flex flex-col items-end">
-                <span class="text-[9px] font-bold text-slate-500 uppercase mb-1">Inactivity Timeout</span>
+                <span class="text-[9px] font-bold text-slate-500 uppercase mb-1">Return to Hub In</span>
                 <div class="w-32 h-1 bg-slate-800 rounded-full overflow-hidden">
                     <div id="inactivity-bar" class="w-0 h-full bg-blue-500"></div>
                 </div>
@@ -102,72 +108,64 @@
         </header>
 
         <div class="max-w-4xl w-full mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1">
-            
-            <!-- Balance Card -->
             <div class="lg:col-span-2 space-y-6">
                 <div class="gradient-border p-8 h-64 flex flex-col justify-center relative overflow-hidden shadow-2xl">
                     <div class="absolute right-0 top-0 w-64 h-64 bg-blue-600/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
                     <p class="text-blue-400 text-xs font-bold uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
                         <span class="w-1.5 h-1.5 bg-blue-500 rounded-full animate-ping"></span>
-                        Live Wallet Balance
+                        Current Balance
                     </p>
-                    <h2 id="balance-display" class="text-7xl font-black tracking-tighter tabular-nums transition-all duration-500">$0.00</h2>
+                    <h2 id="balance-display" class="text-7xl font-black tracking-tighter tabular-nums transition-all duration-300">$0.00</h2>
                     
                     <div class="mt-8 flex items-center gap-6">
                         <div class="flex flex-col">
-                            <span class="text-[10px] text-slate-500 font-bold uppercase">Account Owner</span>
+                            <span class="text-[10px] text-slate-500 font-bold uppercase">Rider Account</span>
                             <span id="owner-display" class="font-bold text-lg">---</span>
                         </div>
                         <div class="h-8 w-[1px] bg-slate-800"></div>
                         <div class="flex flex-col">
-                            <span class="text-[10px] text-slate-500 font-bold uppercase">Network</span>
+                            <span class="text-[10px] text-slate-500 font-bold uppercase">Storage Sync</span>
                             <span class="text-emerald-400 font-bold text-lg flex items-center gap-2">
                                 <span class="w-2.5 h-2.5 bg-emerald-500 rounded-full pulse-emerald"></span>
-                                SYNCED
+                                ACTIVE
                             </span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Info Box -->
-                <div class="glass-card p-6 rounded-2xl flex items-center gap-4 border-l-4 border-l-emerald-500">
-                    <div class="bg-emerald-500/20 p-3 rounded-xl text-emerald-400">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                <!-- Live Notification -->
+                <div id="payment-toast" class="opacity-0 translate-y-4 transition-all duration-500 glass-card p-4 rounded-2xl flex items-center gap-4 border border-emerald-500/30 bg-emerald-500/5">
+                    <div class="bg-emerald-500 text-white p-2 rounded-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                     </div>
-                    <p class="text-sm text-slate-400 leading-relaxed">
-                        <span class="text-emerald-400 font-bold">Automatic Syncing Enabled:</span> This page checks for incoming mission payments every second. No refresh needed.
-                    </p>
+                    <div>
+                        <p class="text-xs font-black uppercase text-emerald-400">Funds Deposited</p>
+                        <p id="toast-msg" class="text-sm text-slate-300">New mission funds added to local vault.</p>
+                    </div>
                 </div>
             </div>
 
-            <!-- Side History -->
-            <div class="glass-card rounded-3xl flex flex-col overflow-hidden border border-slate-800 shadow-2xl">
-                <div class="p-6 border-b border-slate-800 bg-slate-900/50">
-                    <h3 class="text-xs font-black uppercase tracking-widest text-slate-400">Mission History</h3>
+            <div class="glass-card rounded-3xl flex flex-col overflow-hidden border border-slate-800 shadow-2xl bg-slate-900/40">
+                <div class="p-6 border-b border-slate-800">
+                    <h3 class="text-xs font-black uppercase tracking-widest text-slate-400 italic">History</h3>
                 </div>
-                <div id="transactions-list" class="flex-1 overflow-y-auto p-2 custom-scroll">
+                <div id="transactions-list" class="flex-1 overflow-y-auto p-2">
                     <!-- History injected here -->
                 </div>
             </div>
         </div>
-
     </main>
 
-    <!-- Create Account Overlay -->
-    <div id="create-overlay" class="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4">
-        <div class="glass-card p-8 rounded-[2.5rem] max-w-sm w-full text-center shadow-2xl border-blue-500/30">
-            <div class="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-blue-600/20 rotate-3">
-                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+    <!-- Overlay -->
+    <div id="create-overlay" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[100] hidden flex items-center justify-center p-4">
+        <div class="glass-card p-8 rounded-[2.5rem] max-w-sm w-full text-center shadow-2xl">
+            <h2 class="text-2xl font-black mb-2 uppercase italic">Identify Rider</h2>
+            <p id="welcome-msg" class="text-slate-500 text-sm mb-8">Enter your name to load your local balance.</p>
+            <div id="manual-name-entry" class="mb-6">
+                <input type="text" id="new-rider-name" placeholder="CALLSIGN" class="w-full bg-slate-900 border border-slate-800 p-4 rounded-2xl text-center font-black uppercase tracking-[0.2em] focus:ring-2 focus:ring-blue-500 outline-none text-white">
             </div>
-            <h2 class="text-2xl font-black mb-2 uppercase italic">Initialize Rider</h2>
-            <p id="welcome-msg" class="text-slate-400 text-sm mb-8">Ready to start earning?</p>
-            
-            <div id="manual-name-entry" class="mb-6 hidden">
-                <input type="text" id="new-rider-name" placeholder="CALLSIGN" class="w-full bg-slate-900 border border-slate-800 p-4 rounded-2xl text-center font-black uppercase tracking-widest focus:ring-2 focus:ring-blue-500 outline-none">
-            </div>
-
-            <button onclick="createNewAccount()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-2xl transition shadow-lg shadow-blue-600/30 active:scale-95 uppercase tracking-widest">
-                Start Tracking
+            <button onclick="createNewAccount()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-2xl transition uppercase tracking-widest text-sm">
+                Start Session
             </button>
         </div>
     </div>
@@ -177,10 +175,10 @@
         let lastKnownDataString = "";
         const urlParams = new URLSearchParams(window.location.search);
         const urlUserName = urlParams.get('user');
-        
-        let inactivityTimer;
         const REDIRECT_URL = "https://rubiks13.github.io/bikes/";
 
+        // Inactivity Timer
+        let inactivityTimer;
         function resetInactivityTimer() {
             clearTimeout(inactivityTimer);
             const bar = document.getElementById('inactivity-bar');
@@ -192,21 +190,18 @@
             }, 50);
             inactivityTimer = setTimeout(() => { window.location.href = REDIRECT_URL; }, 5000);
         }
-
-        ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(evt => {
-            window.addEventListener(evt, resetInactivityTimer);
-        });
+        ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(evt => window.addEventListener(evt, resetInactivityTimer));
 
         window.onload = () => {
             resetInactivityTimer();
             startLiveSync();
         };
 
-        // --- CRITICAL SYNC LOGIC ---
-        // This function runs every 1 second to see if the other apps added money
         function startLiveSync() {
             const sync = () => {
+                // Determine who is the current user
                 const userName = urlUserName || localStorage.getItem('last_rider_session');
+                
                 if (!userName) {
                     showCreateView();
                     return;
@@ -215,79 +210,123 @@
                 const storageKey = `rider_bank_${userName.toLowerCase()}`;
                 const rawData = localStorage.getItem(storageKey);
 
-                // Only update the UI if the data actually changed
-                if (rawData && rawData !== lastKnownDataString) {
-                    lastKnownDataString = rawData;
-                    currentAccount = JSON.parse(rawData);
-                    localStorage.setItem('last_rider_session', userName);
-                    renderDashboard();
-                    document.getElementById('create-overlay').classList.add('hidden');
-                } else if (!rawData && !currentAccount) {
-                    showCreateView(userName);
+                // Load existing data or create new if name came from URL but no data exists
+                if (rawData) {
+                    if (rawData !== lastKnownDataString) {
+                        lastKnownDataString = rawData;
+                        currentAccount = JSON.parse(rawData);
+                        localStorage.setItem('last_rider_session', userName);
+                        renderDashboard();
+                        document.getElementById('create-overlay').classList.add('hidden');
+                    }
+                } else if (urlUserName) {
+                    // Auto-create for URL users if they don't exist yet
+                    initDefaultAccount(urlUserName);
+                } else {
+                    showCreateView();
                 }
+
+                // CHECK FOR INCOMING MONEY FROM URL
+                checkForUrlDeposit(userName);
             };
 
-            sync(); // Run once immediately
-            setInterval(sync, 1000); // Then run every 1 second
+            sync(); 
+            setInterval(sync, 1000);
         }
 
-        function showCreateView(nameFromUrl = null) {
-            document.getElementById('create-overlay').classList.remove('hidden');
-            if (nameFromUrl) {
-                document.getElementById('welcome-msg').innerText = `Rider "${nameFromUrl}" not found in local system.`;
-            } else {
-                document.getElementById('manual-name-entry').classList.remove('hidden');
+        function checkForUrlDeposit(userName) {
+            const depositAmt = parseFloat(urlParams.get('deposit'));
+            const label = urlParams.get('label') || 'Mission Earnings';
+            const txId = urlParams.get('txid') || `tx_${Date.now()}`;
+
+            if (depositAmt > 0 && currentAccount) {
+                // Prevent duplicate deposits from same URL link
+                if (localStorage.getItem(`processed_${txId}`)) return;
+
+                currentAccount.balance += depositAmt;
+                currentAccount.transactions.push({
+                    id: txId,
+                    type: 'deposit',
+                    amount: depositAmt,
+                    label: label,
+                    date: new Date().toISOString()
+                });
+
+                localStorage.setItem(`processed_${txId}`, 'true');
+                saveCurrentData();
+                renderDashboard();
+                showToast(`+$${depositAmt} from ${label}`);
+                
+                // Clean URL
+                const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + `?user=${userName}`;
+                window.history.pushState({path:newUrl},'',newUrl);
             }
         }
 
-        function createNewAccount() {
-            const nameToUse = urlUserName || document.getElementById('new-rider-name').value;
-            if (!nameToUse || nameToUse.trim() === "") return;
+        function saveCurrentData() {
+            if (!currentAccount) return;
+            const storageKey = `rider_bank_${currentAccount.ownerName.toLowerCase()}`;
+            const dataString = JSON.stringify(currentAccount);
+            localStorage.setItem(storageKey, dataString);
+            lastKnownDataString = dataString;
+        }
 
-            const newAccount = {
-                ownerName: nameToUse,
+        function initDefaultAccount(name) {
+            currentAccount = {
+                ownerName: name,
                 balance: 100,
                 transactions: [{
                     id: Date.now(),
                     type: 'deposit',
                     amount: 100,
-                    label: 'Pilot Sign-on Bonus',
+                    label: 'Starting Balance',
                     date: new Date().toISOString()
                 }]
             };
+            saveCurrentData();
+            localStorage.setItem('last_rider_session', name);
+        }
 
-            const storageKey = `rider_bank_${nameToUse.toLowerCase()}`;
-            localStorage.setItem(storageKey, JSON.stringify(newAccount));
-            localStorage.setItem('last_rider_session', nameToUse);
-            // The LiveSync will pick this up on the next tick
+        function showCreateView() {
+            document.getElementById('create-overlay').classList.remove('hidden');
+        }
+
+        function createNewAccount() {
+            const nameInput = document.getElementById('new-rider-name');
+            const nameToUse = nameInput.value.trim();
+            if (!nameToUse) return;
+            initDefaultAccount(nameToUse);
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('payment-toast');
+            document.getElementById('toast-msg').innerText = msg;
+            toast.classList.remove('opacity-0', 'translate-y-4');
+            setTimeout(() => toast.classList.add('opacity-0', 'translate-y-4'), 3000);
         }
 
         function renderDashboard() {
             const balanceEl = document.getElementById('balance-display');
-            const oldBalance = balanceEl.innerText;
             const newBalance = `$${currentAccount.balance.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
             
-            // Visual feedback if money changed
-            if (oldBalance !== "$0.00" && oldBalance !== newBalance) {
-                balanceEl.classList.add('text-emerald-400', 'scale-110');
-                setTimeout(() => balanceEl.classList.remove('text-emerald-400', 'scale-110'), 1000);
+            if (balanceEl.innerText !== "$0.00" && balanceEl.innerText !== newBalance) {
+                balanceEl.classList.add('money-pop');
+                setTimeout(() => balanceEl.classList.remove('money-pop'), 400);
             }
 
             balanceEl.innerText = newBalance;
             document.getElementById('owner-display').innerText = currentAccount.ownerName;
-            document.getElementById('account-status').innerText = `SESSION: ${currentAccount.ownerName.toUpperCase()}_LOGGED_IN`;
+            document.getElementById('account-status').innerText = `LOCAL STORAGE SYNC: ${currentAccount.ownerName.toUpperCase()}`;
 
             const list = document.getElementById('transactions-list');
             list.innerHTML = '';
-
             [...currentAccount.transactions].reverse().forEach(tx => {
                 const item = document.createElement('div');
-                item.className = "p-4 mb-2 rounded-2xl bg-slate-900/50 border border-slate-800/50 flex items-center justify-between animate-slide-up";
-                
+                item.className = "p-4 mb-2 rounded-2xl bg-slate-800/30 border border-slate-800/50 flex items-center justify-between";
                 const isDep = tx.type === 'deposit';
                 item.innerHTML = `
                     <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-lg ${isDep ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'} flex items-center justify-center">
+                        <div class="w-8 h-8 rounded-lg ${isDep ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'} flex items-center justify-center">
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="${isDep ? 'm7 10 5 5 5-5M12 15V3' : 'm17 14-5-5-5 5M12 19V9'}"/></svg>
                         </div>
                         <div>
