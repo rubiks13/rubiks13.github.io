@@ -40,9 +40,30 @@
             background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
             border: 1px solid #334155;
         }
+
+        /* Timeout Warning Style */
+        #timeoutWarning {
+            position: fixed;
+            top: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 300;
+            background: #ef4444;
+            color: white;
+            padding: 0.5rem 1.5rem;
+            border-radius: 99px;
+            font-weight: 800;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
     </style>
 </head>
 <body class="h-screen flex flex-col md:flex-row main-layout">
+
+    <!-- Inactivity Warning -->
+    <div id="timeoutWarning" class="hidden">Auto-Logout in 2s... Move Mouse!</div>
 
     <!-- LOGIN SCREEN (Restricted Access) -->
     <div id="loginScreen" class="fixed inset-0 z-[200] bg-slate-950 flex flex-col items-center justify-center p-6">
@@ -151,9 +172,16 @@
 
     <script>
         let currentUser = null;
+        let idleTime = 0;
+        const IDLE_LIMIT = 5;
+
+        // Reset inactivity timer
+        function resetTimer() {
+            idleTime = 0;
+            document.getElementById('timeoutWarning').classList.add('hidden');
+        }
 
         // BIKE TIME SYNC LOGIC
-        // Fetches time from the global 'bike_network_time' key shared by the directory
         function syncBikeTime() {
             const savedTime = localStorage.getItem('bike_network_time') || "12:00 AM";
             const savedDay = localStorage.getItem('bike_network_day') || "0";
@@ -162,8 +190,20 @@
             document.getElementById('currentBankDay').innerText = `Day ${savedDay}`;
         }
 
-        // Run time sync every second
         setInterval(syncBikeTime, 1000);
+
+        // Security loop
+        setInterval(function() {
+            idleTime++;
+            if (idleTime >= IDLE_LIMIT - 2) {
+                const warn = document.getElementById('timeoutWarning');
+                warn.classList.remove('hidden');
+                warn.innerText = `Auto-Logout in ${IDLE_LIMIT - idleTime}s... Move Mouse!`;
+            }
+            if (idleTime >= IDLE_LIMIT) {
+                logout();
+            }
+        }, 1000);
 
         function getKeys(user) {
             return {
@@ -193,7 +233,6 @@
         }
 
         function logout() {
-            // Redirect to the main bank directory with the current user context
             const target = currentUser ? `https://rubiks13.github.io/bank/?user=${currentUser}` : "https://rubiks13.github.io/bank/";
             window.location.href = target;
         }
@@ -203,11 +242,8 @@
             const k = getKeys(currentUser);
             localStorage.setItem(k.REGISTERED, "true");
             localStorage.setItem(k.BAL, "100.00");
-            
-            // Log entry uses the synced bike time
             const currentTime = document.getElementById('headerBankTime').innerText;
             localStorage.setItem(k.LOGS, JSON.stringify([{ job: "Account Created", amount: 100, bankTime: currentTime }]));
-            
             document.getElementById('registerScreen').classList.add('hidden');
             enterBank(currentUser);
         }
@@ -216,6 +252,11 @@
             document.getElementById('activeUserId').innerText = user;
             loadData();
             syncBikeTime();
+            
+            // Set up activity listeners
+            document.onmousemove = resetTimer;
+            document.onkeypress = resetTimer;
+            document.onclick = resetTimer;
         }
 
         function loadData() {
