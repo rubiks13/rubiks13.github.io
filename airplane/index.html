@@ -324,21 +324,39 @@
             const db = getFlightDb();
             db[data.flight] = { name: data.name, from: data.from, to: data.to, date: data.date, gate: data.gate, seat: data.seat, time: data.time };
             localStorage.setItem('flyusa_flights', JSON.stringify(db));
-            
-            // --- BANK INTEGRATION START ---
-            let currentBal = parseFloat(localStorage.getItem('sim_bank_balance')) || 0;
-            let logs = JSON.parse(localStorage.getItem('sim_bank_logs')) || [];
-            localStorage.setItem('sim_bank_balance', (currentBal + 5.00).toFixed(2));
-            logs.unshift({
-                type: 'Income',
-                amount: 5.00,
-                job: `Ride ${data.from} to ${data.to}`,
-                date: new Date().toLocaleString([], {hour: '2-digit', minute:'2-digit'})
-            });
-            localStorage.setItem('sim_bank_logs', JSON.stringify(logs));
-            // --- BANK INTEGRATION END ---
-
             updateLogDisplay();
+        }
+
+        function handleJobCompletion(data) {
+            // Run the print command
+            window.print();
+
+            // Code runs AFTER the print window is closed
+            setTimeout(() => {
+                // Bank Integration
+                let currentBal = parseFloat(localStorage.getItem('sim_bank_balance')) || 0;
+                let logs = JSON.parse(localStorage.getItem('sim_bank_logs')) || [];
+                localStorage.setItem('sim_bank_balance', (currentBal + 5.00).toFixed(2));
+                logs.unshift({
+                    type: 'Income',
+                    amount: 5.00,
+                    job: `Ride ${data.from} to ${data.to}`, 
+                    date: new Date().toLocaleString([], {hour: '2-digit', minute:'2-digit'})
+                });
+                localStorage.setItem('sim_bank_logs', JSON.stringify(logs));
+
+                // Visual success message
+                const msg = document.createElement('div');
+                msg.innerHTML = '✅ Job Complete! $5.00 added to Cousin Bank.';
+                msg.style = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#16a34a; color:white; padding:15px 25px; border-radius:50px; font-weight:bold; box-shadow:0 4px 15px rgba(0,0,0,0.2); z-index:9999;';
+                document.body.appendChild(msg);
+
+                // Remove message after 4 seconds
+                setTimeout(() => msg.remove(), 4000);
+
+                // Auto return to home view
+                goHome();
+            }, 500);
         }
 
         function removeFlightFromDb(flightId) {
@@ -425,11 +443,9 @@
                 document.getElementById('layout-view-modern').classList.remove('hidden');
             }
 
-            window.onafterprint = () => { goHome(); window.onafterprint = null; };
+            // Using the requested job completion flow
             setTimeout(() => {
-                window.print();
-                const backup = () => { goHome(); window.removeEventListener('focus', backup); };
-                window.addEventListener('focus', backup);
+                handleJobCompletion(data);
             }, 500);
         }
 
