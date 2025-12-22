@@ -12,14 +12,14 @@
 
         /* Custom styles for the 80mm receipt width */
         .receipt-container {
-            width: 80mm; /* Standard thermal receipt width */
+            width: 80mm;
             background-color: #ffffff;
             color: #000000;
-            font-family: 'Roboto Mono', monospace; /* Monospaced font for that thermal look */
+            font-family: 'Roboto Mono', monospace;
             font-size: 10px;
             padding: 10px;
             margin: 20px auto;
-            border: 1px dashed #ccc; /* Border to show the edge on screen */
+            border: 1px dashed #ccc;
             box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
         }
         
@@ -30,35 +30,17 @@
 
         /* Print-specific styles */
         @media print {
-            /* Hide the main UI and only show the receipt */
-            #main-ui {
-                display: none !important;
-            }
-            #receipt-output {
-                display: block !important;
-            }
-            body {
-                /* Reset margins and padding for printing */
-                margin: 0;
-                padding: 0;
-            }
-            .receipt-container {
-                /* Ensure no border/shadow appears on the actual printout */
-                border: none;
-                box-shadow: none;
-                width: 80mm;
-                margin: 0;
-                padding: 0;
-            }
+            #main-ui { display: none !important; }
+            #receipt-output { display: block !important; }
+            body { margin: 0; padding: 0; }
+            .receipt-container { border: none; box-shadow: none; width: 80mm; margin: 0; padding: 0; }
         }
     </style>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
                 }
             }
         }
@@ -67,53 +49,44 @@
 <body class="bg-gray-50 flex flex-col min-h-screen font-sans">
 
     <div id="main-ui" class="flex-grow container mx-auto p-4 md:p-8">
-        <div class="max-w-xl mx-auto bg-white p-6 md:p-10 rounded-xl shadow-2xl">
-            <h1 class="text-3xl font-bold text-gray-800 mb-2">Custom Receipt Generator</h1>
-            <p class="text-gray-600 mb-8">Manage your custom addresses and restaurants below, then click a restaurant button to generate an order!</p>
+        <!-- Top Navigation -->
+        <div class="max-w-xl mx-auto mb-4 flex justify-between items-center px-2">
+            <span id="user-display" class="text-xs font-bold text-gray-400 uppercase tracking-widest">User: Loading...</span>
+            <a id="bank-link" href="#" class="text-xs font-bold text-indigo-600 hover:underline uppercase tracking-widest">Open Bank →</a>
+        </div>
 
-            <!-- Feedback message (instead of alert) -->
+        <div class="max-w-xl mx-auto bg-white p-6 md:p-10 rounded-xl shadow-2xl">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">Receipt Generator</h1>
+            <p class="text-gray-600 mb-8">Click a restaurant to generate an order and earn $5.00 for your account.</p>
+
+            <!-- Feedback message -->
             <div id="error-message" class="hidden text-sm border-2 rounded-lg text-gray-800 border-indigo-400 bg-indigo-100 p-2 text-center mb-6"></div>
 
-            <!-- --- 1. Address Manager Section --- -->
+            <!-- Address Manager -->
             <div class="mb-8 p-4 bg-indigo-50 rounded-lg border-indigo-200 border">
-                <h2 class="text-xl font-semibold text-indigo-700 mb-4 flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.727A8 8 0 016.343 3.273L4 5h16l-2.343-2.273zM12 18v-6m0 0l-2-2m2 2l2-2" /></svg>
-                    1. Delivery Address Manager (Randomly Picked)
+                <h2 class="text-lg font-semibold text-indigo-700 mb-4 flex items-center">
+                    Delivery Addresses
                 </h2>
-
                 <div class="flex space-x-2 mb-4">
-                    <input type="text" id="new-address-input" placeholder="Enter a new delivery address" class="flex-grow p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
-                    <button onclick="saveAddress()" class="px-4 py-2 bg-indigo-500 text-white font-medium rounded-lg hover:bg-indigo-600 transition duration-150 shadow-md flex-shrink-0">
-                        Save Address
-                    </button>
+                    <input type="text" id="new-address-input" placeholder="Enter address" class="flex-grow p-2 border border-gray-300 rounded-lg text-sm">
+                    <button onclick="saveAddress()" class="px-4 py-2 bg-indigo-500 text-white font-medium rounded-lg text-sm">Save</button>
                 </div>
-                
                 <div id="saved-addresses-list" class="space-y-2 mt-4 max-h-40 overflow-y-auto p-1 bg-white rounded-lg border border-gray-200"></div>
             </div>
 
-            <!-- --- 2. Restaurant Manager Section --- -->
+            <!-- Restaurant Manager -->
             <div class="mb-8 p-4 bg-purple-50 rounded-lg border-purple-200 border">
-                <h2 class="text-xl font-semibold text-purple-700 mb-4 flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-purple-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
-                    2. Custom Restaurant Manager
-                </h2>
-
+                <h2 class="text-lg font-semibold text-purple-700 mb-4">Restaurants</h2>
                 <div class="flex space-x-2 mb-4">
-                    <input type="text" id="new-restaurant-input" placeholder="Enter a custom restaurant name" class="flex-grow p-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500">
-                    <button onclick="saveCustomRestaurant()" class="px-4 py-2 bg-purple-500 text-white font-medium rounded-lg hover:bg-purple-600 transition duration-150 shadow-md flex-shrink-0">
-                        Save Restaurant
-                    </button>
+                    <input type="text" id="new-restaurant-input" placeholder="Restaurant name" class="flex-grow p-2 border border-gray-300 rounded-lg text-sm">
+                    <button onclick="saveCustomRestaurant()" class="px-4 py-2 bg-purple-500 text-white font-medium rounded-lg text-sm">Add</button>
                 </div>
-                
                 <div id="custom-restaurants-list" class="space-y-2 mt-4 max-h-40 overflow-y-auto p-1 bg-white rounded-lg border border-gray-200"></div>
             </div>
 
-            <!-- --- 3. Restaurant Selector Section --- -->
+            <!-- Action Section -->
             <div id="options-container" class="space-y-4">
-                <h2 class="text-xl font-semibold text-indigo-600 mb-4 flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                    3. Click to Order (Uses Saved Restaurants):
-                </h2>
+                <h2 class="text-xl font-semibold text-indigo-600 mb-4">Select Order:</h2>
             </div>
         </div>
     </div>
@@ -124,6 +97,20 @@
     </div>
 
     <script>
+        // --- Bike Bank v2.7 Protocol: Identity Management ---
+        const urlParams = new URLSearchParams(window.location.search);
+        const ACTIVE_USER = urlParams.get('user') || localStorage.getItem('active_directory_user') || 'guest';
+        
+        // Protocol Storage Keys
+        const BAL_KEY = `bank_${ACTIVE_USER}_balance`;
+        const LOG_KEY = `bank_${ACTIVE_USER}_logs`;
+        const ADDR_KEY = `receipt_${ACTIVE_USER}_addresses`; // User-specific app settings
+        const REST_KEY = `receipt_${ACTIVE_USER}_restaurants`;
+
+        // Update UI Identity
+        document.getElementById('user-display').textContent = `User: ${ACTIVE_USER}`;
+        document.getElementById('bank-link').href = `https://rubiks13.github.io/bikes/bank_app.html?user=${ACTIVE_USER}`;
+
         // --- Bank Time Synchronization ---
         function getBankTime() {
             let startTime = localStorage.getItem('sim_bank_start_real_time');
@@ -140,7 +127,7 @@
             return `${displayHour}:${displayMin} ${ampm}`;
         }
 
-        // --- Inactivity Redirection ---
+        // --- Security Protocol: Inactivity Redirect ---
         let inactivityTimeout;
         const REDIRECT_URL = "https://rubiks13.github.io/bikes/";
         const INACTIVITY_LIMIT = 5000;
@@ -157,44 +144,29 @@
         });
         resetInactivityTimer();
 
-        // --- Data & State ---
-        const ADDRESS_KEY = 'savedAddresses';
-        const RESTAURANT_KEY = 'customRestaurants';
+        // --- State Management ---
         let addresses = [];
         let customRestaurants = [];
-
-        const menuItems = [
-            { name: "Super Burger Deluxe", price: 12.99 },
-            { name: "Crispy Chicken Sandwich", price: 9.50 },
-            { name: "Loaded Chili Cheese Fries", price: 6.75 },
-            { name: "Milkshake (Vanilla)", price: 4.50 },
-            { name: "Jumbo Soft Taco", price: 3.25 },
-            { name: "Large Soda", price: 2.50 }
-        ];
-
-        // --- Helper Functions ---
-        const getRandomElement = (arr) => arr[Math.floor(Math.random() * arr.length)];
-        const getRandomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
-        
-        function showTemporaryMessage(message, className) {
-            const messageBox = document.getElementById('error-message');
-            messageBox.textContent = message;
-            messageBox.className = `mt-4 p-3 border-2 rounded-lg font-medium text-center transition duration-300 ${className}`;
-            messageBox.classList.remove('hidden');
-            setTimeout(() => messageBox.classList.add('hidden'), 5000);
-        }
 
         function saveState(key, data) { localStorage.setItem(key, JSON.stringify(data)); }
         function loadState(key) { return JSON.parse(localStorage.getItem(key)) || []; }
 
-        // --- UI Logic ---
-        function loadAddresses() {
-            addresses = loadState(ADDRESS_KEY);
+        // --- UI Logic (Address/Restaurant) ---
+        function initApp() {
+            addresses = loadState(ADDR_KEY);
             if (addresses.length === 0) {
-                 addresses.push({ id: Date.now().toString(), text: "100 Fictional Rd, Test City, USA", isEditing: false });
-                 saveState(ADDRESS_KEY, addresses);
+                 addresses.push({ id: 'def', text: "123 Main St, Central City", isEditing: false });
+                 saveState(ADDR_KEY, addresses);
+            }
+            
+            customRestaurants = loadState(REST_KEY);
+            if (customRestaurants.length === 0) {
+                ["Burger Hub", "Pizza Express", "Taco Town"].forEach(n => customRestaurants.push({ id: Math.random().toString(), name: n, isEditing: false }));
+                saveState(REST_KEY, customRestaurants);
             }
             renderAddresses();
+            renderRestaurants();
+            renderButtons();
         }
 
         function renderAddresses() {
@@ -202,16 +174,17 @@
             list.innerHTML = '';
             addresses.forEach(addr => {
                 const div = document.createElement('div');
-                div.className = "flex items-center justify-between p-2 border-b";
+                div.className = "flex items-center justify-between p-2 border-b text-sm";
                 div.innerHTML = addr.isEditing ? 
-                    `<input type="text" id="address-input-${addr.id}" value="${addr.text}" class="flex-grow p-1 text-sm border rounded mr-2"><button onclick="saveAddress('${addr.id}')" class="px-2 py-1 bg-green-500 text-white text-xs rounded">Save</button>` :
-                    `<span class="text-sm truncate">${addr.text}</span><div class="flex space-x-1"><button onclick="startEditAddress('${addr.id}')" class="action-btn">Edit</button><button onclick="deleteAddress('${addr.id}')" class="action-btn">Del</button></div>`;
+                    `<input type="text" id="address-input-${addr.id}" value="${addr.text}" class="flex-grow p-1 border rounded mr-2"><button onclick="saveAddress('${addr.id}')" class="text-green-600 font-bold">Save</button>` :
+                    `<span class="truncate pr-2">${addr.text}</span><div class="flex space-x-2"><button onclick="startEditAddress('${addr.id}')" class="text-blue-500">Edit</button><button onclick="deleteAddress('${id}')" class="text-red-500">X</button></div>`;
                 list.appendChild(div);
             });
         }
 
         window.saveAddress = function(id) {
-            const val = document.getElementById(id ? `address-input-${id}` : 'new-address-input').value.trim();
+            const input = document.getElementById(id ? `address-input-${id}` : 'new-address-input');
+            const val = input.value.trim();
             if (!val) return;
             if (id) {
                 const idx = addresses.findIndex(a => a.id === id);
@@ -219,41 +192,17 @@
                 addresses[idx].isEditing = false;
             } else {
                 addresses.push({ id: Date.now().toString(), text: val, isEditing: false });
-                document.getElementById('new-address-input').value = '';
+                input.value = '';
             }
-            saveState(ADDRESS_KEY, addresses);
+            saveState(ADDR_KEY, addresses);
             renderAddresses();
         };
 
-        window.deleteAddress = id => { addresses = addresses.filter(a => a.id !== id); saveState(ADDRESS_KEY, addresses); renderAddresses(); };
         window.startEditAddress = id => { addresses = addresses.map(a => ({ ...a, isEditing: a.id === id })); renderAddresses(); };
-        window.cancelEditAddress = () => { addresses = addresses.map(a => ({ ...a, isEditing: false })); renderAddresses(); };
-
-        function loadRestaurants() {
-            customRestaurants = loadState(RESTAURANT_KEY);
-            if (customRestaurants.length === 0) {
-                ["Burger Blast", "Taco Titan", "Pizza Portal"].forEach(n => customRestaurants.push({ id: Math.random().toString(), name: n, isEditing: false }));
-                saveState(RESTAURANT_KEY, customRestaurants);
-            }
-            renderRestaurants();
-            renderButtons();
-        }
-
-        function renderRestaurants() {
-            const list = document.getElementById('custom-restaurants-list');
-            list.innerHTML = '';
-            customRestaurants.forEach(res => {
-                const div = document.createElement('div');
-                div.className = "flex items-center justify-between p-2 border-b";
-                div.innerHTML = res.isEditing ? 
-                    `<input type="text" id="res-input-${res.id}" value="${res.name}" class="flex-grow p-1 text-sm border rounded mr-2"><button onclick="saveCustomRestaurant('${res.id}')" class="px-2 py-1 bg-green-500 text-white text-xs rounded">Save</button>` :
-                    `<span class="text-sm truncate">${res.name}</span><div class="flex space-x-1"><button onclick="startEditRestaurant('${res.id}')" class="action-btn">Edit</button><button onclick="deleteRestaurant('${res.id}')" class="action-btn">Del</button></div>`;
-                list.appendChild(div);
-            });
-        }
 
         window.saveCustomRestaurant = function(id) {
-            const val = document.getElementById(id ? `res-input-${id}` : 'new-restaurant-input').value.trim();
+            const input = document.getElementById(id ? `res-input-${id}` : 'new-restaurant-input');
+            const val = input.value.trim();
             if (!val) return;
             if (id) {
                 const idx = customRestaurants.findIndex(r => r.id === id);
@@ -261,87 +210,93 @@
                 customRestaurants[idx].isEditing = false;
             } else {
                 customRestaurants.push({ id: Date.now().toString(), name: val, isEditing: false });
-                document.getElementById('new-restaurant-input').value = '';
+                input.value = '';
             }
-            saveState(RESTAURANT_KEY, customRestaurants);
+            saveState(REST_KEY, customRestaurants);
             renderRestaurants();
             renderButtons();
         };
 
-        window.deleteRestaurant = id => { customRestaurants = customRestaurants.filter(r => r.id !== id); saveState(RESTAURANT_KEY, customRestaurants); renderRestaurants(); renderButtons(); };
-        window.startEditRestaurant = id => { customRestaurants = customRestaurants.map(r => ({ ...r, isEditing: r.id === id })); renderRestaurants(); };
+        function renderRestaurants() {
+            const list = document.getElementById('custom-restaurants-list');
+            list.innerHTML = '';
+            customRestaurants.forEach(res => {
+                const div = document.createElement('div');
+                div.className = "flex items-center justify-between p-2 border-b text-sm";
+                div.innerHTML = `<span class="truncate">${res.name}</span><button onclick="deleteRestaurant('${res.id}')" class="text-red-400">Remove</button>`;
+                list.appendChild(div);
+            });
+        }
+
+        window.deleteRestaurant = id => { customRestaurants = customRestaurants.filter(r => r.id !== id); saveState(REST_KEY, customRestaurants); renderRestaurants(); renderButtons(); };
 
         function renderButtons() {
             const container = document.getElementById('options-container');
             [...container.querySelectorAll('button')].forEach(b => b.remove());
             customRestaurants.forEach(r => {
                 const btn = document.createElement('button');
-                btn.textContent = r.name;
-                btn.className = "w-full py-4 px-4 text-white font-bold bg-indigo-500 rounded-lg shadow-lg hover:bg-indigo-600 active:translate-y-0.5 transition duration-150 transform tracking-wider text-lg";
+                btn.textContent = `Order from ${r.name}`;
+                btn.className = "w-full py-4 px-4 text-white font-bold bg-indigo-500 rounded-lg shadow-lg hover:bg-indigo-600 transition transform active:scale-95";
                 btn.onclick = () => handleSelection(r.name);
                 container.appendChild(btn);
             });
         }
 
+        // --- Core Application Logic ---
         function generateReceipt(restaurantName, deliveryAddress) {
-            const subtotal = getRandomInt(15, 45);
-            const total = (subtotal * 1.0825 + 5.50).toFixed(2);
-            const divider = "----------------------------------------";
+            const total = (Math.random() * 30 + 15).toFixed(2);
             return `
                 <div style="text-align: center; margin-bottom: 10px;"><span style="font-size: 14px; font-weight: bold;">U B E R &nbsp; E A T S</span></div>
                 <div style="text-align: center; margin: 15px 0; padding: 5px; border-bottom: 1px dashed black; border-top: 1px dashed black;">
-                    <p style="font-size: 16px; font-weight: bold;">DELIVERY TO:</p>
-                    <p style="font-size: 18px; font-weight: 700;">${deliveryAddress.toUpperCase()}</p>
+                    <p style="font-size: 14px; font-weight: bold;">DELIVERY TO:</p>
+                    <p style="font-size: 16px; font-weight: 700;">${deliveryAddress.toUpperCase()}</p>
                 </div>
-                <p>${divider}</p>
-                <div style="text-align: center; font-size: 16px; font-weight: bold; margin-bottom: 15px;">${restaurantName.toUpperCase()}</div>
-                <p>${divider}</p>
+                <p>----------------------------------------</p>
+                <div style="text-align: center; font-size: 15px; font-weight: bold; margin-bottom: 15px;">${restaurantName.toUpperCase()}</div>
+                <p>----------------------------------------</p>
                 <div style="font-size: 13px; font-weight: bold; margin: 15px 0;"><div style="display: flex; justify-content: space-between;"><span>TOTAL CHARGED</span><span>$${total}</span></div></div>
-                <p>${divider}</p>
+                <p>----------------------------------------</p>
                 <div style="text-align: center; font-size: 9px; margin-top: 10px;"><p>Order processed through Uber Eats Platform.</p></div>
             `;
         }
 
         /**
-         * UPDATED Job Completion Logic with Bank Standard Time
+         * Bike Bank v2.7 Implementation
          */
         function handleSelection(restaurantName) {
-            if (addresses.length === 0) {
-                showTemporaryMessage("Please add a delivery address first.", 'text-red-800 bg-red-100');
-                return;
-            }
+            if (addresses.length === 0) return;
 
-            // 1. Generate and Print Receipt
-            const addr = getRandomElement(addresses).text;
+            // 1. Receipt Display & Print
+            const addr = addresses[Math.floor(Math.random() * addresses.length)].text;
             document.getElementById('receipt-content').innerHTML = generateReceipt(restaurantName, addr);
             window.print();
 
-            // 2. Transfer Logic (Delayed slightly for print dialog)
+            // 2. Protocol Money Transfer Logic
             setTimeout(() => {
-                let currentBal = parseFloat(localStorage.getItem('sim_bank_balance')) || 0;
-                let logs = JSON.parse(localStorage.getItem('sim_bank_logs')) || [];
+                let currentBal = parseFloat(localStorage.getItem(BAL_KEY)) || 0;
+                let logs = JSON.parse(localStorage.getItem(LOG_KEY)) || [];
 
-                localStorage.setItem('sim_bank_balance', (currentBal + 5.00).toFixed(2));
+                // Update Balance using user-specific key
+                localStorage.setItem(BAL_KEY, (currentBal + 5.00).toFixed(2));
 
+                // Add Transaction log matching v2.7 Structure
                 logs.unshift({
-                    type: 'Income',
+                    job: `Food: ${restaurantName}`,
                     amount: 5.00,
-                    job: restaurantName,
-                    bankTime: getBankTime(), // FIX: No more N/A!
-                    date: new Date().toLocaleTimeString()
+                    bankTime: getBankTime()
                 });
-                localStorage.setItem('sim_bank_logs', JSON.stringify(logs));
+                localStorage.setItem(LOG_KEY, JSON.stringify(logs));
 
-                // Show visual confirmation
+                // Visual Notification
                 const alert = document.createElement('div');
-                alert.innerHTML = '💰 $5.00 sent to Bank!';
-                alert.style = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#2563eb; color:white; padding:15px 30px; border-radius:100px; font-weight:bold; z-index:10000; box-shadow: 0 4px 15px rgba(0,0,0,0.2);';
+                alert.innerHTML = `💰 $5.00 sent to ${ACTIVE_USER}'s Bank!`;
+                alert.style = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#4f46e5; color:white; padding:15px 30px; border-radius:100px; font-weight:bold; z-index:10000; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3);';
                 document.body.appendChild(alert);
                 setTimeout(() => alert.remove(), 4000);
             }, 500);
         }
 
-        window.onload = () => { loadAddresses(); loadRestaurants(); };
+        window.onload = initApp;
     </script>
 </body>
 </html>
