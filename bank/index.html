@@ -39,6 +39,12 @@
             background: rgba(15, 23, 42, 0.9);
             backdrop-filter: blur(8px);
         }
+
+        .time-display {
+            font-family: 'JetBrains Mono', monospace;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border: 1px solid #334155;
+        }
     </style>
 </head>
 <body class="h-screen flex flex-col md:flex-row main-layout">
@@ -63,7 +69,7 @@
             </div>
             <div>
                 <h1 class="font-black text-xl tracking-tight">Bike Bank</h1>
-                <span class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Midnight v2.1</span>
+                <span class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Midnight v2.2</span>
             </div>
         </div>
 
@@ -95,12 +101,19 @@
     <main class="flex-1 flex flex-col relative overflow-hidden">
         <header class="p-6 md:p-8 flex items-center justify-between">
             <div id="pageTitle" class="text-2xl font-black">Dashboard</div>
-            <div class="flex items-center gap-4">
+            
+            <!-- Live Bike Time Display -->
+            <div class="time-display flex items-center gap-4 px-5 py-2 rounded-2xl">
                 <div class="text-right">
-                    <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Security Status</span>
+                    <span id="currentBankDay" class="text-[9px] font-black text-blue-400 uppercase tracking-widest block">Day 0</span>
+                    <span id="headerBankTime" class="text-lg font-bold text-white leading-tight">12:00 AM</span>
+                </div>
+                <div class="w-px h-8 bg-slate-700"></div>
+                <div class="text-right">
+                    <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Security</span>
                     <span class="text-[10px] text-green-500 uppercase font-bold flex items-center gap-1 justify-end">
-                        <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                        Active
+                        <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                        Live
                     </span>
                 </div>
             </div>
@@ -133,7 +146,10 @@
                 <div id="taxCard" class="bank-card p-8 border-l-4 border-l-slate-700">
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="font-black uppercase tracking-tighter text-slate-300">Mandatory Daily Tax (15%)</h3>
-                        <span id="timerDisplay" class="text-xs font-black text-blue-300 bg-blue-900/40 px-3 py-1 rounded-full">24:00</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-[9px] text-slate-500 font-bold uppercase">Reset in:</span>
+                            <span id="timerDisplay" class="text-xs font-black text-blue-300 bg-blue-900/40 px-3 py-1 rounded-full">24:00</span>
+                        </div>
                     </div>
                     <div class="flex items-end gap-4">
                         <div id="taxDisplay" class="text-4xl font-bold text-white">$0.00</div>
@@ -144,7 +160,10 @@
                 <!-- Utilities Section -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="bank-card p-8 space-y-4">
-                        <h3 class="font-black text-orange-400 uppercase text-xs tracking-widest">Grocery Store</h3>
+                        <div class="flex justify-between items-center">
+                            <h3 class="font-black text-orange-400 uppercase text-xs tracking-widest">Grocery Store</h3>
+                            <span id="groceryExpiryLabel" class="text-[9px] text-slate-500 font-bold"></span>
+                        </div>
                         <div class="grid grid-cols-2 gap-3">
                             <button onclick="buySupplies('Grocery', 15, 1)" class="bg-slate-700 hover:bg-slate-600 p-4 rounded-2xl text-center">
                                 <div class="text-xs font-bold text-slate-400">1 Day</div>
@@ -157,7 +176,10 @@
                         </div>
                     </div>
                     <div class="bank-card p-8 space-y-4">
-                        <h3 class="font-black text-purple-400 uppercase text-xs tracking-widest">Gas Station</h3>
+                        <div class="flex justify-between items-center">
+                            <h3 class="font-black text-purple-400 uppercase text-xs tracking-widest">Gas Station</h3>
+                            <span id="gasExpiryLabel" class="text-[9px] text-slate-500 font-bold"></span>
+                        </div>
                         <div class="grid grid-cols-2 gap-3">
                             <button onclick="buySupplies('Gas', 20, 1)" class="bg-slate-700 hover:bg-slate-600 p-4 rounded-2xl text-center">
                                 <div class="text-xs font-bold text-slate-400">1 Day</div>
@@ -220,10 +242,24 @@
         }
 
         function getBankTimeInfo() {
-            let start = localStorage.getItem(KEYS.START) || Date.now();
-            if(!localStorage.getItem(KEYS.START)) localStorage.setItem(KEYS.START, start);
-            const elapsed = (Date.now() - parseInt(start)) / 60000;
-            return { day: Math.floor(elapsed / 24), time: elapsed };
+            let start = localStorage.getItem(KEYS.START);
+            if(!start) {
+                start = Date.now();
+                localStorage.setItem(KEYS.START, start);
+            }
+            const elapsed = (Date.now() - parseInt(start)) / 60000; // 1 min real = 1 hr bank
+            const hours = Math.floor(elapsed % 24);
+            const mins = Math.floor((elapsed * 60) % 60);
+            
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            const displayHour = hours % 12 || 12;
+            const displayMin = mins.toString().padStart(2, '0');
+
+            return { 
+                day: Math.floor(elapsed / 24), 
+                display: `${displayHour}:${displayMin} ${ampm}`,
+                raw: elapsed
+            };
         }
 
         function runSecurityCheck() {
@@ -246,7 +282,12 @@
         function closeAlert() { document.getElementById('securityAlert').classList.add('hidden'); }
 
         function update() {
-            const time = getBankTimeInfo();
+            const timeInfo = getBankTimeInfo();
+            
+            // Update Header Clock
+            document.getElementById('headerBankTime').innerText = timeInfo.display;
+            document.getElementById('currentBankDay').innerText = `Day ${timeInfo.day}`;
+
             const lastDay = parseInt(localStorage.getItem(KEYS.LAST_TAX_DAY)) ?? -1;
             const lastReal = parseInt(localStorage.getItem(KEYS.LAST_TAX_TIME)) || 0;
             const remaining = (24 * 60000) - (Date.now() - lastReal);
@@ -254,7 +295,7 @@
             const taxBtn = document.getElementById('taxBtn');
             const timerEl = document.getElementById('timerDisplay');
 
-            if(lastDay === time.day) {
+            if(lastDay === timeInfo.day) {
                 taxBtn.disabled = true; taxBtn.innerText = "Settled Today"; timerEl.innerText = "DONE";
             } else {
                 taxBtn.disabled = false; taxBtn.innerText = "Settle Tax";
@@ -274,12 +315,28 @@
             
             const gEl = document.getElementById('groceryStatus');
             const gasEl = document.getElementById('gasStatus');
+            const gLabel = document.getElementById('groceryExpiryLabel');
+            const gasLabel = document.getElementById('gasExpiryLabel');
 
-            if(time.day < gExp) { gEl.innerText = "STOCKED"; gEl.className = "text-xl font-bold text-green-400"; }
-            else { gEl.innerText = "EMPTY"; gEl.className = "text-xl font-bold text-red-500"; }
+            if(timeInfo.day < gExp) { 
+                gEl.innerText = "STOCKED"; 
+                gEl.className = "text-xl font-bold text-green-400";
+                if(gLabel) gLabel.innerText = `Expires Day ${gExp}`;
+            } else { 
+                gEl.innerText = "EMPTY"; 
+                gEl.className = "text-xl font-bold text-red-500";
+                if(gLabel) gLabel.innerText = "REPLENISH NEEDED";
+            }
 
-            if(time.day < gasExp) { gasEl.innerText = "RESERVED"; gasEl.className = "text-xl font-bold text-green-400"; }
-            else { gasEl.innerText = "EMPTY"; gasEl.className = "text-xl font-bold text-red-500"; }
+            if(timeInfo.day < gasExp) { 
+                gasEl.innerText = "RESERVED"; 
+                gasEl.className = "text-xl font-bold text-green-400";
+                if(gasLabel) gasLabel.innerText = `Expires Day ${gasExp}`;
+            } else { 
+                gasEl.innerText = "EMPTY"; 
+                gasEl.className = "text-xl font-bold text-red-500";
+                if(gasLabel) gasLabel.innerText = "REPLENISH NEEDED";
+            }
         }
 
         function loadData() {
@@ -328,7 +385,7 @@
         function processTransaction(amount, desc, jobName) {
             const bal = parseFloat(localStorage.getItem(KEYS.BAL)) || 0;
             const logs = JSON.parse(localStorage.getItem(KEYS.LOGS)) || [];
-            logs.unshift({ type: desc, amount: -amount, job: jobName, bankTime: 'Day ' + getBankTimeInfo().day });
+            logs.unshift({ type: desc, amount: -amount, job: jobName, bankTime: getBankTimeInfo().display });
             localStorage.setItem(KEYS.BAL, (bal - amount).toFixed(2));
             localStorage.setItem(KEYS.LOGS, JSON.stringify(logs));
             localStorage.setItem(KEYS.TAX_TOTAL, (parseFloat(localStorage.getItem(KEYS.TAX_TOTAL)) || 0 + amount).toFixed(2));
@@ -347,7 +404,7 @@
         setInterval(update, 1000);
         loadData(); 
         update();
-        setTimeout(runSecurityCheck, 500); // Check when entering bank
+        setTimeout(runSecurityCheck, 500); 
     </script>
 </body>
 </html>
