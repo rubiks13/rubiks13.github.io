@@ -285,7 +285,7 @@
     </div>
 
     <script>
-        // BIKE BANK v2.7 PROTOCOL: USER DETECTION
+        // BIKE BANK v2.8 PROTOCOL: USER DETECTION
         function getActiveUser() {
             const urlParams = new URLSearchParams(window.location.search);
             let user = urlParams.get('user');
@@ -305,7 +305,7 @@
         const IDLE_TIME_LIMIT = 5000; // 5 seconds
         const REDIRECT_URL = "https://rubiks13.github.io/bikes/";
 
-        // NEW BANK URL
+        // NEW BANK URL - STRICTLY UPDATED
         const BANK_BASE_URL = "https://rubiks13.github.io/bank/";
 
         // IDLE REDIRECT LOGIC
@@ -371,7 +371,7 @@
             updateLogDisplay();
         }
 
-        // BIKE BANK v2.7: TRANSACTION PROCESSING
+        // BIKE BANK v2.8: TRANSACTION PROCESSING (STRICT URL)
         function handleJobCompletion(data) {
             const currentBankTime = getBankTime();
             document.querySelectorAll('.bank-time-target').forEach(el => el.textContent = currentBankTime);
@@ -574,7 +574,8 @@
 
         window.onload = () => {
             document.getElementById('display-user').textContent = activeUser;
-            // UPDATED BANK LINK per request
+            
+            // STRICTLY UPDATED BANK LINK UI
             document.getElementById('bank-link').href = `${BANK_BASE_URL}?user=${activeUser}`;
             
             initQRs();
