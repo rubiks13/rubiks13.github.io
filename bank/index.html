@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cousin Bank & Co.</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        .bank-card {
+            background: white;
+            border-radius: 32px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s;
+        }
+        .money-pulse {
+            animation: pulse-green 0.6s ease-out;
+        }
+        @keyframes pulse-green {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); color: #16a34a; }
+            100% { transform: scale(1); }
+        }
+        .custom-scroll::-webkit-scrollbar { width: 5px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+
+    <div class="max-w-4xl mx-auto">
+        <!-- Header Section -->
+        <div class="flex items-center justify-between mb-8">
+            <div class="flex items-center gap-4">
+                <div class="bg-blue-600 p-4 rounded-3xl shadow-lg shadow-blue-200 text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                </div>
+                <div>
+                    <h1 class="text-3xl font-black text-slate-800 tracking-tight">Cousin Bank & Co.</h1>
+                    <div class="flex items-center gap-2">
+                        <div id="statusDot" class="w-2 h-2 rounded-full bg-green-500"></div>
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Live Network Ready</span>
+                    </div>
+                </div>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="loadData()" class="p-2 text-slate-400 hover:text-blue-600 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+                </button>
+                <button onclick="resetBank()" class="text-xs font-bold text-slate-300 hover:text-red-500 transition-colors">RESET</button>
+            </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <!-- Balance Card -->
+            <div class="bank-card p-6 border-b-4 border-b-blue-500">
+                <div class="flex items-center gap-2 text-slate-400 mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+                    <span class="text-xs font-bold uppercase tracking-wider">Balance</span>
+                </div>
+                <div id="balanceDisplay" class="text-4xl font-black text-slate-900">$0.00</div>
+            </div>
+
+            <!-- Tax Card -->
+            <div class="bank-card p-6 bg-orange-50/30 border-orange-100">
+                <div class="flex items-center gap-2 text-slate-400 mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5V6.5"/></svg>
+                    <span class="text-xs font-bold uppercase tracking-wider">Taxes Owed (15%)</span>
+                </div>
+                <div id="taxDisplay" class="text-3xl font-bold text-orange-600 mb-3">$0.00</div>
+                <button onclick="payTaxes()" id="taxBtn" class="w-full bg-slate-900 text-white py-2 rounded-xl font-bold text-sm hover:bg-slate-800 disabled:opacity-20 transition-all">Pay Government</button>
+            </div>
+
+            <!-- Savings/History Card -->
+            <div class="bank-card p-6">
+                <div class="flex items-center gap-2 text-slate-400 mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+                    <span class="text-xs font-bold uppercase tracking-wider">Total Tax Paid</span>
+                </div>
+                <div id="totalTaxDisplay" class="text-3xl font-bold text-blue-600">$0.00</div>
+            </div>
+        </div>
+
+        <!-- History Table -->
+        <div class="bank-card overflow-hidden">
+            <div class="p-6 border-b border-slate-50 flex justify-between items-center">
+                <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-400"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    Bank Statement
+                </h2>
+                <span id="jobCount" class="text-[10px] font-black bg-slate-100 px-3 py-1 rounded-full text-slate-500 uppercase">0 Records</span>
+            </div>
+            <div class="max-h-[400px] overflow-y-auto custom-scroll">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-50 sticky top-0 text-[10px] uppercase font-black text-slate-400 tracking-widest">
+                        <tr>
+                            <th class="px-6 py-4">Job Source</th>
+                            <th class="px-6 py-4">Timestamp</th>
+                            <th class="px-6 py-4 text-right">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logList" class="divide-y divide-slate-50">
+                        <!-- Content here -->
+                    </tbody>
+                </table>
+                <div id="emptyState" class="p-20 text-center hidden">
+                    <p class="text-slate-300 italic">No transactions found. Keep working!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Connection Debugger (Helpful for testing) -->
+        <div class="mt-8 p-6 bg-slate-800 rounded-[32px] text-white">
+            <h3 class="font-bold mb-4 flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+                Connection Helper
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div class="bg-slate-900/50 p-4 rounded-2xl border border-white/5">
+                    <p class="text-slate-400 mb-2 uppercase text-[10px] font-bold">1. Shared Domain</p>
+                    <p class="text-slate-300">This bank MUST be on <strong>rubiks13.github.io</strong> to work with your other apps.</p>
+                </div>
+                <div class="bg-slate-900/50 p-4 rounded-2xl border border-white/5">
+                    <p class="text-slate-400 mb-2 uppercase text-[10px] font-bold">2. Test Button</p>
+                    <button onclick="manualAdd()" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg font-bold text-xs transition-colors">
+                        Add Fake $5.00
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-8 py-4 rounded-full shadow-2xl transition-all duration-500 translate-y-32 flex items-center gap-3 border border-white/10 z-50">
+        <div class="w-2 h-2 rounded-full bg-green-400" id="toastDot"></div>
+        <span id="toastMsg" class="font-bold text-sm">Money Received!</span>
+    </div>
+
+    <script>
+        const KEYS = {
+            BAL: 'sim_bank_balance',
+            LOGS: 'sim_bank_logs',
+            TAX: 'sim_bank_taxes_paid'
+        };
+
+        function loadData() {
+            const bal = parseFloat(localStorage.getItem(KEYS.BAL)) || 0;
+            const logs = JSON.parse(localStorage.getItem(KEYS.LOGS)) || [];
+            const taxPaid = parseFloat(localStorage.getItem(KEYS.TAX)) || 0;
+
+            // Update UI
+            const balEl = document.getElementById('balanceDisplay');
+            if(balEl.innerText !== `$${bal.toFixed(2)}`) {
+                balEl.classList.add('money-pulse');
+                setTimeout(() => balEl.classList.remove('money-pulse'), 600);
+            }
+            
+            balEl.innerText = `$${bal.toFixed(2)}`;
+            document.getElementById('taxDisplay').innerText = `$${(bal * 0.15).toFixed(2)}`;
+            document.getElementById('totalTaxDisplay').innerText = `$${taxPaid.toFixed(2)}`;
+            document.getElementById('jobCount').innerText = `${logs.length} Records`;
+            document.getElementById('taxBtn').disabled = (bal <= 0);
+
+            // Table Logic
+            const list = document.getElementById('logList');
+            const empty = document.getElementById('emptyState');
+            list.innerHTML = '';
+            
+            if (logs.length === 0) {
+                empty.classList.remove('hidden');
+            } else {
+                empty.classList.add('hidden');
+                logs.forEach(log => {
+                    const tr = document.createElement('tr');
+                    const isPos = log.amount > 0;
+                    tr.innerHTML = `
+                        <td class="px-6 py-4">
+                            <div class="font-bold text-slate-700">${log.job}</div>
+                            <div class="text-[9px] font-black text-slate-300 uppercase">${log.type}</div>
+                        </td>
+                        <td class="px-6 py-4 text-xs font-medium text-slate-400">${log.date}</td>
+                        <td class="px-6 py-4 text-right font-black ${isPos ? 'text-green-600' : 'text-red-500'}">
+                            ${isPos ? '+' : ''}${parseFloat(log.amount).toFixed(2)}
+                        </td>
+                    `;
+                    list.appendChild(tr);
+                });
+            }
+        }
+
+        function notify(msg, type = 'success') {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').innerText = msg;
+            document.getElementById('toastDot').className = `w-2 h-2 rounded-full ${type === 'success' ? 'bg-green-400' : 'bg-orange-400'}`;
+            
+            toast.classList.remove('translate-y-32');
+            setTimeout(() => toast.classList.add('translate-y-32'), 3000);
+        }
+
+        function payTaxes() {
+            const bal = parseFloat(localStorage.getItem(KEYS.BAL)) || 0;
+            const tax = bal * 0.15;
+            if (tax <= 0) return;
+
+            const newBal = (bal - tax).toFixed(2);
+            const totalPaid = (parseFloat(localStorage.getItem(KEYS.TAX)) || 0) + tax;
+            const logs = JSON.parse(localStorage.getItem(KEYS.LOGS)) || [];
+
+            logs.unshift({
+                type: 'Tax Payment',
+                amount: -tax.toFixed(2),
+                job: 'Revenue Service',
+                date: new Date().toLocaleTimeString()
+            });
+
+            localStorage.setItem(KEYS.BAL, newBal);
+            localStorage.setItem(KEYS.TAX, totalPaid.toFixed(2));
+            localStorage.setItem(KEYS.LOGS, JSON.stringify(logs));
+
+            notify(`Paid $${tax.toFixed(2)} in Taxes`, 'tax');
+            loadData();
+        }
+
+        function manualAdd() {
+            const current = parseFloat(localStorage.getItem(KEYS.BAL)) || 0;
+            const logs = JSON.parse(localStorage.getItem(KEYS.LOGS)) || [];
+            
+            localStorage.setItem(KEYS.BAL, (current + 5).toFixed(2));
+            logs.unshift({
+                type: 'Income',
+                amount: 5,
+                job: 'Manual Sync',
+                date: new Date().toLocaleTimeString()
+            });
+            localStorage.setItem(KEYS.LOGS, JSON.stringify(logs));
+            loadData();
+            notify("Manual Money Added!");
+        }
+
+        function resetBank() {
+            if(confirm("Reset everything?")) {
+                localStorage.clear();
+                loadData();
+                notify("Reset Successful", "tax");
+            }
+        }
+
+        // The "Secret Sauce": This listens for updates from your other apps!
+        window.onstorage = (e) => {
+            if (e.key && e.key.includes('sim_bank')) {
+                loadData();
+                if(e.key === KEYS.BAL) notify("New Income Detected!");
+            }
+        };
+
+        // Initial Start
+        loadData();
+    </script>
+</body>
+</html>
