@@ -41,6 +41,7 @@
             border: 1px solid #334155;
         }
 
+        /* Inactivity Warning Style */
         #timeoutWarning {
             position: fixed;
             top: 1rem;
@@ -61,6 +62,7 @@
 </head>
 <body class="h-screen flex flex-col md:flex-row main-layout">
 
+    <!-- Inactivity Warning -->
     <div id="timeoutWarning" class="hidden">Auto-Logout in 2s... Move Mouse!</div>
 
     <!-- LOGIN SCREEN -->
@@ -89,13 +91,14 @@
             </div>
             <div class="space-y-2">
                 <h1 class="text-2xl font-black tracking-tight">New Account Detected</h1>
-                <p class="text-slate-400 text-sm">Hello, <span id="regUserName" class="text-blue-400 font-bold"></span>! Create your secure vault now.</p>
+                <p class="text-slate-400 text-sm">Hello, <span id="regUserName" class="text-blue-400 font-bold"></span>! You don't have a bank profile yet. Would you like to create one?</p>
             </div>
             <button onclick="createNewAccount()" class="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black text-lg transition-all shadow-xl shadow-blue-600/20">Create My Account</button>
             <button onclick="logout()" class="text-xs font-bold text-slate-500 uppercase tracking-widest hover:text-white transition-colors">Cancel Access</button>
         </div>
     </div>
 
+    <!-- Sidebar -->
     <aside class="sidebar w-full md:w-72 bg-slate-900 flex flex-col border-r border-slate-800 p-6 z-20">
         <div class="flex items-center gap-3 mb-10">
             <div class="bg-blue-600 p-3 rounded-2xl shadow-lg shadow-blue-500/20 text-white">
@@ -103,15 +106,21 @@
             </div>
             <div>
                 <h1 class="font-black text-xl tracking-tight">Bike Bank</h1>
-                <span class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Midnight v2.8</span>
+                <span class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Midnight v2.7</span>
             </div>
         </div>
 
         <nav class="space-y-2 flex-1">
             <div onclick="switchPage('dash')" id="nav-dash" class="sidebar-item active flex items-center gap-3 p-4 rounded-2xl font-bold text-sm">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
                 Dashboard
             </div>
+            <div onclick="switchPage('pay')" id="nav-pay" class="sidebar-item flex items-center gap-3 p-4 rounded-2xl font-bold text-sm text-slate-400">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><path d="M16 14h.01M12 14h.01M8 14h.01"/></svg>
+                Payments
+            </div>
             <div onclick="switchPage('logs')" id="nav-logs" class="sidebar-item flex items-center gap-3 p-4 rounded-2xl font-bold text-sm text-slate-400">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                 Statement
             </div>
         </nav>
@@ -127,26 +136,26 @@
             <div class="time-display flex items-center gap-4 px-5 py-2 rounded-2xl">
                 <div class="text-right">
                     <span id="currentBankDay" class="text-[9px] font-black text-blue-400 uppercase tracking-widest block text-right">Day 0</span>
-                    <span id="headerBankTime" class="text-lg font-bold text-white leading-tight">--:-- --</span>
+                    <span id="headerBankTime" class="text-lg font-bold text-white leading-tight">12:00 AM</span>
                 </div>
                 <div class="w-px h-8 bg-slate-700"></div>
                 <div class="text-right">
-                    <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest block">User ID</span>
-                    <span id="activeUserId" class="text-[10px] text-blue-500 uppercase font-bold">...</span>
+                    <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Account Holder</span>
+                    <span id="activeUserId" class="text-[10px] text-blue-500 uppercase font-bold">Unidentified</span>
                 </div>
             </div>
         </header>
 
         <div class="flex-1 overflow-y-auto custom-scroll p-6 md:p-8 pt-0">
             <div id="page-dash" class="space-y-6">
-                <div class="bank-card p-10 border-l-4 border-l-blue-500 relative overflow-hidden">
-                    <div id="syncIndicator" class="absolute top-4 right-4 flex items-center gap-2 text-[10px] font-bold text-green-500 uppercase">
-                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                        Network Linked
-                    </div>
-                    <span class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 block">Total Funds</span>
+                <div class="bank-card p-10 border-l-4 border-l-blue-500">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 block">Current Balance</span>
                     <div id="balanceDisplay" class="text-6xl font-black text-white">$0.00</div>
                 </div>
+            </div>
+
+            <div id="page-pay" class="hidden space-y-6">
+                <div class="p-10 text-center text-slate-500 italic border-2 border-dashed border-slate-800 rounded-3xl">Payment systems coming soon.</div>
             </div>
 
             <div id="page-logs" class="hidden">
@@ -160,60 +169,23 @@
         let idleTime = 0;
         const IDLE_LIMIT = 5;
 
-        // BIKE TIME SYNC
-        async function fetchGlobalTime() {
-            try {
-                // Try to get time from parent if in iframe, or local storage
-                const savedTime = localStorage.getItem('bike_network_time') || "12:00 AM";
-                const savedDay = localStorage.getItem('bike_network_day') || "0";
-                document.getElementById('headerBankTime').innerText = savedTime;
-                document.getElementById('currentBankDay').innerText = `Day ${savedDay}`;
-            } catch (e) {}
+        // Reset inactivity timer
+        function resetTimer() {
+            idleTime = 0;
+            document.getElementById('timeoutWarning').classList.add('hidden');
         }
 
-        // MONEY SYNC (THIS FIXES THE OTHER APPS NOT WORKING)
-        // Check for 'sim_bank_balance' (used by other apps) and merge it into current user account
-        function syncExternalMoney() {
-            if (!currentUser) return;
-            const k = getKeys(currentUser);
-            
-            // Check if other apps sent money to the universal key
-            const externalMoney = parseFloat(localStorage.getItem('sim_bank_balance'));
-            
-            if (!isNaN(externalMoney) && externalMoney > 0) {
-                let userBal = parseFloat(localStorage.getItem(k.BAL)) || 0;
-                let userLogs = JSON.parse(localStorage.getItem(k.LOGS)) || [];
-                
-                // Add the money
-                userBal += externalMoney;
-                
-                // Record the deposit
-                userLogs.unshift({
-                    job: "External App Sync",
-                    type: "Incoming",
-                    amount: externalMoney,
-                    date: document.getElementById('headerBankTime').innerText
-                });
-
-                // Update user storage
-                localStorage.setItem(k.BAL, userBal.toFixed(2));
-                localStorage.setItem(k.LOGS, JSON.stringify(userLogs));
-                
-                // CLEAR the external key so we don't double-charge
-                localStorage.removeItem('sim_bank_balance');
-                localStorage.removeItem('sim_bank_logs'); // Also clear external logs if any
-                
-                loadData();
-            }
+        // BIKE TIME SYNC LOGIC
+        function syncBikeTime() {
+            const savedTime = localStorage.getItem('bike_network_time') || "12:00 AM";
+            const savedDay = localStorage.getItem('bike_network_day') || "0";
+            document.getElementById('headerBankTime').innerText = savedTime;
+            document.getElementById('currentBankDay').innerText = `Day ${savedDay}`;
         }
 
-        setInterval(() => {
-            fetchGlobalTime();
-            syncExternalMoney();
-        }, 1000);
+        setInterval(syncBikeTime, 1000);
 
-        function resetTimer() { idleTime = 0; document.getElementById('timeoutWarning').classList.add('hidden'); }
-
+        // Security loop
         setInterval(function() {
             if (!currentUser) return;
             idleTime++;
@@ -222,7 +194,9 @@
                 warn.classList.remove('hidden');
                 warn.innerText = `Auto-Logout in ${IDLE_LIMIT - idleTime}s... Move Mouse!`;
             }
-            if (idleTime >= IDLE_LIMIT) logout();
+            if (idleTime >= IDLE_LIMIT) {
+                logout();
+            }
         }, 1000);
 
         function getKeys(user) {
@@ -236,6 +210,7 @@
         function checkUrlLogin() {
             const params = new URLSearchParams(window.location.search);
             const user = params.get('user');
+            
             if (user && user.toLowerCase() !== 'guest') {
                 currentUser = user;
                 document.getElementById('loginScreen').classList.add('hidden');
@@ -261,7 +236,8 @@
             const k = getKeys(currentUser);
             localStorage.setItem(k.REGISTERED, "true");
             localStorage.setItem(k.BAL, "100.00");
-            localStorage.setItem(k.LOGS, JSON.stringify([{ job: "Vault Initialized", amount: 100, date: "System Start" }]));
+            const currentTime = document.getElementById('headerBankTime').innerText;
+            localStorage.setItem(k.LOGS, JSON.stringify([{ job: "Account Created", amount: 100, bankTime: currentTime }]));
             document.getElementById('registerScreen').classList.add('hidden');
             enterBank(currentUser);
         }
@@ -269,9 +245,13 @@
         function enterBank(user) {
             document.getElementById('activeUserId').innerText = user;
             loadData();
+            syncBikeTime();
+            
+            // Set up activity listeners
             document.onmousemove = resetTimer;
             document.onkeypress = resetTimer;
             document.onclick = resetTimer;
+            resetTimer();
         }
 
         function loadData() {
@@ -279,26 +259,25 @@
             const k = getKeys(currentUser);
             const bal = parseFloat(localStorage.getItem(k.BAL)) || 0;
             document.getElementById('balanceDisplay').innerText = `$${bal.toFixed(2)}`;
-            
-            // Update Logs
-            const logs = JSON.parse(localStorage.getItem(k.LOGS)) || [];
-            const list = document.getElementById('logList');
-            list.innerHTML = logs.map(l => `
-                <div class="bank-card p-4 flex justify-between items-center border-l-4 ${l.amount > 0 ? 'border-l-green-500' : 'border-l-red-500'}">
-                    <div>
-                        <div class="font-bold">${l.job}</div>
-                        <div class="text-[10px] text-slate-500 uppercase font-black">${l.date}</div>
-                    </div>
-                    <div class="font-black ${l.amount > 0 ? 'text-green-500' : 'text-red-500'}">
-                        ${l.amount > 0 ? '+' : ''}${l.amount.toFixed(2)}
-                    </div>
-                </div>
-            `).join('');
         }
 
         function switchPage(page) {
-            ['dash', 'logs'].forEach(p => document.getElementById('page-' + p).classList.add('hidden'));
-            document.getElementById('page-' + page).classList.remove('hidden');
+            ['dash', 'pay', 'logs'].forEach(p => {
+                const el = document.getElementById('page-' + p);
+                const nav = document.getElementById('nav-' + p);
+                if(el) el.classList.add('hidden');
+                if(nav) {
+                    nav.classList.remove('active', 'text-white');
+                    nav.classList.add('text-slate-400');
+                }
+            });
+            const target = document.getElementById('page-' + page);
+            const targetNav = document.getElementById('nav-' + page);
+            if(target) target.classList.remove('hidden');
+            if(targetNav) {
+                targetNav.classList.add('active', 'text-white');
+                targetNav.classList.remove('text-slate-400');
+            }
             document.getElementById('pageTitle').innerText = page.charAt(0).toUpperCase() + page.slice(1);
         }
 
