@@ -21,7 +21,6 @@
             transition: background-color 0.3s;
         }
 
-        /* LAYOUT 1: THERMAL RECEIPT (Classic) */
         .layout-thermal {
             width: var(--printer-width);
             background: white;
@@ -31,7 +30,6 @@
             border: 1px dashed #ccc;
         }
 
-        /* LAYOUT 2: MODERN CARD (New) */
         .layout-modern {
             width: 120mm;
             background: white;
@@ -66,7 +64,6 @@
             font-weight: 800;
         }
 
-        /* Printing logic */
         @media print {
             body { background: white !important; }
             .no-print { display: none !important; }
@@ -103,7 +100,6 @@
             <p class="text-gray-600 mb-6">Hit the button or scan a ticket to begin!</p>
             
             <div class="flex justify-center">
-                <!-- NEW RIDE BUTTON -->
                 <button onclick="goToPrintPage()" class="w-full max-w-md bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-2xl font-black py-12 rounded-2xl shadow-xl transition-all flex flex-col items-center justify-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12.2 2h-.4a2 2 0 0 0-2 2v1.2a2 2 0 0 1-1.2 1.8l-1.5.7a2 2 0 0 1-2.4-.7l-.8-1a2 2 0 0 0-2.8-.2l-.3.3a2 2 0 0 0-.2 2.8l1 1a2 2 0 0 1 .7 2.4l-.7 1.5a2 2 0 0 1-1.8 1.2H2.2a2 2 0 0 0-2 2v.4a2 2 0 0 0 2 2h1.2a2 2 0 0 1 1.8 1.2l.7 1.5a2 2 0 0 1-.7 2.4l-1 1a2 2 0 0 0 .2 2.8l.3.3a2 2 0 0 0 2.8-.2l.8-1a2 2 0 0 1 2.4-.7l1.5.7a2 2 0 0 1 1.2 1.8v1.2a2 2 0 0 0 2 2h.4a2 2 0 0 0 2-2v-1.2a2 2 0 0 1 1.2-1.8l1.5-.7a2 2 0 0 1 2.4.7l.8 1a2 2 0 0 0 2.8.2l.3-.3a2 2 0 0 0 2.8-.2l.8-1a2 2 0 0 1 2.4-.7l1.5.7a2 2 0 0 1 1.2 1.8V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
                     START RIDE
@@ -136,6 +132,7 @@
             </div>
             <div class="bg-blue-50 p-6 rounded-xl border border-blue-100 flex flex-col items-center justify-center text-blue-600 font-bold text-center italic">
                 <p id="status-text">Ready for departure. Earn $5.00 per flight.</p>
+                <!-- UPDATED BANK LINK -->
                 <a id="bank-link" href="#" class="mt-4 text-xs underline uppercase tracking-widest font-black hover:text-blue-800 transition-colors">Go to Bank App →</a>
             </div>
         </div>
@@ -149,7 +146,6 @@
         </div>
 
         <div id="print-area">
-            <!-- LAYOUT 1: THERMAL BOARDING PASS -->
             <div id="layout-view-thermal" class="layout-thermal mx-auto hidden">
                 <div class="flex justify-between items-center mb-4">
                     <div class="font-black text-xl italic tracking-tighter">FLY USA</div>
@@ -196,7 +192,6 @@
                 </div>
             </div>
 
-            <!-- LAYOUT 2: MODERN CARD -->
             <div id="layout-view-modern" class="layout-modern mx-auto hidden">
                 <div class="bg-blue-600 p-4 text-white flex justify-between items-center">
                     <div>
@@ -246,7 +241,7 @@
         </button>
     </div>
 
-    <!-- Settings Modal -->
+    <!-- Settings & Modals -->
     <div id="settings-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-[100] px-4">
         <div class="bg-white p-8 rounded-2xl max-w-lg w-full shadow-2xl">
             <h3 class="text-2xl font-bold mb-4">Station Settings</h3>
@@ -269,7 +264,6 @@
         </div>
     </div>
 
-    <!-- Confirm Clear Modal -->
     <div id="clear-confirm-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-[110] px-4">
         <div class="bg-white p-6 rounded-2xl max-w-sm w-full shadow-2xl text-center">
             <div class="text-red-500 mb-4 flex justify-center">
@@ -285,7 +279,6 @@
     </div>
 
     <script>
-        // BIKE BANK v2.8 PROTOCOL: USER DETECTION
         function getActiveUser() {
             const urlParams = new URLSearchParams(window.location.search);
             let user = urlParams.get('user');
@@ -302,48 +295,30 @@
         let currentLayout = localStorage.getItem('flyusa_layout') || 'thermal';
         let qrInstances = [];
         let idleTimer;
-        const IDLE_TIME_LIMIT = 5000; // 5 seconds
+        const IDLE_TIME_LIMIT = 5000;
         const REDIRECT_URL = "https://rubiks13.github.io/bikes/";
-
-        // NEW BANK URL - STRICTLY UPDATED
         const BANK_BASE_URL = "https://rubiks13.github.io/bank/";
 
-        // IDLE REDIRECT LOGIC
         function resetIdleTimer() {
             clearTimeout(idleTimer);
             document.getElementById('idle-warning').classList.add('hidden');
-            
             idleTimer = setTimeout(() => {
                 const isPrinting = !document.getElementById('print-view').classList.contains('page-hidden');
                 const isSettingsOpen = !document.getElementById('settings-modal').classList.contains('hidden');
-                
-                if (!isPrinting && !isSettingsOpen) {
-                    window.location.href = REDIRECT_URL;
-                } else {
-                    resetIdleTimer();
-                }
+                if (!isPrinting && !isSettingsOpen) { window.location.href = REDIRECT_URL; } else { resetIdleTimer(); }
             }, IDLE_TIME_LIMIT);
-
             setTimeout(() => {
                const isPrinting = !document.getElementById('print-view').classList.contains('page-hidden');
-               if (window.location.href !== REDIRECT_URL && !isPrinting) {
-                   document.getElementById('idle-warning').classList.remove('hidden');
-               }
+               if (window.location.href !== REDIRECT_URL && !isPrinting) { document.getElementById('idle-warning').classList.remove('hidden'); }
             }, IDLE_TIME_LIMIT - 1500);
         }
 
         window.addEventListener('mousemove', resetIdleTimer);
         window.addEventListener('keydown', resetIdleTimer);
-        window.addEventListener('touchstart', resetIdleTimer);
-        window.addEventListener('mousedown', resetIdleTimer);
 
-        // BANK TIME LOGIC
         function getBankTime() {
             let startTime = localStorage.getItem('sim_bank_start_real_time');
-            if (!startTime) {
-                startTime = Date.now();
-                localStorage.setItem('sim_bank_start_real_time', startTime);
-            }
+            if (!startTime) { startTime = Date.now(); localStorage.setItem('sim_bank_start_real_time', startTime); }
             const elapsedMins = (Date.now() - startTime) / 60000;
             const bankHour = Math.floor(elapsedMins % 24);
             const bankMinute = Math.floor((elapsedMins * 60) % 60);
@@ -354,9 +329,7 @@
         }
 
         function initQRs() {
-            document.querySelectorAll('.qr-target').forEach((el) => {
-                qrInstances.push(new QRCode(el, { width: 100, height: 100 }));
-            });
+            document.querySelectorAll('.qr-target').forEach((el) => { qrInstances.push(new QRCode(el, { width: 100, height: 100 })); });
         }
 
         function getFlightDb() {
@@ -366,12 +339,12 @@
 
         function saveFlightToDb(data) {
             const db = getFlightDb();
-            db[data.flight] = { name: data.name, from: data.from, to: data.to, date: data.date, gate: data.gate, seat: data.seat, time: data.time };
+            db[data.flight] = data;
             localStorage.setItem(`flyusa_flights_${activeUser}`, JSON.stringify(db));
             updateLogDisplay();
         }
 
-        // BIKE BANK v2.8: TRANSACTION PROCESSING (STRICT URL)
+        // NEW BRIDGE PROTOCOL: DEPOSIT LINK GENERATOR
         function handleJobCompletion(data) {
             const currentBankTime = getBankTime();
             document.querySelectorAll('.bank-time-target').forEach(el => el.textContent = currentBankTime);
@@ -379,30 +352,34 @@
             window.print();
             
             setTimeout(() => {
-                // Shared storage keys per protocol
+                const amount = 5.00;
+                const missionName = "Airplane Delivery";
+                const txid = Date.now();
+                
+                // Create the Deposit Link exactly as requested
+                const depositUrl = `${BANK_BASE_URL}?user=${activeUser}&deposit=${amount.toFixed(2)}&label=${encodeURIComponent(missionName)}&txid=${txid}`;
+                
+                // Update the visual link in the UI
+                const bankBtn = document.getElementById('bank-link');
+                bankBtn.href = depositUrl;
+                bankBtn.textContent = `Claim $${amount.toFixed(2)} at Bank →`;
+
+                // Handle local background processing as well
                 const balanceKey = `bank_${activeUser}_balance`;
                 const logsKey = `bank_${activeUser}_logs`;
-
                 let currentBal = parseFloat(localStorage.getItem(balanceKey)) || 0;
                 let logs = JSON.parse(localStorage.getItem(logsKey)) || [];
 
-                const income = 5.00;
-                localStorage.setItem(balanceKey, (currentBal + income).toFixed(2));
-
-                // Transaction object structure per protocol
-                logs.unshift({
-                    job: `Pilot: ${data.from} to ${data.to}`,
-                    amount: income,
-                    bankTime: currentBankTime
-                });
+                localStorage.setItem(balanceKey, (currentBal + amount).toFixed(2));
+                logs.unshift({ job: `Pilot: ${data.from} to ${data.to}`, amount: amount, bankTime: currentBankTime, txid: txid });
                 localStorage.setItem(logsKey, JSON.stringify(logs));
 
                 const alert = document.createElement('div');
-                alert.innerHTML = `💰 $5.00 sent to ${activeUser.toUpperCase()}'s Bank!`;
+                alert.innerHTML = `💰 $5.00 ready for ${activeUser.toUpperCase()}!`;
                 alert.style = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#2563eb; color:white; padding:15px 30px; border-radius:100px; font-weight:bold; z-index:10000; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);';
                 document.body.appendChild(alert);
-                
                 setTimeout(() => alert.remove(), 4000);
+
                 goHome();
             }, 500);
         }
@@ -416,38 +393,26 @@
 
         function clearHistory() { document.getElementById('clear-confirm-modal').classList.remove('hidden'); }
         function closeClearModal() { document.getElementById('clear-confirm-modal').classList.add('hidden'); }
-        function executeClearHistory() {
-            localStorage.removeItem(`flyusa_flights_${activeUser}`);
-            updateLogDisplay();
-            addLog("Flight history cleared.");
-            closeClearModal();
-        }
+        function executeClearHistory() { localStorage.removeItem(`flyusa_flights_${activeUser}`); updateLogDisplay(); closeClearModal(); }
 
         function updateLogDisplay() {
             const db = getFlightDb();
-            const count = Object.keys(db).length;
-            document.getElementById('stored-count').textContent = `${count} Flights Logged`;
+            document.getElementById('stored-count').textContent = `${Object.keys(db).length} Flights Logged`;
             const logs = document.getElementById('logs');
             logs.innerHTML = '';
-            const keys = Object.keys(db);
-            if (keys.length === 0) {
-                logs.innerHTML = '<p>> No current records.</p>';
-            } else {
-                keys.slice(-10).reverse().forEach(id => {
-                    const p = document.createElement('p');
-                    p.textContent = `> ${id}: ${db[id].from} ✈ ${db[id].to}`;
-                    logs.appendChild(p);
-                });
-            }
+            Object.keys(db).slice(-10).reverse().forEach(id => {
+                const p = document.createElement('p');
+                p.textContent = `> ${id}: ${db[id].from} ✈ ${db[id].to}`;
+                logs.appendChild(p);
+            });
+            if (Object.keys(db).length === 0) logs.innerHTML = '<p>> No current records.</p>';
         }
 
         function handleScan(value) {
             const db = getFlightDb();
             const cleanVal = value.trim().toUpperCase();
             if (db[cleanVal]) {
-                const oldFlight = db[cleanVal];
-                addLog(`Recognized ${cleanVal}. Generating return flight...`);
-                const nextRide = generateRandomRide(oldFlight.to, null, oldFlight.from, oldFlight.name);
+                const nextRide = generateRandomRide(db[cleanVal].to, null, db[cleanVal].from, db[cleanVal].name);
                 removeFlightFromDb(cleanVal);
                 document.getElementById('scanner-input').value = '';
                 populateTicket(nextRide);
@@ -455,18 +420,7 @@
             }
         }
 
-        function checkInputEnter(event) {
-            if (event.key === "Enter" && event.target.value.trim() === "") {
-                goToPrintPage();
-            }
-        }
-
-        function addLog(msg) {
-            const logs = document.getElementById('logs');
-            const p = document.createElement('p');
-            p.textContent = `> ${msg}`;
-            logs.prepend(p);
-        }
+        function checkInputEnter(event) { if (event.key === "Enter" && event.target.value.trim() === "") { goToPrintPage(); } }
 
         function goToPrintPage() {
             const data = generateRandomRide();
@@ -476,24 +430,14 @@
 
         function executePrintSequence(data) {
             saveFlightToDb(data);
-            
             document.getElementById('home-page').classList.replace('page-visible', 'page-hidden');
             document.getElementById('print-view').classList.replace('page-hidden', 'page-visible');
             document.body.style.backgroundColor = "white";
-
             document.getElementById('layout-view-thermal').classList.add('hidden');
             document.getElementById('layout-view-modern').classList.add('hidden');
-
-            document.getElementById('print-title').textContent = "Printing Boarding Pass...";
-            if (currentLayout === 'thermal') {
-                document.getElementById('layout-view-thermal').classList.remove('hidden');
-            } else {
-                document.getElementById('layout-view-modern').classList.remove('hidden');
-            }
-
-            setTimeout(() => {
-                handleJobCompletion(data);
-            }, 500);
+            if (currentLayout === 'thermal') document.getElementById('layout-view-thermal').classList.remove('hidden');
+            else document.getElementById('layout-view-modern').classList.remove('hidden');
+            setTimeout(() => { handleJobCompletion(data); }, 500);
         }
 
         function goHome() {
@@ -507,8 +451,7 @@
         function generateRandomRide(customFrom = null, customName = null, restrictedTo = null, restrictedName = null) {
             const pool = getAirports();
             let from = customFrom || pool[Math.floor(Math.random() * pool.length)];
-            let to;
-            do { to = pool[Math.floor(Math.random() * pool.length)]; } while (to === from || (restrictedTo && to === restrictedTo));
+            let to; do { to = pool[Math.floor(Math.random() * pool.length)]; } while (to === from || (restrictedTo && to === restrictedTo));
             let selectedName = customName || names[Math.floor(Math.random() * names.length)].toUpperCase();
             const now = new Date();
             return {
@@ -532,10 +475,7 @@
             document.querySelectorAll('.seat-target').forEach(el => el.textContent = data.seat);
             document.querySelectorAll('.time-target').forEach(el => el.textContent = data.time);
             document.querySelectorAll('.barcode-target').forEach(el => el.textContent = data.flight);
-            qrInstances.forEach(inst => {
-                inst.clear();
-                inst.makeCode(data.flight);
-            });
+            qrInstances.forEach(inst => { inst.clear(); inst.makeCode(data.flight); });
         }
 
         function setLayout(type) {
@@ -544,22 +484,14 @@
             document.getElementById('btn-layout-modern').className = type === 'modern' ? 'py-3 border-2 rounded-xl font-bold border-blue-600 bg-blue-50 text-blue-600' : 'py-3 border-2 rounded-xl font-bold border-gray-200 text-gray-400';
         }
 
-        window.addEventListener('keydown', (e) => { 
-            if (e.ctrlKey && e.key === 's') { e.preventDefault(); openSettings(); } 
-        });
-        
         function openSettings() {
-            const list = localStorage.getItem('flyusa_airports') || defaultAirports.join(", ");
-            document.getElementById('airport-list').value = list;
+            document.getElementById('airport-list').value = localStorage.getItem('flyusa_airports') || defaultAirports.join(", ");
             document.getElementById('settings-user-display').textContent = activeUser;
             setLayout(currentLayout);
             document.getElementById('settings-modal').classList.remove('hidden');
         }
 
-        function closeSettings() { 
-            document.getElementById('settings-modal').classList.add('hidden');
-            resetIdleTimer();
-        }
+        function closeSettings() { document.getElementById('settings-modal').classList.add('hidden'); resetIdleTimer(); }
 
         function saveSettings() {
             localStorage.setItem('flyusa_airports', document.getElementById('airport-list').value);
@@ -574,10 +506,8 @@
 
         window.onload = () => {
             document.getElementById('display-user').textContent = activeUser;
-            
-            // STRICTLY UPDATED BANK LINK UI
+            // Default link until first job is done
             document.getElementById('bank-link').href = `${BANK_BASE_URL}?user=${activeUser}`;
-            
             initQRs();
             updateLogDisplay();
             document.getElementById('scanner-input').focus();
