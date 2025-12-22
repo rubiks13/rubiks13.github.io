@@ -121,7 +121,7 @@
             text-align: center;
         }
 
-        /* Custom scrollbar for keys list */
+        /* Custom scrollbar */
         #keys-list::-webkit-scrollbar {
             width: 4px;
         }
@@ -151,7 +151,6 @@
                 <p class="text-blue-300 text-sm opacity-80">Link Directory & Scanner Hub</p>
             </div>
 
-            <!-- Dynamic Link Container (including Bank) -->
             <div id="links-container" class="space-y-4"></div>
 
             <div class="mt-12 pt-6 border-t border-white/10 flex justify-between items-center">
@@ -172,7 +171,6 @@
             </div>
 
             <div class="space-y-6">
-                <!-- Add Key Section -->
                 <div class="bg-white/5 p-4 rounded-2xl border border-white/10">
                     <h3 class="text-xs font-bold text-blue-400 uppercase mb-3 tracking-widest">Register New User</h3>
                     <div class="space-y-3">
@@ -184,18 +182,14 @@
                     </div>
                 </div>
 
-                <!-- Keys List -->
                 <div>
                     <h3 class="text-xs font-bold text-gray-400 mb-3 uppercase tracking-widest px-1">Registered Personnel</h3>
-                    <div id="keys-list" class="space-y-2 max-h-60 overflow-y-auto pr-2">
-                        <!-- Keys added here -->
-                    </div>
+                    <div id="keys-list" class="space-y-2 max-h-60 overflow-y-auto pr-2"></div>
                     <div id="no-keys-msg" class="text-center py-6 bg-white/5 rounded-2xl border border-dashed border-white/10 text-gray-500 italic text-sm hidden">
                         System in Recovery Mode (Key: 1)
                     </div>
                 </div>
 
-                <!-- Danger Zone -->
                 <div class="pt-4 border-t border-white/10">
                     <button onclick="clearAllKeys()" class="text-red-400 text-sm hover:underline flex items-center">
                         <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
@@ -206,7 +200,7 @@
         </div>
     </div>
 
-    <!-- Lock Screen Overlay -->
+    <!-- Lock Screen -->
     <div id="lock-screen">
         <div class="lock-icon">🔒</div>
         <h2 class="text-blue-400 text-2xl font-bold tracking-widest mb-2">LOCKED</h2>
@@ -216,9 +210,10 @@
 
     <script>
         const linkData = [
-            { name: "Airport", url: "https://rubiks13.github.io/airplane/", id: "airport" },
-            { name: "Door Dash", url: "https://rubiks13.github.io/food/", id: "doordash" },
-            { name: "Amazon", url: "https://rubiks13.github.io/amazon/", id: "amazon" }
+            { name: "Bank", base: "https://rubiks13.github.io/bank/", id: "bank", special: true },
+            { name: "Airport", base: "https://rubiks13.github.io/airplane/", id: "airport", special: false },
+            { name: "Door Dash", base: "https://rubiks13.github.io/food/", id: "doordash", special: false },
+            { name: "Amazon", base: "https://rubiks13.github.io/amazon/", id: "amazon", special: false }
         ];
 
         const windowRefs = {};
@@ -230,26 +225,20 @@
         let savedKeys = JSON.parse(localStorage.getItem('bike_occ_keys_v2')) || [];
         let currentUser = { name: "Guest", key: "" };
 
-        // --- Simulation Clock Logic ---
         function initSimulationClock() {
             function refreshTime() {
                 const start = localStorage.getItem('sim_bank_start_real_time') || Date.now();
                 if(!localStorage.getItem('sim_bank_start_real_time')) {
                     localStorage.setItem('sim_bank_start_real_time', start);
                 }
-                
                 const elapsedMinutes = (Date.now() - parseInt(start)) / 60000;
                 const hours = Math.floor(elapsedMinutes % 24);
                 const mins = Math.floor((elapsedMinutes * 60) % 60);
-                
                 const ampm = hours >= 12 ? 'PM' : 'AM';
                 const displayHour = hours % 12 || 12;
                 const displayMin = mins.toString().padStart(2, '0');
-                
                 const textElement = document.getElementById('sim-time-text');
-                if (textElement) {
-                    textElement.innerText = `${displayHour}:${displayMin} ${ampm}`;
-                }
+                if (textElement) textElement.innerText = `${displayHour}:${displayMin} ${ampm}`;
             }
             setInterval(refreshTime, 1000);
             refreshTime();
@@ -277,19 +266,15 @@
             const container = document.getElementById('links-container');
             container.innerHTML = '';
 
-            // Add the dynamic Bank link first
-            const bankUrl = `https://rubiks13.github.io/bank/?user=${encodeURIComponent(currentUser.name)}`;
-            const bankBtn = createLinkButton("Bank", bankUrl, "bank-link", true);
-            container.appendChild(bankBtn);
-
-            // Add standard links
             linkData.forEach(link => {
-                const btn = createLinkButton(link.name, link.url, link.id);
+                // Inform all systems by attaching ?user=Name to every URL
+                const personalizedUrl = `${link.base}?user=${encodeURIComponent(currentUser.name)}`;
+                const btn = createLinkButton(link.name, personalizedUrl, link.id, link.special);
                 container.appendChild(btn);
             });
         }
 
-        function createLinkButton(name, url, id, isSpecial = false) {
+        function createLinkButton(name, url, id, isSpecial) {
             const btn = document.createElement('button');
             const colorClass = isSpecial ? "bg-blue-600/20 border-blue-500/30 text-blue-200" : "bg-white/5 border-white/10 text-white";
             btn.className = `link-button block w-full py-4 px-6 rounded-xl border flex items-center justify-between group text-left ${colorClass}`;
@@ -331,12 +316,10 @@
             const nameInput = document.getElementById('new-name-input');
             const keyValue = keyInput.value.trim();
             const nameValue = nameInput.value.trim() || "Guest User";
-
             if (keyValue) {
                 savedKeys.push({ key: keyValue, name: nameValue });
                 localStorage.setItem('bike_occ_keys_v2', JSON.stringify(savedKeys));
-                keyInput.value = '';
-                nameInput.value = '';
+                keyInput.value = ''; nameInput.value = '';
                 updateKeysUI();
             }
         }
@@ -348,7 +331,7 @@
         }
 
         function clearAllKeys() {
-            if(confirm("Wipe all system data? This resets the master key to '1'.")) {
+            if(confirm("Wipe system memory?")) {
                 savedKeys = [];
                 localStorage.removeItem('bike_occ_keys_v2');
                 updateKeysUI();
@@ -365,8 +348,7 @@
         function unlockSystem(userObj) {
             currentUser = userObj;
             document.getElementById('greeting-text').innerText = `Hi, ${currentUser.name}`;
-            renderLinks(); // Refresh links to update the Bank URL
-            
+            renderLinks();
             lockScreen.classList.remove('active');
             passInput.value = "";
             passInput.blur();
@@ -375,7 +357,6 @@
         passInput.addEventListener('input', () => {
             const val = passInput.value;
             const match = savedKeys.find(entry => entry.key === val);
-            
             if (match) {
                 unlockSystem(match);
             } else if (savedKeys.length === 0 && val === "1") {
@@ -384,25 +365,11 @@
             }
         });
 
-        document.addEventListener('click', () => {
-            if (lockScreen.classList.contains('active')) passInput.focus();
-        });
-
-        window.addEventListener('focus', () => {
-            if (!lockScreen.classList.contains('active')) {
-                lockSystem();
-            }
-        });
-
+        document.addEventListener('click', () => { if (lockScreen.classList.contains('active')) passInput.focus(); });
+        window.addEventListener('focus', () => { if (!lockScreen.classList.contains('active')) lockSystem(); });
         window.addEventListener('keydown', (e) => {
-            if (e.ctrlKey && e.key === 's') {
-                e.preventDefault();
-                navigateTo('settings-page');
-                return;
-            }
-            if (lockScreen.classList.contains('active')) {
-                passInput.focus();
-            }
+            if (e.ctrlKey && e.key === 's') { e.preventDefault(); navigateTo('settings-page'); return; }
+            if (lockScreen.classList.contains('active')) passInput.focus();
         });
 
         window.addEventListener('DOMContentLoaded', () => {
