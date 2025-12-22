@@ -13,6 +13,7 @@
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
             min-height: 100vh;
             overflow: hidden;
+            color: white;
         }
 
         .glass-card {
@@ -84,24 +85,86 @@
             0%, 100% { transform: scale(1); opacity: 1; }
             50% { transform: scale(1.1); opacity: 0.7; }
         }
+
+        /* Page Transitions */
+        .page {
+            display: none;
+            width: 100%;
+            max-width: 28rem;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body class="flex items-center justify-center p-4">
 
-    <!-- Main Content -->
-    <div id="main-content" class="w-full max-w-md glass-card rounded-3xl p-8 text-white text-center shadow-2xl">
-        <div class="mb-8">
-            <div class="inline-block p-4 bg-blue-500 rounded-full mb-4 bike-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-3 11.5V14l-3-3 4-3 2 3h2"/></svg>
+    <!-- HOME PAGE -->
+    <div id="home-page" class="page active">
+        <div class="w-full glass-card rounded-3xl p-8 text-center shadow-2xl">
+            <div class="mb-8">
+                <div class="inline-block p-4 bg-blue-500 rounded-full mb-4 bike-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-3 11.5V14l-3-3 4-3 2 3h2"/></svg>
+                </div>
+                <h1 class="text-3xl font-bold tracking-tight mb-2">Bike Occupation</h1>
+                <p class="text-blue-300 text-sm opacity-80">Link Directory & Scanner Hub</p>
             </div>
-            <h1 class="text-3xl font-bold tracking-tight mb-2">Bike Occupation</h1>
-            <p class="text-blue-300 text-sm opacity-80">Link Directory & Scanner Hub</p>
+
+            <div id="links-container" class="space-y-4"></div>
+
+            <div class="mt-12 pt-6 border-t border-white/10 flex justify-between items-center">
+                <p class="text-xs text-gray-500">Press Ctrl+S for Settings</p>
+                <button onclick="navigateTo('settings-page')" class="text-xs text-blue-400 hover:underline">Open Settings</button>
+            </div>
         </div>
+    </div>
 
-        <div id="links-container" class="space-y-4"></div>
+    <!-- SETTINGS PAGE -->
+    <div id="settings-page" class="page">
+        <div class="w-full glass-card rounded-3xl p-8 shadow-2xl">
+            <div class="flex items-center mb-6">
+                <button onclick="navigateTo('home-page')" class="mr-4 p-2 hover:bg-white/10 rounded-full">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M19 12H5m7-7-7 7 7 7"/></svg>
+                </button>
+                <h2 class="text-2xl font-bold">Key Settings</h2>
+            </div>
 
-        <div class="mt-12 pt-6 border-t border-white/10 text-xs text-gray-500">
-            Press <span class="bg-white/10 px-1 rounded">Ctrl+S</span> for Key Settings
+            <div class="space-y-6">
+                <!-- Add Key Section -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-2">Add New Key / Pass</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="new-key-input" class="bg-white/10 border border-white/20 rounded-lg px-4 py-2 w-full focus:outline-none focus:border-blue-500" placeholder="Enter value...">
+                        <button onclick="addKey()" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg font-semibold transition">Add</button>
+                    </div>
+                </div>
+
+                <!-- Keys List -->
+                <div>
+                    <h3 class="text-sm font-medium text-gray-400 mb-3 uppercase tracking-wider">Registered Keys</h3>
+                    <div id="keys-list" class="space-y-2 max-h-48 overflow-y-auto pr-2">
+                        <!-- Keys added here -->
+                    </div>
+                    <div id="no-keys-msg" class="text-center py-4 text-gray-500 italic text-sm hidden">
+                        System in Recovery Mode (Key: 1)
+                    </div>
+                </div>
+
+                <!-- Danger Zone -->
+                <div class="pt-4 border-t border-white/10">
+                    <button onclick="clearAllKeys()" class="text-red-400 text-sm hover:underline flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        Delete All Keys
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -123,13 +186,20 @@
         const windowRefs = {};
         const lockScreen = document.getElementById('lock-screen');
         const passInput = document.getElementById('password-input');
+        const keysList = document.getElementById('keys-list');
+        const noKeysMsg = document.getElementById('no-keys-msg');
         
-        // Load multiple passwords (keys)
         let savedKeys = JSON.parse(localStorage.getItem('bike_occ_keys')) || [];
 
-        // Check for recovery state
-        if (savedKeys.length === 0) {
-            console.log("Recovery Mode: Default key '1' is active.");
+        function navigateTo(pageId) {
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            // Show target page
+            const target = document.getElementById(pageId);
+            if (target) {
+                target.classList.add('active');
+                if (pageId === 'settings-page') updateKeysUI();
+            }
         }
 
         function openLink(link) {
@@ -159,6 +229,52 @@
             });
         }
 
+        function updateKeysUI() {
+            keysList.innerHTML = '';
+            if (savedKeys.length === 0) {
+                noKeysMsg.classList.remove('hidden');
+            } else {
+                noKeysMsg.classList.add('hidden');
+                savedKeys.forEach((key, index) => {
+                    const item = document.createElement('div');
+                    item.className = "flex justify-between items-center bg-white/5 p-3 rounded-lg border border-white/10";
+                    item.innerHTML = `
+                        <span class="font-mono text-sm">${key}</span>
+                        <button onclick="removeKey(${index})" class="text-red-400 hover:text-red-300 p-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                    `;
+                    keysList.appendChild(item);
+                });
+            }
+        }
+
+        function addKey() {
+            const input = document.getElementById('new-key-input');
+            const val = input.value.trim();
+            if (val) {
+                savedKeys.push(val);
+                localStorage.setItem('bike_occ_keys', JSON.stringify(savedKeys));
+                input.value = '';
+                updateKeysUI();
+            }
+        }
+
+        function removeKey(index) {
+            savedKeys.splice(index, 1);
+            localStorage.setItem('bike_occ_keys', JSON.stringify(savedKeys));
+            updateKeysUI();
+        }
+
+        function clearAllKeys() {
+            if(confirm("Are you sure? This will reset the system to recovery key '1'.")) {
+                savedKeys = [];
+                localStorage.removeItem('bike_occ_keys');
+                updateKeysUI();
+                lockSystem();
+            }
+        }
+
         function lockSystem() {
             lockScreen.classList.add('active');
             passInput.value = "";
@@ -173,16 +289,11 @@
 
         passInput.addEventListener('input', () => {
             const val = passInput.value;
-            
             if (savedKeys.includes(val) || (savedKeys.length === 0 && val === "1")) {
-                if (savedKeys.length === 0 && val === "1") {
-                    unlockSystem();
-                    setTimeout(() => {
-                        alert("Recovery successful! Please set a permanent password now.");
-                        manageKeys('ADD');
-                    }, 500);
-                } else {
-                    unlockSystem();
+                const isRecovery = savedKeys.length === 0 && val === "1";
+                unlockSystem();
+                if (isRecovery) {
+                    navigateTo('settings-page');
                 }
             }
         });
@@ -197,37 +308,10 @@
             }
         });
 
-        function manageKeys(forcedAction = null) {
-            const action = forcedAction || prompt("Type 'ADD' to add a key, 'CLEAR' to delete all, or 'LIST' to see keys:");
-            if (!action) return;
-
-            const cmd = action.toUpperCase();
-            if (cmd === 'ADD') {
-                const newKey = prompt("Enter new key/barcode value:");
-                if (newKey) {
-                    savedKeys.push(newKey);
-                    localStorage.setItem('bike_occ_keys', JSON.stringify(savedKeys));
-                    alert("Key added successfully!");
-                }
-            } else if (cmd === 'CLEAR') {
-                if(confirm("Delete all keys? This will reset the system to recovery mode ('1').")) {
-                    savedKeys = [];
-                    localStorage.removeItem('bike_occ_keys');
-                    lockSystem();
-                }
-            } else if (cmd === 'LIST') {
-                if (savedKeys.length === 0) {
-                    alert("No keys saved. System is in recovery mode (Key: 1)");
-                } else {
-                    alert("Saved keys: " + savedKeys.join(", "));
-                }
-            }
-        }
-
         window.addEventListener('keydown', (e) => {
             if (e.ctrlKey && e.key === 's') {
                 e.preventDefault();
-                manageKeys();
+                navigateTo('settings-page');
                 return;
             }
             if (lockScreen.classList.contains('active')) {
