@@ -70,16 +70,21 @@
     <div class="max-w-6xl mx-auto grid lg:grid-cols-2 gap-6">
         <!-- Control Panel -->
         <div class="space-y-6 no-print">
-            <!-- User Info Card -->
-            <div id="userCard" class="bg-blue-600 text-white p-4 rounded-xl shadow-lg flex justify-between items-center">
-                <div>
-                    <p class="text-xs opacity-80 uppercase font-bold">Active Driver</p>
-                    <h2 id="activeUserName" class="text-xl font-bold">Loading...</h2>
+            <!-- User Info Card & Bank Link -->
+            <div id="userCard" class="bg-blue-600 text-white p-4 rounded-xl shadow-lg">
+                <div class="flex justify-between items-center mb-3">
+                    <div>
+                        <p class="text-xs opacity-80 uppercase font-bold">Active Driver</p>
+                        <h2 id="activeUserName" class="text-xl font-bold">Loading...</h2>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xs opacity-80 uppercase font-bold">Session Time</p>
+                        <p id="bankClock" class="text-lg font-mono">--:--</p>
+                    </div>
                 </div>
-                <div class="text-right">
-                    <p class="text-xs opacity-80 uppercase font-bold">Session Time</p>
-                    <p id="bankClock" class="text-lg font-mono">--:--</p>
-                </div>
+                <button id="goToBankBtn" class="w-full bg-white/20 hover:bg-white/30 border border-white/50 py-2 rounded-lg font-bold transition-all flex items-center justify-center gap-2">
+                    🏦 Go to Bank
+                </button>
             </div>
 
             <!-- Address Manager -->
@@ -128,6 +133,11 @@
         const currentUser = urlParams.get('user') || localStorage.getItem('active_directory_user') || 'Guest';
         document.getElementById('activeUserName').textContent = currentUser;
 
+        // --- BANK REDIRECT LOGIC ---
+        document.getElementById('goToBankBtn').onclick = () => {
+            window.location.href = `https://rubiks13.github.io/bikes/bank_app.html?user=${encodeURIComponent(currentUser)}`;
+        };
+
         // --- BANK TIME SYNC LOGIC ---
         function getBankTime() {
             let startTime = localStorage.getItem('sim_bank_start_real_time');
@@ -149,9 +159,9 @@
             document.getElementById('bankClock').textContent = getBankTime();
         }, 1000);
 
-        function showBankAlert() {
+        function showBankAlert(earnings) {
             const alertBox = document.createElement('div');
-            alertBox.innerHTML = `💰 $${(lastEarnings).toFixed(2)} sent to ${currentUser}'s Bank!`;
+            alertBox.innerHTML = `💰 $${(earnings).toFixed(2)} sent to ${currentUser}'s Bank!`;
             alertBox.style = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#2563eb; color:white; padding:15px 30px; border-radius:100px; font-weight:bold; z-index:10000; box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
             document.body.appendChild(alertBox);
             setTimeout(() => alertBox.remove(), 4000);
@@ -177,7 +187,6 @@
         window.onkeydown = resetTimer;   
 
         // --- APP LOGIC ---
-        let lastEarnings = 0;
         let savedAddresses = JSON.parse(localStorage.getItem(`fieldAddresses_${currentUser}`) || '[]');
 
         const itemPool = [
@@ -267,7 +276,7 @@
                 .sort((a, b) => a.seq - b.seq);
 
             const now = new Date().toLocaleString();
-            lastEarnings = stopCount * 5.00;
+            let sessionEarnings = stopCount * 5.00;
 
             selectedStops.forEach((stop, index) => {
                 const orderNum = generateOrderNumber();
@@ -321,7 +330,7 @@
 
             setTimeout(() => {
                 window.print();
-                showBankAlert();
+                showBankAlert(sessionEarnings);
                 resetTimer();
             }, 500);
         });
