@@ -40,9 +40,19 @@
             opacity: 0.3;
         }
 
-        /* Inactivity Progress Bar */
         #inactivity-bar {
             transition: width 5s linear;
+        }
+
+        .pulse-emerald {
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+            animation: pulse-emerald 2s infinite;
+        }
+
+        @keyframes pulse-emerald {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
         }
     </style>
 </head>
@@ -80,10 +90,9 @@
         <header class="flex justify-between items-center mb-8">
             <div>
                 <h1 class="text-2xl font-black tracking-tight uppercase">Rider Terminal</h1>
-                <p class="text-xs text-slate-500 font-bold uppercase tracking-widest" id="account-status">Loading session...</p>
+                <p class="text-xs text-slate-500 font-bold uppercase tracking-widest" id="account-status">Connecting to Storage...</p>
             </div>
             
-            <!-- Inactivity Timer UI -->
             <div class="flex flex-col items-end">
                 <span class="text-[9px] font-bold text-slate-500 uppercase mb-1">Inactivity Timeout</span>
                 <div class="w-32 h-1 bg-slate-800 rounded-full overflow-hidden">
@@ -96,10 +105,13 @@
             
             <!-- Balance Card -->
             <div class="lg:col-span-2 space-y-6">
-                <div class="gradient-border p-8 h-64 flex flex-col justify-center relative overflow-hidden">
+                <div class="gradient-border p-8 h-64 flex flex-col justify-center relative overflow-hidden shadow-2xl">
                     <div class="absolute right-0 top-0 w-64 h-64 bg-blue-600/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
-                    <p class="text-blue-400 text-xs font-bold uppercase tracking-[0.3em] mb-4">Current Earnings</p>
-                    <h2 id="balance-display" class="text-7xl font-black tracking-tighter tabular-nums">$0.00</h2>
+                    <p class="text-blue-400 text-xs font-bold uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 bg-blue-500 rounded-full animate-ping"></span>
+                        Live Wallet Balance
+                    </p>
+                    <h2 id="balance-display" class="text-7xl font-black tracking-tighter tabular-nums transition-all duration-500">$0.00</h2>
                     
                     <div class="mt-8 flex items-center gap-6">
                         <div class="flex flex-col">
@@ -108,22 +120,22 @@
                         </div>
                         <div class="h-8 w-[1px] bg-slate-800"></div>
                         <div class="flex flex-col">
-                            <span class="text-[10px] text-slate-500 font-bold uppercase">Status</span>
+                            <span class="text-[10px] text-slate-500 font-bold uppercase">Network</span>
                             <span class="text-emerald-400 font-bold text-lg flex items-center gap-2">
-                                <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-                                ACTIVE
+                                <span class="w-2.5 h-2.5 bg-emerald-500 rounded-full pulse-emerald"></span>
+                                SYNCED
                             </span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Info Box -->
-                <div class="glass-card p-6 rounded-2xl flex items-center gap-4 border-l-4 border-l-blue-500">
-                    <div class="bg-blue-500/20 p-3 rounded-xl text-blue-400">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                <div class="glass-card p-6 rounded-2xl flex items-center gap-4 border-l-4 border-l-emerald-500">
+                    <div class="bg-emerald-500/20 p-3 rounded-xl text-emerald-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                     </div>
                     <p class="text-sm text-slate-400 leading-relaxed">
-                        This terminal automatically receives funds from your <span class="text-white font-bold">Pilot</span> and <span class="text-white font-bold">Delivery</span> apps. Manual adjustments are disabled for security.
+                        <span class="text-emerald-400 font-bold">Automatic Syncing Enabled:</span> This page checks for incoming mission payments every second. No refresh needed.
                     </p>
                 </div>
             </div>
@@ -145,86 +157,84 @@
     <div id="create-overlay" class="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4">
         <div class="glass-card p-8 rounded-[2.5rem] max-w-sm w-full text-center shadow-2xl border-blue-500/30">
             <div class="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-blue-600/20 rotate-3">
-                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="16" x2="22" y1="11" y2="11"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
             </div>
-            <h2 class="text-2xl font-black mb-2 uppercase italic">Join the Fleet</h2>
-            <p id="welcome-msg" class="text-slate-400 text-sm mb-8">Setup your wallet to begin tracking mission revenue.</p>
+            <h2 class="text-2xl font-black mb-2 uppercase italic">Initialize Rider</h2>
+            <p id="welcome-msg" class="text-slate-400 text-sm mb-8">Ready to start earning?</p>
             
             <div id="manual-name-entry" class="mb-6 hidden">
-                <input type="text" id="new-rider-name" placeholder="RIDER CALLSIGN" class="w-full bg-slate-900 border border-slate-800 p-4 rounded-2xl text-center font-black uppercase tracking-widest focus:ring-2 focus:ring-blue-500 outline-none">
+                <input type="text" id="new-rider-name" placeholder="CALLSIGN" class="w-full bg-slate-900 border border-slate-800 p-4 rounded-2xl text-center font-black uppercase tracking-widest focus:ring-2 focus:ring-blue-500 outline-none">
             </div>
 
             <button onclick="createNewAccount()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-2xl transition shadow-lg shadow-blue-600/30 active:scale-95 uppercase tracking-widest">
-                Initialize Bank
+                Start Tracking
             </button>
         </div>
     </div>
 
     <script>
         let currentAccount = null;
+        let lastKnownDataString = "";
         const urlParams = new URLSearchParams(window.location.search);
         const urlUserName = urlParams.get('user');
         
         let inactivityTimer;
         const REDIRECT_URL = "https://rubiks13.github.io/bikes/";
 
-        // 1. Inactivity Logic
         function resetInactivityTimer() {
             clearTimeout(inactivityTimer);
             const bar = document.getElementById('inactivity-bar');
-            
-            // Reset bar
             bar.style.transition = 'none';
             bar.style.width = '0%';
-            
-            // Re-trigger animation and timer
             setTimeout(() => {
                 bar.style.transition = 'width 5s linear';
                 bar.style.width = '100%';
             }, 50);
-
-            inactivityTimer = setTimeout(() => {
-                window.location.href = REDIRECT_URL;
-            }, 5000);
+            inactivityTimer = setTimeout(() => { window.location.href = REDIRECT_URL; }, 5000);
         }
 
-        // Listen for user interaction
         ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(evt => {
             window.addEventListener(evt, resetInactivityTimer);
         });
 
-        // 2. Data Initialization
         window.onload = () => {
             resetInactivityTimer();
-            if (urlUserName) {
-                loadAccount(urlUserName);
-            } else {
-                const lastUser = localStorage.getItem('last_rider_session');
-                if (lastUser) {
-                    loadAccount(lastUser);
-                } else {
-                    showCreateView();
-                }
-            }
+            startLiveSync();
         };
 
-        function loadAccount(userName) {
-            const storageKey = `rider_bank_${userName.toLowerCase()}`;
-            const data = localStorage.getItem(storageKey);
+        // --- CRITICAL SYNC LOGIC ---
+        // This function runs every 1 second to see if the other apps added money
+        function startLiveSync() {
+            const sync = () => {
+                const userName = urlUserName || localStorage.getItem('last_rider_session');
+                if (!userName) {
+                    showCreateView();
+                    return;
+                }
 
-            if (data) {
-                currentAccount = JSON.parse(data);
-                localStorage.setItem('last_rider_session', userName);
-                renderDashboard();
-            } else {
-                showCreateView(userName);
-            }
+                const storageKey = `rider_bank_${userName.toLowerCase()}`;
+                const rawData = localStorage.getItem(storageKey);
+
+                // Only update the UI if the data actually changed
+                if (rawData && rawData !== lastKnownDataString) {
+                    lastKnownDataString = rawData;
+                    currentAccount = JSON.parse(rawData);
+                    localStorage.setItem('last_rider_session', userName);
+                    renderDashboard();
+                    document.getElementById('create-overlay').classList.add('hidden');
+                } else if (!rawData && !currentAccount) {
+                    showCreateView(userName);
+                }
+            };
+
+            sync(); // Run once immediately
+            setInterval(sync, 1000); // Then run every 1 second
         }
 
         function showCreateView(nameFromUrl = null) {
             document.getElementById('create-overlay').classList.remove('hidden');
             if (nameFromUrl) {
-                document.getElementById('welcome-msg').innerText = `Registering new fleet member: ${nameFromUrl}`;
+                document.getElementById('welcome-msg').innerText = `Rider "${nameFromUrl}" not found in local system.`;
             } else {
                 document.getElementById('manual-name-entry').classList.remove('hidden');
             }
@@ -234,9 +244,9 @@
             const nameToUse = urlUserName || document.getElementById('new-rider-name').value;
             if (!nameToUse || nameToUse.trim() === "") return;
 
-            currentAccount = {
+            const newAccount = {
                 ownerName: nameToUse,
-                balance: 100, // New pilot bonus
+                balance: 100,
                 transactions: [{
                     id: Date.now(),
                     type: 'deposit',
@@ -247,15 +257,23 @@
             };
 
             const storageKey = `rider_bank_${nameToUse.toLowerCase()}`;
-            localStorage.setItem(storageKey, JSON.stringify(currentAccount));
+            localStorage.setItem(storageKey, JSON.stringify(newAccount));
             localStorage.setItem('last_rider_session', nameToUse);
-            
-            document.getElementById('create-overlay').classList.add('hidden');
-            renderDashboard();
+            // The LiveSync will pick this up on the next tick
         }
 
         function renderDashboard() {
-            document.getElementById('balance-display').innerText = `$${currentAccount.balance.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            const balanceEl = document.getElementById('balance-display');
+            const oldBalance = balanceEl.innerText;
+            const newBalance = `$${currentAccount.balance.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            
+            // Visual feedback if money changed
+            if (oldBalance !== "$0.00" && oldBalance !== newBalance) {
+                balanceEl.classList.add('text-emerald-400', 'scale-110');
+                setTimeout(() => balanceEl.classList.remove('text-emerald-400', 'scale-110'), 1000);
+            }
+
+            balanceEl.innerText = newBalance;
             document.getElementById('owner-display').innerText = currentAccount.ownerName;
             document.getElementById('account-status').innerText = `SESSION: ${currentAccount.ownerName.toUpperCase()}_LOGGED_IN`;
 
@@ -264,7 +282,7 @@
 
             [...currentAccount.transactions].reverse().forEach(tx => {
                 const item = document.createElement('div');
-                item.className = "p-4 mb-2 rounded-2xl bg-slate-900/50 border border-slate-800/50 flex items-center justify-between";
+                item.className = "p-4 mb-2 rounded-2xl bg-slate-900/50 border border-slate-800/50 flex items-center justify-between animate-slide-up";
                 
                 const isDep = tx.type === 'deposit';
                 item.innerHTML = `
@@ -278,7 +296,7 @@
                         </div>
                     </div>
                     <span class="text-sm font-black tabular-nums ${isDep ? 'text-emerald-400' : 'text-rose-400'}">
-                        ${isDep ? '+' : '-'}$${tx.amount}
+                        ${isDep ? '+' : '-'}$${tx.amount.toLocaleString()}
                     </span>
                 `;
                 list.appendChild(item);
