@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Amazon 80mm Route Generator</title>
+    <title>Amazon 80mm Route Generator - Bike Bank v2.7</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <style>
@@ -70,6 +70,19 @@
     <div class="max-w-6xl mx-auto grid lg:grid-cols-2 gap-6">
         <!-- Control Panel -->
         <div class="space-y-6 no-print">
+            <!-- User Info Card -->
+            <div id="userCard" class="bg-blue-600 text-white p-4 rounded-xl shadow-lg flex justify-between items-center">
+                <div>
+                    <p class="text-xs opacity-80 uppercase font-bold">Active Driver</p>
+                    <h2 id="activeUserName" class="text-xl font-bold">Loading...</h2>
+                </div>
+                <div class="text-right">
+                    <p class="text-xs opacity-80 uppercase font-bold">Session Time</p>
+                    <p id="bankClock" class="text-lg font-mono">--:--</p>
+                </div>
+            </div>
+
+            <!-- Address Manager -->
             <div class="bg-white p-6 rounded-xl shadow-lg">
                 <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
                     <span class="bg-orange-500 text-white p-1 rounded">📍</span> Field Address Book
@@ -82,11 +95,12 @@
                 <div id="addressList" class="space-y-2 max-h-48 overflow-y-auto border-t pt-2"></div>
             </div>
 
+            <!-- Route Controls -->
             <div class="bg-white p-6 rounded-xl shadow-lg">
                 <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
                     <span class="bg-blue-500 text-white p-1 rounded">🚲</span> Delivery Route
                 </h2>
-                <p class="text-sm text-gray-600 mb-4">Generates an optimized route. Each delivery sends $5.00 to your synced bank clock!</p>
+                <p class="text-sm text-gray-600 mb-4">Each delivery stop adds $5.00 to your personal bike bank account.</p>
                 <button id="generateBtn" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-lg transition-colors shadow-md">
                     Generate Optimized Route & Print
                 </button>
@@ -109,6 +123,11 @@
     </div>
 
     <script>
+        // --- v2.7 SYSTEM IDENTITY & USER HAND-OFF ---
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentUser = urlParams.get('user') || localStorage.getItem('active_directory_user') || 'Guest';
+        document.getElementById('activeUserName').textContent = currentUser;
+
         // --- BANK TIME SYNC LOGIC ---
         function getBankTime() {
             let startTime = localStorage.getItem('sim_bank_start_real_time');
@@ -125,9 +144,14 @@
             return `${displayHour}:${displayMin} ${ampm}`;
         }
 
+        // Live clock update
+        setInterval(() => {
+            document.getElementById('bankClock').textContent = getBankTime();
+        }, 1000);
+
         function showBankAlert() {
             const alertBox = document.createElement('div');
-            alertBox.innerHTML = '💰 Earnings sent to Bank!';
+            alertBox.innerHTML = `💰 $${(lastEarnings).toFixed(2)} sent to ${currentUser}'s Bank!`;
             alertBox.style = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#2563eb; color:white; padding:15px 30px; border-radius:100px; font-weight:bold; z-index:10000; box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
             document.body.appendChild(alertBox);
             setTimeout(() => alertBox.remove(), 4000);
@@ -153,7 +177,8 @@
         window.onkeydown = resetTimer;   
 
         // --- APP LOGIC ---
-        let savedAddresses = JSON.parse(localStorage.getItem('fieldAddresses') || '[]');
+        let lastEarnings = 0;
+        let savedAddresses = JSON.parse(localStorage.getItem(`fieldAddresses_${currentUser}`) || '[]');
 
         const itemPool = [
             "Reusable Water Bottle", "AA Alkaline Batteries", "USB-C Charging Cable",
@@ -169,7 +194,7 @@
             if (name) {
                 savedAddresses.push({ id: Date.now(), name, seq });
                 savedAddresses.sort((a, b) => a.seq - b.seq);
-                localStorage.setItem('fieldAddresses', JSON.stringify(savedAddresses));
+                localStorage.setItem(`fieldAddresses_${currentUser}`, JSON.stringify(savedAddresses));
                 renderAddressList();
                 document.getElementById('newAddressName').value = '';
                 document.getElementById('addressSequence').value = '';
@@ -179,14 +204,14 @@
 
         function deleteAddress(id) {
             savedAddresses = savedAddresses.filter(a => a.id !== id);
-            localStorage.setItem('fieldAddresses', JSON.stringify(savedAddresses));
+            localStorage.setItem(`fieldAddresses_${currentUser}`, JSON.stringify(savedAddresses));
             renderAddressList();
             resetTimer();
         }
 
         function renderAddressList() {
             const container = document.getElementById('addressList');
-            container.innerHTML = savedAddresses.length ? '' : '<p class="text-gray-400 text-sm italic">No addresses saved yet.</p>';
+            container.innerHTML = savedAddresses.length ? '' : '<p class="text-gray-400 text-sm italic">No addresses saved yet for this driver.</p>';
             savedAddresses.forEach(addr => {
                 const div = document.createElement('div');
                 div.className = "flex justify-between items-center bg-gray-50 p-2 rounded text-sm border";
@@ -205,21 +230,23 @@
             return shuffled.slice(0, count).map(item => `1x ${item}`);
         }
 
+        // v2.7 MANDATORY DATA STORAGE LOGIC
         function processPayment(stopName) {
-            let currentBal = parseFloat(localStorage.getItem('sim_bank_balance')) || 0;
-            let logs = JSON.parse(localStorage.getItem('sim_bank_logs')) || [];
+            const balanceKey = `bank_${currentUser}_balance`;
+            const logsKey = `bank_${currentUser}_logs`;
+
+            let currentBal = parseFloat(localStorage.getItem(balanceKey)) || 0;
+            let logs = JSON.parse(localStorage.getItem(logsKey)) || [];
             
-            localStorage.setItem('sim_bank_balance', (currentBal + 5.00).toFixed(2));
+            localStorage.setItem(balanceKey, (currentBal + 5.00).toFixed(2));
             
             logs.unshift({
-                type: 'Income',
-                amount: 5.00,
                 job: `Amazon Delivery: ${stopName}`,
-                bankTime: getBankTime(), // FIXES THE N/A ISSUE
-                date: new Date().toLocaleTimeString()
+                amount: 5.00,
+                bankTime: getBankTime()
             });
             
-            localStorage.setItem('sim_bank_logs', JSON.stringify(logs));
+            localStorage.setItem(logsKey, JSON.stringify(logs));
         }
 
         document.getElementById('generateBtn').addEventListener('click', () => {
@@ -240,12 +267,13 @@
                 .sort((a, b) => a.seq - b.seq);
 
             const now = new Date().toLocaleString();
+            lastEarnings = stopCount * 5.00;
 
             selectedStops.forEach((stop, index) => {
                 const orderNum = generateOrderNumber();
                 const items = generateItems();
                 
-                // Process the bank payment with the new time logic
+                // Process payment per v2.7 protocol
                 processPayment(stop.name);
 
                 const section = document.createElement('div');
@@ -276,7 +304,7 @@
                     <div class="divider"></div>
                     <div class="mt-4 flex flex-col items-center">
                         <svg id="${barcodeId}" class="barcode-svg"></svg>
-                        <p class="receipt-text mt-2" style="font-size: 8px;">TRACKING: FIELD-DEL-ID-${stop.seq}</p>
+                        <p class="receipt-text mt-2" style="font-size: 8px;">TRACKING: ${currentUser.toUpperCase()}-DEL-${stop.seq}</p>
                     </div>
                 `;
                 
@@ -291,7 +319,6 @@
                 });
             });
 
-            // Handle printing and visual confirmation
             setTimeout(() => {
                 window.print();
                 showBankAlert();
