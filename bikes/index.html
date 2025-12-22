@@ -102,9 +102,33 @@
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
+
+        /* Sim Clock Specific Styles */
+        #sim-clock-display {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(8px);
+            color: #60a5fa;
+            padding: 8px 16px;
+            border-radius: 12px;
+            font-family: monospace;
+            font-weight: bold;
+            border: 1px solid rgba(51, 65, 85, 0.5);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            z-index: 50; /* Below lock screen, above content */
+            text-align: center;
+        }
     </style>
 </head>
 <body class="flex items-center justify-center p-4">
+
+    <!-- Simulation Clock UI -->
+    <div id="sim-clock-display">
+        <div style="font-size: 9px; color: #94a3b8; margin-bottom: 2px;">BANK TIME</div>
+        <div id="sim-time-text" style="font-size: 18px;">12:00 AM</div>
+    </div>
 
     <!-- HOME PAGE -->
     <div id="home-page" class="page active">
@@ -191,10 +215,33 @@
         
         let savedKeys = JSON.parse(localStorage.getItem('bike_occ_keys')) || [];
 
+        // --- Simulation Clock Logic ---
+        function initSimulationClock() {
+            function refreshTime() {
+                const start = localStorage.getItem('sim_bank_start_real_time') || Date.now();
+                if(!localStorage.getItem('sim_bank_start_real_time')) {
+                    localStorage.setItem('sim_bank_start_real_time', start);
+                }
+                
+                const elapsedMinutes = (Date.now() - parseInt(start)) / 60000;
+                const hours = Math.floor(elapsedMinutes % 24);
+                const mins = Math.floor((elapsedMinutes * 60) % 60);
+                
+                const ampm = hours >= 12 ? 'PM' : 'AM';
+                const displayHour = hours % 12 || 12;
+                const displayMin = mins.toString().padStart(2, '0');
+                
+                const textElement = document.getElementById('sim-time-text');
+                if (textElement) {
+                    textElement.innerText = `${displayHour}:${displayMin} ${ampm}`;
+                }
+            }
+            setInterval(refreshTime, 1000);
+            refreshTime();
+        }
+
         function navigateTo(pageId) {
-            // Hide all pages
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            // Show target page
             const target = document.getElementById(pageId);
             if (target) {
                 target.classList.add('active');
@@ -321,6 +368,7 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             renderLinks();
+            initSimulationClock();
             lockSystem();
         });
     </script>
