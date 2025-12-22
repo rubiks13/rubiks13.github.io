@@ -35,56 +35,14 @@
             body { overflow: auto; }
         }
 
-        .alert-overlay {
-            background: rgba(15, 23, 42, 0.95);
-            backdrop-filter: blur(12px);
-        }
-
         .time-display {
             font-family: 'JetBrains Mono', monospace;
             background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
             border: 1px solid #334155;
         }
-
-        /* Scan Animation */
-        .scanner-line {
-            height: 2px;
-            background: #3b82f6;
-            width: 100%;
-            position: absolute;
-            top: 0;
-            animation: scan 2s ease-in-out infinite;
-            box-shadow: 0 0 15px #3b82f6;
-        }
-
-        @keyframes scan {
-            0%, 100% { top: 0%; }
-            50% { top: 100%; }
-        }
-
-        /* Timeout Warning Style */
-        #timeoutWarning {
-            position: fixed;
-            top: 1rem;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 300;
-            background: #ef4444;
-            color: white;
-            padding: 0.5rem 1.5rem;
-            border-radius: 99px;
-            font-weight: 800;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-        }
     </style>
 </head>
 <body class="h-screen flex flex-col md:flex-row main-layout">
-
-    <!-- Inactivity Warning -->
-    <div id="timeoutWarning" class="hidden">Auto-Logout in 2s... Move Mouse!</div>
 
     <!-- LOGIN SCREEN (Restricted Access) -->
     <div id="loginScreen" class="fixed inset-0 z-[200] bg-slate-950 flex flex-col items-center justify-center p-6">
@@ -102,7 +60,7 @@
         </div>
     </div>
 
-    <!-- REGISTRATION SCREEN (Create Account) -->
+    <!-- REGISTRATION SCREEN -->
     <div id="registerScreen" class="fixed inset-0 z-[210] bg-slate-950 flex flex-col items-center justify-center p-6 hidden">
         <div class="max-w-md w-full bank-card p-10 text-center space-y-6">
             <div class="flex justify-center">
@@ -114,25 +72,8 @@
                 <h1 class="text-2xl font-black tracking-tight">New Account Detected</h1>
                 <p class="text-slate-400 text-sm">Hello, <span id="regUserName" class="text-blue-400 font-bold"></span>! You don't have a bank profile yet. Would you like to create one?</p>
             </div>
-            <div class="bg-slate-900/50 p-4 rounded-2xl border border-slate-800 text-left space-y-2">
-                <div class="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Starting Balance: $100.00</div>
-                <div class="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Personal Grocery Vault</div>
-                <div class="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Fuel Reserve System</div>
-            </div>
             <button onclick="createNewAccount()" class="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black text-lg transition-all shadow-xl shadow-blue-600/20">Create My Account</button>
             <button onclick="logout()" class="text-xs font-bold text-slate-500 uppercase tracking-widest hover:text-white transition-colors">Cancel Access</button>
-        </div>
-    </div>
-
-    <!-- Security Alert Modal -->
-    <div id="securityAlert" class="fixed inset-0 z-[100] alert-overlay flex items-center justify-center p-6 hidden">
-        <div class="bank-card max-w-md w-full p-8 border-t-4 border-t-red-500 shadow-2xl">
-            <div class="flex items-center gap-4 mb-4 text-red-500">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                <h2 class="text-xl font-black">Account Warning</h2>
-            </div>
-            <p id="alertReason" class="text-slate-400 text-sm mb-6 leading-relaxed"></p>
-            <button onclick="closeAlert()" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-2xl transition-all">Understood</button>
         </div>
     </div>
 
@@ -164,30 +105,22 @@
         </nav>
 
         <div class="mt-auto pt-6 border-t border-slate-800">
-            <div class="bg-slate-800 p-4 rounded-2xl mb-4">
-                <span class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Total Paid Out</span>
-                <div id="totalTaxDisplay" class="text-xl font-bold text-blue-400">$0.00</div>
-            </div>
-            <button onclick="logout()" class="w-full text-[10px] font-bold text-slate-600 hover:text-blue-400 uppercase py-2 transition-colors">Return to Directory</button>
+            <button onclick="logout()" class="w-full text-[10px] font-bold text-slate-600 hover:text-blue-400 uppercase py-2 transition-colors text-center">Return to Directory</button>
         </div>
     </aside>
 
-    <!-- Main Content Area -->
     <main class="flex-1 flex flex-col relative overflow-hidden">
         <header class="p-6 md:p-8 flex items-center justify-between">
             <div id="pageTitle" class="text-2xl font-black">Dashboard</div>
-            
             <div class="time-display flex items-center gap-4 px-5 py-2 rounded-2xl">
                 <div class="text-right">
-                    <span id="currentBankDay" class="text-[9px] font-black text-blue-400 uppercase tracking-widest block">Day 0</span>
+                    <span id="currentBankDay" class="text-[9px] font-black text-blue-400 uppercase tracking-widest block text-right">Day 0</span>
                     <span id="headerBankTime" class="text-lg font-bold text-white leading-tight">12:00 AM</span>
                 </div>
                 <div class="w-px h-8 bg-slate-700"></div>
                 <div class="text-right">
                     <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Account Holder</span>
-                    <span id="activeUserId" class="text-[10px] text-blue-500 uppercase font-bold flex items-center gap-1 justify-end">
-                        Unidentified
-                    </span>
+                    <span id="activeUserId" class="text-[10px] text-blue-500 uppercase font-bold">Unidentified</span>
                 </div>
             </div>
         </header>
@@ -198,76 +131,15 @@
                     <span class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 block">Current Balance</span>
                     <div id="balanceDisplay" class="text-6xl font-black text-white">$0.00</div>
                 </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="bank-card p-6 border-l-4 border-l-orange-500">
-                        <span class="text-[10px] font-bold text-slate-500 uppercase mb-2 block">Grocery Supply</span>
-                        <div id="groceryStatus" class="text-xl font-bold">Checking...</div>
-                    </div>
-                    <div class="bank-card p-6 border-l-4 border-l-purple-500">
-                        <span class="text-[10px] font-bold text-slate-500 uppercase mb-2 block">Gas Reserve</span>
-                        <div id="gasStatus" class="text-xl font-bold">Checking...</div>
-                    </div>
-                </div>
             </div>
 
             <div id="page-pay" class="hidden space-y-6">
-                <div id="taxCard" class="bank-card p-8 border-l-4 border-l-slate-700">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-black uppercase tracking-tighter text-slate-300">Mandatory Daily Tax (15%)</h3>
-                        <div class="flex items-center gap-2">
-                            <span class="text-[9px] text-slate-500 font-bold uppercase">Reset in:</span>
-                            <span id="timerDisplay" class="text-xs font-black text-blue-300 bg-blue-900/40 px-3 py-1 rounded-full">24:00</span>
-                        </div>
-                    </div>
-                    <div class="flex items-end gap-4">
-                        <div id="taxDisplay" class="text-4xl font-bold text-white">$0.00</div>
-                        <button onclick="payTaxes()" id="taxBtn" class="flex-1 bg-blue-600 text-white py-3 rounded-2xl font-bold hover:bg-blue-500 disabled:bg-slate-700 transition-all">Settle Tax</button>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="bank-card p-8 space-y-4">
-                        <h3 class="font-black text-orange-400 uppercase text-xs tracking-widest">Grocery Store</h3>
-                        <div class="grid grid-cols-2 gap-3">
-                            <button onclick="buySupplies('Grocery', 15, 1)" class="bg-slate-700 hover:bg-slate-600 p-4 rounded-2xl text-center">
-                                <div class="text-xs font-bold text-slate-400">1 Day</div>
-                                <div class="text-lg font-black">$15.00</div>
-                            </button>
-                            <button onclick="buySupplies('Grocery', 90, 7)" class="bg-orange-600 hover:bg-orange-500 p-4 rounded-2xl text-center">
-                                <div class="text-xs font-bold text-orange-200">1 Week</div>
-                                <div class="text-lg font-black">$90.00</div>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="bank-card p-8 space-y-4">
-                        <h3 class="font-black text-purple-400 uppercase text-xs tracking-widest">Gas Station</h3>
-                        <div class="grid grid-cols-2 gap-3">
-                            <button onclick="buySupplies('Gas', 20, 1)" class="bg-slate-700 hover:bg-slate-600 p-4 rounded-2xl text-center">
-                                <div class="text-xs font-bold text-slate-400">1 Day</div>
-                                <div class="text-lg font-black">$20.00</div>
-                            </button>
-                            <button onclick="buySupplies('Gas', 120, 7)" class="bg-purple-600 hover:bg-purple-500 p-4 rounded-2xl text-center">
-                                <div class="text-xs font-bold text-purple-200">1 Week</div>
-                                <div class="text-lg font-black">$120.00</div>
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <div class="p-10 text-center text-slate-500 italic border-2 border-dashed border-slate-800 rounded-3xl">Payment systems coming soon.</div>
             </div>
 
             <div id="page-logs" class="hidden">
-                <div class="bank-card overflow-hidden">
-                    <table class="w-full text-left">
-                        <thead class="bg-slate-800/80 text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                            <tr>
-                                <th class="px-6 py-4">Transaction</th>
-                                <th class="px-6 py-4">Time</th>
-                                <th class="px-6 py-4 text-right">Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody id="logList" class="divide-y divide-slate-700/50"></tbody>
-                    </table>
+                <div id="logList" class="space-y-4">
+                    <!-- Logs will load here -->
                 </div>
             </div>
         </div>
@@ -279,63 +151,39 @@
 
     <script>
         let currentUser = null;
-        const START_BALANCE = 100.00;
-        
-        // --- INACTIVITY TIMER LOGIC ---
-        let idleTime = 0;
-        const IDLE_LIMIT = 5; // 5 seconds
 
-        function resetTimer() {
-            idleTime = 0;
-            document.getElementById('timeoutWarning').classList.add('hidden');
+        // BIKE TIME SYNC LOGIC
+        // Fetches time from the global 'bike_network_time' key shared by the directory
+        function syncBikeTime() {
+            const savedTime = localStorage.getItem('bike_network_time') || "12:00 AM";
+            const savedDay = localStorage.getItem('bike_network_day') || "0";
+            
+            document.getElementById('headerBankTime').innerText = savedTime;
+            document.getElementById('currentBankDay').innerText = `Day ${savedDay}`;
         }
 
-        // Check for user activity
-        window.onload = function() {
-            document.onmousemove = resetTimer;
-            document.onkeypress = resetTimer;
-            document.onclick = resetTimer;
-            document.ontouchstart = resetTimer;
+        // Run time sync every second
+        setInterval(syncBikeTime, 1000);
 
-            // Timer check loop
-            setInterval(function() {
-                idleTime++;
-                
-                // Show warning when 2 seconds left
-                if (idleTime >= IDLE_LIMIT - 2) {
-                    const warn = document.getElementById('timeoutWarning');
-                    warn.classList.remove('hidden');
-                    warn.innerText = `Auto-Logout in ${IDLE_LIMIT - idleTime}s... Move Mouse!`;
-                }
-
-                if (idleTime >= IDLE_LIMIT) {
-                    logout();
-                }
-            }, 1000);
-        };
-
-        const getKeys = (user) => ({
-            REGISTERED: `bank_${user}_registered`,
-            BAL: `bank_${user}_balance`,
-            LOGS: `bank_${user}_logs`,
-            TAX_TOTAL: `bank_${user}_taxes_paid`,
-            LAST_TAX_DAY: `bank_${user}_last_tax_day`,
-            LAST_TAX_TIME: `bank_${user}_last_tax_realtime`,
-            START: 'bank_system_start_time',
-            GROCERY_EXP: `bank_${user}_grocery_expiry`,
-            GAS_EXP: `bank_${user}_gas_expiry`
-        });
+        function getKeys(user) {
+            return {
+                REGISTERED: `bank_${user}_registered`,
+                BAL: `bank_${user}_balance`,
+                LOGS: `bank_${user}_logs`
+            };
+        }
 
         function checkUrlLogin() {
             const params = new URLSearchParams(window.location.search);
             const user = params.get('user');
             
-            if (user) {
+            if (user && user.toLowerCase() !== 'guest') {
                 currentUser = user;
                 document.getElementById('loginScreen').classList.add('hidden');
                 const k = getKeys(user);
                 if (!localStorage.getItem(k.REGISTERED)) {
-                    showRegistration(user);
+                    document.getElementById('regUserName').innerText = user;
+                    document.getElementById('registerScreen').classList.remove('hidden');
                 } else {
                     enterBank(user);
                 }
@@ -344,189 +192,60 @@
             }
         }
 
-        function showRegistration(user) {
-            document.getElementById('regUserName').innerText = user;
-            document.getElementById('registerScreen').classList.remove('hidden');
+        function logout() {
+            // Redirect to the main bank directory with the current user context
+            const target = currentUser ? `https://rubiks13.github.io/bank/?user=${currentUser}` : "https://rubiks13.github.io/bank/";
+            window.location.href = target;
         }
 
         function createNewAccount() {
             if(!currentUser) return;
             const k = getKeys(currentUser);
             localStorage.setItem(k.REGISTERED, "true");
-            localStorage.setItem(k.BAL, START_BALANCE.toFixed(2));
-            localStorage.setItem(k.LOGS, JSON.stringify([{
-                job: "Account Created",
-                amount: START_BALANCE,
-                bankTime: getBankTimeInfo().display
-            }]));
+            localStorage.setItem(k.BAL, "100.00");
+            
+            // Log entry uses the synced bike time
+            const currentTime = document.getElementById('headerBankTime').innerText;
+            localStorage.setItem(k.LOGS, JSON.stringify([{ job: "Account Created", amount: 100, bankTime: currentTime }]));
+            
             document.getElementById('registerScreen').classList.add('hidden');
             enterBank(currentUser);
-            showToast("Success! Account created.");
         }
 
         function enterBank(user) {
             document.getElementById('activeUserId').innerText = user;
             loadData();
-            runSecurityCheck();
-        }
-
-        function logout() {
-            window.location.href = "https://rubiks13.github.io/bikes/";
-        }
-
-        function switchPage(page) {
-            ['dash', 'pay', 'logs'].forEach(p => {
-                document.getElementById('page-' + p).classList.add('hidden');
-                document.getElementById('nav-' + p).classList.remove('active', 'text-white');
-                document.getElementById('nav-' + p).classList.add('text-slate-400');
-            });
-            document.getElementById('page-' + page).classList.remove('hidden');
-            document.getElementById('nav-' + page).classList.add('active', 'text-white');
-            document.getElementById('pageTitle').innerText = page === 'dash' ? 'Dashboard' : page === 'pay' ? 'Payments' : 'Statement';
-            loadData();
-        }
-
-        function getBankTimeInfo() {
-            let start = localStorage.getItem('bank_system_start_time');
-            if(!start) {
-                start = Date.now();
-                localStorage.setItem('bank_system_start_time', start);
-            }
-            const elapsed = (Date.now() - parseInt(start)) / 60000;
-            const hours = Math.floor(elapsed % 24);
-            const mins = Math.floor((elapsed * 60) % 60);
-            const ampm = hours >= 12 ? 'PM' : 'AM';
-            const displayHour = hours % 12 || 12;
-            const displayMin = mins.toString().padStart(2, '0');
-
-            return { 
-                day: Math.floor(elapsed / 24), 
-                display: `${displayHour}:${displayMin} ${ampm}`,
-                raw: elapsed
-            };
-        }
-
-        function runSecurityCheck() {
-            if(!currentUser) return;
-            const k = getKeys(currentUser);
-            const time = getBankTimeInfo();
-            const lastTaxDay = parseInt(localStorage.getItem(k.LAST_TAX_DAY)) ?? -1;
-            const groceryExp = parseFloat(localStorage.getItem(k.GROCERY_EXP)) || 0;
-            const gasExp = parseFloat(localStorage.getItem(k.GAS_EXP)) || 0;
-            
-            let issues = [];
-            if (!isNaN(lastTaxDay) && lastTaxDay < time.day) issues.push("Mandatory Daily Tax is OVERDUE.");
-            if (groceryExp > 0 && time.day >= groceryExp) issues.push("Grocery supplies have RUN OUT.");
-            if (gasExp > 0 && time.day >= gasExp) issues.push("Gas reserves are EMPTY.");
-
-            if (issues.length > 0) {
-                document.getElementById('alertReason').innerText = issues.join(" ");
-                document.getElementById('securityAlert').classList.remove('hidden');
-            }
-        }
-
-        function closeAlert() { document.getElementById('securityAlert').classList.add('hidden'); }
-
-        function update() {
-            const timeInfo = getBankTimeInfo();
-            document.getElementById('headerBankTime').innerText = timeInfo.display;
-            document.getElementById('currentBankDay').innerText = `Day ${timeInfo.day}`;
-
-            if(!currentUser) return;
-            const k = getKeys(currentUser);
-            if(!localStorage.getItem(k.REGISTERED)) return;
-
-            const lastDay = parseInt(localStorage.getItem(k.LAST_TAX_DAY));
-            const lastReal = parseInt(localStorage.getItem(k.LAST_TAX_TIME)) || 0;
-            const remaining = (24 * 60000) - (Date.now() - lastReal);
-
-            const taxBtn = document.getElementById('taxBtn');
-            const timerEl = document.getElementById('timerDisplay');
-
-            if(lastDay === timeInfo.day) {
-                taxBtn.disabled = true; taxBtn.innerText = "Settled Today"; timerEl.innerText = "DONE";
-            } else {
-                taxBtn.disabled = false; taxBtn.innerText = "Settle Tax";
-                if(remaining <= 0) { 
-                    timerEl.innerText = "OVERDUE"; 
-                    document.getElementById('taxCard').classList.add('border-red-500'); 
-                } else {
-                    const rm = Math.floor(remaining/60000), rs = Math.floor((remaining%60000)/1000);
-                    timerEl.innerText = `${rm}:${rs.toString().padStart(2, '0')}`;
-                    document.getElementById('taxCard').classList.remove('border-red-500');
-                }
-            }
-
-            const gExp = parseFloat(localStorage.getItem(k.GROCERY_EXP)) || 0;
-            const gasExp = parseFloat(localStorage.getItem(k.GAS_EXP)) || 0;
-            const gEl = document.getElementById('groceryStatus');
-            const gasEl = document.getElementById('gasStatus');
-
-            if(gExp > timeInfo.day) { gEl.innerText = "STOCKED"; gEl.className = "text-xl font-bold text-green-400"; }
-            else { gEl.innerText = "EMPTY"; gEl.className = "text-xl font-bold text-red-500"; }
-
-            if(gasExp > timeInfo.day) { gasEl.innerText = "RESERVED"; gasEl.className = "text-xl font-bold text-green-400"; }
-            else { gasEl.innerText = "EMPTY"; gasEl.className = "text-xl font-bold text-red-500"; }
+            syncBikeTime();
         }
 
         function loadData() {
             if(!currentUser) return;
             const k = getKeys(currentUser);
-            if(!localStorage.getItem(k.REGISTERED)) return;
-            
             const bal = parseFloat(localStorage.getItem(k.BAL)) || 0;
-            const logs = JSON.parse(localStorage.getItem(k.LOGS)) || [];
             document.getElementById('balanceDisplay').innerText = `$${bal.toFixed(2)}`;
-            document.getElementById('taxDisplay').innerText = `$${(bal * 0.15).toFixed(2)}`;
-            document.getElementById('totalTaxDisplay').innerText = `$${(parseFloat(localStorage.getItem(k.TAX_TOTAL)) || 0).toFixed(2)}`;
-
-            const list = document.getElementById('logList');
-            list.innerHTML = logs.length === 0 ? `<tr><td colspan="3" class="p-12 text-center text-slate-500 italic">No activity.</td></tr>` : 
-                logs.slice(0, 20).map(l => `<tr class="text-sm"><td class="px-6 py-4 font-bold text-white">${l.job}</td><td class="px-6 py-4 text-slate-400 font-mono">${l.bankTime}</td><td class="px-6 py-4 text-right font-black ${l.amount > 0 ? 'text-blue-400' : 'text-red-400'}">${parseFloat(l.amount).toFixed(2)}</td></tr>`).join('');
         }
 
-        function buySupplies(type, cost, days) {
-            const k = getKeys(currentUser);
-            const bal = parseFloat(localStorage.getItem(k.BAL)) || 0;
-            if (bal < cost) return showToast("Insufficient funds!");
-            const key = type === 'Grocery' ? k.GROCERY_EXP : k.GAS_EXP;
-            const currentExp = parseFloat(localStorage.getItem(key)) || getBankTimeInfo().day;
-            localStorage.setItem(key, Math.max(currentExp, getBankTimeInfo().day) + days);
-            processTransaction(cost, `${type} Purchase`);
-            showToast(`${type} supplies extended!`);
+        function switchPage(page) {
+            ['dash', 'pay', 'logs'].forEach(p => {
+                const el = document.getElementById('page-' + p);
+                const nav = document.getElementById('nav-' + p);
+                if(el) el.classList.add('hidden');
+                if(nav) {
+                    nav.classList.remove('active', 'text-white');
+                    nav.classList.add('text-slate-400');
+                }
+            });
+            const target = document.getElementById('page-' + page);
+            const targetNav = document.getElementById('nav-' + page);
+            if(target) target.classList.remove('hidden');
+            if(targetNav) {
+                targetNav.classList.add('active', 'text-white');
+                targetNav.classList.remove('text-slate-400');
+            }
+            document.getElementById('pageTitle').innerText = page.charAt(0).toUpperCase() + page.slice(1);
         }
 
-        function payTaxes() {
-            const k = getKeys(currentUser);
-            const bal = parseFloat(localStorage.getItem(k.BAL)) || 0;
-            const tax = bal * 0.15;
-            processTransaction(tax, 'IRS Payment');
-            localStorage.setItem(k.LAST_TAX_DAY, getBankTimeInfo().day);
-            localStorage.setItem(k.LAST_TAX_TIME, Date.now());
-            showToast("Taxes settled!");
-        }
-
-        function processTransaction(amount, jobName) {
-            const k = getKeys(currentUser);
-            const bal = parseFloat(localStorage.getItem(k.BAL)) || 0;
-            const logs = JSON.parse(localStorage.getItem(k.LOGS)) || [];
-            logs.unshift({ amount: -amount, job: jobName, bankTime: getBankTimeInfo().display });
-            localStorage.setItem(k.BAL, (bal - amount).toFixed(2));
-            localStorage.setItem(k.LOGS, JSON.stringify(logs));
-            localStorage.setItem(k.TAX_TOTAL, (parseFloat(localStorage.getItem(k.TAX_TOTAL)) + amount).toFixed(2));
-            loadData();
-        }
-
-        function showToast(msg) {
-            const t = document.getElementById('toast');
-            document.getElementById('toastMsg').innerText = msg;
-            t.classList.remove('translate-y-48');
-            setTimeout(() => t.classList.add('translate-y-48'), 3000);
-        }
-
-        setInterval(update, 1000);
         checkUrlLogin();
-        update();
     </script>
 </body>
 </html>
