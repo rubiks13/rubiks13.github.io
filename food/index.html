@@ -81,7 +81,6 @@
                     1. Delivery Address Manager (Randomly Picked)
                 </h2>
 
-                <!-- Input and Save -->
                 <div class="flex space-x-2 mb-4">
                     <input type="text" id="new-address-input" placeholder="Enter a new delivery address" class="flex-grow p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
                     <button onclick="saveAddress()" class="px-4 py-2 bg-indigo-500 text-white font-medium rounded-lg hover:bg-indigo-600 transition duration-150 shadow-md flex-shrink-0">
@@ -89,10 +88,7 @@
                     </button>
                 </div>
                 
-                <!-- Saved Addresses List -->
-                <div id="saved-addresses-list" class="space-y-2 mt-4 max-h-40 overflow-y-auto p-1 bg-white rounded-lg border border-gray-200">
-                    <!-- Addresses will be injected here -->
-                </div>
+                <div id="saved-addresses-list" class="space-y-2 mt-4 max-h-40 overflow-y-auto p-1 bg-white rounded-lg border border-gray-200"></div>
             </div>
 
             <!-- --- 2. Restaurant Manager Section --- -->
@@ -102,7 +98,6 @@
                     2. Custom Restaurant Manager
                 </h2>
 
-                <!-- Input and Save -->
                 <div class="flex space-x-2 mb-4">
                     <input type="text" id="new-restaurant-input" placeholder="Enter a custom restaurant name" class="flex-grow p-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500">
                     <button onclick="saveCustomRestaurant()" class="px-4 py-2 bg-purple-500 text-white font-medium rounded-lg hover:bg-purple-600 transition duration-150 shadow-md flex-shrink-0">
@@ -110,10 +105,7 @@
                     </button>
                 </div>
                 
-                <!-- Saved Restaurants List -->
-                <div id="custom-restaurants-list" class="space-y-2 mt-4 max-h-40 overflow-y-auto p-1 bg-white rounded-lg border border-gray-200">
-                    <!-- Custom restaurants will be injected here -->
-                </div>
+                <div id="custom-restaurants-list" class="space-y-2 mt-4 max-h-40 overflow-y-auto p-1 bg-white rounded-lg border border-gray-200"></div>
             </div>
 
             <!-- --- 3. Restaurant Selector Section --- -->
@@ -122,23 +114,36 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
                     3. Click to Order (Uses Saved Restaurants):
                 </h2>
-                <!-- Restaurant buttons will be injected here -->
             </div>
         </div>
     </div>
 
-    <!-- The receipt area - Hidden by default, only shown on print -->
+    <!-- The receipt area -->
     <div id="receipt-output" class="hidden">
-        <div id="receipt-content" class="receipt-container">
-            <!-- Receipt HTML will be injected here -->
-        </div>
+        <div id="receipt-content" class="receipt-container"></div>
     </div>
 
     <script>
-        // --- 4. Return to Home Logic ---
+        // --- Bank Time Synchronization ---
+        function getBankTime() {
+            let startTime = localStorage.getItem('sim_bank_start_real_time');
+            if (!startTime) {
+                startTime = Date.now();
+                localStorage.setItem('sim_bank_start_real_time', startTime);
+            }
+            const elapsedMins = (Date.now() - startTime) / 60000;
+            const bankHour = Math.floor(elapsedMins % 24);
+            const bankMinute = Math.floor((elapsedMins * 60) % 60);
+            const ampm = bankHour >= 12 ? 'PM' : 'AM';
+            const displayHour = bankHour % 12 || 12;
+            const displayMin = bankMinute.toString().padStart(2, '0');
+            return `${displayHour}:${displayMin} ${ampm}`;
+        }
+
+        // --- Inactivity Redirection ---
         let inactivityTimeout;
         const REDIRECT_URL = "https://rubiks13.github.io/bikes/";
-        const INACTIVITY_LIMIT = 5000; // 5 seconds
+        const INACTIVITY_LIMIT = 5000;
 
         function resetInactivityTimer() {
             clearTimeout(inactivityTimeout);
@@ -147,45 +152,28 @@
             }, INACTIVITY_LIMIT);
         }
 
-        // Event listeners for activity
-        window.addEventListener('mousemove', resetInactivityTimer);
-        window.addEventListener('keydown', resetInactivityTimer);
-        window.addEventListener('scroll', resetInactivityTimer);
-        window.addEventListener('mousedown', resetInactivityTimer);
-        window.addEventListener('touchstart', resetInactivityTimer);
-
-        // Start timer on load
+        ['mousemove', 'keydown', 'scroll', 'mousedown', 'touchstart'].forEach(evt => {
+            window.addEventListener(evt, resetInactivityTimer);
+        });
         resetInactivityTimer();
 
-        // Default (seed) restaurant names and items (used if custom lists are empty)
-        const defaultFastFoodNames = [
-            "Burger Blast", "Taco Titan", "Waffle Wizard", "Pizza Portal"
-        ];
-        
+        // --- Data & State ---
+        const ADDRESS_KEY = 'savedAddresses';
+        const RESTAURANT_KEY = 'customRestaurants';
+        let addresses = [];
+        let customRestaurants = [];
+
         const menuItems = [
             { name: "Super Burger Deluxe", price: 12.99 },
             { name: "Crispy Chicken Sandwich", price: 9.50 },
             { name: "Loaded Chili Cheese Fries", price: 6.75 },
             { name: "Milkshake (Vanilla)", price: 4.50 },
             { name: "Jumbo Soft Taco", price: 3.25 },
-            { name: "Large Soda", price: 2.50 },
-            { name: "Spicy Wing Basket", price: 11.25 },
-            { name: "Onion Rings", price: 5.00 },
-            { name: "Chocolate Chip Cookie", price: 1.50 },
-            { name: "Water Bottle", price: 1.00 },
+            { name: "Large Soda", price: 2.50 }
         ];
-
-        // Local Storage Keys
-        const ADDRESS_KEY = 'savedAddresses';
-        const RESTAURANT_KEY = 'customRestaurants';
-        
-        // State variables
-        let addresses = [];
-        let customRestaurants = [];
 
         // --- Helper Functions ---
         const getRandomElement = (arr) => arr[Math.floor(Math.random() * arr.length)];
-        const getRandomFloat = (min, max) => (Math.random() * (max - min) + min).toFixed(2);
         const getRandomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
         
         function showTemporaryMessage(message, className) {
@@ -196,186 +184,108 @@
             setTimeout(() => messageBox.classList.add('hidden'), 5000);
         }
 
-        // --- Local Storage Sync ---
+        function saveState(key, data) { localStorage.setItem(key, JSON.stringify(data)); }
+        function loadState(key) { return JSON.parse(localStorage.getItem(key)) || []; }
 
-        function saveStateToLocalStorage(key, data) {
-            try {
-                localStorage.setItem(key, JSON.stringify(data));
-            } catch (e) {
-                console.error(`Error saving ${key} to local storage:`, e);
-            }
-        }
-
-        function loadStateFromLocalStorage(key) {
-            try {
-                const stored = localStorage.getItem(key);
-                return stored ? JSON.parse(stored) : [];
-            } catch (e) {
-                return [];
-            }
-        }
-
-        // --- Address Management ---
-
+        // --- UI Logic ---
         function loadAddresses() {
-            addresses = loadStateFromLocalStorage(ADDRESS_KEY);
+            addresses = loadState(ADDRESS_KEY);
             if (addresses.length === 0) {
-                 addresses.push({
-                    id: Date.now().toString() + Math.random(), 
-                    text: "100 Fictional Rd, Test City, USA", 
-                    isEditing: false
-                 });
-                 saveStateToLocalStorage(ADDRESS_KEY, addresses);
+                 addresses.push({ id: Date.now().toString(), text: "100 Fictional Rd, Test City, USA", isEditing: false });
+                 saveState(ADDRESS_KEY, addresses);
             }
-            renderAddressOptions();
+            renderAddresses();
         }
 
-        window.saveAddress = function(editId) {
-            const input = document.getElementById(editId ? `address-input-${editId}` : 'new-address-input');
-            const addressText = input.value.trim();
-            if (!addressText) return;
-
-            if (editId) {
-                const index = addresses.findIndex(a => a.id === editId);
-                if (index > -1) {
-                    addresses[index].text = addressText;
-                    addresses[index].isEditing = false;
-                    saveStateToLocalStorage(ADDRESS_KEY, addresses);
-                }
-            } else {
-                addresses.push({ id: Date.now().toString(), text: addressText, isEditing: false });
-                saveStateToLocalStorage(ADDRESS_KEY, addresses);
-            }
-            if (!editId) input.value = '';
-            renderAddressOptions();
-        }
-
-        window.deleteAddress = function(id) {
-            addresses = addresses.filter(a => a.id !== id);
-            saveStateToLocalStorage(ADDRESS_KEY, addresses);
-            renderAddressOptions();
-        }
-
-        window.startEditAddress = function(id) {
-            addresses = addresses.map(a => ({ ...a, isEditing: a.id === id }));
-            renderAddressOptions();
-        }
-
-        window.cancelEditAddress = function() {
-             addresses = addresses.map(a => ({ ...a, isEditing: false }));
-             renderAddressOptions();
-        }
-
-        function renderAddressOptions() {
-            const container = document.getElementById('saved-addresses-list');
-            container.innerHTML = '';
+        function renderAddresses() {
+            const list = document.getElementById('saved-addresses-list');
+            list.innerHTML = '';
             addresses.forEach(addr => {
                 const div = document.createElement('div');
-                div.className = "flex items-center justify-between p-2 border-b border-gray-100 last:border-b-0";
-                if (addr.isEditing) {
-                    div.innerHTML = `<input type="text" id="address-input-${addr.id}" value="${addr.text}" class="flex-grow p-1 text-sm border rounded mr-2"><button onclick="saveAddress('${addr.id}')" class="px-2 py-1 bg-green-500 text-white text-xs rounded mr-1">Save</button><button onclick="cancelEditAddress()" class="px-2 py-1 bg-gray-400 text-white text-xs rounded">Cancel</button>`;
-                } else {
-                    div.innerHTML = `<span class="text-sm text-gray-800 truncate">${addr.text}</span><div class="flex space-x-1"><button onclick="startEditAddress('${addr.id}')" class="action-btn">Edit</button><button onclick="deleteAddress('${addr.id}')" class="action-btn">Del</button></div>`;
-                }
-                container.appendChild(div);
+                div.className = "flex items-center justify-between p-2 border-b";
+                div.innerHTML = addr.isEditing ? 
+                    `<input type="text" id="address-input-${addr.id}" value="${addr.text}" class="flex-grow p-1 text-sm border rounded mr-2"><button onclick="saveAddress('${addr.id}')" class="px-2 py-1 bg-green-500 text-white text-xs rounded">Save</button>` :
+                    `<span class="text-sm truncate">${addr.text}</span><div class="flex space-x-1"><button onclick="startEditAddress('${addr.id}')" class="action-btn">Edit</button><button onclick="deleteAddress('${addr.id}')" class="action-btn">Del</button></div>`;
+                list.appendChild(div);
             });
         }
 
-        // --- Restaurant Management ---
-
-        function loadCustomRestaurants() {
-            customRestaurants = loadStateFromLocalStorage(RESTAURANT_KEY);
-            if (customRestaurants.length === 0) {
-                 defaultFastFoodNames.forEach(name => {
-                    customRestaurants.push({ id: Date.now().toString() + Math.random(), name: name, isEditing: false });
-                 });
-                 saveStateToLocalStorage(RESTAURANT_KEY, customRestaurants);
-            }
-            renderCustomRestaurantOptions();
-            generateNameOptions();
-        }
-
-        window.saveCustomRestaurant = function(editId) {
-            const input = document.getElementById(editId ? `restaurant-input-${editId}` : 'new-restaurant-input');
-            const nameText = input.value.trim();
-            if (!nameText) return;
-
-            if (editId) {
-                const index = customRestaurants.findIndex(r => r.id === editId);
-                if (index > -1) {
-                    customRestaurants[index].name = nameText;
-                    customRestaurants[index].isEditing = false;
-                    saveStateToLocalStorage(RESTAURANT_KEY, customRestaurants);
-                }
+        window.saveAddress = function(id) {
+            const val = document.getElementById(id ? `address-input-${id}` : 'new-address-input').value.trim();
+            if (!val) return;
+            if (id) {
+                const idx = addresses.findIndex(a => a.id === id);
+                addresses[idx].text = val;
+                addresses[idx].isEditing = false;
             } else {
-                customRestaurants.push({ id: Date.now().toString(), name: nameText, isEditing: false });
-                saveStateToLocalStorage(RESTAURANT_KEY, customRestaurants);
+                addresses.push({ id: Date.now().toString(), text: val, isEditing: false });
+                document.getElementById('new-address-input').value = '';
             }
-            if (!editId) input.value = '';
-            renderCustomRestaurantOptions();
-            generateNameOptions();
+            saveState(ADDRESS_KEY, addresses);
+            renderAddresses();
+        };
+
+        window.deleteAddress = id => { addresses = addresses.filter(a => a.id !== id); saveState(ADDRESS_KEY, addresses); renderAddresses(); };
+        window.startEditAddress = id => { addresses = addresses.map(a => ({ ...a, isEditing: a.id === id })); renderAddresses(); };
+        window.cancelEditAddress = () => { addresses = addresses.map(a => ({ ...a, isEditing: false })); renderAddresses(); };
+
+        function loadRestaurants() {
+            customRestaurants = loadState(RESTAURANT_KEY);
+            if (customRestaurants.length === 0) {
+                ["Burger Blast", "Taco Titan", "Pizza Portal"].forEach(n => customRestaurants.push({ id: Math.random().toString(), name: n, isEditing: false }));
+                saveState(RESTAURANT_KEY, customRestaurants);
+            }
+            renderRestaurants();
+            renderButtons();
         }
 
-        window.deleteRestaurant = function(id) {
-            customRestaurants = customRestaurants.filter(r => r.id !== id);
-            saveStateToLocalStorage(RESTAURANT_KEY, customRestaurants);
-            renderCustomRestaurantOptions();
-            generateNameOptions();
-        }
-
-        window.startEditRestaurant = function(id) {
-            customRestaurants = customRestaurants.map(r => ({ ...r, isEditing: r.id === id }));
-            renderCustomRestaurantOptions();
-        }
-        
-        window.cancelEditRestaurant = function() {
-             customRestaurants = customRestaurants.map(r => ({ ...r, isEditing: false }));
-             renderCustomRestaurantOptions();
-        }
-
-        function renderCustomRestaurantOptions() {
-            const container = document.getElementById('custom-restaurants-list');
-            container.innerHTML = '';
+        function renderRestaurants() {
+            const list = document.getElementById('custom-restaurants-list');
+            list.innerHTML = '';
             customRestaurants.forEach(res => {
                 const div = document.createElement('div');
-                div.className = "flex items-center justify-between p-2 border-b border-gray-100 last:border-b-0";
-                if (res.isEditing) {
-                    div.innerHTML = `<input type="text" id="restaurant-input-${res.id}" value="${res.name}" class="flex-grow p-1 text-sm border rounded mr-2"><button onclick="saveCustomRestaurant('${res.id}')" class="px-2 py-1 bg-green-500 text-white text-xs rounded mr-1">Save</button><button onclick="cancelEditRestaurant()" class="px-2 py-1 bg-gray-400 text-white text-xs rounded">Cancel</button>`;
-                } else {
-                    div.innerHTML = `<span class="text-sm text-gray-800 truncate">${res.name}</span><div class="flex space-x-1"><button onclick="startEditRestaurant('${res.id}')" class="action-btn">Edit</button><button onclick="deleteRestaurant('${res.id}')" class="action-btn">Del</button></div>`;
-                }
-                container.appendChild(div);
+                div.className = "flex items-center justify-between p-2 border-b";
+                div.innerHTML = res.isEditing ? 
+                    `<input type="text" id="res-input-${res.id}" value="${res.name}" class="flex-grow p-1 text-sm border rounded mr-2"><button onclick="saveCustomRestaurant('${res.id}')" class="px-2 py-1 bg-green-500 text-white text-xs rounded">Save</button>` :
+                    `<span class="text-sm truncate">${res.name}</span><div class="flex space-x-1"><button onclick="startEditRestaurant('${res.id}')" class="action-btn">Edit</button><button onclick="deleteRestaurant('${res.id}')" class="action-btn">Del</button></div>`;
+                list.appendChild(div);
             });
         }
 
-        window.generateNameOptions = function() {
-            const container = document.getElementById('options-container');
-            let currentButton = container.lastElementChild;
-            while (currentButton && currentButton.tagName === 'BUTTON') {
-                currentButton.remove();
-                currentButton = container.lastElementChild;
+        window.saveCustomRestaurant = function(id) {
+            const val = document.getElementById(id ? `res-input-${id}` : 'new-restaurant-input').value.trim();
+            if (!val) return;
+            if (id) {
+                const idx = customRestaurants.findIndex(r => r.id === id);
+                customRestaurants[idx].name = val;
+                customRestaurants[idx].isEditing = false;
+            } else {
+                customRestaurants.push({ id: Date.now().toString(), name: val, isEditing: false });
+                document.getElementById('new-restaurant-input').value = '';
             }
-            customRestaurants.forEach(restaurant => {
-                const button = document.createElement('button');
-                button.textContent = restaurant.name;
-                button.className = "w-full py-4 px-4 text-white font-bold bg-indigo-500 rounded-lg shadow-lg hover:bg-indigo-600 active:translate-y-0.5 transition duration-150 transform tracking-wider text-lg";
-                button.onclick = () => handleSelection(restaurant.name);
-                container.appendChild(button);
+            saveState(RESTAURANT_KEY, customRestaurants);
+            renderRestaurants();
+            renderButtons();
+        };
+
+        window.deleteRestaurant = id => { customRestaurants = customRestaurants.filter(r => r.id !== id); saveState(RESTAURANT_KEY, customRestaurants); renderRestaurants(); renderButtons(); };
+        window.startEditRestaurant = id => { customRestaurants = customRestaurants.map(r => ({ ...r, isEditing: r.id === id })); renderRestaurants(); };
+
+        function renderButtons() {
+            const container = document.getElementById('options-container');
+            [...container.querySelectorAll('button')].forEach(b => b.remove());
+            customRestaurants.forEach(r => {
+                const btn = document.createElement('button');
+                btn.textContent = r.name;
+                btn.className = "w-full py-4 px-4 text-white font-bold bg-indigo-500 rounded-lg shadow-lg hover:bg-indigo-600 active:translate-y-0.5 transition duration-150 transform tracking-wider text-lg";
+                btn.onclick = () => handleSelection(r.name);
+                container.appendChild(btn);
             });
         }
 
         function generateReceipt(restaurantName, deliveryAddress) {
-            const taxRate = 0.0825;
-            let subtotal = 0;
-            const numItemTypes = getRandomInt(1, 3);
-            const menuCopy = [...menuItems]; 
-            for (let i = 0; i < numItemTypes; i++) {
-                const itemIndex = getRandomInt(0, menuCopy.length - 1);
-                const item = menuCopy.splice(itemIndex, 1)[0] || menuItems[i % menuItems.length]; 
-                const quantity = getRandomInt(1, 2);
-                subtotal += (item.price * quantity);
-            }
-            const total = subtotal + (subtotal * taxRate) + 2.50 + 3.00; // Simplified fees
+            const subtotal = getRandomInt(15, 45);
+            const total = (subtotal * 1.0825 + 5.50).toFixed(2);
             const divider = "----------------------------------------";
             return `
                 <div style="text-align: center; margin-bottom: 10px;"><span style="font-size: 14px; font-weight: bold;">U B E R &nbsp; E A T S</span></div>
@@ -386,50 +296,52 @@
                 <p>${divider}</p>
                 <div style="text-align: center; font-size: 16px; font-weight: bold; margin-bottom: 15px;">${restaurantName.toUpperCase()}</div>
                 <p>${divider}</p>
-                <div style="font-size: 13px; font-weight: bold; margin: 15px 0;"><div style="display: flex; justify-content: space-between;"><span>TOTAL CHARGED</span><span>$${total.toFixed(2)}</span></div></div>
+                <div style="font-size: 13px; font-weight: bold; margin: 15px 0;"><div style="display: flex; justify-content: space-between;"><span>TOTAL CHARGED</span><span>$${total}</span></div></div>
                 <p>${divider}</p>
                 <div style="text-align: center; font-size: 9px; margin-top: 10px;"><p>Order processed through Uber Eats Platform.</p></div>
             `;
         }
 
         /**
-         * Updated Job Completion logic with Bank Integration
+         * UPDATED Job Completion Logic with Bank Standard Time
          */
         function handleSelection(restaurantName) {
             if (addresses.length === 0) {
-                 showTemporaryMessage("Error: You must save at least one delivery address first.", 'text-red-800 border-red-400 bg-red-100');
-                 return;
+                showTemporaryMessage("Please add a delivery address first.", 'text-red-800 bg-red-100');
+                return;
             }
 
-            // 1. Bank Integration Logic
-            let currentBal = parseFloat(localStorage.getItem('sim_bank_balance')) || 0;
-            let logs = JSON.parse(localStorage.getItem('sim_bank_logs')) || [];
-            
-            localStorage.setItem('sim_bank_balance', (currentBal + 5.00).toFixed(2));
-            
-            logs.unshift({
-                type: 'Income',
-                amount: 5.00,
-                job: restaurantName, // Insert actual job name here
-                date: new Date().toLocaleString([], {hour: '2-digit', minute:'2-digit'})
-            });
-            
-            localStorage.setItem('sim_bank_logs', JSON.stringify(logs));
-
-            // 2. Original Receipt Generation Logic
-            const randomAddress = getRandomElement(addresses);
-            const receiptHTML = generateReceipt(restaurantName, randomAddress.text);
-            document.getElementById('receipt-content').innerHTML = receiptHTML;
-            
-            showTemporaryMessage(`Success! $5.00 added to your bank for the ${restaurantName} order.`, 'text-green-800 border-green-400 bg-green-100');
-            
+            // 1. Generate and Print Receipt
+            const addr = getRandomElement(addresses).text;
+            document.getElementById('receipt-content').innerHTML = generateReceipt(restaurantName, addr);
             window.print();
+
+            // 2. Transfer Logic (Delayed slightly for print dialog)
+            setTimeout(() => {
+                let currentBal = parseFloat(localStorage.getItem('sim_bank_balance')) || 0;
+                let logs = JSON.parse(localStorage.getItem('sim_bank_logs')) || [];
+
+                localStorage.setItem('sim_bank_balance', (currentBal + 5.00).toFixed(2));
+
+                logs.unshift({
+                    type: 'Income',
+                    amount: 5.00,
+                    job: restaurantName,
+                    bankTime: getBankTime(), // FIX: No more N/A!
+                    date: new Date().toLocaleTimeString()
+                });
+                localStorage.setItem('sim_bank_logs', JSON.stringify(logs));
+
+                // Show visual confirmation
+                const alert = document.createElement('div');
+                alert.innerHTML = '💰 $5.00 sent to Bank!';
+                alert.style = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#2563eb; color:white; padding:15px 30px; border-radius:100px; font-weight:bold; z-index:10000; box-shadow: 0 4px 15px rgba(0,0,0,0.2);';
+                document.body.appendChild(alert);
+                setTimeout(() => alert.remove(), 4000);
+            }, 500);
         }
 
-        window.onload = function() {
-            loadAddresses();
-            loadCustomRestaurants();
-        };
+        window.onload = () => { loadAddresses(); loadRestaurants(); };
     </script>
 </body>
 </html>
