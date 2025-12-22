@@ -3,159 +3,326 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cousin Bank | Midnight</title>
+    <title>Bike Occupation - Link Directory</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
         
-        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f1f5f9; }
-        .bank-card { background: #1e293b; border-radius: 32px; border: 1px solid #334155; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2); }
-        .digital-clock { font-family: 'JetBrains Mono', monospace; }
-        .tax-overdue { border-color: #ef4444; background: linear-gradient(to bottom, #1e293b, #2d1a1a); }
-        .custom-scroll::-webkit-scrollbar { width: 6px; }
-        .custom-scroll::-webkit-scrollbar-track { background: #1e293b; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            overflow: hidden;
+            color: white;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .link-button {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .link-button:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .bike-icon {
+            animation: wobble 3s ease-in-out infinite;
+        }
+
+        @keyframes wobble {
+            0%, 100% { transform: rotate(-5deg); }
+            50% { transform: rotate(5deg); }
+        }
+
+        /* Lock Screen Overlay */
+        #lock-screen {
+            position: fixed;
+            inset: 0;
+            background: black;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 1.5s ease-in-out, visibility 1.5s;
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        #lock-screen.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        #password-input {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+            border: none;
+            outline: none;
+        }
+
+        .lock-icon {
+            font-size: 5rem;
+            margin-bottom: 1.5rem;
+            color: #3b82f6;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.7; }
+        }
+
+        /* Page Transitions */
+        .page {
+            display: none;
+            width: 100%;
+            max-width: 28rem;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
-<body class="min-h-screen p-4 md:p-8">
+<body class="flex items-center justify-center p-4">
 
-    <div class="max-w-4xl mx-auto">
-        <!-- Header -->
-        <div class="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
-            <div class="flex items-center gap-4">
-                <div class="bg-blue-600 p-4 rounded-3xl shadow-lg shadow-blue-500/20 text-white">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <!-- HOME PAGE -->
+    <div id="home-page" class="page active">
+        <div class="w-full glass-card rounded-3xl p-8 text-center shadow-2xl">
+            <div class="mb-8">
+                <div class="inline-block p-4 bg-blue-500 rounded-full mb-4 bike-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-3 11.5V14l-3-3 4-3 2 3h2"/></svg>
                 </div>
-                <div>
-                    <h1 class="text-3xl font-black text-white">Cousin Bank</h1>
-                    <span class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">● Midnight System Active</span>
-                </div>
+                <h1 class="text-3xl font-bold tracking-tight mb-2">Bike Occupation</h1>
+                <p class="text-blue-300 text-sm opacity-80">Link Directory & Scanner Hub</p>
             </div>
 
-            <div class="bg-slate-800 text-white px-8 py-3 rounded-2xl border-b-4 border-blue-500 shadow-xl">
-                <span class="text-[10px] font-black text-blue-400 uppercase tracking-widest block text-center mb-1">Bank Time</span>
-                <div id="bankTime" class="digital-clock text-3xl font-bold">12:00 AM</div>
-            </div>
-        </div>
+            <div id="links-container" class="space-y-4"></div>
 
-        <!-- Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div class="bank-card p-6 border-b-4 border-b-blue-500">
-                <span class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Balance</span>
-                <div id="balanceDisplay" class="text-4xl font-black text-white">$0.00</div>
-            </div>
-
-            <div id="taxCard" class="bank-card p-6 border-b-4 border-b-slate-700">
-                <div class="flex justify-between items-start mb-1">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase">Daily Tax (15%)</span>
-                    <span id="timerDisplay" class="text-[10px] font-black text-blue-300 bg-blue-900/40 px-2 py-1 rounded">24:00</span>
-                </div>
-                <div id="taxDisplay" class="text-3xl font-bold text-slate-200 mb-3">$0.00</div>
-                <button onclick="payTaxes()" id="taxBtn" class="w-full bg-blue-600 text-white py-2 rounded-xl font-bold text-xs hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 transition-all">Settle Taxes</button>
-            </div>
-
-            <div class="bank-card p-6 border-b-4 border-b-slate-700">
-                <span class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Total Paid</span>
-                <div id="totalTaxDisplay" class="text-3xl font-bold text-blue-400">$0.00</div>
-            </div>
-        </div>
-
-        <!-- Logs -->
-        <div class="bank-card overflow-hidden">
-            <div class="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-800/30">
-                <h2 class="text-lg font-bold">Statement</h2>
-                <button onclick="resetBank()" class="text-[10px] font-bold text-slate-600 hover:text-red-400 uppercase">Wipe Data</button>
-            </div>
-            <div class="max-h-[400px] overflow-y-auto custom-scroll">
-                <table class="w-full text-left">
-                    <thead class="bg-slate-800/80 sticky top-0 text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                        <tr><th class="px-6 py-4">Source</th><th class="px-6 py-4">Bank Time</th><th class="px-6 py-4 text-right">Amount</th></tr>
-                    </thead>
-                    <tbody id="logList" class="divide-y divide-slate-700/50"></tbody>
-                </table>
+            <div class="mt-12 pt-6 border-t border-white/10 flex justify-between items-center">
+                <p class="text-xs text-gray-500">Press Ctrl+S for Settings</p>
+                <button onclick="navigateTo('settings-page')" class="text-xs text-blue-400 hover:underline">Open Settings</button>
             </div>
         </div>
     </div>
 
-    <!-- Toast -->
-    <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-8 py-5 rounded-[2rem] shadow-2xl transition-all duration-500 translate-y-48 flex items-center gap-4 z-50">
-        <div id="toastIcon" class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">✓</div>
-        <p id="toastMsg" class="font-bold text-sm"></p>
+    <!-- SETTINGS PAGE -->
+    <div id="settings-page" class="page">
+        <div class="w-full glass-card rounded-3xl p-8 shadow-2xl">
+            <div class="flex items-center mb-6">
+                <button onclick="navigateTo('home-page')" class="mr-4 p-2 hover:bg-white/10 rounded-full">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M19 12H5m7-7-7 7 7 7"/></svg>
+                </button>
+                <h2 class="text-2xl font-bold">Key Settings</h2>
+            </div>
+
+            <div class="space-y-6">
+                <!-- Add Key Section -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-2">Add New Key / Pass</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="new-key-input" class="bg-white/10 border border-white/20 rounded-lg px-4 py-2 w-full focus:outline-none focus:border-blue-500" placeholder="Enter value...">
+                        <button onclick="addKey()" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg font-semibold transition">Add</button>
+                    </div>
+                </div>
+
+                <!-- Keys List -->
+                <div>
+                    <h3 class="text-sm font-medium text-gray-400 mb-3 uppercase tracking-wider">Registered Keys</h3>
+                    <div id="keys-list" class="space-y-2 max-h-48 overflow-y-auto pr-2">
+                        <!-- Keys added here -->
+                    </div>
+                    <div id="no-keys-msg" class="text-center py-4 text-gray-500 italic text-sm hidden">
+                        System in Recovery Mode (Key: 1)
+                    </div>
+                </div>
+
+                <!-- Danger Zone -->
+                <div class="pt-4 border-t border-white/10">
+                    <button onclick="clearAllKeys()" class="text-red-400 text-sm hover:underline flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        Delete All Keys
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lock Screen Overlay -->
+    <div id="lock-screen">
+        <div class="lock-icon">🔒</div>
+        <h2 class="text-blue-400 text-2xl font-bold tracking-widest mb-2">LOCKED</h2>
+        <p class="text-gray-500 text-sm">Please scan your pass</p>
+        <input type="password" id="password-input" autocomplete="off" autofocus>
     </div>
 
     <script>
-        const KEYS = { BAL: 'sim_bank_balance', LOGS: 'sim_bank_logs', TAX: 'sim_bank_taxes_paid', LAST_DAY: 'sim_bank_last_tax_day', LAST_TIME: 'sim_bank_last_tax_realtime', START: 'sim_bank_start_real_time' };
+        const linkData = [
+            { name: "Airport", url: "https://rubiks13.github.io/airplane/", id: "airport" },
+            { name: "Door Dash", url: "https://rubiks13.github.io/food/", id: "doordash" },
+            { name: "Amazon", url: "https://rubiks13.github.io/amazon/", id: "amazon" }
+        ];
 
-        function getBankTimeInfo() {
-            let start = localStorage.getItem(KEYS.START) || Date.now();
-            if(!localStorage.getItem(KEYS.START)) localStorage.setItem(KEYS.START, start);
-            const elapsed = (Date.now() - start) / 60000;
-            const h = Math.floor(elapsed % 24), m = Math.floor((elapsed * 60) % 60);
-            const ampm = h >= 12 ? 'PM' : 'AM', dh = h % 12 || 12, dm = m.toString().padStart(2, '0');
-            return { day: Math.floor(elapsed / 24), display: `${dh}:${dm} ${ampm}` };
-        }
+        const windowRefs = {};
+        const lockScreen = document.getElementById('lock-screen');
+        const passInput = document.getElementById('password-input');
+        const keysList = document.getElementById('keys-list');
+        const noKeysMsg = document.getElementById('no-keys-msg');
+        
+        let savedKeys = JSON.parse(localStorage.getItem('bike_occ_keys')) || [];
 
-        function update() {
-            const time = getBankTimeInfo();
-            document.getElementById('bankTime').innerText = time.display;
-            
-            const lastDay = parseInt(localStorage.getItem(KEYS.LAST_DAY)) ?? -1;
-            const lastReal = parseInt(localStorage.getItem(KEYS.LAST_TIME)) || 0;
-            const remaining = (24 * 60000) - (Date.now() - lastReal);
-
-            const taxBtn = document.getElementById('taxBtn');
-            const timerEl = document.getElementById('timerDisplay');
-
-            if(lastDay === time.day) {
-                taxBtn.disabled = true; taxBtn.innerText = "Paid Today"; timerEl.innerText = "DONE";
-            } else {
-                taxBtn.disabled = false; taxBtn.innerText = "Settle Taxes";
-                if(remaining <= 0) { timerEl.innerText = "OVERDUE"; document.getElementById('taxCard').classList.add('tax-overdue'); }
-                else {
-                    const rm = Math.floor(remaining/60000), rs = Math.floor((remaining%60000)/1000);
-                    timerEl.innerText = `${rm}:${rs.toString().padStart(2, '0')}`;
-                    document.getElementById('taxCard').classList.remove('tax-overdue');
-                }
+        function navigateTo(pageId) {
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            // Show target page
+            const target = document.getElementById(pageId);
+            if (target) {
+                target.classList.add('active');
+                if (pageId === 'settings-page') updateKeysUI();
             }
         }
 
-        function loadData() {
-            const bal = parseFloat(localStorage.getItem(KEYS.BAL)) || 0;
-            const logs = JSON.parse(localStorage.getItem(KEYS.LOGS)) || [];
-            document.getElementById('balanceDisplay').innerText = `$${bal.toFixed(2)}`;
-            document.getElementById('taxDisplay').innerText = `$${(bal * 0.15).toFixed(2)}`;
-            document.getElementById('totalTaxDisplay').innerText = `$${(parseFloat(localStorage.getItem(KEYS.TAX)) || 0).toFixed(2)}`;
-
-            const list = document.getElementById('logList');
-            list.innerHTML = logs.map(l => `
-                <tr class="text-sm">
-                    <td class="px-6 py-4 font-bold text-white">${l.job}<br><span class="text-[9px] text-slate-500 uppercase">${l.type}</span></td>
-                    <td class="px-6 py-4 text-slate-400 font-mono">${l.bankTime || '??'}</td>
-                    <td class="px-6 py-4 text-right font-black ${l.amount > 0 ? 'text-blue-400' : 'text-red-400'}">${l.amount > 0 ? '+' : ''}${parseFloat(l.amount).toFixed(2)}</td>
-                </tr>
-            `).join('');
+        function openLink(link) {
+            const windowId = link.id;
+            if (windowRefs[windowId] && !windowRefs[windowId].closed) {
+                windowRefs[windowId].location.href = link.url;
+                windowRefs[windowId].focus();
+            } else {
+                windowRefs[windowId] = window.open(link.url, windowId);
+            }
         }
 
-        function payTaxes() {
-            const bal = parseFloat(localStorage.getItem(KEYS.BAL)) || 0;
-            const tax = bal * 0.15, info = getBankTimeInfo();
-            const logs = JSON.parse(localStorage.getItem(KEYS.LOGS)) || [];
-            logs.unshift({ type: 'Tax', amount: -tax.toFixed(2), job: 'IRS', bankTime: info.display });
-            localStorage.setItem(KEYS.BAL, (bal - tax).toFixed(2));
-            localStorage.setItem(KEYS.LOGS, JSON.stringify(logs));
-            localStorage.setItem(KEYS.TAX, ((parseFloat(localStorage.getItem(KEYS.TAX)) || 0) + tax).toFixed(2));
-            localStorage.setItem(KEYS.LAST_DAY, info.day);
-            localStorage.setItem(KEYS.LAST_TIME, Date.now());
-            loadData();
-            const t = document.getElementById('toast'); t.classList.remove('translate-y-48'); document.getElementById('toastMsg').innerText = "Taxes Settled!";
-            setTimeout(() => t.classList.add('translate-y-48'), 3000);
+        function renderLinks() {
+            const container = document.getElementById('links-container');
+            container.innerHTML = '';
+            linkData.forEach(link => {
+                const btn = document.createElement('button');
+                btn.className = "link-button block w-full py-4 px-6 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between group text-left text-white";
+                btn.onclick = () => openLink(link);
+                btn.innerHTML = `
+                    <span class="font-semibold text-lg">${link.name}</span>
+                    <svg class="w-5 h-5 opacity-50 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                    </svg>
+                `;
+                container.appendChild(btn);
+            });
         }
 
-        function resetBank() { if(confirm("Wipe all?")) { localStorage.clear(); location.reload(); } }
-        window.onstorage = loadData;
-        setInterval(update, 1000);
-        loadData(); update();
+        function updateKeysUI() {
+            keysList.innerHTML = '';
+            if (savedKeys.length === 0) {
+                noKeysMsg.classList.remove('hidden');
+            } else {
+                noKeysMsg.classList.add('hidden');
+                savedKeys.forEach((key, index) => {
+                    const item = document.createElement('div');
+                    item.className = "flex justify-between items-center bg-white/5 p-3 rounded-lg border border-white/10";
+                    item.innerHTML = `
+                        <span class="font-mono text-sm">${key}</span>
+                        <button onclick="removeKey(${index})" class="text-red-400 hover:text-red-300 p-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                    `;
+                    keysList.appendChild(item);
+                });
+            }
+        }
+
+        function addKey() {
+            const input = document.getElementById('new-key-input');
+            const val = input.value.trim();
+            if (val) {
+                savedKeys.push(val);
+                localStorage.setItem('bike_occ_keys', JSON.stringify(savedKeys));
+                input.value = '';
+                updateKeysUI();
+            }
+        }
+
+        function removeKey(index) {
+            savedKeys.splice(index, 1);
+            localStorage.setItem('bike_occ_keys', JSON.stringify(savedKeys));
+            updateKeysUI();
+        }
+
+        function clearAllKeys() {
+            if(confirm("Are you sure? This will reset the system to recovery key '1'.")) {
+                savedKeys = [];
+                localStorage.removeItem('bike_occ_keys');
+                updateKeysUI();
+                lockSystem();
+            }
+        }
+
+        function lockSystem() {
+            lockScreen.classList.add('active');
+            passInput.value = "";
+            setTimeout(() => passInput.focus(), 50);
+        }
+
+        function unlockSystem() {
+            lockScreen.classList.remove('active');
+            passInput.value = "";
+            passInput.blur();
+        }
+
+        passInput.addEventListener('input', () => {
+            const val = passInput.value;
+            if (savedKeys.includes(val) || (savedKeys.length === 0 && val === "1")) {
+                const isRecovery = savedKeys.length === 0 && val === "1";
+                unlockSystem();
+                if (isRecovery) {
+                    navigateTo('settings-page');
+                }
+            }
+        });
+
+        document.addEventListener('click', () => {
+            if (lockScreen.classList.contains('active')) passInput.focus();
+        });
+
+        window.addEventListener('focus', () => {
+            if (!lockScreen.classList.contains('active')) {
+                lockSystem();
+            }
+        });
+
+        window.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                navigateTo('settings-page');
+                return;
+            }
+            if (lockScreen.classList.contains('active')) {
+                passInput.focus();
+            }
+        });
+
+        window.addEventListener('DOMContentLoaded', () => {
+            renderLinks();
+            lockSystem();
+        });
     </script>
 </body>
 </html>
