@@ -117,8 +117,17 @@
             font-weight: bold;
             border: 1px solid rgba(51, 65, 85, 0.5);
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            z-index: 1000; /* Higher than lock screen so it shows through */
+            z-index: 1000;
             text-align: center;
+        }
+
+        /* Custom scrollbar for keys list */
+        #keys-list::-webkit-scrollbar {
+            width: 4px;
+        }
+        #keys-list::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
         }
     </style>
 </head>
@@ -137,10 +146,12 @@
                 <div class="inline-block p-4 bg-blue-500 rounded-full mb-4 bike-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-3 11.5V14l-3-3 4-3 2 3h2"/></svg>
                 </div>
+                <h2 id="greeting-text" class="text-blue-400 font-semibold text-lg mb-1">Welcome</h2>
                 <h1 class="text-3xl font-bold tracking-tight mb-2">Bike Occupation</h1>
                 <p class="text-blue-300 text-sm opacity-80">Link Directory & Scanner Hub</p>
             </div>
 
+            <!-- Dynamic Link Container (including Bank) -->
             <div id="links-container" class="space-y-4"></div>
 
             <div class="mt-12 pt-6 border-t border-white/10 flex justify-between items-center">
@@ -157,26 +168,29 @@
                 <button onclick="navigateTo('home-page')" class="mr-4 p-2 hover:bg-white/10 rounded-full">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M19 12H5m7-7-7 7 7 7"/></svg>
                 </button>
-                <h2 class="text-2xl font-bold">Key Settings</h2>
+                <h2 class="text-2xl font-bold">Manage Passes</h2>
             </div>
 
             <div class="space-y-6">
                 <!-- Add Key Section -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-400 mb-2">Add New Key / Pass</label>
-                    <div class="flex gap-2">
-                        <input type="text" id="new-key-input" class="bg-white/10 border border-white/20 rounded-lg px-4 py-2 w-full focus:outline-none focus:border-blue-500" placeholder="Enter value...">
-                        <button onclick="addKey()" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg font-semibold transition">Add</button>
+                <div class="bg-white/5 p-4 rounded-2xl border border-white/10">
+                    <h3 class="text-xs font-bold text-blue-400 uppercase mb-3 tracking-widest">Register New User</h3>
+                    <div class="space-y-3">
+                        <input type="text" id="new-name-input" class="bg-white/10 border border-white/20 rounded-lg px-4 py-2 w-full focus:outline-none focus:border-blue-500 text-sm" placeholder="User Name (e.g. Alex)">
+                        <div class="flex gap-2">
+                            <input type="text" id="new-key-input" class="bg-white/10 border border-white/20 rounded-lg px-4 py-2 w-full focus:outline-none focus:border-blue-500 text-sm font-mono" placeholder="Pass Number (Key)">
+                            <button onclick="addKey()" class="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-lg font-semibold transition text-sm">Add</button>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Keys List -->
                 <div>
-                    <h3 class="text-sm font-medium text-gray-400 mb-3 uppercase tracking-wider">Registered Keys</h3>
-                    <div id="keys-list" class="space-y-2 max-h-48 overflow-y-auto pr-2">
+                    <h3 class="text-xs font-bold text-gray-400 mb-3 uppercase tracking-widest px-1">Registered Personnel</h3>
+                    <div id="keys-list" class="space-y-2 max-h-60 overflow-y-auto pr-2">
                         <!-- Keys added here -->
                     </div>
-                    <div id="no-keys-msg" class="text-center py-4 text-gray-500 italic text-sm hidden">
+                    <div id="no-keys-msg" class="text-center py-6 bg-white/5 rounded-2xl border border-dashed border-white/10 text-gray-500 italic text-sm hidden">
                         System in Recovery Mode (Key: 1)
                     </div>
                 </div>
@@ -185,7 +199,7 @@
                 <div class="pt-4 border-t border-white/10">
                     <button onclick="clearAllKeys()" class="text-red-400 text-sm hover:underline flex items-center">
                         <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                        Delete All Keys
+                        Wipe All System Memory
                     </button>
                 </div>
             </div>
@@ -213,7 +227,8 @@
         const keysList = document.getElementById('keys-list');
         const noKeysMsg = document.getElementById('no-keys-msg');
         
-        let savedKeys = JSON.parse(localStorage.getItem('bike_occ_keys')) || [];
+        let savedKeys = JSON.parse(localStorage.getItem('bike_occ_keys_v2')) || [];
+        let currentUser = { name: "Guest", key: "" };
 
         // --- Simulation Clock Logic ---
         function initSimulationClock() {
@@ -249,31 +264,43 @@
             }
         }
 
-        function openLink(link) {
-            const windowId = link.id;
-            if (windowRefs[windowId] && !windowRefs[windowId].closed) {
-                windowRefs[windowId].location.href = link.url;
-                windowRefs[windowId].focus();
+        function openLink(url, id) {
+            if (windowRefs[id] && !windowRefs[id].closed) {
+                windowRefs[id].location.href = url;
+                windowRefs[id].focus();
             } else {
-                windowRefs[windowId] = window.open(link.url, windowId);
+                windowRefs[id] = window.open(url, id);
             }
         }
 
         function renderLinks() {
             const container = document.getElementById('links-container');
             container.innerHTML = '';
+
+            // Add the dynamic Bank link first
+            const bankUrl = `https://rubiks13.github.io/bank/?user=${encodeURIComponent(currentUser.name)}`;
+            const bankBtn = createLinkButton("Bank", bankUrl, "bank-link", true);
+            container.appendChild(bankBtn);
+
+            // Add standard links
             linkData.forEach(link => {
-                const btn = document.createElement('button');
-                btn.className = "link-button block w-full py-4 px-6 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between group text-left text-white";
-                btn.onclick = () => openLink(link);
-                btn.innerHTML = `
-                    <span class="font-semibold text-lg">${link.name}</span>
-                    <svg class="w-5 h-5 opacity-50 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
-                    </svg>
-                `;
+                const btn = createLinkButton(link.name, link.url, link.id);
                 container.appendChild(btn);
             });
+        }
+
+        function createLinkButton(name, url, id, isSpecial = false) {
+            const btn = document.createElement('button');
+            const colorClass = isSpecial ? "bg-blue-600/20 border-blue-500/30 text-blue-200" : "bg-white/5 border-white/10 text-white";
+            btn.className = `link-button block w-full py-4 px-6 rounded-xl border flex items-center justify-between group text-left ${colorClass}`;
+            btn.onclick = () => openLink(url, id);
+            btn.innerHTML = `
+                <span class="font-semibold text-lg">${name}</span>
+                <svg class="w-5 h-5 opacity-50 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                </svg>
+            `;
+            return btn;
         }
 
         function updateKeysUI() {
@@ -282,13 +309,16 @@
                 noKeysMsg.classList.remove('hidden');
             } else {
                 noKeysMsg.classList.add('hidden');
-                savedKeys.forEach((key, index) => {
+                savedKeys.forEach((entry, index) => {
                     const item = document.createElement('div');
-                    item.className = "flex justify-between items-center bg-white/5 p-3 rounded-lg border border-white/10";
+                    item.className = "flex justify-between items-center bg-white/5 p-4 rounded-xl border border-white/10 group";
                     item.innerHTML = `
-                        <span class="font-mono text-sm">${key}</span>
-                        <button onclick="removeKey(${index})" class="text-red-400 hover:text-red-300 p-1">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        <div class="flex flex-col">
+                            <span class="text-blue-400 font-bold text-sm">${entry.name}</span>
+                            <span class="font-mono text-xs text-gray-500">Key: ${entry.key}</span>
+                        </div>
+                        <button onclick="removeKey(${index})" class="text-gray-500 hover:text-red-400 p-2 transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                         </button>
                     `;
                     keysList.appendChild(item);
@@ -297,26 +327,30 @@
         }
 
         function addKey() {
-            const input = document.getElementById('new-key-input');
-            const val = input.value.trim();
-            if (val) {
-                savedKeys.push(val);
-                localStorage.setItem('bike_occ_keys', JSON.stringify(savedKeys));
-                input.value = '';
+            const keyInput = document.getElementById('new-key-input');
+            const nameInput = document.getElementById('new-name-input');
+            const keyValue = keyInput.value.trim();
+            const nameValue = nameInput.value.trim() || "Guest User";
+
+            if (keyValue) {
+                savedKeys.push({ key: keyValue, name: nameValue });
+                localStorage.setItem('bike_occ_keys_v2', JSON.stringify(savedKeys));
+                keyInput.value = '';
+                nameInput.value = '';
                 updateKeysUI();
             }
         }
 
         function removeKey(index) {
             savedKeys.splice(index, 1);
-            localStorage.setItem('bike_occ_keys', JSON.stringify(savedKeys));
+            localStorage.setItem('bike_occ_keys_v2', JSON.stringify(savedKeys));
             updateKeysUI();
         }
 
         function clearAllKeys() {
-            if(confirm("Are you sure? This will reset the system to recovery key '1'.")) {
+            if(confirm("Wipe all system data? This resets the master key to '1'.")) {
                 savedKeys = [];
-                localStorage.removeItem('bike_occ_keys');
+                localStorage.removeItem('bike_occ_keys_v2');
                 updateKeysUI();
                 lockSystem();
             }
@@ -328,7 +362,11 @@
             setTimeout(() => passInput.focus(), 50);
         }
 
-        function unlockSystem() {
+        function unlockSystem(userObj) {
+            currentUser = userObj;
+            document.getElementById('greeting-text').innerText = `Hi, ${currentUser.name}`;
+            renderLinks(); // Refresh links to update the Bank URL
+            
             lockScreen.classList.remove('active');
             passInput.value = "";
             passInput.blur();
@@ -336,12 +374,13 @@
 
         passInput.addEventListener('input', () => {
             const val = passInput.value;
-            if (savedKeys.includes(val) || (savedKeys.length === 0 && val === "1")) {
-                const isRecovery = savedKeys.length === 0 && val === "1";
-                unlockSystem();
-                if (isRecovery) {
-                    navigateTo('settings-page');
-                }
+            const match = savedKeys.find(entry => entry.key === val);
+            
+            if (match) {
+                unlockSystem(match);
+            } else if (savedKeys.length === 0 && val === "1") {
+                unlockSystem({ name: "Admin", key: "1" });
+                navigateTo('settings-page');
             }
         });
 
@@ -367,7 +406,6 @@
         });
 
         window.addEventListener('DOMContentLoaded', () => {
-            renderLinks();
             initSimulationClock();
             lockSystem();
         });
