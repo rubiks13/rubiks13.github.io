@@ -83,11 +83,11 @@
         </div>
         
         <nav class="flex-1 w-full px-4 space-y-4">
-            <button onclick="switchView('dashboard')" id="nav-dash" class="w-full flex items-center gap-4 p-3 rounded-xl bg-blue-600/10 text-blue-400 transition-all">
+            <button onclick="switchView('dashboard')" id="nav-dash" class="w-full flex items-center gap-4 p-3 rounded-xl bg-blue-600/10 text-blue-400 transition-all text-left">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
                 <span class="opacity-0 group-hover:opacity-100 font-bold transition-opacity whitespace-nowrap">Dashboard</span>
             </button>
-            <button onclick="switchView('history')" id="nav-history" class="w-full flex items-center gap-4 p-3 rounded-xl text-slate-500 hover:bg-slate-800 transition-all">
+            <button onclick="switchView('history')" id="nav-history" class="w-full flex items-center gap-4 p-3 rounded-xl text-slate-500 hover:bg-slate-800 transition-all text-left">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                 <span class="opacity-0 group-hover:opacity-100 font-bold transition-opacity whitespace-nowrap">Full History</span>
             </button>
@@ -106,10 +106,17 @@
     </aside>
 
     <main class="flex-1 flex flex-col p-6 overflow-hidden">
-        <header class="flex justify-between items-center mb-8">
-            <div>
-                <h1 class="text-2xl font-black tracking-tight uppercase italic">Rider Bank <span class="text-blue-500 text-sm not-italic ml-2">Local</span></h1>
-                <p class="text-xs text-slate-500 font-bold uppercase tracking-widest" id="account-status">Monitoring Local Storage...</p>
+        <header class="flex justify-between items-start mb-8">
+            <div class="flex gap-6">
+                <div>
+                    <h1 class="text-2xl font-black tracking-tight uppercase italic">Rider Bank <span class="text-blue-500 text-sm not-italic ml-2">Local</span></h1>
+                    <p class="text-xs text-slate-500 font-bold uppercase tracking-widest" id="account-status">Monitoring Local Storage...</p>
+                </div>
+                <!-- WORLD TIME DISPLAY -->
+                <div class="bg-slate-900 border border-slate-800 px-4 py-2 rounded-2xl flex flex-col items-center justify-center">
+                    <span class="text-[9px] font-black text-blue-500 uppercase tracking-widest">Rider Time</span>
+                    <span id="world-time" class="text-lg font-black tabular-nums tracking-tighter">12:00 PM</span>
+                </div>
             </div>
             
             <div class="flex flex-col items-end">
@@ -209,6 +216,27 @@
         let lastKnownDataString = "";
         const REDIRECT_URL = "https://rubiks13.github.io/bikes/";
 
+        // Rider World Time: 1 minute real life = 1 hour game life
+        function updateWorldTime() {
+            const now = new Date();
+            // Hour is the current minute (0-59)
+            // Minutes are calculated from seconds (0-59 maps to 0-59 minutes)
+            let hour = now.getMinutes();
+            let minute = now.getSeconds();
+            
+            // Format for AM/PM
+            const ampm = hour >= 12 ? 'PM' : 'AM';
+            let displayHour = hour % 12;
+            displayHour = displayHour ? displayHour : 12; // the hour '0' should be '12'
+            const displayMinute = minute < 10 ? '0'+minute : minute;
+
+            const timeStr = `${displayHour}:${displayMinute} ${ampm}`;
+            const timeEl = document.getElementById('world-time');
+            if (timeEl) timeEl.innerText = timeStr;
+        }
+        setInterval(updateWorldTime, 1000);
+        updateWorldTime();
+
         // Inactivity Timer
         let inactivityTimer;
         function resetInactivityTimer() {
@@ -242,15 +270,15 @@
                 dash.style.display = 'grid';
                 history.classList.add('hidden-view');
                 history.style.display = 'none';
-                navDash.className = "w-full flex items-center gap-4 p-3 rounded-xl bg-blue-600/10 text-blue-400 transition-all";
-                navHist.className = "w-full flex items-center gap-4 p-3 rounded-xl text-slate-500 hover:bg-slate-800 transition-all";
+                navDash.className = "w-full flex items-center gap-4 p-3 rounded-xl bg-blue-600/10 text-blue-400 transition-all text-left";
+                navHist.className = "w-full flex items-center gap-4 p-3 rounded-xl text-slate-500 hover:bg-slate-800 transition-all text-left";
             } else {
                 dash.classList.add('hidden-view');
                 dash.style.display = 'none';
                 history.classList.remove('hidden-view');
                 history.style.display = 'block';
-                navHist.className = "w-full flex items-center gap-4 p-3 rounded-xl bg-blue-600/10 text-blue-400 transition-all";
-                navDash.className = "w-full flex items-center gap-4 p-3 rounded-xl text-slate-500 hover:bg-slate-800 transition-all";
+                navHist.className = "w-full flex items-center gap-4 p-3 rounded-xl bg-blue-600/10 text-blue-400 transition-all text-left";
+                navDash.className = "w-full flex items-center gap-4 p-3 rounded-xl text-slate-500 hover:bg-slate-800 transition-all text-left";
             }
         }
 
@@ -385,7 +413,6 @@
                 const dateStr = new Date(tx.date).toLocaleDateString();
                 const timeStr = new Date(tx.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-                // Mini View (Limited)
                 if (index < 6) {
                     const item = document.createElement('div');
                     item.className = "p-4 mb-2 rounded-2xl bg-slate-800/30 border border-slate-800/50 flex items-center justify-between";
@@ -406,7 +433,6 @@
                     listMini.appendChild(item);
                 }
 
-                // Full View (Detailed)
                 const fullItem = document.createElement('div');
                 fullItem.className = "p-6 rounded-3xl bg-slate-900/50 border border-slate-800 flex items-center justify-between shadow-sm";
                 fullItem.innerHTML = `
