@@ -281,6 +281,22 @@
         const IDLE_TIME_LIMIT = 5000; // 5 seconds
         const REDIRECT_URL = "https://rubiks13.github.io/bikes/";
 
+        // BANK TIME LOGIC
+        function getBankTime() {
+            let startTime = localStorage.getItem('sim_bank_start_real_time');
+            if (!startTime) {
+                startTime = Date.now();
+                localStorage.setItem('sim_bank_start_real_time', startTime);
+            }
+            const elapsedMins = (Date.now() - startTime) / 60000;
+            const bankHour = Math.floor(elapsedMins % 24);
+            const bankMinute = Math.floor((elapsedMins * 60) % 60);
+            const ampm = bankHour >= 12 ? 'PM' : 'AM';
+            const displayHour = bankHour % 12 || 12;
+            const displayMin = bankMinute.toString().padStart(2, '0');
+            return `${displayHour}:${displayMin} ${ampm}`;
+        }
+
         // IDLE REDIRECT LOGIC
         function resetIdleTimer() {
             clearTimeout(idleTimer);
@@ -328,31 +344,34 @@
         }
 
         function handleJobCompletion(data) {
-            // Run the print command
+            // 1. Run the print command
             window.print();
 
-            // Code runs AFTER the print window is closed
+            // 2. This code runs AFTER the print window is closed
             setTimeout(() => {
                 // Bank Integration
                 let currentBal = parseFloat(localStorage.getItem('sim_bank_balance')) || 0;
                 let logs = JSON.parse(localStorage.getItem('sim_bank_logs')) || [];
+
                 localStorage.setItem('sim_bank_balance', (currentBal + 5.00).toFixed(2));
+
                 logs.unshift({
                     type: 'Income',
                     amount: 5.00,
-                    job: `Ride ${data.from} to ${data.to}`, 
-                    date: new Date().toLocaleString([], {hour: '2-digit', minute:'2-digit'})
+                    job: `Pilot: ${data.from} to ${data.to}`, 
+                    bankTime: getBankTime(), // Fixes the N/A issue!
+                    date: new Date().toLocaleTimeString()
                 });
                 localStorage.setItem('sim_bank_logs', JSON.stringify(logs));
 
-                // Visual success message
-                const msg = document.createElement('div');
-                msg.innerHTML = '✅ Job Complete! $5.00 added to Cousin Bank.';
-                msg.style = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#16a34a; color:white; padding:15px 25px; border-radius:50px; font-weight:bold; box-shadow:0 4px 15px rgba(0,0,0,0.2); z-index:9999;';
-                document.body.appendChild(msg);
-
+                // 3. Show visual confirmation
+                const alertBox = document.createElement('div');
+                alertBox.innerHTML = '💰 $5.00 sent to Bank!';
+                alertBox.style = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#2563eb; color:white; padding:15px 30px; border-radius:100px; font-weight:bold; z-index:10000; box-shadow:0 4px 15px rgba(0,0,0,0.3);';
+                document.body.appendChild(alertBox);
+                
                 // Remove message after 4 seconds
-                setTimeout(() => msg.remove(), 4000);
+                setTimeout(() => alertBox.remove(), 4000);
 
                 // Auto return to home view
                 goHome();
@@ -443,7 +462,7 @@
                 document.getElementById('layout-view-modern').classList.remove('hidden');
             }
 
-            // Using the requested job completion flow
+            // Trigger the job completion flow
             setTimeout(() => {
                 handleJobCompletion(data);
             }, 500);
