@@ -61,9 +61,30 @@
             0%, 100% { top: 0%; }
             50% { top: 100%; }
         }
+
+        /* Timeout Warning Style */
+        #timeoutWarning {
+            position: fixed;
+            top: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 300;
+            background: #ef4444;
+            color: white;
+            padding: 0.5rem 1.5rem;
+            border-radius: 99px;
+            font-weight: 800;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
     </style>
 </head>
 <body class="h-screen flex flex-col md:flex-row main-layout">
+
+    <!-- Inactivity Warning -->
+    <div id="timeoutWarning" class="hidden">Auto-Logout in 2s... Move Mouse!</div>
 
     <!-- LOGIN SCREEN (Restricted Access) -->
     <div id="loginScreen" class="fixed inset-0 z-[200] bg-slate-950 flex flex-col items-center justify-center p-6">
@@ -123,7 +144,7 @@
             </div>
             <div>
                 <h1 class="font-black text-xl tracking-tight">Bike Bank</h1>
-                <span class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Midnight v2.6</span>
+                <span class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Midnight v2.7</span>
             </div>
         </div>
 
@@ -206,7 +227,6 @@
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Purchases simplified for clarity -->
                     <div class="bank-card p-8 space-y-4">
                         <h3 class="font-black text-orange-400 uppercase text-xs tracking-widest">Grocery Store</h3>
                         <div class="grid grid-cols-2 gap-3">
@@ -260,6 +280,39 @@
     <script>
         let currentUser = null;
         const START_BALANCE = 100.00;
+        
+        // --- INACTIVITY TIMER LOGIC ---
+        let idleTime = 0;
+        const IDLE_LIMIT = 5; // 5 seconds
+
+        function resetTimer() {
+            idleTime = 0;
+            document.getElementById('timeoutWarning').classList.add('hidden');
+        }
+
+        // Check for user activity
+        window.onload = function() {
+            document.onmousemove = resetTimer;
+            document.onkeypress = resetTimer;
+            document.onclick = resetTimer;
+            document.ontouchstart = resetTimer;
+
+            // Timer check loop
+            setInterval(function() {
+                idleTime++;
+                
+                // Show warning when 2 seconds left
+                if (idleTime >= IDLE_LIMIT - 2) {
+                    const warn = document.getElementById('timeoutWarning');
+                    warn.classList.remove('hidden');
+                    warn.innerText = `Auto-Logout in ${IDLE_LIMIT - idleTime}s... Move Mouse!`;
+                }
+
+                if (idleTime >= IDLE_LIMIT) {
+                    logout();
+                }
+            }, 1000);
+        };
 
         const getKeys = (user) => ({
             REGISTERED: `bank_${user}_registered`,
@@ -280,8 +333,6 @@
             if (user) {
                 currentUser = user;
                 document.getElementById('loginScreen').classList.add('hidden');
-                
-                // Check if account exists
                 const k = getKeys(user);
                 if (!localStorage.getItem(k.REGISTERED)) {
                     showRegistration(user);
@@ -301,8 +352,6 @@
         function createNewAccount() {
             if(!currentUser) return;
             const k = getKeys(currentUser);
-            
-            // Initialize data
             localStorage.setItem(k.REGISTERED, "true");
             localStorage.setItem(k.BAL, START_BALANCE.toFixed(2));
             localStorage.setItem(k.LOGS, JSON.stringify([{
@@ -310,7 +359,6 @@
                 amount: START_BALANCE,
                 bankTime: getBankTimeInfo().display
             }]));
-            
             document.getElementById('registerScreen').classList.add('hidden');
             enterBank(currentUser);
             showToast("Success! Account created.");
