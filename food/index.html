@@ -101,15 +101,16 @@
         const urlParams = new URLSearchParams(window.location.search);
         const ACTIVE_USER = urlParams.get('user') || localStorage.getItem('active_directory_user') || 'guest';
         
-        // Protocol Storage Keys
+        // Protocol Storage Keys - Account Specific
         const BAL_KEY = `bank_${ACTIVE_USER}_balance`;
         const LOG_KEY = `bank_${ACTIVE_USER}_logs`;
-        const ADDR_KEY = `receipt_${ACTIVE_USER}_addresses`; // User-specific app settings
+        const ADDR_KEY = `receipt_${ACTIVE_USER}_addresses`; 
         const REST_KEY = `receipt_${ACTIVE_USER}_restaurants`;
 
-        // Update UI Identity
+        // Update UI Identity and Bank Link
         document.getElementById('user-display').textContent = `User: ${ACTIVE_USER}`;
-        document.getElementById('bank-link').href = `https://rubiks13.github.io/bikes/bank_app.html?user=${ACTIVE_USER}`;
+        // Updated Bank URL per request: https://rubiks13.github.io/bank/?user=[name]
+        document.getElementById('bank-link').href = `https://rubiks13.github.io/bank/?user=${ACTIVE_USER}`;
 
         // --- Bank Time Synchronization ---
         function getBankTime() {
@@ -130,7 +131,7 @@
         // --- Security Protocol: Inactivity Redirect ---
         let inactivityTimeout;
         const REDIRECT_URL = "https://rubiks13.github.io/bikes/";
-        const INACTIVITY_LIMIT = 5000;
+        const INACTIVITY_LIMIT = 5000; // 5 seconds
 
         function resetInactivityTimer() {
             clearTimeout(inactivityTimeout);
@@ -177,7 +178,7 @@
                 div.className = "flex items-center justify-between p-2 border-b text-sm";
                 div.innerHTML = addr.isEditing ? 
                     `<input type="text" id="address-input-${addr.id}" value="${addr.text}" class="flex-grow p-1 border rounded mr-2"><button onclick="saveAddress('${addr.id}')" class="text-green-600 font-bold">Save</button>` :
-                    `<span class="truncate pr-2">${addr.text}</span><div class="flex space-x-2"><button onclick="startEditAddress('${addr.id}')" class="text-blue-500">Edit</button><button onclick="deleteAddress('${id}')" class="text-red-500">X</button></div>`;
+                    `<span class="truncate pr-2">${addr.text}</span><div class="flex space-x-2"><button onclick="startEditAddress('${addr.id}')" class="text-blue-500">Edit</button><button onclick="deleteAddress('${addr.id}')" class="text-red-500">X</button></div>`;
                 list.appendChild(div);
             });
         }
@@ -194,6 +195,12 @@
                 addresses.push({ id: Date.now().toString(), text: val, isEditing: false });
                 input.value = '';
             }
+            saveState(ADDR_KEY, addresses);
+            renderAddresses();
+        };
+
+        window.deleteAddress = function(id) {
+            addresses = addresses.filter(a => a.id !== id);
             saveState(ADDR_KEY, addresses);
             renderAddresses();
         };
@@ -260,18 +267,13 @@
             `;
         }
 
-        /**
-         * Bike Bank v2.7 Implementation
-         */
         function handleSelection(restaurantName) {
             if (addresses.length === 0) return;
 
-            // 1. Receipt Display & Print
             const addr = addresses[Math.floor(Math.random() * addresses.length)].text;
             document.getElementById('receipt-content').innerHTML = generateReceipt(restaurantName, addr);
             window.print();
 
-            // 2. Protocol Money Transfer Logic
             setTimeout(() => {
                 let currentBal = parseFloat(localStorage.getItem(BAL_KEY)) || 0;
                 let logs = JSON.parse(localStorage.getItem(LOG_KEY)) || [];
@@ -287,7 +289,6 @@
                 });
                 localStorage.setItem(LOG_KEY, JSON.stringify(logs));
 
-                // Visual Notification
                 const alert = document.createElement('div');
                 alert.innerHTML = `💰 $5.00 sent to ${ACTIVE_USER}'s Bank!`;
                 alert.style = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#4f46e5; color:white; padding:15px 30px; border-radius:100px; font-weight:bold; z-index:10000; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3);';
