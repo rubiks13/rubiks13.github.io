@@ -90,7 +90,7 @@
                 <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
                     <span class="bg-blue-500 text-white p-1 rounded">🚲</span> Delivery Route
                 </h2>
-                <p class="text-sm text-gray-600 mb-4">Generates a random route of 1-5 stops. It might skip numbers (like 1, 4, 5) but will always stay in order so you don't backtrack.</p>
+                <p class="text-sm text-gray-600 mb-4">Generates a random route. Every generated delivery adds $5.00 to your bike bank balance!</p>
                 <button id="generateBtn" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-lg transition-colors shadow-md">
                     Generate Optimized Route & Print
                 </button>
@@ -101,7 +101,6 @@
         <div id="receipt-container" class="flex flex-col items-center">
             <h2 class="text-sm font-bold mb-2 no-print text-gray-500 uppercase tracking-widest">Receipt Preview (80mm)</h2>
             <div id="receipt-preview" class="shadow-xl">
-                <!-- Receipt sections will be injected here -->
                 <div class="p-8 text-center text-gray-400 no-print">
                     Add addresses and click generate to see the route.
                 </div>
@@ -117,7 +116,7 @@
     <script>
         // --- INACTIVITY REDIRECT LOGIC ---
         let idleTimer;
-        const idleLimit = 5000; // 5 seconds
+        const idleLimit = 5000; 
         const redirectUrl = "https://rubiks13.github.io/bikes/";
 
         function resetTimer() {
@@ -127,7 +126,6 @@
             }, idleLimit);
         }
 
-        // Listen for mouse movement or keyboard activity
         window.onload = resetTimer;
         window.onmousemove = resetTimer;
         window.onmousedown = resetTimer; 
@@ -192,6 +190,23 @@
             return shuffled.slice(0, count).map(item => `1x ${item}`);
         }
 
+        // Handle Bank Integration
+        function processPayment(stopName) {
+            let currentBal = parseFloat(localStorage.getItem('sim_bank_balance')) || 0;
+            let logs = JSON.parse(localStorage.getItem('sim_bank_logs')) || [];
+            
+            localStorage.setItem('sim_bank_balance', (currentBal + 5.00).toFixed(2));
+            
+            logs.unshift({
+                type: 'Income',
+                amount: 5.00,
+                job: `Delivery to ${stopName}`,
+                date: new Date().toLocaleString([], {hour: '2-digit', minute:'2-digit'})
+            });
+            
+            localStorage.setItem('sim_bank_logs', JSON.stringify(logs));
+        }
+
         document.getElementById('generateBtn').addEventListener('click', () => {
             if (savedAddresses.length === 0) {
                 alert("Please add some addresses first!");
@@ -214,9 +229,12 @@
             selectedStops.forEach((stop, index) => {
                 const orderNum = generateOrderNumber();
                 const items = generateItems();
+                
+                // BANK INTEGRATION CALL
+                processPayment(stop.name);
+
                 const section = document.createElement('div');
                 section.className = 'receipt-section';
-                
                 const barcodeId = `barcode-${index}`;
                 
                 section.innerHTML = `
@@ -260,7 +278,7 @@
 
             setTimeout(() => {
                 window.print();
-                resetTimer(); // Reset after print window closed
+                resetTimer();
             }, 500);
         });
 
