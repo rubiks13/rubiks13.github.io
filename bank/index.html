@@ -173,8 +173,6 @@
     <script>
         let currentAccount = null;
         let lastKnownDataString = "";
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlUserName = urlParams.get('user');
         const REDIRECT_URL = "https://rubiks13.github.io/bikes/";
 
         // Inactivity Timer
@@ -182,12 +180,14 @@
         function resetInactivityTimer() {
             clearTimeout(inactivityTimer);
             const bar = document.getElementById('inactivity-bar');
-            bar.style.transition = 'none';
-            bar.style.width = '0%';
-            setTimeout(() => {
-                bar.style.transition = 'width 5s linear';
-                bar.style.width = '100%';
-            }, 50);
+            if (bar) {
+                bar.style.transition = 'none';
+                bar.style.width = '0%';
+                setTimeout(() => {
+                    bar.style.transition = 'width 5s linear';
+                    bar.style.width = '100%';
+                }, 50);
+            }
             inactivityTimer = setTimeout(() => { window.location.href = REDIRECT_URL; }, 5000);
         }
         ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(evt => window.addEventListener(evt, resetInactivityTimer));
@@ -199,7 +199,8 @@
 
         function startLiveSync() {
             const sync = () => {
-                // Determine who is the current user
+                const params = new URLSearchParams(window.location.search);
+                const urlUserName = params.get('user');
                 const userName = urlUserName || localStorage.getItem('last_rider_session');
                 
                 if (!userName) {
@@ -210,7 +211,6 @@
                 const storageKey = `rider_bank_${userName.toLowerCase()}`;
                 const rawData = localStorage.getItem(storageKey);
 
-                // Load existing data or create new if name came from URL but no data exists
                 if (rawData) {
                     if (rawData !== lastKnownDataString) {
                         lastKnownDataString = rawData;
@@ -220,47 +220,48 @@
                         document.getElementById('create-overlay').classList.add('hidden');
                     }
                 } else if (urlUserName) {
-                    // Auto-create for URL users if they don't exist yet
                     initDefaultAccount(urlUserName);
                 } else {
                     showCreateView();
                 }
 
                 // CHECK FOR INCOMING MONEY FROM URL
-                checkForUrlDeposit(userName);
+                checkForUrlDeposit(userName, params);
             };
 
             sync(); 
             setInterval(sync, 1000);
         }
 
-        function checkForUrlDeposit(userName) {
-            const depositAmt = parseFloat(urlParams.get('deposit'));
-            const label = urlParams.get('label') || 'Mission Earnings';
-            const txId = urlParams.get('txid') || `tx_${Date.now()}`;
+        function checkForUrlDeposit(userName, params) {
+            const depositAmt = parseFloat(params.get('deposit'));
+            if (isNaN(depositAmt) || depositAmt <= 0 || !currentAccount) return;
 
-            if (depositAmt > 0 && currentAccount) {
-                // Prevent duplicate deposits from same URL link
-                if (localStorage.getItem(`processed_${txId}`)) return;
+            const label = params.get('label') || 'Mission Earnings';
+            const txId = params.get('txid') || `tx_${Date.now()}`;
 
-                currentAccount.balance += depositAmt;
-                currentAccount.transactions.push({
-                    id: txId,
-                    type: 'deposit',
-                    amount: depositAmt,
-                    label: label,
-                    date: new Date().toISOString()
-                });
+            // Prevent duplicate deposits from same URL link
+            if (localStorage.getItem(`processed_${txId}`)) return;
 
-                localStorage.setItem(`processed_${txId}`, 'true');
-                saveCurrentData();
-                renderDashboard();
-                showToast(`+$${depositAmt} from ${label}`);
-                
-                // Clean URL
-                const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + `?user=${userName}`;
-                window.history.pushState({path:newUrl},'',newUrl);
-            }
+            // Perform the deposit
+            currentAccount.balance += depositAmt;
+            currentAccount.transactions.push({
+                id: txId,
+                type: 'deposit',
+                amount: depositAmt,
+                label: label,
+                date: new Date().toISOString()
+            });
+
+            // Mark as processed and save
+            localStorage.setItem(`processed_${txId}`, 'true');
+            saveCurrentData();
+            renderDashboard();
+            showToast(`+$${depositAmt} from ${label}`);
+            
+            // Remove deposit data from URL instantly so refreshes don't double-count
+            const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + `?user=${userName}`;
+            window.history.pushState({path:newUrl},'',newUrl);
         }
 
         function saveCurrentData() {
@@ -285,6 +286,7 @@
             };
             saveCurrentData();
             localStorage.setItem('last_rider_session', name);
+            document.getElementById('create-overlay').classList.add('hidden');
         }
 
         function showCreateView() {
