@@ -63,6 +63,15 @@
             50% { transform: scale(1.1); color: #10b981; }
             100% { transform: scale(1); }
         }
+
+        .view-section {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .hidden-view {
+            display: none;
+            opacity: 0;
+            transform: translateY(10px);
+        }
     </style>
 </head>
 <body class="h-screen flex">
@@ -74,10 +83,14 @@
         </div>
         
         <nav class="flex-1 w-full px-4 space-y-4">
-            <a href="#" class="flex items-center gap-4 p-3 rounded-xl bg-blue-600/10 text-blue-400">
+            <button onclick="switchView('dashboard')" id="nav-dash" class="w-full flex items-center gap-4 p-3 rounded-xl bg-blue-600/10 text-blue-400 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
                 <span class="opacity-0 group-hover:opacity-100 font-bold transition-opacity whitespace-nowrap">Dashboard</span>
-            </a>
+            </button>
+            <button onclick="switchView('history')" id="nav-history" class="w-full flex items-center gap-4 p-3 rounded-xl text-slate-500 hover:bg-slate-800 transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                <span class="opacity-0 group-hover:opacity-100 font-bold transition-opacity whitespace-nowrap">Full History</span>
+            </button>
             <a href="https://rubiks13.github.io/bikes/" class="flex items-center gap-4 p-3 rounded-xl text-slate-500 hover:bg-slate-800 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                 <span class="opacity-0 group-hover:opacity-100 font-bold transition-opacity whitespace-nowrap">Back to Hub</span>
@@ -107,7 +120,8 @@
             </div>
         </header>
 
-        <div class="max-w-4xl w-full mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1">
+        <!-- DASHBOARD VIEW -->
+        <div id="view-dashboard" class="view-section max-w-4xl w-full mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 overflow-hidden">
             <div class="lg:col-span-2 space-y-6">
                 <div class="gradient-border p-8 h-64 flex flex-col justify-center relative overflow-hidden shadow-2xl">
                     <div class="absolute right-0 top-0 w-64 h-64 bg-blue-600/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
@@ -146,14 +160,34 @@
             </div>
 
             <div class="glass-card rounded-3xl flex flex-col overflow-hidden border border-slate-800 shadow-2xl bg-slate-900/40">
-                <div class="p-6 border-b border-slate-800">
-                    <h3 class="text-xs font-black uppercase tracking-widest text-slate-400 italic">History</h3>
+                <div class="p-6 border-b border-slate-800 flex justify-between items-center">
+                    <h3 class="text-xs font-black uppercase tracking-widest text-slate-400 italic">Recent</h3>
+                    <button onclick="switchView('history')" class="text-[10px] font-bold text-blue-500 uppercase hover:underline">See All</button>
                 </div>
-                <div id="transactions-list" class="flex-1 overflow-y-auto p-2">
+                <div id="transactions-list-mini" class="flex-1 overflow-y-auto p-2">
                     <!-- History injected here -->
                 </div>
             </div>
         </div>
+
+        <!-- FULL HISTORY VIEW -->
+        <div id="view-history" class="view-section hidden-view max-w-4xl w-full mx-auto flex-1 overflow-hidden">
+            <div class="glass-card rounded-3xl h-full flex flex-col border border-slate-800 shadow-2xl overflow-hidden">
+                <div class="p-8 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
+                    <div>
+                        <h2 class="text-xl font-black uppercase italic tracking-tight">Full Ledger</h2>
+                        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Chronological Mission Logs</p>
+                    </div>
+                    <button onclick="switchView('dashboard')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 p-2 rounded-xl transition-all">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                    </button>
+                </div>
+                <div id="transactions-list-full" class="flex-1 overflow-y-auto p-6 space-y-4">
+                    <!-- Detailed history injected here -->
+                </div>
+            </div>
+        </div>
+
     </main>
 
     <!-- Overlay -->
@@ -197,6 +231,29 @@
             startLiveSync();
         };
 
+        function switchView(viewName) {
+            const dash = document.getElementById('view-dashboard');
+            const history = document.getElementById('view-history');
+            const navDash = document.getElementById('nav-dash');
+            const navHist = document.getElementById('nav-history');
+
+            if (viewName === 'dashboard') {
+                dash.classList.remove('hidden-view');
+                dash.style.display = 'grid';
+                history.classList.add('hidden-view');
+                history.style.display = 'none';
+                navDash.className = "w-full flex items-center gap-4 p-3 rounded-xl bg-blue-600/10 text-blue-400 transition-all";
+                navHist.className = "w-full flex items-center gap-4 p-3 rounded-xl text-slate-500 hover:bg-slate-800 transition-all";
+            } else {
+                dash.classList.add('hidden-view');
+                dash.style.display = 'none';
+                history.classList.remove('hidden-view');
+                history.style.display = 'block';
+                navHist.className = "w-full flex items-center gap-4 p-3 rounded-xl bg-blue-600/10 text-blue-400 transition-all";
+                navDash.className = "w-full flex items-center gap-4 p-3 rounded-xl text-slate-500 hover:bg-slate-800 transition-all";
+            }
+        }
+
         function startLiveSync() {
             const sync = () => {
                 const params = new URLSearchParams(window.location.search);
@@ -225,7 +282,6 @@
                     showCreateView();
                 }
 
-                // CHECK FOR INCOMING MONEY FROM URL
                 checkForUrlDeposit(userName, params);
             };
 
@@ -240,10 +296,8 @@
             const label = params.get('label') || 'Mission Earnings';
             const txId = params.get('txid') || `tx_${Date.now()}`;
 
-            // Prevent duplicate deposits from same URL link
             if (localStorage.getItem(`processed_${txId}`)) return;
 
-            // Perform the deposit
             currentAccount.balance += depositAmt;
             currentAccount.transactions.push({
                 id: txId,
@@ -253,13 +307,11 @@
                 date: new Date().toISOString()
             });
 
-            // Mark as processed and save
             localStorage.setItem(`processed_${txId}`, 'true');
             saveCurrentData();
             renderDashboard();
             showToast(`+$${depositAmt} from ${label}`);
             
-            // Remove deposit data from URL instantly so refreshes don't double-count
             const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + `?user=${userName}`;
             window.history.pushState({path:newUrl},'',newUrl);
         }
@@ -320,27 +372,65 @@
             document.getElementById('owner-display').innerText = currentAccount.ownerName;
             document.getElementById('account-status').innerText = `LOCAL STORAGE SYNC: ${currentAccount.ownerName.toUpperCase()}`;
 
-            const list = document.getElementById('transactions-list');
-            list.innerHTML = '';
-            [...currentAccount.transactions].reverse().forEach(tx => {
-                const item = document.createElement('div');
-                item.className = "p-4 mb-2 rounded-2xl bg-slate-800/30 border border-slate-800/50 flex items-center justify-between";
+            const listMini = document.getElementById('transactions-list-mini');
+            const listFull = document.getElementById('transactions-list-full');
+            
+            listMini.innerHTML = '';
+            listFull.innerHTML = '';
+
+            const sortedTxs = [...currentAccount.transactions].reverse();
+
+            sortedTxs.forEach((tx, index) => {
                 const isDep = tx.type === 'deposit';
-                item.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-lg ${isDep ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'} flex items-center justify-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="${isDep ? 'm7 10 5 5 5-5M12 15V3' : 'm17 14-5-5-5 5M12 19V9'}"/></svg>
+                const dateStr = new Date(tx.date).toLocaleDateString();
+                const timeStr = new Date(tx.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                // Mini View (Limited)
+                if (index < 6) {
+                    const item = document.createElement('div');
+                    item.className = "p-4 mb-2 rounded-2xl bg-slate-800/30 border border-slate-800/50 flex items-center justify-between";
+                    item.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg ${isDep ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'} flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="${isDep ? 'm7 10 5 5 5-5M12 15V3' : 'm17 14-5-5-5 5M12 19V9'}"/></svg>
+                            </div>
+                            <div>
+                                <p class="text-[11px] font-black uppercase text-slate-300">${tx.label}</p>
+                                <p class="text-[8px] text-slate-600 font-bold uppercase">${dateStr}</p>
+                            </div>
+                        </div>
+                        <span class="text-sm font-black tabular-nums ${isDep ? 'text-emerald-400' : 'text-rose-400'}">
+                            ${isDep ? '+' : '-'}$${tx.amount.toLocaleString()}
+                        </span>
+                    `;
+                    listMini.appendChild(item);
+                }
+
+                // Full View (Detailed)
+                const fullItem = document.createElement('div');
+                fullItem.className = "p-6 rounded-3xl bg-slate-900/50 border border-slate-800 flex items-center justify-between shadow-sm";
+                fullItem.innerHTML = `
+                    <div class="flex items-center gap-5">
+                        <div class="w-12 h-12 rounded-2xl ${isDep ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'} flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="${isDep ? 'm7 10 5 5 5-5M12 15V3' : 'm17 14-5-5-5 5M12 19V9'}"/></svg>
                         </div>
                         <div>
-                            <p class="text-[11px] font-black uppercase text-slate-300">${tx.label}</p>
-                            <p class="text-[8px] text-slate-600 font-bold uppercase">${new Date(tx.date).toLocaleDateString()}</p>
+                            <p class="text-sm font-black uppercase tracking-wide text-slate-100">${tx.label}</p>
+                            <div class="flex items-center gap-2 mt-1">
+                                <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">${dateStr}</span>
+                                <span class="w-1 h-1 bg-slate-700 rounded-full"></span>
+                                <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">${timeStr}</span>
+                            </div>
                         </div>
                     </div>
-                    <span class="text-sm font-black tabular-nums ${isDep ? 'text-emerald-400' : 'text-rose-400'}">
-                        ${isDep ? '+' : '-'}$${tx.amount.toLocaleString()}
-                    </span>
+                    <div class="text-right">
+                        <p class="text-lg font-black tabular-nums ${isDep ? 'text-emerald-400' : 'text-rose-400'}">
+                            ${isDep ? '+' : '-'}$${tx.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}
+                        </p>
+                        <p class="text-[9px] font-bold text-slate-600 uppercase tracking-tighter">Verified Mission</p>
+                    </div>
                 `;
-                list.appendChild(item);
+                listFull.appendChild(fullItem);
             });
         }
     </script>
