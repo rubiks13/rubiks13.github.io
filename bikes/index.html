@@ -117,7 +117,7 @@
             font-weight: bold;
             border: 1px solid rgba(51, 65, 85, 0.5);
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            z-index: 50; /* Below lock screen, above content */
+            z-index: 1000; /* Higher than lock screen so it shows through */
             text-align: center;
         }
     </style>
@@ -126,7 +126,7 @@
 
     <!-- Simulation Clock UI -->
     <div id="sim-clock-display">
-        <div style="font-size: 9px; color: #94a3b8; margin-bottom: 2px;">BANK TIME</div>
+        <div id="sim-clock-title" style="font-size: 9px; color: #94a3b8; margin-bottom: 2px; letter-spacing: 0.1em;">BIKE TIME</div>
         <div id="sim-time-text" style="font-size: 18px;">12:00 AM</div>
     </div>
 
