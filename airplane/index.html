@@ -305,6 +305,9 @@
         const IDLE_TIME_LIMIT = 5000; // 5 seconds
         const REDIRECT_URL = "https://rubiks13.github.io/bikes/";
 
+        // NEW BANK URL
+        const BANK_BASE_URL = "https://rubiks13.github.io/bank/";
+
         // IDLE REDIRECT LOGIC
         function resetIdleTimer() {
             clearTimeout(idleTimer);
@@ -571,8 +574,8 @@
 
         window.onload = () => {
             document.getElementById('display-user').textContent = activeUser;
-            // BIKE BANK v2.7 Link Structure
-            document.getElementById('bank-link').href = `https://rubiks13.github.io/bikes/bank_app.html?user=${activeUser}`;
+            // UPDATED BANK LINK per request
+            document.getElementById('bank-link').href = `${BANK_BASE_URL}?user=${activeUser}`;
             
             initQRs();
             updateLogDisplay();
