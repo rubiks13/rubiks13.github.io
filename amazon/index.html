@@ -70,7 +70,6 @@
     <div class="max-w-6xl mx-auto grid lg:grid-cols-2 gap-6">
         <!-- Control Panel -->
         <div class="space-y-6 no-print">
-            <!-- Address Manager -->
             <div class="bg-white p-6 rounded-xl shadow-lg">
                 <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
                     <span class="bg-orange-500 text-white p-1 rounded">📍</span> Field Address Book
@@ -80,17 +79,14 @@
                     <input id="addressSequence" type="number" placeholder="Order (e.g. 1)" class="w-20 p-2 border rounded">
                     <button onclick="saveAddress()" class="bg-green-600 text-white px-4 py-2 rounded font-bold">+</button>
                 </div>
-                <div id="addressList" class="space-y-2 max-h-48 overflow-y-auto border-t pt-2">
-                    <!-- Addresses show up here -->
-                </div>
+                <div id="addressList" class="space-y-2 max-h-48 overflow-y-auto border-t pt-2"></div>
             </div>
 
-            <!-- Route Controls -->
             <div class="bg-white p-6 rounded-xl shadow-lg">
                 <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
                     <span class="bg-blue-500 text-white p-1 rounded">🚲</span> Delivery Route
                 </h2>
-                <p class="text-sm text-gray-600 mb-4">Generates a random route. Every generated delivery adds $5.00 to your bike bank balance!</p>
+                <p class="text-sm text-gray-600 mb-4">Generates an optimized route. Each delivery sends $5.00 to your synced bank clock!</p>
                 <button id="generateBtn" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-lg transition-colors shadow-md">
                     Generate Optimized Route & Print
                 </button>
@@ -108,12 +104,35 @@
         </div>
     </div>
 
-    <!-- Inactivity Message -->
     <div class="timeout-warning no-print">
         Inactivity redirect in 5s
     </div>
 
     <script>
+        // --- BANK TIME SYNC LOGIC ---
+        function getBankTime() {
+            let startTime = localStorage.getItem('sim_bank_start_real_time');
+            if (!startTime) {
+                startTime = Date.now();
+                localStorage.setItem('sim_bank_start_real_time', startTime);
+            }
+            const elapsedMins = (Date.now() - startTime) / 60000;
+            const bankHour = Math.floor(elapsedMins % 24);
+            const bankMinute = Math.floor((elapsedMins * 60) % 60);
+            const ampm = bankHour >= 12 ? 'PM' : 'AM';
+            const displayHour = bankHour % 12 || 12;
+            const displayMin = bankMinute.toString().padStart(2, '0');
+            return `${displayHour}:${displayMin} ${ampm}`;
+        }
+
+        function showBankAlert() {
+            const alertBox = document.createElement('div');
+            alertBox.innerHTML = '💰 Earnings sent to Bank!';
+            alertBox.style = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#2563eb; color:white; padding:15px 30px; border-radius:100px; font-weight:bold; z-index:10000; box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
+            document.body.appendChild(alertBox);
+            setTimeout(() => alertBox.remove(), 4000);
+        }
+
         // --- INACTIVITY REDIRECT LOGIC ---
         let idleTimer;
         const idleLimit = 5000; 
@@ -147,7 +166,6 @@
         function saveAddress() {
             const name = document.getElementById('newAddressName').value.trim();
             const seq = parseInt(document.getElementById('addressSequence').value) || 0;
-            
             if (name) {
                 savedAddresses.push({ id: Date.now(), name, seq });
                 savedAddresses.sort((a, b) => a.seq - b.seq);
@@ -172,10 +190,7 @@
             savedAddresses.forEach(addr => {
                 const div = document.createElement('div');
                 div.className = "flex justify-between items-center bg-gray-50 p-2 rounded text-sm border";
-                div.innerHTML = `
-                    <span><b class="text-orange-600">#${addr.seq}</b> ${addr.name}</span>
-                    <button onclick="deleteAddress(${addr.id})" class="text-red-500 font-bold px-2">×</button>
-                `;
+                div.innerHTML = `<span><b class="text-orange-600">#${addr.seq}</b> ${addr.name}</span><button onclick="deleteAddress(${addr.id})" class="text-red-500 font-bold px-2">×</button>`;
                 container.appendChild(div);
             });
         }
@@ -190,7 +205,6 @@
             return shuffled.slice(0, count).map(item => `1x ${item}`);
         }
 
-        // Handle Bank Integration
         function processPayment(stopName) {
             let currentBal = parseFloat(localStorage.getItem('sim_bank_balance')) || 0;
             let logs = JSON.parse(localStorage.getItem('sim_bank_logs')) || [];
@@ -200,8 +214,9 @@
             logs.unshift({
                 type: 'Income',
                 amount: 5.00,
-                job: `Delivery to ${stopName}`,
-                date: new Date().toLocaleString([], {hour: '2-digit', minute:'2-digit'})
+                job: `Amazon Delivery: ${stopName}`,
+                bankTime: getBankTime(), // FIXES THE N/A ISSUE
+                date: new Date().toLocaleTimeString()
             });
             
             localStorage.setItem('sim_bank_logs', JSON.stringify(logs));
@@ -230,7 +245,7 @@
                 const orderNum = generateOrderNumber();
                 const items = generateItems();
                 
-                // BANK INTEGRATION CALL
+                // Process the bank payment with the new time logic
                 processPayment(stop.name);
 
                 const section = document.createElement('div');
@@ -261,7 +276,7 @@
                     <div class="divider"></div>
                     <div class="mt-4 flex flex-col items-center">
                         <svg id="${barcodeId}" class="barcode-svg"></svg>
-                        <p class="receipt-text mt-2" style="font-size: 8px;">TRACKING: FIELD-DELIVERY-ID-${stop.seq}</p>
+                        <p class="receipt-text mt-2" style="font-size: 8px;">TRACKING: FIELD-DEL-ID-${stop.seq}</p>
                     </div>
                 `;
                 
@@ -276,8 +291,10 @@
                 });
             });
 
+            // Handle printing and visual confirmation
             setTimeout(() => {
                 window.print();
+                showBankAlert();
                 resetTimer();
             }, 500);
         });
