@@ -160,7 +160,7 @@
                 </div>
                 <div id="keys-list" class="space-y-2"></div>
                 <div class="pt-4 border-t border-white/10">
-                    <button onclick="localStorage.removeItem('bike_occ_keys_v2'); location.reload();" class="text-red-400 text-xs">Reset All Passes</button>
+                    <button onclick="localStorage.clear(); location.reload();" class="text-red-400 text-xs">Full Factory Reset (Sync Wipe)</button>
                 </div>
             </div>
         </div>
@@ -170,7 +170,7 @@
         <div class="lock-icon">🔒</div>
         <h2 class="text-blue-400 text-2xl font-bold mb-4">SYSTEM LOCKED</h2>
         <input type="password" id="password-input" placeholder="Scan Pass" autocomplete="off">
-        <p class="text-gray-500 text-xs mt-4">Use your pass key to enter. "1" for Admin mode if empty.</p>
+        <p class="text-gray-500 text-xs mt-4">Broadcasting Global Sync...</p>
     </div>
 
     <script>
@@ -186,8 +186,10 @@
 
         function initSimulationClock() {
             function refreshTime() {
+                // Shared key for the start time across all tabs
                 let start = localStorage.getItem('sim_bank_start_real_time');
                 if(!start) {
+                    // Set to a clean start point
                     start = Date.now().toString();
                     localStorage.setItem('sim_bank_start_real_time', start);
                 }
@@ -195,12 +197,8 @@
                 const startTime = parseInt(start);
                 const elapsedRealMs = Date.now() - startTime;
                 
-                // --- NEW CALIBRATED MATH ---
-                // Rule: 24 minutes real life = 1 full simulation day (1440 sim minutes)
-                // 1 minute real life = 1 hour simulation (60 sim minutes)
-                // Math: (elapsedRealMs / 60,000) * 60
-                // Which simplifies perfectly to: total sim minutes = elapsedRealMs / 1000
-                
+                // Rule: 1 real second = 1 simulation minute
+                // (Total sim minutes = elapsedRealMs / 1000)
                 const totalSimMinutesSinceStart = Math.floor(elapsedRealMs / 1000);
                 const currentSimMinutesInDay = totalSimMinutesSinceStart % 1440;
                 
@@ -212,13 +210,18 @@
                 const displayMin = mins.toString().padStart(2, '0');
                 const timeString = `${displayHour}:${displayMin} ${ampm}`;
 
-                // Export to shared storage
+                // FORCE UPDATE ALL SYSTEMS
+                // We save the string AND the raw minutes so other systems can use whichever they prefer
                 localStorage.setItem('sim_current_bike_time', timeString);
+                localStorage.setItem('sim_current_bike_minutes', currentSimMinutesInDay.toString());
+                localStorage.setItem('sim_last_sync_update', Date.now().toString());
                 
                 const textElement = document.getElementById('sim-time-text');
                 if (textElement) textElement.innerText = timeString;
             }
-            setInterval(refreshTime, 100); 
+            
+            // Running at 50ms for hyper-sync
+            setInterval(refreshTime, 50); 
             refreshTime();
         }
 
