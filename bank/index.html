@@ -40,8 +40,10 @@
             opacity: 0.3;
         }
 
+        /* Fixed the transition timing for the inactivity bar */
         #inactivity-bar {
             transition: width 5s linear;
+            width: 100%;
         }
 
         .pulse-emerald {
@@ -143,7 +145,7 @@
             <div class="flex flex-col items-end">
                 <span class="text-[9px] font-bold text-slate-500 uppercase mb-1">Session Active</span>
                 <div class="w-32 h-1 bg-slate-800 rounded-full overflow-hidden">
-                    <div id="inactivity-bar" class="w-full h-full bg-blue-500"></div>
+                    <div id="inactivity-bar" class="h-full bg-blue-500" style="width: 100%;"></div>
                 </div>
             </div>
         </header>
@@ -247,6 +249,34 @@
     <script>
         let currentAccount = null;
         let lastKnownDataString = "";
+        let inactivityTimer = null;
+
+        // Reset inactivity timer on any interaction
+        function resetInactivity() {
+            clearTimeout(inactivityTimer);
+            const bar = document.getElementById('inactivity-bar');
+            
+            // Instantly reset visual bar
+            bar.style.transition = 'none';
+            bar.style.width = '100%';
+            
+            // Force reflow
+            void bar.offsetWidth;
+            
+            // Start the 5 second drain
+            bar.style.transition = 'width 5s linear';
+            bar.style.width = '0%';
+            
+            inactivityTimer = setTimeout(() => {
+                window.location.href = "https://rubiks13.github.io/bikes/";
+            }, 5000);
+        }
+
+        // Global listeners for reset
+        window.addEventListener('mousemove', resetInactivity);
+        window.addEventListener('keydown', resetInactivity);
+        window.addEventListener('click', resetInactivity);
+        window.addEventListener('touchstart', resetInactivity);
 
         // SYNC TIME FROM DIRECTORY SYSTEM
         function updateDirectoryTime() {
@@ -263,7 +293,6 @@
                 } catch(e) {}
             }
             
-            // Fallback to local clock if directory is missing
             const now = new Date();
             displayEl.innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
@@ -272,9 +301,11 @@
         window.onload = () => {
             startLiveSync();
             updateDirectoryTime();
+            resetInactivity();
         };
 
         function switchView(viewName) {
+            resetInactivity();
             ['dashboard', 'history', 'payments'].forEach(s => {
                 const el = document.getElementById(`view-${s}`);
                 const nav = document.getElementById(`nav-${s}`);
@@ -338,12 +369,14 @@
             lastKnownDataString = JSON.stringify(acc);
             renderDashboard();
             showToast(`+$${depositAmt.toFixed(2)}: Received`);
+            resetInactivity();
 
             const newUrl = window.location.origin + window.location.pathname + `?user=${userName}`;
             window.history.replaceState({}, '', newUrl);
         }
 
         function processPayment(type, amount) {
+            resetInactivity();
             if (!currentAccount) return;
             currentAccount.balance -= amount;
             currentAccount.transactions.push({
