@@ -86,7 +86,6 @@
             50% { transform: scale(1.1); opacity: 0.7; }
         }
 
-        /* Page Transitions */
         .page {
             display: none;
             width: 100%;
@@ -103,7 +102,6 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Sim Clock Specific Styles */
         #sim-clock-display {
             position: fixed;
             top: 15px;
@@ -120,26 +118,15 @@
             z-index: 1000;
             text-align: center;
         }
-
-        /* Custom scrollbar */
-        #keys-list::-webkit-scrollbar {
-            width: 4px;
-        }
-        #keys-list::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 10px;
-        }
     </style>
 </head>
 <body class="flex items-center justify-center p-4">
 
-    <!-- Simulation Clock UI -->
     <div id="sim-clock-display">
-        <div id="sim-clock-title" style="font-size: 9px; color: #94a3b8; margin-bottom: 2px; letter-spacing: 0.1em;">BIKE TIME</div>
-        <div id="sim-time-text" style="font-size: 18px;">12:00 AM</div>
+        <div style="font-size: 9px; color: #94a3b8; margin-bottom: 2px; letter-spacing: 0.1em;">BIKE TIME SYNCED</div>
+        <div id="sim-time-text" style="font-size: 18px;">--:-- --</div>
     </div>
 
-    <!-- HOME PAGE -->
     <div id="home-page" class="page active">
         <div class="w-full glass-card rounded-3xl p-8 text-center shadow-2xl">
             <div class="mb-8">
@@ -150,17 +137,14 @@
                 <h1 class="text-3xl font-bold tracking-tight mb-2">Bike Occupation</h1>
                 <p class="text-blue-300 text-sm opacity-80">Link Directory & Scanner Hub</p>
             </div>
-
             <div id="links-container" class="space-y-4"></div>
-
             <div class="mt-12 pt-6 border-t border-white/10 flex justify-between items-center">
-                <p class="text-xs text-gray-500">Press Ctrl+S for Settings</p>
-                <button onclick="navigateTo('settings-page')" class="text-xs text-blue-400 hover:underline">Open Settings</button>
+                <p class="text-xs text-gray-500">Ctrl+S for Settings</p>
+                <button onclick="navigateTo('settings-page')" class="text-xs text-blue-400 hover:underline">Settings</button>
             </div>
         </div>
     </div>
 
-    <!-- SETTINGS PAGE -->
     <div id="settings-page" class="page">
         <div class="w-full glass-card rounded-3xl p-8 shadow-2xl">
             <div class="flex items-center mb-6">
@@ -169,42 +153,22 @@
                 </button>
                 <h2 class="text-2xl font-bold">Manage Passes</h2>
             </div>
-
             <div class="space-y-6">
                 <div class="bg-white/5 p-4 rounded-2xl border border-white/10">
-                    <h3 class="text-xs font-bold text-blue-400 uppercase mb-3 tracking-widest">Register New User</h3>
-                    <div class="space-y-3">
-                        <input type="text" id="new-name-input" class="bg-white/10 border border-white/20 rounded-lg px-4 py-2 w-full focus:outline-none focus:border-blue-500 text-sm" placeholder="User Name (e.g. Alex)">
-                        <div class="flex gap-2">
-                            <input type="text" id="new-key-input" class="bg-white/10 border border-white/20 rounded-lg px-4 py-2 w-full focus:outline-none focus:border-blue-500 text-sm font-mono" placeholder="Pass Number (Key)">
-                            <button onclick="addKey()" class="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-lg font-semibold transition text-sm">Add</button>
-                        </div>
+                    <input type="text" id="new-name-input" class="bg-white/10 border border-white/20 rounded-lg px-4 py-2 w-full mb-2 text-sm" placeholder="User Name">
+                    <div class="flex gap-2">
+                        <input type="text" id="new-key-input" class="bg-white/10 border border-white/20 rounded-lg px-4 py-2 w-full text-sm font-mono" placeholder="Pass Key">
+                        <button onclick="addKey()" class="bg-blue-600 px-6 py-2 rounded-lg font-semibold text-sm">Add</button>
                     </div>
                 </div>
-
-                <div>
-                    <h3 class="text-xs font-bold text-gray-400 mb-3 uppercase tracking-widest px-1">Registered Personnel</h3>
-                    <div id="keys-list" class="space-y-2 max-h-60 overflow-y-auto pr-2"></div>
-                    <div id="no-keys-msg" class="text-center py-6 bg-white/5 rounded-2xl border border-dashed border-white/10 text-gray-500 italic text-sm hidden">
-                        System in Recovery Mode (Key: 1)
-                    </div>
-                </div>
-
-                <div class="pt-4 border-t border-white/10">
-                    <button onclick="clearAllKeys()" class="text-red-400 text-sm hover:underline flex items-center">
-                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                        Wipe All System Memory
-                    </button>
-                </div>
+                <div id="keys-list" class="space-y-2"></div>
             </div>
         </div>
     </div>
 
-    <!-- Lock Screen -->
     <div id="lock-screen">
         <div class="lock-icon">🔒</div>
-        <h2 class="text-blue-400 text-2xl font-bold tracking-widest mb-2">LOCKED</h2>
-        <p class="text-gray-500 text-sm">Please scan your pass</p>
+        <h2 class="text-blue-400 text-2xl font-bold mb-2">LOCKED</h2>
         <input type="password" id="password-input" autocomplete="off" autofocus>
     </div>
 
@@ -216,180 +180,93 @@
             { name: "Amazon", base: "https://rubiks13.github.io/amazon/", id: "amazon", special: false }
         ];
 
-        const windowRefs = {};
-        const lockScreen = document.getElementById('lock-screen');
-        const passInput = document.getElementById('password-input');
-        const keysList = document.getElementById('keys-list');
-        const noKeysMsg = document.getElementById('no-keys-msg');
-        
         let savedKeys = JSON.parse(localStorage.getItem('bike_occ_keys_v2')) || [];
         let currentUser = { name: "Guest", key: "" };
 
-        // --- Synchronized Simulation Clock Logic ---
+        // SMOOTH SYNC CLOCK LOGIC
         function initSimulationClock() {
             function refreshTime() {
-                // Accessing the shared Bank start time from LocalStorage
                 let start = localStorage.getItem('sim_bank_start_real_time');
-                
                 if(!start) {
                     start = Date.now().toString();
                     localStorage.setItem('sim_bank_start_real_time', start);
                 }
                 
                 const startTime = parseInt(start);
-                const currentTime = Date.now();
+                const elapsedRealMs = Date.now() - startTime;
                 
-                // 1 minute in real life = 1 day (24 hours) in simulation
-                // Calculation: total real-world milliseconds passed * 1440 (mins in a day) / 60,000 (ms in a real min)
-                const elapsedRealMs = currentTime - startTime;
+                // 1 real minute (60,000ms) = 1 simulation day (1440 mins)
                 const elapsedSimMinutes = (elapsedRealMs * 1440) / 60000;
-                
                 const totalSimMinutes = Math.floor(elapsedSimMinutes % 1440);
+                
                 const hours = Math.floor(totalSimMinutes / 60);
                 const mins = totalSimMinutes % 60;
                 
                 const ampm = hours >= 12 ? 'PM' : 'AM';
                 const displayHour = hours % 12 || 12;
                 const displayMin = mins.toString().padStart(2, '0');
+                const timeString = `${displayHour}:${displayMin} ${ampm}`;
+
+                // EXPORT FOR BANK: Save exact string so other systems don't have to guess
+                localStorage.setItem('sim_current_bike_time', timeString);
                 
                 const textElement = document.getElementById('sim-time-text');
-                if (textElement) textElement.innerText = `${displayHour}:${displayMin} ${ampm}`;
+                if (textElement) textElement.innerText = timeString;
             }
-            setInterval(refreshTime, 1000);
+            setInterval(refreshTime, 1000); // Update every second smoothly
             refreshTime();
-        }
-
-        function navigateTo(pageId) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            const target = document.getElementById(pageId);
-            if (target) {
-                target.classList.add('active');
-                if (pageId === 'settings-page') updateKeysUI();
-            }
-        }
-
-        function openLink(url, id) {
-            if (windowRefs[id] && !windowRefs[id].closed) {
-                windowRefs[id].location.href = url;
-                windowRefs[id].focus();
-            } else {
-                windowRefs[id] = window.open(url, id);
-            }
         }
 
         function renderLinks() {
             const container = document.getElementById('links-container');
             container.innerHTML = '';
-
             linkData.forEach(link => {
                 const personalizedUrl = `${link.base}?user=${encodeURIComponent(currentUser.name)}`;
-                const btn = createLinkButton(link.name, personalizedUrl, link.id, link.special);
+                const btn = document.createElement('button');
+                btn.className = `link-button w-full py-4 px-6 rounded-xl border flex items-center justify-between ${link.special ? "bg-blue-600/20 border-blue-500/30" : "bg-white/5 border-white/10"}`;
+                btn.onclick = () => window.open(personalizedUrl, link.id);
+                btn.innerHTML = `<span class="font-semibold text-lg">${link.name}</span><span>→</span>`;
                 container.appendChild(btn);
             });
         }
 
-        function createLinkButton(name, url, id, isSpecial) {
-            const btn = document.createElement('button');
-            const colorClass = isSpecial ? "bg-blue-600/20 border-blue-500/30 text-blue-200" : "bg-white/5 border-white/10 text-white";
-            btn.className = `link-button block w-full py-4 px-6 rounded-xl border flex items-center justify-between group text-left ${colorClass}`;
-            btn.onclick = () => openLink(url, id);
-            btn.innerHTML = `
-                <span class="font-semibold text-lg">${name}</span>
-                <svg class="w-5 h-5 opacity-50 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
-                </svg>
-            `;
-            return btn;
-        }
+        // AUTH & UI LOGIC
+        const lockScreen = document.getElementById('lock-screen');
+        const passInput = document.getElementById('password-input');
 
-        function updateKeysUI() {
-            keysList.innerHTML = '';
-            if (savedKeys.length === 0) {
-                noKeysMsg.classList.remove('hidden');
-            } else {
-                noKeysMsg.classList.add('hidden');
-                savedKeys.forEach((entry, index) => {
-                    const item = document.createElement('div');
-                    item.className = "flex justify-between items-center bg-white/5 p-4 rounded-xl border border-white/10 group";
-                    item.innerHTML = `
-                        <div class="flex flex-col">
-                            <span class="text-blue-400 font-bold text-sm">${entry.name}</span>
-                            <span class="font-mono text-xs text-gray-500">Key: ${entry.key}</span>
-                        </div>
-                        <button onclick="removeKey(${index})" class="text-gray-500 hover:text-red-400 p-2 transition-colors">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                        </button>
-                    `;
-                    keysList.appendChild(item);
-                });
-            }
+        function navigateTo(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
         }
 
         function addKey() {
-            const keyInput = document.getElementById('new-key-input');
-            const nameInput = document.getElementById('new-name-input');
-            const keyValue = keyInput.value.trim();
-            const nameValue = nameInput.value.trim() || "Guest User";
-            if (keyValue) {
-                savedKeys.push({ key: keyValue, name: nameValue });
+            const k = document.getElementById('new-key-input').value;
+            const n = document.getElementById('new-name-input').value || "User";
+            if(k) {
+                savedKeys.push({key: k, name: n});
                 localStorage.setItem('bike_occ_keys_v2', JSON.stringify(savedKeys));
-                keyInput.value = ''; nameInput.value = '';
-                updateKeysUI();
+                location.reload();
             }
         }
 
-        function removeKey(index) {
-            savedKeys.splice(index, 1);
-            localStorage.setItem('bike_occ_keys_v2', JSON.stringify(savedKeys));
-            updateKeysUI();
-        }
-
-        function clearAllKeys() {
-            if(confirm("Wipe system memory?")) {
-                savedKeys = [];
-                localStorage.removeItem('bike_occ_keys_v2');
-                updateKeysUI();
-                lockSystem();
-            }
-        }
-
-        function lockSystem() {
-            lockScreen.classList.add('active');
-            passInput.value = "";
-            setTimeout(() => passInput.focus(), 50);
-        }
-
-        function unlockSystem(userObj) {
-            currentUser = userObj;
-            document.getElementById('greeting-text').innerText = `Hi, ${currentUser.name}`;
+        function unlock(user) {
+            currentUser = user;
+            document.getElementById('greeting-text').innerText = `Hi, ${user.name}`;
             renderLinks();
             lockScreen.classList.remove('active');
-            passInput.value = "";
-            passInput.blur();
         }
 
         passInput.addEventListener('input', () => {
-            const val = passInput.value;
-            const match = savedKeys.find(entry => entry.key === val);
-            if (match) {
-                unlockSystem(match);
-            } else if (savedKeys.length === 0 && val === "1") {
-                unlockSystem({ name: "Admin", key: "1" });
-                navigateTo('settings-page');
-            }
+            const match = savedKeys.find(e => e.key === passInput.value);
+            if(match) unlock(match);
+            else if(savedKeys.length === 0 && passInput.value === "1") unlock({name:"Admin", key:"1"});
         });
 
-        document.addEventListener('click', () => { if (lockScreen.classList.contains('active')) passInput.focus(); });
-        window.addEventListener('focus', () => { if (!lockScreen.classList.contains('active')) lockSystem(); });
-        window.addEventListener('keydown', (e) => {
-            if (e.ctrlKey && e.key === 's') { e.preventDefault(); navigateTo('settings-page'); return; }
-            if (lockScreen.classList.contains('active')) passInput.focus();
-        });
-
-        window.addEventListener('DOMContentLoaded', () => {
+        window.onload = () => {
             initSimulationClock();
-            lockSystem();
-        });
+            lockScreen.classList.add('active');
+            passInput.focus();
+        };
     </script>
 </body>
 </html>
