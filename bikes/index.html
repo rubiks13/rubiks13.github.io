@@ -170,7 +170,7 @@
         <div class="lock-icon">🔒</div>
         <h2 class="text-blue-400 text-2xl font-bold mb-4">SYSTEM LOCKED</h2>
         <input type="password" id="password-input" placeholder="Scan Pass" autocomplete="off">
-        <p class="text-gray-500 text-xs mt-4">If no passes are set, use "1" to enter Admin mode.</p>
+        <p class="text-gray-500 text-xs mt-4">Use your pass key to enter. "1" for Admin mode if empty.</p>
     </div>
 
     <script>
@@ -195,22 +195,24 @@
                 const startTime = parseInt(start);
                 const elapsedRealMs = Date.now() - startTime;
                 
-                // --- CORRECT MATH ---
-                // Rule: 1 real minute (60,000ms) = 1 simulation day (1440 sim minutes)
-                // This means sim minutes = (elapsedRealMs / 60000) * 1440
-                // Which simplifies to: sim minutes = elapsedRealMs * 0.024
+                // --- NEW CALIBRATED MATH ---
+                // Rule: 24 minutes real life = 1 full simulation day (1440 sim minutes)
+                // 1 minute real life = 1 hour simulation (60 sim minutes)
+                // Math: (elapsedRealMs / 60,000) * 60
+                // Which simplifies perfectly to: total sim minutes = elapsedRealMs / 1000
                 
-                const elapsedSimMinutes = elapsedRealMs * 0.024;
-                const totalSimMinutesInDay = Math.floor(elapsedSimMinutes % 1440);
+                const totalSimMinutesSinceStart = Math.floor(elapsedRealMs / 1000);
+                const currentSimMinutesInDay = totalSimMinutesSinceStart % 1440;
                 
-                const hours = Math.floor(totalSimMinutesInDay / 60);
-                const mins = totalSimMinutesInDay % 60;
+                const hours = Math.floor(currentSimMinutesInDay / 60);
+                const mins = currentSimMinutesInDay % 60;
                 
                 const ampm = hours >= 12 ? 'PM' : 'AM';
                 const displayHour = hours % 12 || 12;
                 const displayMin = mins.toString().padStart(2, '0');
                 const timeString = `${displayHour}:${displayMin} ${ampm}`;
 
+                // Export to shared storage
                 localStorage.setItem('sim_current_bike_time', timeString);
                 
                 const textElement = document.getElementById('sim-time-text');
