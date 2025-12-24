@@ -225,18 +225,33 @@
         let savedKeys = JSON.parse(localStorage.getItem('bike_occ_keys_v2')) || [];
         let currentUser = { name: "Guest", key: "" };
 
+        // --- Synchronized Simulation Clock Logic ---
         function initSimulationClock() {
             function refreshTime() {
-                const start = localStorage.getItem('sim_bank_start_real_time') || Date.now();
-                if(!localStorage.getItem('sim_bank_start_real_time')) {
+                // Accessing the shared Bank start time from LocalStorage
+                let start = localStorage.getItem('sim_bank_start_real_time');
+                
+                if(!start) {
+                    start = Date.now().toString();
                     localStorage.setItem('sim_bank_start_real_time', start);
                 }
-                const elapsedMinutes = (Date.now() - parseInt(start)) / 60000;
-                const hours = Math.floor(elapsedMinutes % 24);
-                const mins = Math.floor((elapsedMinutes * 60) % 60);
+                
+                const startTime = parseInt(start);
+                const currentTime = Date.now();
+                
+                // 1 minute in real life = 1 day (24 hours) in simulation
+                // Calculation: total real-world milliseconds passed * 1440 (mins in a day) / 60,000 (ms in a real min)
+                const elapsedRealMs = currentTime - startTime;
+                const elapsedSimMinutes = (elapsedRealMs * 1440) / 60000;
+                
+                const totalSimMinutes = Math.floor(elapsedSimMinutes % 1440);
+                const hours = Math.floor(totalSimMinutes / 60);
+                const mins = totalSimMinutes % 60;
+                
                 const ampm = hours >= 12 ? 'PM' : 'AM';
                 const displayHour = hours % 12 || 12;
                 const displayMin = mins.toString().padStart(2, '0');
+                
                 const textElement = document.getElementById('sim-time-text');
                 if (textElement) textElement.innerText = `${displayHour}:${displayMin} ${ampm}`;
             }
@@ -267,7 +282,6 @@
             container.innerHTML = '';
 
             linkData.forEach(link => {
-                // Inform all systems by attaching ?user=Name to every URL
                 const personalizedUrl = `${link.base}?user=${encodeURIComponent(currentUser.name)}`;
                 const btn = createLinkButton(link.name, personalizedUrl, link.id, link.special);
                 container.appendChild(btn);
