@@ -52,38 +52,36 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            transition: opacity 1.5s ease-in-out, visibility 1.5s;
-            opacity: 0;
-            visibility: hidden;
+            transition: opacity 0.5s ease-in-out;
         }
 
-        #lock-screen.active {
-            opacity: 1;
-            visibility: visible;
+        #lock-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
         }
 
         #password-input {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 1px;
-            height: 1px;
-            opacity: 0;
-            border: none;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(59, 130, 246, 0.5);
+            border-radius: 12px;
+            padding: 12px;
+            color: white;
+            text-align: center;
+            font-size: 24px;
+            width: 200px;
             outline: none;
+            transition: all 0.3s;
+        }
+
+        #password-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
         }
 
         .lock-icon {
-            font-size: 5rem;
-            margin-bottom: 1.5rem;
+            font-size: 4rem;
+            margin-bottom: 1rem;
             color: #3b82f6;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.1); opacity: 0.7; }
         }
 
         .page {
@@ -162,14 +160,18 @@
                     </div>
                 </div>
                 <div id="keys-list" class="space-y-2"></div>
+                <div class="pt-4 border-t border-white/10">
+                    <button onclick="localStorage.removeItem('bike_occ_keys_v2'); location.reload();" class="text-red-400 text-xs">Reset All Passes</button>
+                </div>
             </div>
         </div>
     </div>
 
     <div id="lock-screen">
         <div class="lock-icon">🔒</div>
-        <h2 class="text-blue-400 text-2xl font-bold mb-2">LOCKED</h2>
-        <input type="password" id="password-input" autocomplete="off" autofocus>
+        <h2 class="text-blue-400 text-2xl font-bold mb-4">SYSTEM LOCKED</h2>
+        <input type="password" id="password-input" placeholder="Scan Pass" autocomplete="off">
+        <p class="text-gray-500 text-xs mt-4">If no passes are set, use "1" to enter Admin mode.</p>
     </div>
 
     <script>
@@ -183,7 +185,7 @@
         let savedKeys = JSON.parse(localStorage.getItem('bike_occ_keys_v2')) || [];
         let currentUser = { name: "Guest", key: "" };
 
-        // SMOOTH SYNC CLOCK LOGIC
+        // SMOOTH SYNC CLOCK LOGIC (Fixed jumping)
         function initSimulationClock() {
             function refreshTime() {
                 let start = localStorage.getItem('sim_bank_start_real_time');
@@ -207,13 +209,14 @@
                 const displayMin = mins.toString().padStart(2, '0');
                 const timeString = `${displayHour}:${displayMin} ${ampm}`;
 
-                // EXPORT FOR BANK: Save exact string so other systems don't have to guess
+                // EXPORT FOR BANK
                 localStorage.setItem('sim_current_bike_time', timeString);
                 
                 const textElement = document.getElementById('sim-time-text');
                 if (textElement) textElement.innerText = timeString;
             }
-            setInterval(refreshTime, 1000); // Update every second smoothly
+            // Update much faster (every 100ms) so there's no visible jump
+            setInterval(refreshTime, 100); 
             refreshTime();
         }
 
@@ -230,13 +233,30 @@
             });
         }
 
-        // AUTH & UI LOGIC
         const lockScreen = document.getElementById('lock-screen');
         const passInput = document.getElementById('password-input');
 
         function navigateTo(pageId) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.getElementById(pageId).classList.add('active');
+            if(pageId === 'settings-page') updateKeysList();
+        }
+
+        function updateKeysList() {
+            const list = document.getElementById('keys-list');
+            list.innerHTML = '';
+            savedKeys.forEach((k, i) => {
+                const div = document.createElement('div');
+                div.className = "bg-white/5 p-3 rounded-lg flex justify-between text-sm";
+                div.innerHTML = `<span>${k.name} (${k.key})</span><button onclick="removeKey(${i})" class="text-red-400">Delete</button>`;
+                list.appendChild(div);
+            });
+        }
+
+        function removeKey(i) {
+            savedKeys.splice(i, 1);
+            localStorage.setItem('bike_occ_keys_v2', JSON.stringify(savedKeys));
+            updateKeysList();
         }
 
         function addKey() {
@@ -245,6 +265,7 @@
             if(k) {
                 savedKeys.push({key: k, name: n});
                 localStorage.setItem('bike_occ_keys_v2', JSON.stringify(savedKeys));
+                navigateTo('home-page');
                 location.reload();
             }
         }
@@ -253,20 +274,39 @@
             currentUser = user;
             document.getElementById('greeting-text').innerText = `Hi, ${user.name}`;
             renderLinks();
-            lockScreen.classList.remove('active');
+            lockScreen.classList.add('hidden');
+            passInput.value = "";
         }
 
+        // Improved input listener
         passInput.addEventListener('input', () => {
-            const match = savedKeys.find(e => e.key === passInput.value);
-            if(match) unlock(match);
-            else if(savedKeys.length === 0 && passInput.value === "1") unlock({name:"Admin", key:"1"});
+            const val = passInput.value;
+            const match = savedKeys.find(e => e.key === val);
+            if(match) {
+                unlock(match);
+            } else if(savedKeys.length === 0 && val === "1") {
+                unlock({name:"Admin", key:"1"});
+                navigateTo('settings-page');
+            }
+        });
+
+        // Keep input focused
+        document.addEventListener('click', () => {
+            if(!lockScreen.classList.contains('hidden')) passInput.focus();
         });
 
         window.onload = () => {
             initSimulationClock();
-            lockScreen.classList.add('active');
             passInput.focus();
         };
+
+        // Ctrl+S for settings
+        window.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                navigateTo('settings-page');
+            }
+        });
     </script>
 </body>
 </html>
