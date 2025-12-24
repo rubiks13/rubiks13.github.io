@@ -146,7 +146,7 @@
             <div class="lg:col-span-2 space-y-6">
                 <div class="gradient-border p-8 h-64 flex flex-col justify-center relative overflow-hidden shadow-2xl">
                     <div class="absolute right-0 top-0 w-64 h-64 bg-blue-600/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
-                    <p class="text-blue-400 text-xs font-bold uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
+                    <p id="balance-label" class="text-blue-400 text-xs font-bold uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
                         <span class="w-1.5 h-1.5 bg-blue-500 rounded-full animate-ping"></span>
                         Current Balance
                     </p>
@@ -174,8 +174,8 @@
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                     </div>
                     <div>
-                        <p class="text-xs font-black uppercase text-emerald-400">Funds Deposited</p>
-                        <p id="toast-msg" class="text-sm text-slate-300">New mission funds added to local vault.</p>
+                        <p class="text-xs font-black uppercase text-emerald-400">Update</p>
+                        <p id="toast-msg" class="text-sm text-slate-300">Transaction processed successfully.</p>
                     </div>
                 </div>
             </div>
@@ -193,9 +193,14 @@
 
         <!-- PAYMENTS VIEW -->
         <div id="view-payments" class="view-section hidden-view max-w-4xl w-full mx-auto flex-1 overflow-hidden">
-            <div class="mb-6">
-                <h2 class="text-2xl font-black uppercase italic tracking-tight">Daily Obligations</h2>
-                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Payments must be cleared before game-day midnight</p>
+            <div class="mb-6 flex justify-between items-end">
+                <div>
+                    <h2 class="text-2xl font-black uppercase italic tracking-tight">Daily Obligations</h2>
+                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Negative balances are permitted via automatic overdraft</p>
+                </div>
+                <div id="debt-warning" class="hidden px-3 py-1 bg-rose-500/10 border border-rose-500/30 rounded-lg">
+                    <span class="text-[10px] font-black text-rose-400 uppercase tracking-tighter">Account in Debt</span>
+                </div>
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -279,7 +284,6 @@
         let lastKnownDataString = "";
         const REDIRECT_URL = "https://rubiks13.github.io/bikes/";
 
-        // Rider World Time: 1 minute real life = 1 hour game life
         function getGameTime() {
             const now = new Date();
             const hour = now.getMinutes();
@@ -298,13 +302,11 @@
             const timeEl = document.getElementById('world-time');
             if (timeEl) timeEl.innerText = timeStr;
             
-            // Re-render payment statuses whenever game hour changes
             renderPayments();
         }
         setInterval(updateWorldTime, 1000);
         updateWorldTime();
 
-        // Inactivity Timer
         let inactivityTimer;
         function resetInactivityTimer() {
             clearTimeout(inactivityTimer);
@@ -328,32 +330,19 @@
 
         function switchView(viewName) {
             const sections = ['dashboard', 'history', 'payments'];
-            
             sections.forEach(s => {
                 const el = document.getElementById(`view-${s}`);
                 const nav = document.getElementById(`nav-${s}`);
-                
                 if (s === viewName) {
-                    // Show section
                     el.classList.remove('hidden-view');
                     el.style.display = (s === 'dashboard' ? 'grid' : 'block');
-                    
-                    // Style nav button as active
-                    if(nav) {
-                        nav.className = "w-full flex items-center gap-4 p-3 rounded-xl bg-blue-600/10 text-blue-400 transition-all text-left";
-                    }
+                    if(nav) nav.className = "w-full flex items-center gap-4 p-3 rounded-xl bg-blue-600/10 text-blue-400 transition-all text-left";
                 } else {
-                    // Hide section
                     el.classList.add('hidden-view');
                     el.style.display = 'none';
-                    
-                    // Style nav button as inactive
-                    if(nav) {
-                        nav.className = "w-full flex items-center gap-4 p-3 rounded-xl text-slate-500 hover:bg-slate-800 transition-all text-left";
-                    }
+                    if(nav) nav.className = "w-full flex items-center gap-4 p-3 rounded-xl text-slate-500 hover:bg-slate-800 transition-all text-left";
                 }
             });
-
             if(viewName === 'payments') renderPayments();
         }
 
@@ -375,7 +364,6 @@
                     if (rawData !== lastKnownDataString) {
                         lastKnownDataString = rawData;
                         currentAccount = JSON.parse(rawData);
-                        // Ensure payments object exists
                         if (!currentAccount.payments) currentAccount.payments = {};
                         localStorage.setItem('last_rider_session', userName);
                         renderDashboard();
@@ -395,13 +383,11 @@
             setInterval(sync, 1000);
         }
 
+        // UPDATED: ProcessPayment now allows debt (overdraft)
         function processPayment(type, amount) {
-            if (!currentAccount || currentAccount.balance < amount) {
-                showToast("Insufficient Balance!");
-                return;
-            }
-
-            const gameHour = getGameTime().hour;
+            if (!currentAccount) return;
+            
+            // Debt is now allowed, so we removed the insufficient balance check
             const realDate = new Date().toLocaleDateString();
 
             currentAccount.balance -= amount;
@@ -413,17 +399,17 @@
                 date: new Date().toISOString()
             });
 
-            // Track payment for today (based on real date + game hour)
             if (!currentAccount.payments) currentAccount.payments = {};
             currentAccount.payments[type] = {
-                lastPaidDate: realDate,
-                lastPaidHour: gameHour
+                lastPaidDate: realDate
             };
 
             saveCurrentData();
             renderDashboard();
             renderPayments();
-            showToast(`Paid $${amount} for ${type}`);
+            
+            const debtStatus = currentAccount.balance < 0 ? " (Account in debt)" : "";
+            showToast(`Paid $${amount} for ${type}${debtStatus}`);
         }
 
         function renderPayments() {
@@ -433,6 +419,14 @@
             
             const types = ['Taxes', 'Groceries', 'Gas'];
             
+            // Debt UI visibility
+            const debtWarning = document.getElementById('debt-warning');
+            if (currentAccount.balance < 0) {
+                debtWarning.classList.remove('hidden');
+            } else {
+                debtWarning.classList.add('hidden');
+            }
+
             types.forEach(type => {
                 const lower = type.toLowerCase();
                 const card = document.getElementById(`bill-${lower}`);
@@ -440,23 +434,16 @@
                 const btn = document.getElementById(`btn-pay-${lower}`);
                 
                 const payData = currentAccount.payments[type];
-                
-                const isPaidToday = payData && payData.lastPaidDate === realDate && payData.lastPaidHour === time.hour;
+                const isPaidToday = payData && payData.lastPaidDate === realDate;
                 
                 if (isPaidToday) {
                     card.classList.remove('bill-overdue');
                     statusBox.innerHTML = '<span class="text-[10px] font-black uppercase px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-full">Paid</span>';
                     btn.disabled = true;
                     btn.innerText = "Cleared";
-                    btn.classList.replace('bg-blue-600', 'bg-slate-800');
-                    btn.classList.add('opacity-50', 'cursor-not-allowed');
+                    btn.className = "w-full bg-slate-800 text-slate-500 font-black py-3 rounded-xl uppercase text-xs tracking-widest transition-all opacity-50 cursor-not-allowed";
                 } else {
-                    let isOverdue = false;
-                    
-                    // Simple "warning" logic for late payers
-                    if (time.minute > 40) {
-                        isOverdue = true;
-                    }
+                    let isOverdue = time.minute > 45; 
 
                     if (isOverdue) {
                         card.classList.add('bill-overdue');
@@ -476,26 +463,16 @@
         function checkForUrlDeposit(userName, params) {
             const depositAmt = parseFloat(params.get('deposit'));
             if (isNaN(depositAmt) || depositAmt <= 0 || !currentAccount) return;
-
             const label = params.get('label') || 'Mission Earnings';
             const txId = params.get('txid') || `tx_${Date.now()}`;
-
             if (localStorage.getItem(`processed_${txId}`)) return;
 
             currentAccount.balance += depositAmt;
-            currentAccount.transactions.push({
-                id: txId,
-                type: 'deposit',
-                amount: depositAmt,
-                label: label,
-                date: new Date().toISOString()
-            });
-
+            currentAccount.transactions.push({ id: txId, type: 'deposit', amount: depositAmt, label: label, date: new Date().toISOString() });
             localStorage.setItem(`processed_${txId}`, 'true');
             saveCurrentData();
             renderDashboard();
             showToast(`+$${depositAmt} from ${label}`);
-            
             const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + `?user=${userName}`;
             window.history.pushState({path:newUrl},'',newUrl);
         }
@@ -512,13 +489,7 @@
             currentAccount = {
                 ownerName: name,
                 balance: 100,
-                transactions: [{
-                    id: Date.now(),
-                    type: 'deposit',
-                    amount: 100,
-                    label: 'Starting Balance',
-                    date: new Date().toISOString()
-                }],
+                transactions: [{ id: Date.now(), type: 'deposit', amount: 100, label: 'Starting Balance', date: new Date().toISOString() }],
                 payments: {}
             };
             saveCurrentData();
@@ -526,10 +497,7 @@
             document.getElementById('create-overlay').classList.add('hidden');
         }
 
-        function showCreateView() {
-            document.getElementById('create-overlay').classList.remove('hidden');
-        }
-
+        function showCreateView() { document.getElementById('create-overlay').classList.remove('hidden'); }
         function createNewAccount() {
             const nameInput = document.getElementById('new-rider-name');
             const nameToUse = nameInput.value.trim();
@@ -546,73 +514,56 @@
 
         function renderDashboard() {
             const balanceEl = document.getElementById('balance-display');
-            const newBalance = `$${currentAccount.balance.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            const balanceLabel = document.getElementById('balance-label');
+            const isNegative = currentAccount.balance < 0;
             
-            if (balanceEl.innerText !== "$0.00" && balanceEl.innerText !== newBalance) {
+            // Format for negatives
+            const formattedBalance = currentAccount.balance < 0 
+                ? `-$${Math.abs(currentAccount.balance).toLocaleString(undefined, {minimumFractionDigits: 2})}`
+                : `$${currentAccount.balance.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            
+            if (balanceEl.innerText !== "$0.00" && balanceEl.innerText !== formattedBalance) {
                 balanceEl.classList.add('money-pop');
                 setTimeout(() => balanceEl.classList.remove('money-pop'), 400);
             }
+            
+            balanceEl.innerText = formattedBalance;
+            
+            // Visual feedback for debt
+            if (isNegative) {
+                balanceEl.classList.add('text-rose-500');
+                balanceEl.classList.remove('text-white');
+                balanceLabel.classList.add('text-rose-400');
+                balanceLabel.classList.remove('text-blue-400');
+                balanceLabel.innerHTML = `<span class="w-1.5 h-1.5 bg-rose-500 rounded-full"></span> Account in Debt`;
+            } else {
+                balanceEl.classList.remove('text-rose-500');
+                balanceEl.classList.add('text-white');
+                balanceLabel.classList.remove('text-rose-400');
+                balanceLabel.classList.add('text-blue-400');
+                balanceLabel.innerHTML = `<span class="w-1.5 h-1.5 bg-blue-500 rounded-full animate-ping"></span> Current Balance`;
+            }
 
-            balanceEl.innerText = newBalance;
             document.getElementById('owner-display').innerText = currentAccount.ownerName;
             document.getElementById('account-status').innerText = `LOCAL STORAGE SYNC: ${currentAccount.ownerName.toUpperCase()}`;
-
             const listMini = document.getElementById('transactions-list-mini');
             const listFull = document.getElementById('transactions-list-full');
-            
             listMini.innerHTML = '';
             listFull.innerHTML = '';
-
             const sortedTxs = [...currentAccount.transactions].reverse();
-
             sortedTxs.forEach((tx, index) => {
                 const isDep = tx.type === 'deposit';
                 const dateStr = new Date(tx.date).toLocaleDateString();
                 const timeStr = new Date(tx.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
                 if (index < 6) {
                     const item = document.createElement('div');
                     item.className = "p-4 mb-2 rounded-2xl bg-slate-800/30 border border-slate-800/50 flex items-center justify-between";
-                    item.innerHTML = `
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-lg ${isDep ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'} flex items-center justify-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="${isDep ? 'm7 10 5 5 5-5M12 15V3' : 'm17 14-5-5-5 5M12 19V9'}"/></svg>
-                            </div>
-                            <div>
-                                <p class="text-[11px] font-black uppercase text-slate-300">${tx.label}</p>
-                                <p class="text-[8px] text-slate-600 font-bold uppercase">${dateStr}</p>
-                            </div>
-                        </div>
-                        <span class="text-sm font-black tabular-nums ${isDep ? 'text-emerald-400' : 'text-rose-400'}">
-                            ${isDep ? '+' : '-'}$${tx.amount.toLocaleString()}
-                        </span>
-                    `;
+                    item.innerHTML = `<div class="flex items-center gap-3"><div class="w-8 h-8 rounded-lg ${isDep ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'} flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="${isDep ? 'm7 10 5 5 5-5M12 15V3' : 'm17 14-5-5-5 5M12 19V9'}"/></svg></div><div><p class="text-[11px] font-black uppercase text-slate-300">${tx.label}</p><p class="text-[8px] text-slate-600 font-bold uppercase">${dateStr}</p></div></div><span class="text-sm font-black tabular-nums ${isDep ? 'text-emerald-400' : 'text-rose-400'}">${isDep ? '+' : '-'}$${tx.amount.toLocaleString()}</span>`;
                     listMini.appendChild(item);
                 }
-
                 const fullItem = document.createElement('div');
                 fullItem.className = "p-6 rounded-3xl bg-slate-900/50 border border-slate-800 flex items-center justify-between shadow-sm";
-                fullItem.innerHTML = `
-                    <div class="flex items-center gap-5">
-                        <div class="w-12 h-12 rounded-2xl ${isDep ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'} flex items-center justify-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="${isDep ? 'm7 10 5 5 5-5M12 15V3' : 'm17 14-5-5-5 5M12 19V9'}"/></svg>
-                        </div>
-                        <div>
-                            <p class="text-sm font-black uppercase tracking-wide text-slate-100">${tx.label}</p>
-                            <div class="flex items-center gap-2 mt-1">
-                                <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">${dateStr}</span>
-                                <span class="w-1 h-1 bg-slate-700 rounded-full"></span>
-                                <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">${timeStr}</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-lg font-black tabular-nums ${isDep ? 'text-emerald-400' : 'text-rose-400'}">
-                            ${isDep ? '+' : '-'}$${tx.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}
-                        </p>
-                        <p class="text-[9px] font-bold text-slate-600 uppercase tracking-tighter">Verified Mission</p>
-                    </div>
-                `;
+                fullItem.innerHTML = `<div class="flex items-center gap-5"><div class="w-12 h-12 rounded-2xl ${isDep ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'} flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="${isDep ? 'm7 10 5 5 5-5M12 15V3' : 'm17 14-5-5-5 5M12 19V9'}"/></svg></div><div><p class="text-sm font-black uppercase tracking-wide text-slate-100">${tx.label}</p><div class="flex items-center gap-2 mt-1"><span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">${dateStr}</span><span class="w-1 h-1 bg-slate-700 rounded-full"></span><span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">${timeStr}</span></div></div></div><div class="text-right"><p class="text-lg font-black tabular-nums ${isDep ? 'text-emerald-400' : 'text-rose-400'}">${isDep ? '+' : '-'}$${tx.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</p><p class="text-[9px] font-bold text-slate-600 uppercase tracking-tighter">Verified Mission</p></div>`;
                 listFull.appendChild(fullItem);
             });
         }
