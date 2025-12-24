@@ -135,7 +135,7 @@
                         Auto-Syncing Earnings...
                     </p>
                 </div>
-                <!-- CORRECTED WORLD TIME DISPLAY -->
+                <!-- WORLD TIME DISPLAY: Now strictly synced with broadcast -->
                 <div class="bg-slate-900 border border-slate-800 px-4 py-2 rounded-2xl flex flex-col items-center justify-center min-w-[100px]">
                     <span class="text-[9px] font-black text-blue-500 uppercase tracking-widest">Global Time</span>
                     <span id="world-time" class="text-lg font-black tabular-nums tracking-tighter">--:-- --</span>
@@ -206,7 +206,6 @@
                     <div id="status-taxes" class="mb-6"><span class="text-[10px] font-black uppercase px-3 py-1 bg-slate-800 text-slate-500 rounded-full">Pending</span></div>
                     <button id="btn-pay-taxes" onclick="processPayment('Taxes', 25.00)" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-3 rounded-xl uppercase text-xs tracking-widest transition-all">Pay Now</button>
                 </div>
-                <!-- Additional bills follow same pattern -->
                 <div id="bill-groceries" class="bill-card p-6 rounded-[2rem] flex flex-col items-center text-center">
                     <div class="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center mb-4"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-400"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg></div>
                     <h3 class="font-black uppercase italic text-sm mb-1">Groceries</h3>
@@ -278,11 +277,20 @@
         window.addEventListener('click', resetInactivity);
         window.addEventListener('touchstart', resetInactivity);
 
-        // SYNC TIME FROM DIRECTORY SYSTEM
+        // SYNC TIME FROM SIM BROADCAST (sim_current_bike_time)
         function updateDirectoryTime() {
-            const directoryData = localStorage.getItem('global_directory_data');
             const displayEl = document.getElementById('world-time');
             
+            // 1. Try reading the exact broadcast string from Local Storage
+            const broadcastTime = localStorage.getItem('sim_current_bike_time');
+            
+            if (broadcastTime) {
+                displayEl.innerText = broadcastTime;
+                return;
+            }
+
+            // 2. Fallback to global_directory_data if broadcast is missing
+            const directoryData = localStorage.getItem('global_directory_data');
             if (directoryData) {
                 try {
                     const data = JSON.parse(directoryData);
@@ -293,10 +301,11 @@
                 } catch(e) {}
             }
             
+            // 3. Final fallback to system time
             const now = new Date();
             displayEl.innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
-        setInterval(updateDirectoryTime, 1000);
+        setInterval(updateDirectoryTime, 100); // Check frequently for perfect sync
 
         window.onload = () => {
             startLiveSync();
