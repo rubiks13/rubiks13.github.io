@@ -93,7 +93,7 @@
         </div>
         
         <nav class="flex-1 w-full px-4 space-y-4">
-            <button onclick="switchView('dashboard')" id="nav-dash" class="w-full flex items-center gap-4 p-3 rounded-xl bg-blue-600/10 text-blue-400 transition-all text-left">
+            <button onclick="switchView('dashboard')" id="nav-dashboard" class="w-full flex items-center gap-4 p-3 rounded-xl bg-blue-600/10 text-blue-400 transition-all text-left">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
                 <span class="opacity-0 group-hover:opacity-100 font-bold transition-opacity whitespace-nowrap">Dashboard</span>
             </button>
@@ -328,19 +328,32 @@
 
         function switchView(viewName) {
             const sections = ['dashboard', 'history', 'payments'];
+            
             sections.forEach(s => {
                 const el = document.getElementById(`view-${s}`);
                 const nav = document.getElementById(`nav-${s}`);
+                
                 if (s === viewName) {
+                    // Show section
                     el.classList.remove('hidden-view');
                     el.style.display = (s === 'dashboard' ? 'grid' : 'block');
-                    if(nav) nav.className = "w-full flex items-center gap-4 p-3 rounded-xl bg-blue-600/10 text-blue-400 transition-all text-left";
+                    
+                    // Style nav button as active
+                    if(nav) {
+                        nav.className = "w-full flex items-center gap-4 p-3 rounded-xl bg-blue-600/10 text-blue-400 transition-all text-left";
+                    }
                 } else {
+                    // Hide section
                     el.classList.add('hidden-view');
                     el.style.display = 'none';
-                    if(nav) nav.className = "w-full flex items-center gap-4 p-3 rounded-xl text-slate-500 hover:bg-slate-800 transition-all text-left";
+                    
+                    // Style nav button as inactive
+                    if(nav) {
+                        nav.className = "w-full flex items-center gap-4 p-3 rounded-xl text-slate-500 hover:bg-slate-800 transition-all text-left";
+                    }
                 }
             });
+
             if(viewName === 'payments') renderPayments();
         }
 
@@ -401,7 +414,6 @@
             });
 
             // Track payment for today (based on real date + game hour)
-            const payKey = `${type}_${realDate}_${gameHour}`;
             if (!currentAccount.payments) currentAccount.payments = {};
             currentAccount.payments[type] = {
                 lastPaidDate: realDate,
@@ -429,16 +441,7 @@
                 
                 const payData = currentAccount.payments[type];
                 
-                // Logic: 
-                // Paid if: date matches AND hour <= current game hour (resetting every 24 game-hours/real minutes)
                 const isPaidToday = payData && payData.lastPaidDate === realDate && payData.lastPaidHour === time.hour;
-                
-                // Overdue if: not paid today AND game hour has progressed past 0 (start of day)
-                // Actually simpler: if it's hour X, and we haven't paid for hour X, it's pending.
-                // If it's a new game hour and we never paid for the previous one, it's overdue.
-                // But user wants "until midnight". So:
-                // Is it the same hour? If yes, and not paid, Pending.
-                // If it's a NEW hour, and we didn't pay in the LAST hour, it's Overdue.
                 
                 if (isPaidToday) {
                     card.classList.remove('bill-overdue');
@@ -448,18 +451,9 @@
                     btn.classList.replace('bg-blue-600', 'bg-slate-800');
                     btn.classList.add('opacity-50', 'cursor-not-allowed');
                 } else {
-                    // Check if they missed the PREVIOUS game hour
-                    // A simple way to track "The Next Day" logic you mentioned:
-                    // Since 1 min = 1 hour, "Next Day" is 24 real minutes later.
-                    // We check if a payment exists for a previous game-hour cycle.
-                    
-                    // Simplified for user: If hour is > 0 and no payment for this hour yet, show warning if needed.
-                    // Let's use a "Missed" flag.
                     let isOverdue = false;
                     
-                    // If current game minute (hour) > 0, we can check if they missed hour 0.
-                    // For simplicity: If there's no payment record for the current "Game Hour" (Real life minute), 
-                    // and we are already halfway through the hour (30 seconds), warn them.
+                    // Simple "warning" logic for late payers
                     if (time.minute > 40) {
                         isOverdue = true;
                     }
