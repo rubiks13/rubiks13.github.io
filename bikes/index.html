@@ -42,7 +42,6 @@
             50% { transform: rotate(5deg); }
         }
 
-        /* Lock Screen Overlay */
         #lock-screen {
             position: fixed;
             inset: 0;
@@ -185,7 +184,6 @@
         let savedKeys = JSON.parse(localStorage.getItem('bike_occ_keys_v2')) || [];
         let currentUser = { name: "Guest", key: "" };
 
-        // SMOOTH SYNC CLOCK LOGIC (Fixed jumping)
         function initSimulationClock() {
             function refreshTime() {
                 let start = localStorage.getItem('sim_bank_start_real_time');
@@ -197,25 +195,27 @@
                 const startTime = parseInt(start);
                 const elapsedRealMs = Date.now() - startTime;
                 
-                // 1 real minute (60,000ms) = 1 simulation day (1440 mins)
-                const elapsedSimMinutes = (elapsedRealMs * 1440) / 60000;
-                const totalSimMinutes = Math.floor(elapsedSimMinutes % 1440);
+                // --- CORRECT MATH ---
+                // Rule: 1 real minute (60,000ms) = 1 simulation day (1440 sim minutes)
+                // This means sim minutes = (elapsedRealMs / 60000) * 1440
+                // Which simplifies to: sim minutes = elapsedRealMs * 0.024
                 
-                const hours = Math.floor(totalSimMinutes / 60);
-                const mins = totalSimMinutes % 60;
+                const elapsedSimMinutes = elapsedRealMs * 0.024;
+                const totalSimMinutesInDay = Math.floor(elapsedSimMinutes % 1440);
+                
+                const hours = Math.floor(totalSimMinutesInDay / 60);
+                const mins = totalSimMinutesInDay % 60;
                 
                 const ampm = hours >= 12 ? 'PM' : 'AM';
                 const displayHour = hours % 12 || 12;
                 const displayMin = mins.toString().padStart(2, '0');
                 const timeString = `${displayHour}:${displayMin} ${ampm}`;
 
-                // EXPORT FOR BANK
                 localStorage.setItem('sim_current_bike_time', timeString);
                 
                 const textElement = document.getElementById('sim-time-text');
                 if (textElement) textElement.innerText = timeString;
             }
-            // Update much faster (every 100ms) so there's no visible jump
             setInterval(refreshTime, 100); 
             refreshTime();
         }
@@ -265,7 +265,6 @@
             if(k) {
                 savedKeys.push({key: k, name: n});
                 localStorage.setItem('bike_occ_keys_v2', JSON.stringify(savedKeys));
-                navigateTo('home-page');
                 location.reload();
             }
         }
@@ -278,7 +277,6 @@
             passInput.value = "";
         }
 
-        // Improved input listener
         passInput.addEventListener('input', () => {
             const val = passInput.value;
             const match = savedKeys.find(e => e.key === val);
@@ -290,7 +288,6 @@
             }
         });
 
-        // Keep input focused
         document.addEventListener('click', () => {
             if(!lockScreen.classList.contains('hidden')) passInput.focus();
         });
@@ -300,7 +297,6 @@
             passInput.focus();
         };
 
-        // Ctrl+S for settings
         window.addEventListener('keydown', (e) => {
             if (e.ctrlKey && e.key === 's') {
                 e.preventDefault();
