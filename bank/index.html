@@ -78,12 +78,7 @@
             border: 1px solid rgba(255, 255, 255, 0.05);
             transition: all 0.2s;
         }
-        .bill-overdue {
-            border-color: #ef4444 !important;
-            background: rgba(239, 68, 68, 0.05) !important;
-        }
         
-        /* Auto-Sync Pulse */
         .sync-active {
             animation: sync-glow 2s infinite ease-in-out;
         }
@@ -138,10 +133,10 @@
                         Auto-Syncing Earnings...
                     </p>
                 </div>
-                <!-- WORLD TIME DISPLAY -->
-                <div class="bg-slate-900 border border-slate-800 px-4 py-2 rounded-2xl flex flex-col items-center justify-center">
-                    <span class="text-[9px] font-black text-blue-500 uppercase tracking-widest">Rider Time</span>
-                    <span id="world-time" class="text-lg font-black tabular-nums tracking-tighter">12:00 PM</span>
+                <!-- CORRECTED WORLD TIME DISPLAY -->
+                <div class="bg-slate-900 border border-slate-800 px-4 py-2 rounded-2xl flex flex-col items-center justify-center min-w-[100px]">
+                    <span class="text-[9px] font-black text-blue-500 uppercase tracking-widest">Global Time</span>
+                    <span id="world-time" class="text-lg font-black tabular-nums tracking-tighter">--:-- --</span>
                 </div>
             </div>
             
@@ -153,12 +148,11 @@
             </div>
         </header>
 
-        <!-- DASHBOARD VIEW -->
         <div id="view-dashboard" class="view-section max-w-4xl w-full mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 overflow-hidden">
             <div class="lg:col-span-2 space-y-6">
                 <div class="gradient-border p-8 h-64 flex flex-col justify-center relative overflow-hidden shadow-2xl">
                     <div class="absolute right-0 top-0 w-64 h-64 bg-blue-600/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
-                    <p id="balance-label" class="text-blue-400 text-xs font-bold uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
+                    <p class="text-blue-400 text-xs font-bold uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
                         <span class="w-1.5 h-1.5 bg-blue-500 rounded-full animate-ping"></span>
                         Current Balance
                     </p>
@@ -174,13 +168,12 @@
                             <span class="text-[10px] text-slate-500 font-bold uppercase">Auto-Deposit</span>
                             <span class="text-emerald-400 font-bold text-lg flex items-center gap-2">
                                 <span class="w-2.5 h-2.5 bg-emerald-500 rounded-full pulse-emerald"></span>
-                                ON
+                                ACTIVE
                             </span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Live Notification -->
                 <div id="payment-toast" class="opacity-0 translate-y-4 transition-all duration-500 glass-card p-4 rounded-2xl flex items-center gap-4 border border-emerald-500/30 bg-emerald-500/5">
                     <div class="bg-emerald-500 text-white p-2 rounded-lg">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
@@ -197,41 +190,30 @@
                     <h3 class="text-xs font-black uppercase tracking-widest text-slate-400 italic">Live History</h3>
                     <button onclick="switchView('history')" class="text-[10px] font-bold text-blue-500 uppercase hover:underline">See All</button>
                 </div>
-                <div id="transactions-list-mini" class="flex-1 overflow-y-auto p-2">
-                    <!-- History injected here -->
-                </div>
+                <div id="transactions-list-mini" class="flex-1 overflow-y-auto p-2"></div>
             </div>
         </div>
 
-        <!-- OTHER VIEWS REMAIN SAME AS PREVIOUS -->
         <div id="view-payments" class="view-section hidden-view max-w-4xl w-full mx-auto flex-1 overflow-hidden">
-            <div class="mb-6 flex justify-between items-end">
-                <div>
-                    <h2 class="text-2xl font-black uppercase italic tracking-tight">Daily Obligations</h2>
-                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Bills are deducted automatically if overdue</p>
-                </div>
-                <div id="debt-warning" class="hidden px-3 py-1 bg-rose-500/10 border border-rose-500/30 rounded-lg">
-                    <span class="text-[10px] font-black text-rose-400 uppercase tracking-tighter">Account in Debt</span>
-                </div>
-            </div>
-            
+            <h2 class="text-2xl font-black uppercase italic tracking-tight mb-6">Daily Obligations</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div id="bill-taxes" class="bill-card p-6 rounded-[2rem] flex flex-col items-center text-center">
-                    <div class="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center mb-4"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-400"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+                    <div class="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center mb-4"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-400"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
                     <h3 class="font-black uppercase italic text-sm mb-1">City Taxes</h3>
                     <p class="text-2xl font-black mb-4">$25.00</p>
                     <div id="status-taxes" class="mb-6"><span class="text-[10px] font-black uppercase px-3 py-1 bg-slate-800 text-slate-500 rounded-full">Pending</span></div>
                     <button id="btn-pay-taxes" onclick="processPayment('Taxes', 25.00)" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-3 rounded-xl uppercase text-xs tracking-widest transition-all">Pay Now</button>
                 </div>
+                <!-- Additional bills follow same pattern -->
                 <div id="bill-groceries" class="bill-card p-6 rounded-[2rem] flex flex-col items-center text-center">
-                    <div class="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center mb-4"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-400"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg></div>
+                    <div class="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center mb-4"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-400"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg></div>
                     <h3 class="font-black uppercase italic text-sm mb-1">Groceries</h3>
                     <p class="text-2xl font-black mb-4">$15.00</p>
                     <div id="status-groceries" class="mb-6"><span class="text-[10px] font-black uppercase px-3 py-1 bg-slate-800 text-slate-500 rounded-full">Pending</span></div>
                     <button id="btn-pay-groceries" onclick="processPayment('Groceries', 15.00)" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-3 rounded-xl uppercase text-xs tracking-widest transition-all">Pay Now</button>
                 </div>
                 <div id="bill-gas" class="bill-card p-6 rounded-[2rem] flex flex-col items-center text-center">
-                    <div class="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center mb-4"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-400"><path d="M3 22L15 22M4 9L15 9M14 22V4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v12M18 5v4M21 10.3c.2.5.4 1 .4 1.7 0 2.5-2 4.5-4.4 4.5M15 19l-9-9 9 9Z"/></svg></div>
+                    <div class="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center mb-4"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-400"><path d="M3 22L15 22M4 9L15 9M14 22V4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v12M18 5v4M21 10.3c.2.5.4 1 .4 1.7 0 2.5-2 4.5-4.4 4.5M15 19l-9-9 9 9Z"/></svg></div>
                     <h3 class="font-black uppercase italic text-sm mb-1">Fuel Refill</h3>
                     <p class="text-2xl font-black mb-4">$10.00</p>
                     <div id="status-gas" class="mb-6"><span class="text-[10px] font-black uppercase px-3 py-1 bg-slate-800 text-slate-500 rounded-full">Pending</span></div>
@@ -243,8 +225,8 @@
         <div id="view-history" class="view-section hidden-view max-w-4xl w-full mx-auto flex-1 overflow-hidden">
             <div class="glass-card rounded-3xl h-full flex flex-col border border-slate-800 shadow-2xl overflow-hidden">
                 <div class="p-8 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
-                    <div><h2 class="text-xl font-black uppercase italic tracking-tight">Full Ledger</h2></div>
-                    <button onclick="switchView('dashboard')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 p-2 rounded-xl transition-all"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+                    <h2 class="text-xl font-black uppercase italic tracking-tight">Full Ledger</h2>
+                    <button onclick="switchView('dashboard')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 p-2 rounded-xl transition-all"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
                 </div>
                 <div id="transactions-list-full" class="flex-1 overflow-y-auto p-6 space-y-4"></div>
             </div>
@@ -252,11 +234,10 @@
 
     </main>
 
-    <!-- IDENTIFY OVERLAY -->
     <div id="create-overlay" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[100] hidden flex items-center justify-center p-4">
         <div class="glass-card p-8 rounded-[2.5rem] max-w-sm w-full text-center shadow-2xl">
             <h2 class="text-2xl font-black mb-2 uppercase italic">Identify Rider</h2>
-            <div id="manual-name-entry" class="mb-6">
+            <div class="mb-6">
                 <input type="text" id="new-rider-name" placeholder="CALLSIGN" class="w-full bg-slate-900 border border-slate-800 p-4 rounded-2xl text-center font-black uppercase tracking-[0.2em] focus:ring-2 focus:ring-blue-500 outline-none text-white">
             </div>
             <button onclick="createNewAccount()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-2xl transition uppercase tracking-widest text-sm">Start Session</button>
@@ -266,45 +247,35 @@
     <script>
         let currentAccount = null;
         let lastKnownDataString = "";
-        const REDIRECT_URL = "https://rubiks13.github.io/bikes/";
 
-        function getGameTime() {
-            const now = new Date();
-            const hour = now.getMinutes();
-            const minute = now.getSeconds();
-            return { hour, minute };
-        }
-
-        function updateWorldTime() {
-            const time = getGameTime();
-            const ampm = time.hour >= 12 ? 'PM' : 'AM';
-            let displayHour = time.hour % 12 || 12;
-            const displayMinute = time.minute < 10 ? '0'+time.minute : time.minute;
-            document.getElementById('world-time').innerText = `${displayHour}:${displayMinute} ${ampm}`;
-            renderPayments();
-        }
-        setInterval(updateWorldTime, 1000);
-
-        // Keep session alive - No automatic logout for "Riders"
-        let inactivityTimer;
-        function resetInactivityTimer() {
-            clearTimeout(inactivityTimer);
-            const bar = document.getElementById('inactivity-bar');
-            if (bar) {
-                bar.style.transition = 'none';
-                bar.style.width = '100%'; 
+        // SYNC TIME FROM DIRECTORY SYSTEM
+        function updateDirectoryTime() {
+            const directoryData = localStorage.getItem('global_directory_data');
+            const displayEl = document.getElementById('world-time');
+            
+            if (directoryData) {
+                try {
+                    const data = JSON.parse(directoryData);
+                    if (data.time) {
+                        displayEl.innerText = data.time;
+                        return;
+                    }
+                } catch(e) {}
             }
+            
+            // Fallback to local clock if directory is missing
+            const now = new Date();
+            displayEl.innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
-        ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(evt => window.addEventListener(evt, resetInactivityTimer));
+        setInterval(updateDirectoryTime, 1000);
 
         window.onload = () => {
             startLiveSync();
-            updateWorldTime();
+            updateDirectoryTime();
         };
 
         function switchView(viewName) {
-            const sections = ['dashboard', 'history', 'payments'];
-            sections.forEach(s => {
+            ['dashboard', 'history', 'payments'].forEach(s => {
                 const el = document.getElementById(`view-${s}`);
                 const nav = document.getElementById(`nav-${s}`);
                 if (s === viewName) {
@@ -324,33 +295,26 @@
                 const params = new URLSearchParams(window.location.search);
                 const userName = params.get('user') || localStorage.getItem('last_rider_session');
                 
-                // CRITICAL: Auto-process any pending deposits in the URL immediately
                 if (userName) {
                     checkForUrlDeposit(userName, params);
-                } else {
-                    showCreateView();
-                    return;
-                }
+                    const storageKey = `rider_bank_${userName.toLowerCase()}`;
+                    const rawData = localStorage.getItem(storageKey);
 
-                const storageKey = `rider_bank_${userName.toLowerCase()}`;
-                const rawData = localStorage.getItem(storageKey);
-
-                if (rawData) {
-                    if (rawData !== lastKnownDataString) {
+                    if (rawData && rawData !== lastKnownDataString) {
                         lastKnownDataString = rawData;
                         currentAccount = JSON.parse(rawData);
                         if (!currentAccount.payments) currentAccount.payments = {};
-                        localStorage.setItem('last_rider_session', userName);
                         renderDashboard();
                         document.getElementById('create-overlay').classList.add('hidden');
+                    } else if (!rawData) {
+                        initDefaultAccount(userName);
                     }
                 } else {
-                    initDefaultAccount(userName);
+                    showCreateView();
                 }
             };
-
             sync(); 
-            setInterval(sync, 1000); // Check every second for background changes
+            setInterval(sync, 1000);
         }
 
         function checkForUrlDeposit(userName, params) {
@@ -364,9 +328,8 @@
             const rawData = localStorage.getItem(storageKey);
             let acc = rawData ? JSON.parse(rawData) : { ownerName: userName, balance: 100, transactions: [], payments: {} };
 
-            const label = params.get('label') || 'Mission Earnings';
             acc.balance += depositAmt;
-            acc.transactions.push({ id: txId, type: 'deposit', amount: depositAmt, label: label, date: new Date().toISOString() });
+            acc.transactions.push({ id: txId, type: 'deposit', amount: depositAmt, label: params.get('label') || 'Mission Reward', date: new Date().toISOString() });
 
             localStorage.setItem(`processed_${txId}`, 'true');
             localStorage.setItem(storageKey, JSON.stringify(acc));
@@ -374,9 +337,8 @@
             currentAccount = acc;
             lastKnownDataString = JSON.stringify(acc);
             renderDashboard();
-            showToast(`+$${depositAmt.toFixed(2)}: ${label}`);
+            showToast(`+$${depositAmt.toFixed(2)}: Received`);
 
-            // Clean URL so it doesn't double-process on refresh
             const newUrl = window.location.origin + window.location.pathname + `?user=${userName}`;
             window.history.replaceState({}, '', newUrl);
         }
@@ -395,24 +357,6 @@
             saveCurrentData();
             renderDashboard();
             showToast(`Paid $${amount} for ${type}`);
-        }
-
-        function renderPayments() {
-            if (!currentAccount) return;
-            const realDate = new Date().toLocaleDateString();
-            ['Taxes', 'Groceries', 'Gas'].forEach(type => {
-                const btn = document.getElementById(`btn-pay-${type.toLowerCase()}`);
-                const status = document.getElementById(`status-${type.toLowerCase()}`);
-                const isPaid = currentAccount.payments[type]?.lastPaidDate === realDate;
-                
-                if (isPaid) {
-                    status.innerHTML = '<span class="text-[10px] font-black uppercase px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-full">Paid</span>';
-                    btn.disabled = true;
-                    btn.innerText = "Cleared";
-                    btn.classList.replace('bg-blue-600', 'bg-slate-800');
-                    btn.classList.add('opacity-50');
-                }
-            });
         }
 
         function saveCurrentData() {
@@ -472,12 +416,36 @@
                         <div class="w-8 h-8 rounded-lg ${isDep ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'} flex items-center justify-center">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="${isDep ? 'm7 10 5 5 5-5M12 15V3' : 'm17 14-5-5-5 5M12 19V9'}"/></svg>
                         </div>
-                        <div><p class="text-[11px] font-black uppercase text-slate-300">${tx.label}</p></div>
+                        <p class="text-[11px] font-black uppercase text-slate-300">${tx.label}</p>
                     </div>
                     <span class="text-sm font-black ${isDep ? 'text-emerald-400' : 'text-rose-400'}">${isDep ? '+' : '-'}$${tx.amount.toFixed(2)}</span>
                 </div>`;
                 if (idx < 5) listMini.innerHTML += row;
                 listFull.innerHTML += row;
+            });
+            renderPayments();
+        }
+
+        function renderPayments() {
+            if (!currentAccount) return;
+            const realDate = new Date().toLocaleDateString();
+            ['Taxes', 'Groceries', 'Gas'].forEach(type => {
+                const btn = document.getElementById(`btn-pay-${type.toLowerCase()}`);
+                const status = document.getElementById(`status-${type.toLowerCase()}`);
+                if (!btn || !status) return;
+                const isPaid = currentAccount.payments[type]?.lastPaidDate === realDate;
+                
+                if (isPaid) {
+                    status.innerHTML = '<span class="text-[10px] font-black uppercase px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-full">Paid</span>';
+                    btn.disabled = true;
+                    btn.innerText = "Cleared";
+                    btn.className = "w-full bg-slate-800 text-slate-500 font-black py-3 rounded-xl uppercase text-xs tracking-widest opacity-50";
+                } else {
+                    status.innerHTML = '<span class="text-[10px] font-black uppercase px-3 py-1 bg-slate-800 text-slate-500 rounded-full">Pending</span>';
+                    btn.disabled = false;
+                    btn.innerText = "Pay Now";
+                    btn.className = "w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-3 rounded-xl uppercase text-xs tracking-widest transition-all";
+                }
             });
         }
     </script>
