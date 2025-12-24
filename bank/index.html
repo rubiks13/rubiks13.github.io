@@ -40,7 +40,6 @@
             opacity: 0.3;
         }
 
-        /* Fixed the transition timing for the inactivity bar */
         #inactivity-bar {
             transition: width 5s linear;
             width: 100%;
@@ -135,7 +134,6 @@
                         Auto-Syncing Earnings...
                     </p>
                 </div>
-                <!-- WORLD TIME DISPLAY: Now strictly synced with broadcast -->
                 <div class="bg-slate-900 border border-slate-800 px-4 py-2 rounded-2xl flex flex-col items-center justify-center min-w-[100px]">
                     <span class="text-[9px] font-black text-blue-500 uppercase tracking-widest">Global Time</span>
                     <span id="world-time" class="text-lg font-black tabular-nums tracking-tighter">--:-- --</span>
@@ -250,38 +248,42 @@
         let lastKnownDataString = "";
         let inactivityTimer = null;
 
-        // Reset inactivity timer on any interaction
+        // --- NEW: SYSTEM SYNC HELPERS ---
+        function getSimulatedDate() {
+            // First, try to get the full broadcast data which contains the sim-date
+            const directoryData = localStorage.getItem('global_directory_data');
+            if (directoryData) {
+                try {
+                    const data = JSON.parse(directoryData);
+                    // If the sim provides a specific date, use it. Otherwise, use the 'time' as a proxy 
+                    // or fall back to local date.
+                    if (data.date) return data.date;
+                } catch(e) {}
+            }
+            // Fallback to local date if the sim doesn't explicitly provide one
+            return new Date().toLocaleDateString();
+        }
+
         function resetInactivity() {
             clearTimeout(inactivityTimer);
             const bar = document.getElementById('inactivity-bar');
-            
-            // Instantly reset visual bar
             bar.style.transition = 'none';
             bar.style.width = '100%';
-            
-            // Force reflow
             void bar.offsetWidth;
-            
-            // Start the 5 second drain
             bar.style.transition = 'width 5s linear';
             bar.style.width = '0%';
-            
             inactivityTimer = setTimeout(() => {
                 window.location.href = "https://rubiks13.github.io/bikes/";
             }, 5000);
         }
 
-        // Global listeners for reset
         window.addEventListener('mousemove', resetInactivity);
         window.addEventListener('keydown', resetInactivity);
         window.addEventListener('click', resetInactivity);
         window.addEventListener('touchstart', resetInactivity);
 
-        // SYNC TIME FROM SIM BROADCAST (sim_current_bike_time)
         function updateDirectoryTime() {
             const displayEl = document.getElementById('world-time');
-            
-            // 1. Try reading the exact broadcast string from Local Storage
             const broadcastTime = localStorage.getItem('sim_current_bike_time');
             
             if (broadcastTime) {
@@ -289,7 +291,6 @@
                 return;
             }
 
-            // 2. Fallback to global_directory_data if broadcast is missing
             const directoryData = localStorage.getItem('global_directory_data');
             if (directoryData) {
                 try {
@@ -301,11 +302,10 @@
                 } catch(e) {}
             }
             
-            // 3. Final fallback to system time
             const now = new Date();
             displayEl.innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
-        setInterval(updateDirectoryTime, 100); // Check frequently for perfect sync
+        setInterval(updateDirectoryTime, 100);
 
         window.onload = () => {
             startLiveSync();
@@ -395,7 +395,8 @@
                 label: `Daily ${type}`,
                 date: new Date().toISOString()
             });
-            currentAccount.payments[type] = { lastPaidDate: new Date().toLocaleDateString() };
+            // Update to use Simulated Date
+            currentAccount.payments[type] = { lastPaidDate: getSimulatedDate() };
             saveCurrentData();
             renderDashboard();
             showToast(`Paid $${amount} for ${type}`);
@@ -470,12 +471,14 @@
 
         function renderPayments() {
             if (!currentAccount) return;
-            const realDate = new Date().toLocaleDateString();
+            // Update checking logic to use Simulated Date
+            const simDate = getSimulatedDate();
             ['Taxes', 'Groceries', 'Gas'].forEach(type => {
                 const btn = document.getElementById(`btn-pay-${type.toLowerCase()}`);
                 const status = document.getElementById(`status-${type.toLowerCase()}`);
                 if (!btn || !status) return;
-                const isPaid = currentAccount.payments[type]?.lastPaidDate === realDate;
+                
+                const isPaid = currentAccount.payments[type]?.lastPaidDate === simDate;
                 
                 if (isPaid) {
                     status.innerHTML = '<span class="text-[10px] font-black uppercase px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-full">Paid</span>';
