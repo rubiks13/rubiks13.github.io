@@ -87,6 +87,13 @@
             0%, 100% { opacity: 0.5; }
             50% { opacity: 1; color: #60a5fa; }
         }
+
+        .admin-badge {
+            background: linear-gradient(90deg, #ef4444, #f97316);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 900;
+        }
     </style>
 </head>
 <body class="h-screen flex">
@@ -110,6 +117,10 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                 <span class="opacity-0 group-hover:opacity-100 font-bold transition-opacity whitespace-nowrap">Full History</span>
             </button>
+            <button id="nav-admin" onclick="switchView('admin')" class="hidden w-full flex items-center gap-4 p-3 rounded-xl text-orange-500 hover:bg-orange-500/10 transition-all text-left">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>
+                <span class="opacity-0 group-hover:opacity-100 font-bold transition-opacity whitespace-nowrap">Master Control</span>
+            </button>
             <a href="https://rubiks13.github.io/bikes/" class="flex items-center gap-4 p-3 rounded-xl text-slate-500 hover:bg-slate-800 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                 <span class="opacity-0 group-hover:opacity-100 font-bold transition-opacity whitespace-nowrap">Back to Hub</span>
@@ -119,7 +130,7 @@
         <div class="mt-auto group-hover:px-4 w-full flex justify-center border-t border-slate-800 pt-6">
             <div class="w-10 h-10 group-hover:w-full bg-slate-800 rounded-xl flex items-center justify-center gap-3 overflow-hidden transition-all text-slate-400">
                 <div class="min-w-[40px] flex justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
-                <span class="opacity-0 group-hover:opacity-100 text-[10px] font-black uppercase tracking-widest">Local Mode</span>
+                <span id="mode-label" class="opacity-0 group-hover:opacity-100 text-[10px] font-black uppercase tracking-widest">Local Mode</span>
             </div>
         </div>
     </aside>
@@ -148,6 +159,7 @@
             </div>
         </header>
 
+        <!-- DASHBOARD VIEW -->
         <div id="view-dashboard" class="view-section max-w-4xl w-full mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 overflow-hidden">
             <div class="lg:col-span-2 space-y-6">
                 <div class="gradient-border p-8 h-64 flex flex-col justify-center relative overflow-hidden shadow-2xl">
@@ -179,8 +191,8 @@
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                     </div>
                     <div class="flex-1">
-                        <p class="text-xs font-black uppercase text-emerald-400">Auto-Deposit Received</p>
-                        <p id="toast-msg" class="text-sm text-slate-300 font-bold">+$0.00 Mission Reward</p>
+                        <p class="text-xs font-black uppercase text-emerald-400">Update Received</p>
+                        <p id="toast-msg" class="text-sm text-slate-300 font-bold">Account synchronized.</p>
                     </div>
                 </div>
             </div>
@@ -194,6 +206,7 @@
             </div>
         </div>
 
+        <!-- PAYMENTS VIEW -->
         <div id="view-payments" class="view-section hidden-view max-w-4xl w-full mx-auto flex-1 overflow-hidden">
             <h2 class="text-2xl font-black uppercase italic tracking-tight mb-6">Daily Obligations</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -221,6 +234,7 @@
             </div>
         </div>
 
+        <!-- HISTORY VIEW -->
         <div id="view-history" class="view-section hidden-view max-w-4xl w-full mx-auto flex-1 overflow-hidden">
             <div class="glass-card rounded-3xl h-full flex flex-col border border-slate-800 shadow-2xl overflow-hidden">
                 <div class="p-8 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
@@ -231,8 +245,22 @@
             </div>
         </div>
 
+        <!-- ADMIN VIEW -->
+        <div id="view-admin" class="view-section hidden-view max-w-4xl w-full mx-auto flex-1 overflow-hidden">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-black uppercase italic tracking-tight text-orange-500">Master Control Panel</h2>
+                <div class="bg-orange-500/10 border border-orange-500/20 px-3 py-1 rounded-full text-[10px] font-black text-orange-500 uppercase tracking-widest">Authorized Only</div>
+            </div>
+            <div class="glass-card rounded-3xl h-full flex flex-col border border-slate-800 shadow-2xl overflow-hidden">
+                <div id="admin-account-list" class="flex-1 overflow-y-auto p-6 space-y-4">
+                    <!-- List of all accounts in localStorage will be generated here -->
+                </div>
+            </div>
+        </div>
+
     </main>
 
+    <!-- CREATE ACCOUNT OVERLAY -->
     <div id="create-overlay" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[100] hidden flex items-center justify-center p-4">
         <div class="glass-card p-8 rounded-[2.5rem] max-w-sm w-full text-center shadow-2xl">
             <h2 class="text-2xl font-black mb-2 uppercase italic">Identify Rider</h2>
@@ -247,20 +275,16 @@
         let currentAccount = null;
         let lastKnownDataString = "";
         let inactivityTimer = null;
+        let isAdmin = false;
 
-        // --- NEW: SYSTEM SYNC HELPERS ---
         function getSimulatedDate() {
-            // First, try to get the full broadcast data which contains the sim-date
             const directoryData = localStorage.getItem('global_directory_data');
             if (directoryData) {
                 try {
                     const data = JSON.parse(directoryData);
-                    // If the sim provides a specific date, use it. Otherwise, use the 'time' as a proxy 
-                    // or fall back to local date.
                     if (data.date) return data.date;
                 } catch(e) {}
             }
-            // Fallback to local date if the sim doesn't explicitly provide one
             return new Date().toLocaleDateString();
         }
 
@@ -285,29 +309,23 @@
         function updateDirectoryTime() {
             const displayEl = document.getElementById('world-time');
             const broadcastTime = localStorage.getItem('sim_current_bike_time');
-            
             if (broadcastTime) {
                 displayEl.innerText = broadcastTime;
                 return;
             }
-
-            const directoryData = localStorage.getItem('global_directory_data');
-            if (directoryData) {
-                try {
-                    const data = JSON.parse(directoryData);
-                    if (data.time) {
-                        displayEl.innerText = data.time;
-                        return;
-                    }
-                } catch(e) {}
-            }
-            
             const now = new Date();
             displayEl.innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
         setInterval(updateDirectoryTime, 100);
 
         window.onload = () => {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('user')?.toLowerCase() === 'admin') {
+                isAdmin = true;
+                document.getElementById('nav-admin').classList.remove('hidden');
+                document.getElementById('mode-label').innerText = "Admin Access";
+                document.getElementById('mode-label').classList.add('admin-badge');
+            }
             startLiveSync();
             updateDirectoryTime();
             resetInactivity();
@@ -315,17 +333,19 @@
 
         function switchView(viewName) {
             resetInactivity();
-            ['dashboard', 'history', 'payments'].forEach(s => {
+            ['dashboard', 'history', 'payments', 'admin'].forEach(s => {
                 const el = document.getElementById(`view-${s}`);
                 const nav = document.getElementById(`nav-${s}`);
+                if (!el) return;
                 if (s === viewName) {
                     el.classList.remove('hidden-view');
                     el.style.display = (s === 'dashboard' ? 'grid' : 'block');
-                    if(nav) nav.className = "w-full flex items-center gap-4 p-3 rounded-xl bg-blue-600/10 text-blue-400 transition-all text-left";
+                    if(nav) nav.classList.add('bg-blue-600/10', 'text-blue-400');
+                    if(s === 'admin') renderAdminPanel();
                 } else {
                     el.classList.add('hidden-view');
                     el.style.display = 'none';
-                    if(nav) nav.className = "w-full flex items-center gap-4 p-3 rounded-xl text-slate-500 hover:bg-slate-800 transition-all text-left";
+                    if(nav) nav.classList.remove('bg-blue-600/10', 'text-blue-400');
                 }
             });
         }
@@ -395,7 +415,6 @@
                 label: `Daily ${type}`,
                 date: new Date().toISOString()
             });
-            // Update to use Simulated Date
             currentAccount.payments[type] = { lastPaidDate: getSimulatedDate() };
             saveCurrentData();
             renderDashboard();
@@ -471,15 +490,12 @@
 
         function renderPayments() {
             if (!currentAccount) return;
-            // Update checking logic to use Simulated Date
             const simDate = getSimulatedDate();
             ['Taxes', 'Groceries', 'Gas'].forEach(type => {
                 const btn = document.getElementById(`btn-pay-${type.toLowerCase()}`);
                 const status = document.getElementById(`status-${type.toLowerCase()}`);
                 if (!btn || !status) return;
-                
                 const isPaid = currentAccount.payments[type]?.lastPaidDate === simDate;
-                
                 if (isPaid) {
                     status.innerHTML = '<span class="text-[10px] font-black uppercase px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-full">Paid</span>';
                     btn.disabled = true;
@@ -492,6 +508,68 @@
                     btn.className = "w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-3 rounded-xl uppercase text-xs tracking-widest transition-all";
                 }
             });
+        }
+
+        // --- ADMIN FUNCTIONS ---
+        function renderAdminPanel() {
+            if (!isAdmin) return;
+            const listEl = document.getElementById('admin-account-list');
+            listEl.innerHTML = '';
+            
+            const keys = Object.keys(localStorage).filter(k => k.startsWith('rider_bank_'));
+            
+            keys.forEach(key => {
+                const acc = JSON.parse(localStorage.getItem(key));
+                const card = document.createElement('div');
+                card.className = "bg-slate-900 border border-slate-800 p-6 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-4";
+                card.innerHTML = `
+                    <div class="flex-1">
+                        <p class="text-[10px] font-black text-slate-500 uppercase">Callsign</p>
+                        <h3 class="font-black uppercase text-lg">${acc.ownerName}</h3>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-[10px] font-black text-slate-500 uppercase">Balance</p>
+                        <input type="number" step="0.01" value="${acc.balance}" onchange="adminUpdateBalance('${acc.ownerName}', this.value)" 
+                            class="bg-slate-950 border border-slate-800 p-2 rounded-xl text-emerald-400 font-black w-32 outline-none focus:ring-1 focus:ring-orange-500">
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="adminDeleteAccount('${acc.ownerName}')" class="bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white p-3 rounded-xl transition-all">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        </button>
+                    </div>
+                `;
+                listEl.appendChild(card);
+            });
+        }
+
+        function adminUpdateBalance(owner, newVal) {
+            const storageKey = `rider_bank_${owner.toLowerCase()}`;
+            const acc = JSON.parse(localStorage.getItem(storageKey));
+            const oldVal = acc.balance;
+            acc.balance = parseFloat(newVal);
+            acc.transactions.push({
+                id: `admin_${Date.now()}`,
+                type: acc.balance > oldVal ? 'deposit' : 'payment',
+                amount: Math.abs(acc.balance - oldVal),
+                label: 'Admin Adjustment',
+                date: new Date().toISOString()
+            });
+            localStorage.setItem(storageKey, JSON.stringify(acc));
+            if (currentAccount && currentAccount.ownerName.toLowerCase() === owner.toLowerCase()) {
+                currentAccount = acc;
+                renderDashboard();
+            }
+            showToast(`Modified ${owner}'s balance.`);
+        }
+
+        function adminDeleteAccount(owner) {
+            const storageKey = `rider_bank_${owner.toLowerCase()}`;
+            localStorage.removeItem(storageKey);
+            renderAdminPanel();
+            showToast(`Deleted account: ${owner}`);
+            if (currentAccount && currentAccount.ownerName.toLowerCase() === owner.toLowerCase()) {
+                window.location.reload();
+            }
         }
     </script>
 </body>
