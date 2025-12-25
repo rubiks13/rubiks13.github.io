@@ -58,6 +58,14 @@
             background: #1e293b;
             border-radius: 10px;
         }
+
+        .admin-btn {
+            opacity: 0.1;
+            transition: opacity 0.3s;
+        }
+        .admin-btn:hover {
+            opacity: 1;
+        }
     </style>
 </head>
 <body class="h-screen flex">
@@ -78,6 +86,10 @@
                 <span class="opacity-0 group-hover:opacity-100 font-bold whitespace-nowrap">Bill Pay</span>
             </button>
         </nav>
+
+        <button onclick="toggleAdmin()" class="admin-btn mt-auto p-4 text-slate-700">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </button>
     </aside>
 
     <main class="flex-1 flex flex-col p-8 overflow-hidden">
@@ -104,7 +116,7 @@
 
                 <div class="glass-card rounded-[2rem] p-8 border border-slate-800">
                     <h3 class="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-6">Recent History</h3>
-                    <div id="history-list" class="space-y-4 max-h-48 overflow-y-auto pr-2">
+                    <div id="history-list" class="space-y-4 max-h-48 overflow-y-auto pr-2 text-sm">
                         <!-- History injected here -->
                     </div>
                 </div>
@@ -119,8 +131,22 @@
         <!-- PAYMENTS VIEW -->
         <div id="view-payments" class="view-section hidden-view max-w-5xl w-full mx-auto">
             <h2 class="text-2xl font-black uppercase italic tracking-tight mb-8">Settlements</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="payments-grid">
-                <!-- Big cards injected here -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="payments-grid"></div>
+        </div>
+
+        <!-- ADMIN PANEL -->
+        <div id="view-admin" class="view-section hidden-view max-w-2xl w-full mx-auto glass-card p-10 rounded-[2.5rem] border border-blue-500/30">
+            <h2 class="text-2xl font-black uppercase italic mb-8">Terminal Admin</h2>
+            <div class="space-y-6">
+                <div>
+                    <label class="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-2 block">Adjust Balance</label>
+                    <div class="flex gap-4">
+                        <input type="number" id="admin-amount" class="flex-1 bg-slate-950 border border-slate-800 p-4 rounded-xl font-bold" placeholder="0.00">
+                        <button onclick="adjustBalance(true)" class="bg-emerald-600 px-6 rounded-xl font-bold">+</button>
+                        <button onclick="adjustBalance(false)" class="bg-rose-600 px-6 rounded-xl font-bold">-</button>
+                    </div>
+                </div>
+                <button onclick="resetDailyPayments()" class="w-full py-4 bg-slate-800 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-slate-700">Force Reset Daily Bills</button>
             </div>
         </div>
     </main>
@@ -140,19 +166,49 @@
                     const parsed = JSON.parse(directoryData);
                     return parsed.date || "Day 1";
                 }
-            } catch(e) { console.error(e); }
+            } catch(e) {}
             return "Day 1";
         }
 
         function switchView(v) {
             document.querySelectorAll('.view-section').forEach(s => s.classList.add('hidden-view'));
-            document.getElementById(`view-${v}`).classList.remove('hidden-view');
+            const target = document.getElementById(`view-${v}`);
+            if(target) target.classList.remove('hidden-view');
             
             document.querySelectorAll('nav button').forEach(b => {
                 b.classList.remove('nav-active', 'text-blue-400');
                 b.classList.add('text-slate-500');
             });
-            document.getElementById(`nav-${v}`).classList.add('nav-active', 'text-blue-400');
+            const navBtn = document.getElementById(`nav-${v}`);
+            if(navBtn) navBtn.classList.add('nav-active', 'text-blue-400');
+            renderUI();
+        }
+
+        function toggleAdmin() {
+            switchView('admin');
+        }
+
+        function adjustBalance(isAdd) {
+            const amt = parseFloat(document.getElementById('admin-amount').value);
+            if (isNaN(amt)) return;
+            
+            if (isAdd) currentAccount.balance += amt;
+            else currentAccount.balance -= amt;
+
+            currentAccount.transactions.unshift({
+                id: crypto.randomUUID(),
+                type: isAdd ? 'deposit' : 'payment',
+                amount: amt,
+                label: `Admin Adjustment`,
+                date: new Date().toISOString()
+            });
+            saveData();
+            renderUI();
+        }
+
+        function resetDailyPayments() {
+            currentAccount.payments = {};
+            saveData();
             renderUI();
         }
 
@@ -183,60 +239,52 @@
             document.getElementById('balance-display').innerText = `$${currentAccount.balance.toFixed(2)}`;
             document.getElementById('owner-display').innerText = currentAccount.ownerName;
 
-            // Render History
             const historyList = document.getElementById('history-list');
-            historyList.innerHTML = currentAccount.transactions.length ? '' : '<p class="text-xs text-slate-600">No recent activity</p>';
-            currentAccount.transactions.slice(0, 10).forEach(tx => {
-                historyList.innerHTML += `
-                    <div class="flex justify-between items-center p-4 rounded-xl bg-slate-800/30 border border-white/5">
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="3"><path d="M7 7l10 10M17 7H7v10"/></svg>
+            if(historyList) {
+                historyList.innerHTML = currentAccount.transactions.length ? '' : '<p class="text-xs text-slate-600 italic">No recent transactions recorded.</p>';
+                currentAccount.transactions.slice(0, 15).forEach(tx => {
+                    const isNeg = tx.type === 'payment';
+                    historyList.innerHTML += `
+                        <div class="flex justify-between items-center p-4 rounded-xl bg-slate-800/30 border border-white/5 mb-2">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg ${isNeg ? 'bg-rose-500/10' : 'bg-emerald-500/10'} flex items-center justify-center">
+                                    <span class="text-xs font-bold ${isNeg ? 'text-rose-400' : 'text-emerald-400'}">${isNeg ? '-' : '+'}</span>
+                                </div>
+                                <span class="text-xs font-bold uppercase tracking-widest">${tx.label}</span>
                             </div>
-                            <span class="text-xs font-bold uppercase tracking-widest">${tx.label}</span>
+                            <span class="font-black ${isNeg ? 'text-rose-400' : 'text-emerald-400'}">${isNeg ? '-' : ''}$${tx.amount.toFixed(2)}</span>
                         </div>
-                        <span class="text-sm font-black text-red-400">-$${tx.amount.toFixed(2)}</span>
-                    </div>
-                `;
-            });
+                    `;
+                });
+            }
 
-            // Render Grids
             const grid = document.getElementById('payments-grid');
             const quick = document.getElementById('quick-bill-list');
-            grid.innerHTML = '';
-            quick.innerHTML = '';
+            if(grid && quick) {
+                grid.innerHTML = '';
+                quick.innerHTML = '';
+                BILLS.forEach(bill => {
+                    const isPaid = currentAccount.payments[bill.id] === simDate;
+                    grid.innerHTML += `
+                        <div class="glass-card p-8 rounded-[2.5rem] border border-slate-800 text-center bill-card ${isPaid ? 'opacity-40' : ''}">
+                            <h3 class="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-2">${bill.label}</h3>
+                            <p class="text-4xl font-black mb-8 tabular-nums">$${bill.amount.toFixed(2)}</p>
+                            <button onclick="processPayment('${bill.id}', ${bill.amount})" ${isPaid ? 'disabled' : ''} 
+                                class="w-full py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all
+                                ${isPaid ? 'bg-slate-800 text-slate-600' : 'bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-600/20 text-white'}">
+                                ${isPaid ? 'Paid' : 'Settle'}
+                            </button>
+                        </div>`;
 
-            BILLS.forEach(bill => {
-                const isPaid = currentAccount.payments[bill.id] === simDate;
-                
-                grid.innerHTML += `
-                    <div class="glass-card p-8 rounded-[2.5rem] border border-slate-800 text-center bill-card ${isPaid ? 'opacity-40' : ''}">
-                        <h3 class="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-2">${bill.label}</h3>
-                        <p class="text-4xl font-black mb-8 tabular-nums">$${bill.amount.toFixed(2)}</p>
-                        <button onclick="processPayment('${bill.id}', ${bill.amount})" ${isPaid ? 'disabled' : ''} 
-                            class="w-full py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all
-                            ${isPaid ? 'bg-slate-800 text-slate-600' : 'bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-600/20 text-white'}">
-                            ${isPaid ? 'Paid for today' : 'Settle Now'}
-                        </button>
-                    </div>`;
-
-                if (!isPaid) {
-                    quick.innerHTML += `
-                        <button onclick="processPayment('${bill.id}', ${bill.amount})" class="w-full p-4 rounded-2xl bg-slate-800/50 border border-white/5 flex justify-between items-center hover:bg-slate-800 transition">
-                            <span class="text-[10px] font-black uppercase text-slate-400">${bill.label}</span>
-                            <span class="text-sm font-black">$${bill.amount}</span>
-                        </button>`;
-                }
-            });
-
-            if (!quick.innerHTML) {
-                quick.innerHTML = `
-                    <div class="flex flex-col items-center justify-center py-10 opacity-50">
-                        <div class="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center mb-4">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
-                        </div>
-                        <p class="text-[10px] font-black uppercase tracking-widest text-emerald-500">All Bills Settled</p>
-                    </div>`;
+                    if (!isPaid) {
+                        quick.innerHTML += `
+                            <button onclick="processPayment('${bill.id}', ${bill.amount})" class="w-full p-4 rounded-2xl bg-slate-800/50 border border-white/5 flex justify-between items-center hover:bg-slate-800 transition">
+                                <span class="text-[10px] font-black uppercase text-slate-400">${bill.label}</span>
+                                <span class="text-sm font-black">$${bill.amount}</span>
+                            </button>`;
+                    }
+                });
+                if (!quick.innerHTML) quick.innerHTML = '<p class="text-center text-[10px] font-bold text-emerald-500 uppercase tracking-widest mt-6">All Bills Settled</p>';
             }
         }
 
@@ -255,17 +303,11 @@
                 if (!currentAccount.payments) currentAccount.payments = {};
                 if (!currentAccount.transactions) currentAccount.transactions = [];
             } else {
-                currentAccount = { 
-                    ownerName: user, 
-                    balance: 100, 
-                    transactions: [], 
-                    payments: {} 
-                };
+                currentAccount = { ownerName: user, balance: 100, transactions: [], payments: {} };
                 saveData();
             }
             
             renderUI();
-            // Periodic UI refresh to check if date changed
             setInterval(renderUI, 5000);
         };
     </script>
