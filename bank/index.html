@@ -86,7 +86,7 @@
             <div id="payment-warning" class="hidden flex items-center gap-2 bg-red-500/10 text-red-400 px-4 py-2 rounded-xl border border-red-500/20">
                 <span class="text-[10px] font-bold uppercase animate-pulse">BILLS OVERDUE</span>
             </div>
-            <div class="bg-slate-800 px-4 py-2 rounded-xl font-mono text-blue-400 font-bold border border-blue-500/20 whitespace-nowrap" id="bike-time-display">00:00 AM</div>
+            <div class="bg-slate-800 px-4 py-2 rounded-xl font-mono text-blue-400 font-bold border border-blue-500/20 whitespace-nowrap" id="bike-time-display">12:00 PM</div>
         </div>
     </header>
 
@@ -242,15 +242,28 @@
                 renderAll();
             }
 
-            // Time and Bill Logic
+            // Time and Bill Logic Loop
             setInterval(() => {
-                // 1. Update Display Time
-                const timeStr = localStorage.getItem(TIME_KEY) || "12:00 PM";
-                document.getElementById('bike-time-display').innerText = timeStr;
+                // 1. Display Time Update (AM/PM)
+                let timeStr = localStorage.getItem(TIME_KEY);
+                const totalMinutes = parseInt(localStorage.getItem(MINUTES_KEY) || "-1");
 
-                // 2. Logic processing behind the scenes using minutes
-                const totalMinutes = parseInt(localStorage.getItem(MINUTES_KEY) || "0");
-                processAutomatedBills(totalMinutes);
+                // If sim keys are missing, calculate from current time for display
+                if (!timeStr && totalMinutes === -1) {
+                    const now = new Date();
+                    let h = now.getHours();
+                    const m = now.getMinutes().toString().padStart(2, '0');
+                    const ampm = h >= 12 ? 'PM' : 'AM';
+                    h = h % 12 || 12;
+                    timeStr = `${h}:${m} ${ampm}`;
+                }
+
+                document.getElementById('bike-time-display').innerText = timeStr || "12:00 PM";
+
+                // 2. Process automated bills based on minutes
+                if (totalMinutes !== -1) {
+                    processAutomatedBills(totalMinutes);
+                }
             }, 1000);
 
             let idle;
@@ -274,13 +287,11 @@
             let needsUpdate = false;
 
             BILL_TYPES.forEach(bill => {
-                // If the simulation is past the trigger time and we haven't recorded this bill for the current "day"
-                // (Using a simple flag for current session, you can make this more complex if needed)
-                if (currentMin >= bill.triggerMinute && !user.billsPaid[bill.id]) {
-                    user.billsPaid[bill.id] = true;
-                    showToast(`NEW BILL: ${bill.name} - $${bill.price}`);
+                // Check if sim time passed the trigger but it's not registered in billsPaid yet
+                if (currentMin >= bill.triggerMinute && user.billsPaid[bill.id] === undefined) {
+                    user.billsPaid[bill.id] = true; // Mark as "Discovered/Pending"
+                    showToast(`NEW BILL: ${bill.name}`);
                     needsUpdate = true;
-                    document.getElementById('payment-warning').classList.remove('hidden');
                 }
             });
 
@@ -308,56 +319,61 @@
             document.getElementById('balance-display').innerText = `$${user.balance.toFixed(2)}`;
             document.getElementById('user-name-display').innerText = user.name;
             
-            // History
+            // Render Transaction Log
             const list = document.getElementById('activity-list');
-            list.innerHTML = user.activity.map(a => `
+            list.innerHTML = user.activity.length ? user.activity.map(a => `
                 <div class="glass-panel p-5 rounded-2xl flex justify-between items-center">
                     <div><p class="font-black text-xs uppercase">${a.type}</p></div>
                     <span class="font-mono font-black text-lg ${a.amount >= 0 ? 'text-green-400' : 'text-red-400'}">
                         ${a.amount >= 0 ? '+' : '-'}$${Math.abs(a.amount).toFixed(2)}
                     </span>
                 </div>
-            `).join('');
+            `).join('') : '<div class="text-center text-slate-500 py-4 font-bold">NO TRANSACTIONS</div>';
 
             if (user.activity.length > 0) {
-                document.getElementById('last-activity-preview').innerText = `${user.activity[0].type} (${user.activity[0].amount > 0 ? '+' : ''}$${user.activity[0].amount})`;
+                document.getElementById('last-activity-preview').innerText = `${user.activity[0].type} ($${user.activity[0].amount})`;
             }
 
-            // Bills
+            // Render Bills
             const billContainer = document.getElementById('bill-container');
             const totalMinutes = parseInt(localStorage.getItem(MINUTES_KEY) || "0");
             
-            // Filter bills to only show those that have been "triggered" by the sim time
-            const visibleBills = BILL_TYPES.filter(b => totalMinutes >= b.triggerMinute);
-            document.getElementById('pending-bills-count').innerText = `${visibleBills.length} Available`;
+            // Show all bills if minutes aren't detected yet (Fallback), otherwise show based on time
+            const visibleBills = totalMinutes === 0 ? BILL_TYPES : BILL_TYPES.filter(b => totalMinutes >= b.triggerMinute);
+            
+            document.getElementById('pending-bills-count').innerText = `${visibleBills.filter(b => user.billsPaid[b.id] !== "COMPLETED").length} Items`;
 
-            billContainer.innerHTML = visibleBills.map(b => {
-                const isPaid = user.billsPaid[b.id] === "COMPLETED";
-                return `
-                <div class="glass-panel p-6 rounded-3xl flex justify-between items-center ${isPaid ? 'opacity-50' : ''}">
-                    <div>
-                        <h4 class="font-bold">${b.name}</h4>
-                        <p class="text-xs text-slate-400">$${b.price} ${isPaid ? '(PAID)' : 'Due'}</p>
-                    </div>
-                    ${isPaid ? 
-                        '<span class="text-green-400 font-bold text-xs uppercase">Settled</span>' : 
-                        `<button onclick="payBill('${b.id}', ${b.price})" class="bg-blue-500 hover:bg-blue-400 text-white px-6 py-2 rounded-xl font-bold text-xs uppercase">Pay Now</button>`
-                    }
-                </div>
-            `}).join('');
-
-            // Hide warning if all visible bills are settled
-            const anyUnpaid = visibleBills.some(b => user.billsPaid[b.id] === true);
-            if (!anyUnpaid) {
-                document.getElementById('payment-warning').classList.add('hidden');
+            if (visibleBills.length === 0) {
+                billContainer.innerHTML = '<div class="glass-panel p-10 rounded-3xl text-center text-slate-500 font-bold uppercase tracking-widest">No expenses due at this hour</div>';
             } else {
+                billContainer.innerHTML = visibleBills.map(b => {
+                    const isPaid = user.billsPaid[b.id] === "COMPLETED";
+                    return `
+                    <div class="glass-panel p-6 rounded-3xl flex justify-between items-center ${isPaid ? 'opacity-40' : ''}">
+                        <div>
+                            <h4 class="font-bold">${b.name}</h4>
+                            <p class="text-xs text-slate-400">$${b.price} ${isPaid ? '(PAID)' : 'Pending'}</p>
+                        </div>
+                        ${isPaid ? 
+                            '<span class="text-green-400 font-black text-xs uppercase">Settled</span>' : 
+                            `<button onclick="payBill('${b.id}', ${b.price})" class="bg-blue-500 hover:bg-blue-400 text-white px-6 py-2 rounded-xl font-bold text-xs uppercase">Pay $${b.price}</button>`
+                        }
+                    </div>
+                `}).join('');
+            }
+
+            // Update warning alert
+            const anyUnpaid = visibleBills.some(b => user.billsPaid[b.id] !== "COMPLETED");
+            if (anyUnpaid && visibleBills.length > 0) {
                 document.getElementById('payment-warning').classList.remove('hidden');
+            } else {
+                document.getElementById('payment-warning').classList.add('hidden');
             }
         }
 
         function payBill(id, price) {
             if (accounts[currentUser].balance < price) return showToast("INSUFFICIENT FUNDS");
-            accounts[currentUser].billsPaid[id] = "COMPLETED"; // Mark as fully settled
+            accounts[currentUser].billsPaid[id] = "COMPLETED";
             logTransaction(-price, `PAID ${id.toUpperCase()}`);
             showToast("BILL SETTLED");
         }
