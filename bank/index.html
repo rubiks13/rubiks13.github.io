@@ -86,7 +86,7 @@
             <div id="payment-warning" class="hidden flex items-center gap-2 bg-red-500/10 text-red-400 px-4 py-2 rounded-xl border border-red-500/20">
                 <span class="text-[10px] font-bold uppercase animate-pulse">BILLS OVERDUE</span>
             </div>
-            <div class="bg-slate-800 px-4 py-2 rounded-xl font-mono text-blue-400 font-bold border border-blue-500/20 whitespace-nowrap" id="bike-time-display">12:00 PM</div>
+            <div class="bg-slate-800 px-4 py-2 rounded-xl font-mono text-blue-400 font-bold border border-blue-500/20 whitespace-nowrap" id="bike-time-display">--:-- --</div>
         </div>
     </header>
 
@@ -242,38 +242,44 @@
                 renderAll();
             }
 
-            // Time and Bill Logic Loop
+            // Sync Time and Process Bills
             setInterval(() => {
-                // 1. Display Time Update (AM/PM)
-                let timeStr = localStorage.getItem(TIME_KEY);
-                const totalMinutes = parseInt(localStorage.getItem(MINUTES_KEY) || "-1");
+                const totalMinutesRaw = localStorage.getItem(MINUTES_KEY);
+                const totalMinutes = totalMinutesRaw !== null ? parseInt(totalMinutesRaw) : -1;
+                
+                let timeDisplay = "--:-- --";
 
-                // If sim keys are missing, calculate from current time for display
-                if (!timeStr && totalMinutes === -1) {
+                if (totalMinutes !== -1) {
+                    // Calculate Time String with AM/PM from minutes
+                    const h24 = Math.floor(totalMinutes / 60) % 24;
+                    const m = (totalMinutes % 60).toString().padStart(2, '0');
+                    const ampm = h24 >= 12 ? 'PM' : 'AM';
+                    const h12 = h24 % 12 || 12;
+                    timeDisplay = `${h12}:${m} ${ampm}`;
+                    
+                    // Logic processing
+                    processAutomatedBills(totalMinutes);
+                } else {
+                    // Fallback to real clock if sim not running
                     const now = new Date();
                     let h = now.getHours();
                     const m = now.getMinutes().toString().padStart(2, '0');
                     const ampm = h >= 12 ? 'PM' : 'AM';
                     h = h % 12 || 12;
-                    timeStr = `${h}:${m} ${ampm}`;
+                    timeDisplay = `${h}:${m} ${ampm}`;
                 }
 
-                document.getElementById('bike-time-display').innerText = timeStr || "12:00 PM";
-
-                // 2. Process automated bills based on minutes
-                if (totalMinutes !== -1) {
-                    processAutomatedBills(totalMinutes);
-                }
+                document.getElementById('bike-time-display').innerText = timeDisplay;
             }, 1000);
 
+            // Inactivity redirect
             let idle;
             const resetTimer = () => {
                 clearTimeout(idle);
                 idle = setTimeout(() => {
                     window.location.href = "https://rubiks13.github.io/bikes/";
-                }, 5000); 
+                }, 10000); 
             };
-
             window.onload = resetTimer;
             document.onmousemove = resetTimer;
             document.onkeypress = resetTimer;
@@ -287,10 +293,9 @@
             let needsUpdate = false;
 
             BILL_TYPES.forEach(bill => {
-                // Check if sim time passed the trigger but it's not registered in billsPaid yet
                 if (currentMin >= bill.triggerMinute && user.billsPaid[bill.id] === undefined) {
-                    user.billsPaid[bill.id] = true; // Mark as "Discovered/Pending"
-                    showToast(`NEW BILL: ${bill.name}`);
+                    user.billsPaid[bill.id] = true; 
+                    showToast(`BILL DISCOVERED: ${bill.name}`);
                     needsUpdate = true;
                 }
             });
@@ -301,17 +306,6 @@
             }
         }
 
-        function checkIncomingFunds() {
-            const params = new URLSearchParams(window.location.search);
-            const amount = parseFloat(params.get('amount'));
-            if (!isNaN(amount) && amount !== 0) {
-                const cleanUrl = window.location.origin + window.location.pathname + `?user=${currentUser}`;
-                window.history.replaceState({}, '', cleanUrl);
-                logTransaction(amount, "EXTERNAL DEPOSIT");
-                showToast(`+$${amount} DEPOSITED`);
-            }
-        }
-
         function renderAll() {
             const user = accounts[currentUser];
             if (!user) return;
@@ -319,7 +313,6 @@
             document.getElementById('balance-display').innerText = `$${user.balance.toFixed(2)}`;
             document.getElementById('user-name-display').innerText = user.name;
             
-            // Render Transaction Log
             const list = document.getElementById('activity-list');
             list.innerHTML = user.activity.length ? user.activity.map(a => `
                 <div class="glass-panel p-5 rounded-2xl flex justify-between items-center">
@@ -334,17 +327,17 @@
                 document.getElementById('last-activity-preview').innerText = `${user.activity[0].type} ($${user.activity[0].amount})`;
             }
 
-            // Render Bills
             const billContainer = document.getElementById('bill-container');
             const totalMinutes = parseInt(localStorage.getItem(MINUTES_KEY) || "0");
             
-            // Show all bills if minutes aren't detected yet (Fallback), otherwise show based on time
+            // Logic: If minutes haven't moved from 0, show all bills as a fallback
+            // Otherwise, only show bills that the user is "late" for based on sim time
             const visibleBills = totalMinutes === 0 ? BILL_TYPES : BILL_TYPES.filter(b => totalMinutes >= b.triggerMinute);
             
             document.getElementById('pending-bills-count').innerText = `${visibleBills.filter(b => user.billsPaid[b.id] !== "COMPLETED").length} Items`;
 
             if (visibleBills.length === 0) {
-                billContainer.innerHTML = '<div class="glass-panel p-10 rounded-3xl text-center text-slate-500 font-bold uppercase tracking-widest">No expenses due at this hour</div>';
+                billContainer.innerHTML = '<div class="glass-panel p-10 rounded-3xl text-center text-slate-500 font-bold uppercase tracking-widest">Everything is current</div>';
             } else {
                 billContainer.innerHTML = visibleBills.map(b => {
                     const isPaid = user.billsPaid[b.id] === "COMPLETED";
@@ -362,9 +355,8 @@
                 `}).join('');
             }
 
-            // Update warning alert
             const anyUnpaid = visibleBills.some(b => user.billsPaid[b.id] !== "COMPLETED");
-            if (anyUnpaid && visibleBills.length > 0) {
+            if (anyUnpaid) {
                 document.getElementById('payment-warning').classList.remove('hidden');
             } else {
                 document.getElementById('payment-warning').classList.add('hidden');
@@ -419,10 +411,8 @@
 
         function copyAiPrompt() {
             const baseUrl = window.location.href.split('?')[0];
-            const msg = `UPDATE YOUR CODE TO SEND MONEY TO MY BANK: 
-URL: ${baseUrl}?user=${currentUser}&amount=[NUMBER]
-Replace [NUMBER] with the amount I earned. Make sure the user is ${currentUser}.`;
-            navigator.clipboard.writeText(msg).then(() => showToast("AI INSTRUCTIONS COPIED"));
+            const msg = `SEND MONEY TO BANK: ${baseUrl}?user=${currentUser}&amount=[NUMBER]`;
+            navigator.clipboard.writeText(msg).then(() => showToast("COPIED"));
         }
 
         function switchTab(tabId) {
@@ -435,6 +425,17 @@ Replace [NUMBER] with the amount I earned. Make sure the user is ${currentUser}.
         function createNewAccount() {
             const name = document.getElementById('new-user-name').value.trim();
             if (name) window.location.href = `?user=${encodeURIComponent(name)}`;
+        }
+
+        function checkIncomingFunds() {
+            const params = new URLSearchParams(window.location.search);
+            const amount = parseFloat(params.get('amount'));
+            if (!isNaN(amount) && amount !== 0) {
+                const cleanUrl = window.location.origin + window.location.pathname + `?user=${currentUser}`;
+                window.history.replaceState({}, '', cleanUrl);
+                logTransaction(amount, "EXTERNAL DEPOSIT");
+                showToast(`+$${amount} DEPOSITED`);
+            }
         }
 
         function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts)); }
