@@ -24,101 +24,103 @@
         .gradient-border {
             position: relative;
             background: #0f172a;
-            border-radius: 1rem;
+            border-radius: 1.5rem;
         }
         .gradient-border::before {
             content: "";
             position: absolute;
             inset: -1px;
             background: linear-gradient(45deg, #3b82f6, #6366f1, #a855f7);
-            border-radius: 1.1rem;
+            border-radius: 1.6rem;
             z-index: -1;
             opacity: 0.3;
         }
 
-        .overdue-pulse {
-            animation: overdue-glow 1.5s infinite alternate;
-        }
-        @keyframes overdue-glow {
-            from { box-shadow: 0 0 5px #ef4444; background: rgba(239, 68, 68, 0.1); }
-            to { box-shadow: 0 0 20px #ef4444; background: rgba(239, 68, 68, 0.3); }
+        .hidden-view { display: none; }
+
+        .nav-active {
+            background: rgba(59, 130, 246, 0.1);
+            color: #60a5fa;
         }
 
-        .hidden-view {
-            display: none;
+        .bill-card {
+            transition: all 0.2s ease;
+        }
+        .bill-card:hover:not(.paid) {
+            transform: translateY(-4px);
+            border-color: rgba(59, 130, 246, 0.4);
         }
 
-        .sync-active {
-            animation: sync-glow 2s infinite ease-in-out;
+        ::-webkit-scrollbar {
+            width: 4px;
         }
-        @keyframes sync-glow {
-            0%, 100% { opacity: 0.5; }
-            50% { opacity: 1; color: #60a5fa; }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 10px;
         }
     </style>
 </head>
 <body class="h-screen flex">
 
     <!-- Sidebar -->
-    <aside class="w-20 hover:w-64 bg-slate-900 border-r border-slate-800 flex flex-col items-center py-6 group z-50 transition-all">
-        <div class="mb-10 bg-blue-600 p-3 rounded-2xl">
+    <aside class="w-20 hover:w-64 bg-slate-900 border-r border-slate-800 flex flex-col items-center py-8 group z-50 transition-all duration-300">
+        <div class="mb-12 bg-blue-600 p-3 rounded-2xl shadow-lg shadow-blue-500/20">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M12 17.5V14l-3-3 4-3 2 3h2"/><circle cx="18.5" cy="17.5" r="3.5"/><circle cx="5.5" cy="17.5" r="3.5"/></svg>
         </div>
         
         <nav class="flex-1 w-full px-4 space-y-4">
-            <button onclick="switchView('dashboard')" id="nav-dashboard" class="w-full flex items-center gap-4 p-3 rounded-xl bg-blue-600/10 text-blue-400">
+            <button onclick="switchView('dashboard')" id="nav-dashboard" class="w-full flex items-center gap-4 p-3 rounded-xl nav-active">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/></svg>
                 <span class="opacity-0 group-hover:opacity-100 font-bold whitespace-nowrap">Dashboard</span>
             </button>
-            <button onclick="switchView('payments')" id="nav-payments" class="w-full flex items-center gap-4 p-3 rounded-xl text-slate-500">
+            <button onclick="switchView('payments')" id="nav-payments" class="w-full flex items-center gap-4 p-3 rounded-xl text-slate-500 hover:bg-slate-800 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h7"/></svg>
-                <span class="opacity-0 group-hover:opacity-100 font-bold whitespace-nowrap">Payments</span>
+                <span class="opacity-0 group-hover:opacity-100 font-bold whitespace-nowrap">Bill Pay</span>
             </button>
         </nav>
     </aside>
 
-    <main class="flex-1 flex flex-col p-6 overflow-hidden">
-        <header class="flex justify-between items-start mb-8">
-            <div class="flex gap-6">
-                <div>
-                    <h1 class="text-2xl font-black tracking-tight uppercase italic">Rider Bank</h1>
-                    <p class="text-xs text-slate-500 font-bold uppercase tracking-widest flex items-center gap-2">
-                        <span id="sync-dot" class="w-2 h-2 bg-blue-500 rounded-full sync-active"></span>
-                        Sim Clock: <span id="world-time" class="text-white">--:-- --</span>
-                    </p>
-                </div>
-            </div>
-            <div id="overdue-alert" class="hidden overdue-pulse px-4 py-2 rounded-xl border border-red-500 text-red-500 font-black text-xs uppercase tracking-tighter">
-                ⚠️ Payments Overdue (+24m)
+    <main class="flex-1 flex flex-col p-8 overflow-hidden">
+        <header class="flex justify-between items-start mb-10">
+            <div>
+                <h1 class="text-2xl font-black tracking-tighter uppercase italic flex items-center gap-2">
+                    Rider <span class="text-blue-500">Bank</span>
+                </h1>
+                <p id="date-display" class="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-1">System Active</p>
             </div>
         </header>
 
-        <!-- DASHBOARD -->
-        <div id="view-dashboard" class="view-section max-w-4xl w-full mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="lg:col-span-2 space-y-6">
-                <div class="gradient-border p-8 h-64 flex flex-col justify-center relative shadow-2xl">
-                    <p class="text-blue-400 text-xs font-bold uppercase tracking-[0.3em] mb-4">Balance</p>
+        <!-- DASHBOARD VIEW -->
+        <div id="view-dashboard" class="view-section max-w-5xl w-full mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-2 space-y-8">
+                <div class="gradient-border p-10 h-72 flex flex-col justify-center relative shadow-2xl overflow-hidden">
+                    <p class="text-blue-400 text-[10px] font-black uppercase tracking-[0.4em] mb-4">Available Balance</p>
                     <h2 id="balance-display" class="text-7xl font-black tracking-tighter tabular-nums">$0.00</h2>
-                    <div class="mt-8 flex items-center gap-6">
-                        <div class="flex flex-col">
-                            <span class="text-[10px] text-slate-500 font-bold uppercase">Account</span>
-                            <span id="owner-display" class="font-bold text-lg">---</span>
-                        </div>
+                    <div class="mt-10">
+                        <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest block mb-1">Account Holder</span>
+                        <span id="owner-display" class="font-black text-xl uppercase italic">---</span>
+                    </div>
+                </div>
+
+                <div class="glass-card rounded-[2rem] p-8 border border-slate-800">
+                    <h3 class="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-6">Recent History</h3>
+                    <div id="history-list" class="space-y-4 max-h-48 overflow-y-auto pr-2">
+                        <!-- History injected here -->
                     </div>
                 </div>
             </div>
 
-            <div class="glass-card rounded-3xl p-6 border border-slate-800">
-                <h3 class="text-xs font-black uppercase text-slate-400 mb-4">Quick Pay</h3>
-                <div id="quick-bill-list" class="space-y-3"></div>
+            <div class="glass-card rounded-[2rem] p-8 border border-slate-800 flex flex-col">
+                <h3 class="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-6">Daily Quick Actions</h3>
+                <div id="quick-bill-list" class="space-y-4 flex-1"></div>
             </div>
         </div>
 
-        <!-- PAYMENTS -->
-        <div id="view-payments" class="view-section hidden-view max-w-4xl w-full mx-auto">
-            <h2 class="text-2xl font-black uppercase italic tracking-tight mb-6">Obligations</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="payments-grid">
-                <!-- Cards injected here -->
+        <!-- PAYMENTS VIEW -->
+        <div id="view-payments" class="view-section hidden-view max-w-5xl w-full mx-auto">
+            <h2 class="text-2xl font-black uppercase italic tracking-tight mb-8">Settlements</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="payments-grid">
+                <!-- Big cards injected here -->
             </div>
         </div>
     </main>
@@ -131,120 +133,111 @@
             { id: 'gas', label: 'Fuel/Gas', amount: 10 }
         ];
 
-        function getSimTime() {
-            return localStorage.getItem('sim_current_bike_time') || "00:00 AM";
-        }
-
         function getSimDate() {
             const directoryData = localStorage.getItem('global_directory_data');
-            try {
-                return JSON.parse(directoryData).date || new Date().toDateString();
-            } catch(e) { return new Date().toDateString(); }
+            try { 
+                if (directoryData) {
+                    const parsed = JSON.parse(directoryData);
+                    return parsed.date || "Day 1";
+                }
+            } catch(e) { console.error(e); }
+            return "Day 1";
         }
 
-        function isOverdue() {
-            const timeStr = getSimTime();
-            // Check if minutes passed 24 and it's 12 AM
-            if (timeStr.includes("AM")) {
-                const parts = timeStr.split(":");
-                const hours = parseInt(parts[0]);
-                const minutes = parseInt(parts[1]);
-                if (hours === 12 && minutes >= 24) return true;
-                if (hours > 12 && hours < 6) return true; // Early morning
-            }
-            return false;
-        }
-
-        function updateUI() {
-            const time = getSimTime();
-            document.getElementById('world-time').innerText = time;
-
-            if (!currentAccount) return;
-
-            const overdue = isOverdue();
-            const alert = document.getElementById('overdue-alert');
+        function switchView(v) {
+            document.querySelectorAll('.view-section').forEach(s => s.classList.add('hidden-view'));
+            document.getElementById(`view-${v}`).classList.remove('hidden-view');
             
-            // Check if any bills are unpaid for current "date"
-            const simDate = getSimDate();
-            let anyUnpaid = BILLS.some(b => currentAccount.payments[b.id] !== simDate);
-
-            if (overdue && anyUnpaid) {
-                alert.classList.remove('hidden');
-            } else {
-                alert.classList.add('hidden');
-            }
-
-            renderPayments();
+            document.querySelectorAll('nav button').forEach(b => {
+                b.classList.remove('nav-active', 'text-blue-400');
+                b.classList.add('text-slate-500');
+            });
+            document.getElementById(`nav-${v}`).classList.add('nav-active', 'text-blue-400');
+            renderUI();
         }
 
         function processPayment(billId, amount) {
             const simDate = getSimDate();
             if (currentAccount.payments[billId] === simDate) return;
 
-            currentAccount.balance -= amount;
-            currentAccount.payments[billId] = simDate;
-            currentAccount.transactions.push({
-                type: 'payment',
-                amount: amount,
-                label: `Daily ${billId}`,
-                date: new Date().toISOString()
-            });
+            if (currentAccount.balance >= amount) {
+                currentAccount.balance -= amount;
+                currentAccount.payments[billId] = simDate;
+                
+                currentAccount.transactions.unshift({
+                    id: crypto.randomUUID(),
+                    type: 'payment',
+                    amount: amount,
+                    label: `Settled: ${billId}`,
+                    date: new Date().toISOString()
+                });
 
-            saveData();
-            renderDashboard();
+                saveData();
+                renderUI();
+            }
         }
 
-        function renderPayments() {
-            const grid = document.getElementById('payments-grid');
-            const quick = document.getElementById('quick-bill-list');
-            if (!grid) return;
-            
-            grid.innerHTML = '';
-            quick.innerHTML = '';
+        function renderUI() {
             const simDate = getSimDate();
-            const overdue = isOverdue();
-
-            BILLS.forEach(bill => {
-                const paid = currentAccount.payments[bill.id] === simDate;
-                const status = paid ? 'CLEARED' : (overdue ? 'OVERDUE' : 'PENDING');
-                const statusColor = paid ? 'text-emerald-400' : (overdue ? 'text-red-500' : 'text-slate-500');
-
-                grid.innerHTML += `
-                    <div class="glass-card p-6 rounded-3xl text-center border ${overdue && !paid ? 'border-red-500' : 'border-slate-800'}">
-                        <h3 class="font-black uppercase text-sm mb-1">${bill.label}</h3>
-                        <p class="text-2xl font-black mb-4">$${bill.amount.toFixed(2)}</p>
-                        <div class="mb-4">
-                            <span class="text-[10px] font-black uppercase px-3 py-1 bg-slate-800 ${statusColor} rounded-full">${status}</span>
-                        </div>
-                        <button onclick="processPayment('${bill.id}', ${bill.amount})" 
-                            ${paid ? 'disabled' : ''} 
-                            class="w-full ${paid ? 'bg-slate-800 text-slate-600' : 'bg-blue-600'} font-black py-3 rounded-xl uppercase text-xs">
-                            ${paid ? 'Paid' : 'Pay Now'}
-                        </button>
-                    </div>
-                `;
-
-                if (!paid) {
-                    quick.innerHTML += `
-                        <button onclick="processPayment('${bill.id}', ${bill.amount})" class="w-full p-3 rounded-xl bg-slate-800 flex justify-between items-center hover:bg-slate-700 transition">
-                            <span class="text-[10px] font-black uppercase text-slate-400">${bill.label}</span>
-                            <span class="text-xs font-black">$${bill.amount}</span>
-                        </button>
-                    `;
-                }
-            });
-            if (quick.innerHTML === '') quick.innerHTML = '<p class="text-center text-[10px] font-bold text-emerald-500 uppercase">All clear for today</p>';
-        }
-
-        function renderDashboard() {
+            document.getElementById('date-display').innerText = `Sync: ${simDate}`;
             document.getElementById('balance-display').innerText = `$${currentAccount.balance.toFixed(2)}`;
             document.getElementById('owner-display').innerText = currentAccount.ownerName;
-            renderPayments();
-        }
 
-        function switchView(v) {
-            document.querySelectorAll('.view-section').forEach(s => s.classList.add('hidden-view'));
-            document.getElementById(`view-${v}`).classList.remove('hidden-view');
+            // Render History
+            const historyList = document.getElementById('history-list');
+            historyList.innerHTML = currentAccount.transactions.length ? '' : '<p class="text-xs text-slate-600">No recent activity</p>';
+            currentAccount.transactions.slice(0, 10).forEach(tx => {
+                historyList.innerHTML += `
+                    <div class="flex justify-between items-center p-4 rounded-xl bg-slate-800/30 border border-white/5">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="3"><path d="M7 7l10 10M17 7H7v10"/></svg>
+                            </div>
+                            <span class="text-xs font-bold uppercase tracking-widest">${tx.label}</span>
+                        </div>
+                        <span class="text-sm font-black text-red-400">-$${tx.amount.toFixed(2)}</span>
+                    </div>
+                `;
+            });
+
+            // Render Grids
+            const grid = document.getElementById('payments-grid');
+            const quick = document.getElementById('quick-bill-list');
+            grid.innerHTML = '';
+            quick.innerHTML = '';
+
+            BILLS.forEach(bill => {
+                const isPaid = currentAccount.payments[bill.id] === simDate;
+                
+                grid.innerHTML += `
+                    <div class="glass-card p-8 rounded-[2.5rem] border border-slate-800 text-center bill-card ${isPaid ? 'opacity-40' : ''}">
+                        <h3 class="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-2">${bill.label}</h3>
+                        <p class="text-4xl font-black mb-8 tabular-nums">$${bill.amount.toFixed(2)}</p>
+                        <button onclick="processPayment('${bill.id}', ${bill.amount})" ${isPaid ? 'disabled' : ''} 
+                            class="w-full py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all
+                            ${isPaid ? 'bg-slate-800 text-slate-600' : 'bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-600/20 text-white'}">
+                            ${isPaid ? 'Paid for today' : 'Settle Now'}
+                        </button>
+                    </div>`;
+
+                if (!isPaid) {
+                    quick.innerHTML += `
+                        <button onclick="processPayment('${bill.id}', ${bill.amount})" class="w-full p-4 rounded-2xl bg-slate-800/50 border border-white/5 flex justify-between items-center hover:bg-slate-800 transition">
+                            <span class="text-[10px] font-black uppercase text-slate-400">${bill.label}</span>
+                            <span class="text-sm font-black">$${bill.amount}</span>
+                        </button>`;
+                }
+            });
+
+            if (!quick.innerHTML) {
+                quick.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-10 opacity-50">
+                        <div class="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center mb-4">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+                        </div>
+                        <p class="text-[10px] font-black uppercase tracking-widest text-emerald-500">All Bills Settled</p>
+                    </div>`;
+            }
         }
 
         function saveData() {
@@ -254,19 +247,26 @@
         window.onload = () => {
             const params = new URLSearchParams(window.location.search);
             const user = params.get('user') || "Rider";
-            const key = `rider_bank_${user.toLowerCase()}`;
-            const data = localStorage.getItem(key);
+            const storageKey = `rider_bank_${user.toLowerCase()}`;
+            const data = localStorage.getItem(storageKey);
             
             if (data) {
                 currentAccount = JSON.parse(data);
                 if (!currentAccount.payments) currentAccount.payments = {};
+                if (!currentAccount.transactions) currentAccount.transactions = [];
             } else {
-                currentAccount = { ownerName: user, balance: 100, transactions: [], payments: {} };
+                currentAccount = { 
+                    ownerName: user, 
+                    balance: 100, 
+                    transactions: [], 
+                    payments: {} 
+                };
                 saveData();
             }
             
-            renderDashboard();
-            setInterval(updateUI, 1000);
+            renderUI();
+            // Periodic UI refresh to check if date changed
+            setInterval(renderUI, 5000);
         };
     </script>
 </body>
