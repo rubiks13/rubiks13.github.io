@@ -3,237 +3,311 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cousins Bike Bank</title>
+    <title>Bike Bank | Future of Cycling Finance</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=Libre+Barcode+128&display=swap');
 
+        :root {
+            --brand-primary: #0ea5e9;
+            --brand-secondary: #6366f1;
+            --bg-dark: #020617;
+            --card-bg: rgba(15, 23, 42, 0.6);
+        }
+
         body {
-            font-family: 'Space+Grotesk', sans-serif;
-            background-color: #0f172a;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-dark);
             color: #f8fafc;
             overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 0% 0%, rgba(14, 165, 233, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 100% 100%, rgba(99, 102, 241, 0.1) 0%, transparent 40%);
         }
 
-        .glass-card {
-            background: rgba(30, 41, 59, 0.7);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+        .glass-panel {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
         }
 
-        .gradient-text {
-            background: linear-gradient(90deg, #38bdf8, #818cf8);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        .neon-border {
+            border: 1px solid var(--brand-primary);
+            box-shadow: 0 0 15px rgba(14, 165, 233, 0.3);
+        }
+
+        .gradient-brand {
+            background: linear-gradient(135deg, #0ea5e9, #6366f1);
         }
 
         .barcode {
             font-family: 'Libre+Barcode+128', cursive;
-            font-size: 60px;
+            font-size: 64px;
         }
 
         .receipt-paper {
-            background: white;
-            color: black;
+            background: #ffffff;
+            color: #1e293b;
             width: 80mm;
-            min-height: 120mm;
-            padding: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            padding: 24px;
             font-family: 'Courier New', Courier, monospace;
+            border-radius: 4px;
         }
 
         @media print {
             body * { visibility: hidden; }
             #receipt-content, #receipt-content * { visibility: visible; }
             #receipt-content { 
-                position: absolute; 
+                position: fixed; 
                 left: 0; 
                 top: 0; 
-                width: 80mm; 
+                width: 100%;
+                margin: 0;
                 box-shadow: none;
             }
             .no-print { display: none !important; }
         }
 
-        .sidebar-link {
-            transition: all 0.2s;
+        .nav-item {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .sidebar-link.active {
-            background: rgba(59, 130, 246, 0.2);
-            border-right: 4px solid #3b82f6;
+        .nav-item.active {
+            background: rgba(14, 165, 233, 0.15);
+            color: #0ea5e9;
+            box-shadow: inset 4px 0 0 #0ea5e9;
         }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
     </style>
 </head>
-<body class="min-h-screen flex">
+<body class="min-h-screen flex flex-col">
 
-    <!-- Registration Overlay -->
-    <div id="registration-modal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 hidden px-4">
-        <div class="glass-card p-8 rounded-3xl w-full max-w-md text-center border-2 border-blue-500/30">
-            <h2 class="text-3xl font-bold mb-4">Create Account</h2>
-            <p class="text-slate-400 mb-6">Join the Bike Banking System</p>
-            <input type="text" id="new-user-name" placeholder="Your Name" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 mb-4 text-white focus:ring-2 focus:ring-blue-500 outline-none">
-            <button onclick="createNewAccount()" class="w-full bg-blue-600 hover:bg-blue-500 py-3 rounded-xl font-bold transition-all">Start Banking</button>
+    <!-- Global Header -->
+    <header class="w-full h-20 glass-panel border-b border-white/5 px-6 flex justify-between items-center sticky top-0 z-[60] no-print">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 gradient-brand rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+            </div>
+            <div>
+                <h1 class="font-extrabold text-lg tracking-tight leading-none">BIKE BANK</h1>
+                <span class="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Nexus Core V2</span>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <div class="bg-slate-900/50 rounded-2xl p-1 flex items-center border border-white/5">
+                <div class="px-4 py-1.5 rounded-xl bg-slate-800 flex items-center gap-3">
+                    <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                    <span id="bike-time-display" class="font-mono text-lg font-bold text-blue-400">00:00</span>
+                </div>
+            </div>
+            <div id="payment-warning" class="hidden flex items-center gap-2 bg-red-500/10 text-red-400 px-4 py-2 rounded-xl border border-red-500/20">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-xs font-bold">BILLS DUE</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex flex-1">
+        <!-- Sidebar Navigation -->
+        <nav id="sidebar" class="w-20 lg:w-72 glass-panel border-r border-white/5 flex flex-col sticky top-20 h-[calc(100vh-80px)] no-print">
+            <div class="flex-1 py-6 flex flex-col gap-1">
+                <button onclick="switchTab('dashboard')" class="nav-item mx-3 p-4 rounded-2xl flex items-center gap-4 hover:bg-white/5 active" id="tab-btn-dashboard">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                    <span class="hidden lg:inline font-semibold">Overview</span>
+                </button>
+                <button onclick="switchTab('payment')" class="nav-item mx-3 p-4 rounded-2xl flex items-center gap-4 hover:bg-white/5 relative" id="tab-btn-payment">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+                    <span class="hidden lg:inline font-semibold">Daily Bills</span>
+                    <div id="pay-notification" class="absolute top-4 left-10 w-2 h-2 bg-red-500 rounded-full hidden"></div>
+                </button>
+                <button onclick="switchTab('activity')" class="nav-item mx-3 p-4 rounded-2xl flex items-center gap-4 hover:bg-white/5" id="tab-btn-activity">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                    <span class="hidden lg:inline font-semibold">History</span>
+                </button>
+                <div class="mx-6 my-4 border-t border-white/5"></div>
+                <button onclick="switchTab('print')" class="nav-item mx-3 p-4 rounded-2xl flex items-center gap-4 hover:bg-white/5" id="tab-btn-print">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                    <span class="hidden lg:inline font-semibold">Print Cash</span>
+                </button>
+                <button onclick="switchTab('deposit')" class="nav-item mx-3 p-4 rounded-2xl flex items-center gap-4 hover:bg-white/5" id="tab-btn-deposit">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    <span class="hidden lg:inline font-semibold">Deposit</span>
+                </button>
+            </div>
+            <div class="p-6 text-center">
+                <div class="text-[10px] text-slate-500 font-bold tracking-widest uppercase">Auto-Log: 5s</div>
+            </div>
+        </nav>
+
+        <!-- Main Workspace -->
+        <main class="flex-1 p-6 lg:p-12 flex flex-col items-center no-print overflow-y-auto">
+            
+            <!-- Account Overview -->
+            <section id="tab-dashboard" class="w-full max-w-4xl space-y-8 animate-in fade-in duration-500">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 glass-panel rounded-3xl p-8 relative overflow-hidden group">
+                        <div class="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform">
+                            <svg class="w-32 h-32" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/><path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"/></svg>
+                        </div>
+                        <p class="text-slate-400 font-semibold text-sm mb-1 uppercase tracking-wider">Available Balance</p>
+                        <h2 id="balance-display" class="text-6xl font-black mb-4 tracking-tighter text-white">$0.00</h2>
+                        <div class="flex items-center gap-2 text-blue-400 font-bold">
+                            <span id="user-name-display" class="uppercase tracking-widest text-xs">UNAUTHENTICATED</span>
+                            <span class="w-1 h-1 rounded-full bg-slate-600"></span>
+                            <span class="text-[10px]">VERIFIED USER</span>
+                        </div>
+                    </div>
+                    <div class="space-y-6">
+                        <div class="glass-panel p-6 rounded-3xl">
+                            <p class="text-slate-500 text-[10px] font-bold uppercase mb-2">Last Activity</p>
+                            <p id="last-earn" class="text-2xl font-bold text-green-400">--</p>
+                        </div>
+                        <div class="glass-panel p-6 rounded-3xl">
+                            <p class="text-slate-500 text-[10px] font-bold uppercase mb-2">Uncashed Bills</p>
+                            <p id="active-bills-count" class="text-2xl font-bold text-blue-400">0</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Bills Section -->
+            <section id="tab-payment" class="w-full max-w-3xl hidden space-y-6">
+                <div class="flex items-end justify-between border-b border-white/5 pb-6">
+                    <div>
+                        <h2 class="text-3xl font-black">Daily Commitments</h2>
+                        <p class="text-slate-500 text-sm">Mandatory maintenance and fees</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Cycle Reset</span>
+                        <p class="font-mono text-blue-400 font-bold">00:00</p>
+                    </div>
+                </div>
+                <div class="grid gap-4" id="payment-items-container">
+                    <!-- Dynamic Payments -->
+                </div>
+            </section>
+
+            <!-- Activity Log -->
+            <section id="tab-activity" class="w-full max-w-3xl hidden space-y-4">
+                <h2 class="text-2xl font-extrabold mb-6 flex items-center gap-3">
+                    <span class="w-1.5 h-8 bg-blue-500 rounded-full"></span>
+                    Transaction History
+                </h2>
+                <div id="activity-list" class="space-y-3">
+                    <!-- History Injected -->
+                </div>
+            </section>
+
+            <!-- Cash Printing -->
+            <section id="tab-print" class="w-full max-w-3xl hidden">
+                <div class="text-center mb-10">
+                    <h2 class="text-4xl font-black mb-2">Print Liquid Assets</h2>
+                    <p class="text-slate-500">Convert digital balance to physical tender</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <button onclick="printMoney(1)" class="glass-panel p-10 rounded-[40px] hover:border-blue-500/50 hover:bg-blue-500/5 transition-all group">
+                        <div class="w-16 h-16 bg-slate-800 rounded-2xl mx-auto mb-4 flex items-center justify-center group-hover:scale-110 transition-transform">💵</div>
+                        <span class="text-2xl font-black block">$1</span>
+                        <span class="text-[10px] text-slate-500 font-bold">SINGLE</span>
+                    </button>
+                    <button onclick="printMoney(5)" class="glass-panel p-10 rounded-[40px] hover:border-blue-500/50 hover:bg-blue-500/5 transition-all group">
+                        <div class="w-16 h-16 bg-slate-800 rounded-2xl mx-auto mb-4 flex items-center justify-center group-hover:scale-110 transition-transform">💵</div>
+                        <span class="text-2xl font-black block">$5</span>
+                        <span class="text-[10px] text-slate-500 font-bold">FIVE</span>
+                    </button>
+                    <button onclick="printMoney(20)" class="glass-panel p-10 rounded-[40px] hover:border-blue-500/50 hover:bg-blue-500/5 transition-all group">
+                        <div class="w-16 h-16 bg-slate-800 rounded-2xl mx-auto mb-4 flex items-center justify-center group-hover:scale-110 transition-transform">💵</div>
+                        <span class="text-2xl font-black block">$20</span>
+                        <span class="text-[10px] text-slate-500 font-bold">JACKSON</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Deposit Section -->
+            <section id="tab-deposit" class="w-full max-w-2xl hidden space-y-8 text-center">
+                <div class="glass-panel p-12 rounded-[50px] border-2 border-dashed border-slate-800">
+                    <div class="w-20 h-20 bg-green-500/10 text-green-500 rounded-full flex items-center justify-center mx-auto mb-8">
+                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/></svg>
+                    </div>
+                    <h2 class="text-3xl font-black mb-2">Deposit Terminal</h2>
+                    <p class="text-slate-500 mb-10">Scan barcode or enter serial number below</p>
+                    <input type="text" id="deposit-code" maxlength="10" placeholder="BILL SERIAL NO." class="w-full bg-slate-900/50 border border-white/10 p-6 rounded-2xl text-center text-3xl font-mono font-bold tracking-[0.5em] text-blue-400 focus:outline-none focus:border-blue-500/50 mb-8 shadow-inner">
+                    <button onclick="processDeposit()" class="w-full gradient-brand py-5 rounded-2xl font-extrabold text-xl shadow-lg shadow-blue-500/20 hover:scale-[1.02] transition-transform active:scale-95">REDEEM CASH</button>
+                </div>
+
+                <!-- Deposit Success Modal -->
+                <div id="deposit-success-screen" class="hidden fixed inset-0 z-[110] bg-slate-950/95 backdrop-blur-xl flex flex-col items-center justify-center p-12 text-center">
+                    <div class="w-32 h-32 bg-green-500 rounded-full flex items-center justify-center mb-8 shadow-2xl shadow-green-500/30 animate-bounce">
+                        <svg class="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                    </div>
+                    <h2 class="text-5xl font-black mb-4 uppercase tracking-tighter">Deposit Verified</h2>
+                    <p class="text-xl text-slate-400 mb-12 max-w-md">Your balance has been updated. Please dispose of the printed paper responsibly.</p>
+                    <button onclick="closeDepositScreen()" class="bg-white text-black px-12 py-5 rounded-3xl font-black text-xl hover:bg-slate-200 transition-colors">RETURN TO HUB</button>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Identity Verification Modal -->
+    <div id="registration-modal" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 hidden backdrop-blur-md px-4">
+        <div class="glass-panel p-10 rounded-[40px] w-full max-w-md text-center border-t-2 border-blue-500">
+            <div class="w-20 h-20 gradient-brand rounded-3xl mx-auto mb-8 flex items-center justify-center shadow-xl shadow-blue-500/20">
+                <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+            </div>
+            <h2 class="text-3xl font-black mb-2 tracking-tighter">NEXUS IDENTITY</h2>
+            <p class="text-slate-500 mb-8 font-medium">Link your account to the bike grid</p>
+            <input type="text" id="new-user-name" placeholder="FULL NAME" class="w-full bg-slate-900 border border-white/5 rounded-2xl px-6 py-5 mb-6 text-white font-bold text-center focus:outline-none focus:border-blue-500/50 shadow-inner">
+            <button onclick="createNewAccount()" class="w-full gradient-brand py-5 rounded-2xl font-black text-lg shadow-xl shadow-blue-500/20">INITIALIZE ACCOUNT</button>
         </div>
     </div>
 
-    <!-- Sidebar -->
-    <nav id="sidebar" class="w-20 md:w-64 bg-slate-900 border-r border-slate-800 flex flex-col h-screen sticky top-0 transition-all no-print">
-        <div class="p-6 text-center font-bold text-xl hidden md:block gradient-text">BIKE BANK</div>
-        <div class="flex-1 flex flex-col gap-2 p-2">
-            <button onclick="switchTab('dashboard')" class="sidebar-link p-4 rounded-xl flex items-center gap-4 hover:bg-white/5 active" id="tab-btn-dashboard">
-                <span>🏠</span> <span class="hidden md:inline">Dashboard</span>
-            </button>
-            <button onclick="switchTab('payment')" class="sidebar-link p-4 rounded-xl flex items-center gap-4 hover:bg-white/5" id="tab-btn-payment">
-                <span>💳</span> <span class="hidden md:inline">Payment</span>
-            </button>
-            <button onclick="switchTab('activity')" class="sidebar-link p-4 rounded-xl flex items-center gap-4 hover:bg-white/5" id="tab-btn-activity">
-                <span>📝</span> <span class="hidden md:inline">Activity</span>
-            </button>
-            <button onclick="switchTab('print')" class="sidebar-link p-4 rounded-xl flex items-center gap-4 hover:bg-white/5" id="tab-btn-print">
-                <span>🖨️</span> <span class="hidden md:inline">Print Money</span>
-            </button>
-            <button onclick="switchTab('deposit')" class="sidebar-link p-4 rounded-xl flex items-center gap-4 hover:bg-white/5" id="tab-btn-deposit">
-                <span>💰</span> <span class="hidden md:inline">Deposit</span>
-            </button>
-        </div>
-        <div class="p-4 border-t border-slate-800 text-[10px] text-slate-500 text-center">
-            Idle Redirect: 5s
-        </div>
-    </nav>
-
-    <!-- Main Content Area -->
-    <main class="flex-1 overflow-y-auto p-4 md:p-10 flex flex-col items-center no-print">
-        
-        <!-- Tab: Dashboard -->
-        <section id="tab-dashboard" class="w-full max-w-2xl space-y-6">
-            <div class="glass-card rounded-3xl p-8 text-center relative overflow-hidden border-b-4 border-blue-500">
-                <p class="text-slate-400 text-sm uppercase tracking-widest mb-2">My Balance</p>
-                <h2 id="balance-display" class="text-6xl font-black mb-2">$0.00</h2>
-                <p id="user-name-display" class="text-blue-400 font-medium"></p>
+    <!-- Digital Receipt Overlay -->
+    <div id="receipt-container" class="hidden fixed inset-0 z-[120] bg-slate-950/95 backdrop-blur-2xl flex flex-col items-center justify-center py-10">
+        <div id="receipt-content" class="receipt-paper shadow-2xl">
+            <div class="text-center border-b-2 border-slate-900 pb-4 mb-4">
+                <h2 class="text-xl font-black tracking-tighter">BIKE BANK</h2>
+                <p class="text-[8px] font-bold uppercase tracking-widest mt-1">Proof of Asset Conversion</p>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="glass-card p-6 rounded-2xl">
-                    <h4 class="text-slate-400 text-xs mb-1">Last Earning</h4>
-                    <p id="last-earn" class="text-xl font-bold text-green-400">--</p>
-                </div>
-                <div class="glass-card p-6 rounded-2xl">
-                    <h4 class="text-slate-400 text-xs mb-1">Active Bills</h4>
-                    <p id="active-bills-count" class="text-xl font-bold text-blue-400">0</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Tab: Payment -->
-        <section id="tab-payment" class="w-full max-w-2xl hidden space-y-4">
-            <h2 class="text-2xl font-bold mb-6">Payments Due (Every 24m)</h2>
-            <div class="space-y-4">
-                <div class="glass-card p-6 rounded-2xl flex justify-between items-center">
-                    <div>
-                        <p class="font-bold">Gas Station</p>
-                        <p class="text-xs text-slate-400">Fuel for your bike trip</p>
-                    </div>
-                    <button onclick="payItem(5.50, 'Gas Payment')" class="bg-blue-600 px-6 py-2 rounded-lg font-bold hover:bg-blue-500">$5.50</button>
-                </div>
-                <div class="glass-card p-6 rounded-2xl flex justify-between items-center">
-                    <div>
-                        <p class="font-bold">Groceries</p>
-                        <p class="text-xs text-slate-400">Snacks and drinks</p>
-                    </div>
-                    <button onclick="payItem(12.00, 'Grocery Payment')" class="bg-blue-600 px-6 py-2 rounded-lg font-bold hover:bg-blue-500">$12.00</button>
-                </div>
-                <div class="glass-card p-6 rounded-2xl flex justify-between items-center">
-                    <div>
-                        <p class="font-bold">Bike Taxes</p>
-                        <p class="text-xs text-slate-400">Road maintenance fee</p>
-                    </div>
-                    <button onclick="payItem(2.00, 'Bike Taxes')" class="bg-red-500 px-6 py-2 rounded-lg font-bold hover:bg-red-400">$2.00</button>
-                </div>
-            </div>
-        </section>
-
-        <!-- Tab: Recent Activity -->
-        <section id="tab-activity" class="w-full max-w-2xl hidden space-y-4">
-            <h2 class="text-2xl font-bold mb-6">Recent Activity</h2>
-            <div id="activity-list" class="space-y-2">
-                <!-- Activity Injected -->
-            </div>
-        </section>
-
-        <!-- Tab: Print -->
-        <section id="tab-print" class="w-full max-w-2xl hidden text-center">
-            <h2 class="text-2xl font-bold mb-8">Atm Print Service</h2>
-            <div class="flex gap-4 justify-center mb-10">
-                <button class="bg-blue-600/20 border border-blue-500 p-8 rounded-2xl w-32 font-bold shadow-lg shadow-blue-500/10">Cash</button>
-                <button class="bg-slate-800 p-8 rounded-2xl w-32 font-bold opacity-50 cursor-not-allowed">Checks</button>
-            </div>
-            <div class="grid grid-cols-3 gap-6">
-                <button onclick="printMoney(1)" class="glass-card p-6 rounded-2xl hover:bg-green-500/20 transition-all border-green-500/30">
-                    <span class="text-3xl block mb-2">💵</span> $1
-                </button>
-                <button onclick="printMoney(5)" class="glass-card p-6 rounded-2xl hover:bg-green-500/20 transition-all border-green-500/30">
-                    <span class="text-3xl block mb-2">💵</span> $5
-                </button>
-                <button onclick="printMoney(20)" class="glass-card p-6 rounded-2xl hover:bg-green-500/20 transition-all border-green-500/30">
-                    <span class="text-3xl block mb-2">💵</span> $20
-                </button>
-            </div>
-        </section>
-
-        <!-- Tab: Deposit -->
-        <section id="tab-deposit" class="w-full max-w-2xl hidden text-center space-y-6">
-            <h2 class="text-2xl font-bold">Deposit Terminal</h2>
-            <div class="glass-card p-10 rounded-3xl border-dashed border-2 border-slate-700">
-                <p class="text-slate-400 mb-6">Enter the 10-digit code or scan the bill barcode</p>
-                <input type="text" id="deposit-code" maxlength="10" placeholder="0000000000" class="bg-slate-900 border border-slate-700 p-4 rounded-xl text-center text-2xl font-mono tracking-widest w-full mb-6">
-                <button onclick="processDeposit()" class="w-full bg-green-600 py-4 rounded-xl font-bold text-xl hover:bg-green-500">Deposit Cash</button>
-            </div>
-            <div id="deposit-success-screen" class="hidden fixed inset-0 z-[110] bg-slate-900 flex flex-col items-center justify-center p-10 text-center">
-                <span class="text-9xl mb-8 animate-bounce">🗑️</span>
-                <h2 class="text-4xl font-bold mb-4">DEPOSIT COMPLETE!</h2>
-                <p class="text-xl text-slate-400 mb-10">Now throw the printed paper in the trash.</p>
-                <button onclick="closeDepositScreen()" class="bg-blue-600 px-10 py-4 rounded-2xl font-bold text-xl">Back to Dashboard</button>
-            </div>
-        </section>
-
-    </main>
-
-    <!-- Print Preview Overlay (Receipt) -->
-    <div id="receipt-container" class="hidden fixed inset-0 z-[120] bg-black/90 flex flex-col items-center justify-center overflow-y-auto py-10">
-        <div id="receipt-content" class="receipt-paper">
-            <div class="text-center border-b border-black pb-4 mb-4">
-                <h2 class="text-xl font-bold">BIKE BANK CASH</h2>
-                <p class="text-xs">Official Digital Receipt</p>
-            </div>
-            <div class="text-4xl font-bold text-center my-6">$<span id="receipt-amount">0</span></div>
-            <div class="space-y-2 text-sm">
-                <div class="flex justify-between"><span>DATE:</span> <span id="receipt-date"></span></div>
-                <div class="flex justify-between"><span>USER:</span> <span id="receipt-user" class="uppercase"></span></div>
-                <div class="flex justify-between"><span>TYPE:</span> <span>LEGAL TENDER</span></div>
+            <div class="text-5xl font-black text-center my-8 tracking-tighter">$<span id="receipt-amount">0</span></div>
+            <div class="space-y-2 text-[10px] font-bold uppercase">
+                <div class="flex justify-between"><span>TIMESTAMP:</span> <span id="receipt-date"></span></div>
+                <div class="flex justify-between"><span>HOLDER:</span> <span id="receipt-user" class="truncate ml-4"></span></div>
+                <div class="flex justify-between"><span>ASSET:</span> <span>STABLE-BIKE-CREDIT</span></div>
             </div>
             <div class="mt-10 text-center">
-                <div class="barcode" id="receipt-barcode">1234567890</div>
-                <div class="text-xs mt-2" id="receipt-code-text">1234567890</div>
+                <div class="barcode" id="receipt-barcode">0000000000</div>
+                <div class="text-[9px] mt-1 font-mono" id="receipt-code-text">0000000000</div>
             </div>
-            <div class="mt-10 pt-4 border-t border-dashed border-black text-[8px] text-center italic">
-                This ticket is valid for one-time deposit back into the bike banking system.
+            <div class="mt-10 pt-4 border-t border-dashed border-slate-300 text-[8px] leading-relaxed text-center italic text-slate-500">
+                This document serves as temporary physical collateral. Redeem at any Nexus Terminal to reintegrate funds.
             </div>
         </div>
-        <!-- Buttons only visible on screen, not when printing -->
-        <div class="mt-8 flex gap-4 no-print">
-            <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold">RE-PRINT</button>
-            <button onclick="finalizePrint()" class="bg-white text-black px-8 py-3 rounded-xl font-bold">DONE / CLOSE</button>
+        <div class="mt-12 flex gap-4 no-print">
+            <button onclick="window.print()" class="bg-white/10 text-white border border-white/10 px-10 py-4 rounded-3xl font-bold hover:bg-white/20 transition-all">RE-PRINT</button>
+            <button onclick="finalizePrint()" class="gradient-brand text-white px-12 py-4 rounded-3xl font-black text-lg shadow-xl shadow-blue-500/20">FINISH PROCESS</button>
         </div>
     </div>
 
-    <!-- Feedback Toast -->
-    <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-6 py-3 rounded-full shadow-xl transition-all opacity-0 pointer-events-none z-[200]">
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-white text-black px-8 py-4 rounded-full shadow-2xl transition-all duration-500 opacity-0 translate-y-10 pointer-events-none z-[200] font-black text-sm uppercase tracking-wider">
         <span id="toast-message"></span>
     </div>
 
     <script>
         const STORAGE_KEY = "bike_bank_v2_accounts";
         const BILL_STORAGE_KEY = "bike_bank_v2_bills";
+        const TIME_STORAGE_KEY = "sim_current_bike_time";
         const REDIRECT_URL = "https://rubiks13.github.io/bikes/";
         
         let currentUser = null;
@@ -241,11 +315,20 @@
         let activeBills = JSON.parse(localStorage.getItem(BILL_STORAGE_KEY)) || {};
         let idleTimer;
 
+        const PAYMENT_ITEMS = [
+            { id: 'gas', name: 'ENERGY CELL', desc: 'Bike battery recharging', cost: 5.50 },
+            { id: 'grocery', name: 'NUTRIENTS', desc: 'Sustenance and hydration', cost: 12.00 },
+            { id: 'taxes', name: 'GRID FEE', desc: 'Road infrastructure maintenance', cost: 2.00 }
+        ];
+
         function init() {
             resetIdleTimer();
             document.addEventListener('mousemove', resetIdleTimer);
             document.addEventListener('keydown', resetIdleTimer);
             document.addEventListener('click', resetIdleTimer);
+
+            setInterval(syncBikeTime, 1000);
+            syncBikeTime();
 
             const params = new URLSearchParams(window.location.search);
             const userName = params.get('user');
@@ -254,16 +337,35 @@
                 document.getElementById('registration-modal').classList.remove('hidden');
             } else {
                 currentUser = userName.toLowerCase();
+                if (!accounts[currentUser].dailyPayments) accounts[currentUser].dailyPayments = {};
                 checkIncomingFunds();
                 renderAll();
             }
         }
 
+        function syncBikeTime() {
+            const timeStr = localStorage.getItem(TIME_STORAGE_KEY) || "00:00:00";
+            document.getElementById('bike-time-display').innerText = timeStr.substring(0, 5);
+            if (currentUser) checkPaymentWarnings();
+        }
+
+        function checkPaymentWarnings() {
+            const todayId = getBikeDayId();
+            let unpaid = false;
+            PAYMENT_ITEMS.forEach(item => {
+                if (accounts[currentUser].dailyPayments[item.id] !== todayId) unpaid = true;
+            });
+            document.getElementById('payment-warning').classList.toggle('hidden', !unpaid);
+            document.getElementById('pay-notification').classList.toggle('hidden', !unpaid);
+        }
+
+        function getBikeDayId() {
+            return localStorage.getItem('sim_bike_current_day_id') || 'day_1';
+        }
+
         function resetIdleTimer() {
             clearTimeout(idleTimer);
-            // Don't redirect if the receipt/print window is open
             if (!document.getElementById('receipt-container').classList.contains('hidden')) return;
-            
             idleTimer = setTimeout(() => {
                 window.location.href = REDIRECT_URL;
             }, 5000); 
@@ -271,10 +373,10 @@
 
         function createNewAccount() {
             const name = document.getElementById('new-user-name').value.trim();
-            if (name.length < 2) return showToast("Enter a name!");
+            if (name.length < 2) return showToast("INVALID IDENTITY");
             const slug = name.toLowerCase();
             if (!accounts[slug]) {
-                accounts[slug] = { name, balance: 0, activity: [] };
+                accounts[slug] = { name, balance: 0, activity: [], dailyPayments: {} };
                 saveData();
             }
             window.location.href = `?user=${slug}`;
@@ -288,15 +390,16 @@
         function switchTab(tabId) {
             document.querySelectorAll('main section').forEach(s => s.classList.add('hidden'));
             document.getElementById(`tab-${tabId}`).classList.remove('hidden');
-            document.querySelectorAll('.sidebar-link').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
             document.getElementById(`tab-btn-${tabId}`).classList.add('active');
+            if (tabId === 'payment') renderPayments();
         }
 
         function checkIncomingFunds() {
             const params = new URLSearchParams(window.location.search);
             const amount = parseFloat(params.get('amount') || params.get('print'));
             if (amount && !isNaN(amount)) {
-                logActivity(amount, "External Deposit");
+                logActivity(amount, "GRID SYNC");
                 const cleanUrl = window.location.origin + window.location.pathname + `?user=${currentUser}`;
                 window.history.replaceState({}, '', cleanUrl);
             }
@@ -318,60 +421,87 @@
 
         function renderAll() {
             const user = accounts[currentUser];
-            document.getElementById('balance-display').innerText = `$${user.balance.toFixed(2)}`;
+            document.getElementById('balance-display').innerText = `$${user.balance.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
             document.getElementById('user-name-display').innerText = user.name;
             document.getElementById('active-bills-count').innerText = Object.keys(activeBills).length;
             
             const list = document.getElementById('activity-list');
             list.innerHTML = user.activity.map(a => `
-                <div class="glass-card p-4 rounded-xl flex justify-between items-center">
-                    <div>
-                        <p class="font-bold">${a.type}</p>
-                        <p class="text-[10px] text-slate-500">${a.date}</p>
+                <div class="glass-panel p-5 rounded-2xl flex justify-between items-center group hover:bg-white/5 transition-colors">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-lg shadow-inner">
+                            ${a.amount >= 0 ? '↗️' : '↘️'}
+                        </div>
+                        <div>
+                            <p class="font-extrabold text-sm uppercase tracking-wider">${a.type}</p>
+                            <p class="text-[10px] text-slate-500 font-bold">${a.date}</p>
+                        </div>
                     </div>
-                    <span class="font-mono font-bold ${a.amount >= 0 ? 'text-green-400' : 'text-red-400'}">
-                        ${a.amount >= 0 ? '+' : ''}$${Math.abs(a.amount).toFixed(2)}
+                    <span class="font-mono font-black text-lg ${a.amount >= 0 ? 'text-green-400' : 'text-red-400'}">
+                        ${a.amount >= 0 ? '+' : '-'}$${Math.abs(a.amount).toFixed(2)}
                     </span>
                 </div>
             `).join('');
             
             if (user.activity.length > 0) {
-                document.getElementById('last-earn').innerText = `$${user.activity[0].amount.toFixed(2)}`;
+                document.getElementById('last-earn').innerText = `${user.activity[0].amount >= 0 ? '+' : '-'}$${Math.abs(user.activity[0].amount).toFixed(2)}`;
             }
+            checkPaymentWarnings();
         }
 
-        function payItem(amount, type) {
-            if (accounts[currentUser].balance < amount) return showToast("Not enough money!");
+        function renderPayments() {
+            const container = document.getElementById('payment-items-container');
+            const todayId = getBikeDayId();
+            
+            container.innerHTML = PAYMENT_ITEMS.map(item => {
+                const hasPaid = accounts[currentUser].dailyPayments[item.id] === todayId;
+                return `
+                    <div class="glass-panel p-6 rounded-3xl flex justify-between items-center ${hasPaid ? 'opacity-40 grayscale pointer-events-none' : ''}">
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-[10px] font-black px-2 py-0.5 rounded ${hasPaid ? 'bg-green-500 text-black' : 'bg-blue-500 text-white'}">
+                                    ${hasPaid ? 'VERIFIED' : 'PENDING'}
+                                </span>
+                                <h3 class="font-black text-lg tracking-tight">${item.name}</h3>
+                            </div>
+                            <p class="text-xs text-slate-500 font-medium">${item.desc}</p>
+                        </div>
+                        <button 
+                            onclick="payItem(${item.cost}, '${item.name}', '${item.id}')" 
+                            class="px-8 py-3 rounded-2xl font-black transition-all ${hasPaid ? 'bg-slate-800 text-slate-500' : 'bg-white text-black hover:scale-105 active:scale-95 shadow-lg shadow-white/5'}"
+                        >
+                            ${hasPaid ? 'SETTLED' : '$' + item.cost.toFixed(2)}
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function payItem(amount, type, itemId) {
+            if (accounts[currentUser].balance < amount) return showToast("INSUFFICIENT CREDITS");
+            accounts[currentUser].dailyPayments[itemId] = getBikeDayId();
             logActivity(-amount, type);
-            showToast(`Paid ${type}`);
+            showToast("TRANSACTION SUCCESSFUL");
+            renderPayments();
         }
 
         function printMoney(amount) {
-            if (accounts[currentUser].balance < amount) return showToast("Insufficient Funds");
-            
+            if (accounts[currentUser].balance < amount) return showToast("INSUFFICIENT CREDITS");
             const code = Math.floor(Math.random() * 9000000000) + 1000000000;
-            logActivity(-amount, `ATM Withdrawal ($${amount})`);
+            logActivity(-amount, "ASSET WITHDRAWAL");
             activeBills[code] = amount;
             saveData();
-
             document.getElementById('receipt-amount').innerText = amount;
             document.getElementById('receipt-date').innerText = new Date().toLocaleString();
             document.getElementById('receipt-user').innerText = accounts[currentUser].name;
             document.getElementById('receipt-barcode').innerText = code;
             document.getElementById('receipt-code-text').innerText = code;
-            
             document.getElementById('receipt-container').classList.remove('hidden');
-
-            // AUTOMATIC PRINT TRIGGER
-            // Small delay to ensure the DOM has updated with the new values
-            setTimeout(() => {
-                window.print();
-            }, 500);
+            setTimeout(() => { window.print(); }, 500);
         }
 
         function finalizePrint() {
             document.getElementById('receipt-container').classList.add('hidden');
-            showToast("Withdrawal Processed");
             renderAll();
             switchTab('dashboard');
         }
@@ -381,12 +511,12 @@
             if (activeBills[code]) {
                 const amount = activeBills[code];
                 delete activeBills[code];
-                logActivity(amount, "Cash Deposit");
+                logActivity(amount, "REVENUE DEPOSIT");
                 saveData();
                 document.getElementById('deposit-code').value = "";
                 document.getElementById('deposit-success-screen').classList.remove('hidden');
             } else {
-                showToast("Invalid or expired barcode!");
+                showToast("INVALID BARCODE");
             }
         }
 
@@ -398,8 +528,8 @@
         function showToast(msg) {
             const t = document.getElementById('toast');
             document.getElementById('toast-message').innerText = msg;
-            t.style.opacity = '1';
-            setTimeout(() => t.style.opacity = '0', 2500);
+            t.classList.remove('opacity-0', 'translate-y-10');
+            setTimeout(() => t.classList.add('opacity-0', 'translate-y-10'), 2500);
         }
 
         window.onload = init;
