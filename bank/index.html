@@ -15,10 +15,6 @@
             overflow: hidden;
         }
 
-        .sidebar {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
         .glass-card {
             background: rgba(15, 23, 42, 0.8);
             backdrop-filter: blur(16px);
@@ -40,46 +36,18 @@
             opacity: 0.3;
         }
 
-        #inactivity-bar {
-            transition: width 5s linear;
-            width: 100%;
+        .overdue-pulse {
+            animation: overdue-glow 1.5s infinite alternate;
+        }
+        @keyframes overdue-glow {
+            from { box-shadow: 0 0 5px #ef4444; background: rgba(239, 68, 68, 0.1); }
+            to { box-shadow: 0 0 20px #ef4444; background: rgba(239, 68, 68, 0.3); }
         }
 
-        .pulse-emerald {
-            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
-            animation: pulse-emerald 2s infinite;
-        }
-
-        @keyframes pulse-emerald {
-            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-        }
-
-        .money-pop {
-            animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        @keyframes pop {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); color: #10b981; }
-            100% { transform: scale(1); }
-        }
-
-        .view-section {
-            transition: opacity 0.3s ease, transform 0.3s ease;
-        }
         .hidden-view {
             display: none;
-            opacity: 0;
-            transform: translateY(10px);
         }
 
-        .bill-card {
-            background: rgba(30, 41, 59, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            transition: all 0.2s;
-        }
-        
         .sync-active {
             animation: sync-glow 2s infinite ease-in-out;
         }
@@ -87,490 +55,219 @@
             0%, 100% { opacity: 0.5; }
             50% { opacity: 1; color: #60a5fa; }
         }
-
-        .admin-badge {
-            background: linear-gradient(90deg, #ef4444, #f97316);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-weight: 900;
-        }
     </style>
 </head>
 <body class="h-screen flex">
 
     <!-- Sidebar -->
-    <aside class="sidebar w-20 hover:w-64 bg-slate-900 border-r border-slate-800 flex flex-col items-center py-6 group z-50">
-        <div class="mb-10 bg-blue-600 p-3 rounded-2xl shadow-lg shadow-blue-500/20">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17.5V14l-3-3 4-3 2 3h2"/><circle cx="18.5" cy="17.5" r="3.5"/><circle cx="5.5" cy="17.5" r="3.5"/></svg>
+    <aside class="w-20 hover:w-64 bg-slate-900 border-r border-slate-800 flex flex-col items-center py-6 group z-50 transition-all">
+        <div class="mb-10 bg-blue-600 p-3 rounded-2xl">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M12 17.5V14l-3-3 4-3 2 3h2"/><circle cx="18.5" cy="17.5" r="3.5"/><circle cx="5.5" cy="17.5" r="3.5"/></svg>
         </div>
         
         <nav class="flex-1 w-full px-4 space-y-4">
-            <button onclick="switchView('dashboard')" id="nav-dashboard" class="w-full flex items-center gap-4 p-3 rounded-xl bg-blue-600/10 text-blue-400 transition-all text-left">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
-                <span class="opacity-0 group-hover:opacity-100 font-bold transition-opacity whitespace-nowrap">Dashboard</span>
+            <button onclick="switchView('dashboard')" id="nav-dashboard" class="w-full flex items-center gap-4 p-3 rounded-xl bg-blue-600/10 text-blue-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/></svg>
+                <span class="opacity-0 group-hover:opacity-100 font-bold whitespace-nowrap">Dashboard</span>
             </button>
-            <button onclick="switchView('payments')" id="nav-payments" class="w-full flex items-center gap-4 p-3 rounded-xl text-slate-500 hover:bg-slate-800 transition-all text-left">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h7"/><path d="M16 19h6"/><path d="M19 16v6"/><rect width="6" height="4" x="15" y="9" rx="1"/></svg>
-                <span class="opacity-0 group-hover:opacity-100 font-bold transition-opacity whitespace-nowrap">Payments</span>
+            <button onclick="switchView('payments')" id="nav-payments" class="w-full flex items-center gap-4 p-3 rounded-xl text-slate-500">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h7"/></svg>
+                <span class="opacity-0 group-hover:opacity-100 font-bold whitespace-nowrap">Payments</span>
             </button>
-            <button onclick="switchView('history')" id="nav-history" class="w-full flex items-center gap-4 p-3 rounded-xl text-slate-500 hover:bg-slate-800 transition-all text-left">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                <span class="opacity-0 group-hover:opacity-100 font-bold transition-opacity whitespace-nowrap">Full History</span>
-            </button>
-            <button id="nav-admin" onclick="switchView('admin')" class="hidden w-full flex items-center gap-4 p-3 rounded-xl text-orange-500 hover:bg-orange-500/10 transition-all text-left">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>
-                <span class="opacity-0 group-hover:opacity-100 font-bold transition-opacity whitespace-nowrap">Master Control</span>
-            </button>
-            <a href="https://rubiks13.github.io/bikes/" class="flex items-center gap-4 p-3 rounded-xl text-slate-500 hover:bg-slate-800 transition-all">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                <span class="opacity-0 group-hover:opacity-100 font-bold transition-opacity whitespace-nowrap">Back to Hub</span>
-            </a>
         </nav>
-
-        <div class="mt-auto group-hover:px-4 w-full flex justify-center border-t border-slate-800 pt-6">
-            <div class="w-10 h-10 group-hover:w-full bg-slate-800 rounded-xl flex items-center justify-center gap-3 overflow-hidden transition-all text-slate-400">
-                <div class="min-w-[40px] flex justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
-                <span id="mode-label" class="opacity-0 group-hover:opacity-100 text-[10px] font-black uppercase tracking-widest">Local Mode</span>
-            </div>
-        </div>
     </aside>
 
     <main class="flex-1 flex flex-col p-6 overflow-hidden">
         <header class="flex justify-between items-start mb-8">
             <div class="flex gap-6">
                 <div>
-                    <h1 class="text-2xl font-black tracking-tight uppercase italic">Rider Bank <span class="text-blue-500 text-sm not-italic ml-2">Hands-Free</span></h1>
-                    <p class="text-xs text-slate-500 font-bold uppercase tracking-widest flex items-center gap-2" id="account-status">
+                    <h1 class="text-2xl font-black tracking-tight uppercase italic">Rider Bank</h1>
+                    <p class="text-xs text-slate-500 font-bold uppercase tracking-widest flex items-center gap-2">
                         <span id="sync-dot" class="w-2 h-2 bg-blue-500 rounded-full sync-active"></span>
-                        Auto-Syncing Earnings...
+                        Sim Clock: <span id="world-time" class="text-white">--:-- --</span>
                     </p>
                 </div>
-                <div class="bg-slate-900 border border-slate-800 px-4 py-2 rounded-2xl flex flex-col items-center justify-center min-w-[100px]">
-                    <span class="text-[9px] font-black text-blue-500 uppercase tracking-widest">Global Time</span>
-                    <span id="world-time" class="text-lg font-black tabular-nums tracking-tighter">--:-- --</span>
-                </div>
             </div>
-            
-            <div class="flex flex-col items-end">
-                <span class="text-[9px] font-bold text-slate-500 uppercase mb-1">Session Active</span>
-                <div class="w-32 h-1 bg-slate-800 rounded-full overflow-hidden">
-                    <div id="inactivity-bar" class="h-full bg-blue-500" style="width: 100%;"></div>
-                </div>
+            <div id="overdue-alert" class="hidden overdue-pulse px-4 py-2 rounded-xl border border-red-500 text-red-500 font-black text-xs uppercase tracking-tighter">
+                ⚠️ Payments Overdue (+24m)
             </div>
         </header>
 
-        <!-- DASHBOARD VIEW -->
-        <div id="view-dashboard" class="view-section max-w-4xl w-full mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 overflow-hidden">
+        <!-- DASHBOARD -->
+        <div id="view-dashboard" class="view-section max-w-4xl w-full mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="lg:col-span-2 space-y-6">
-                <div class="gradient-border p-8 h-64 flex flex-col justify-center relative overflow-hidden shadow-2xl">
-                    <div class="absolute right-0 top-0 w-64 h-64 bg-blue-600/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
-                    <p class="text-blue-400 text-xs font-bold uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
-                        <span class="w-1.5 h-1.5 bg-blue-500 rounded-full animate-ping"></span>
-                        Current Balance
-                    </p>
-                    <h2 id="balance-display" class="text-7xl font-black tracking-tighter tabular-nums transition-all duration-300">$0.00</h2>
-                    
+                <div class="gradient-border p-8 h-64 flex flex-col justify-center relative shadow-2xl">
+                    <p class="text-blue-400 text-xs font-bold uppercase tracking-[0.3em] mb-4">Balance</p>
+                    <h2 id="balance-display" class="text-7xl font-black tracking-tighter tabular-nums">$0.00</h2>
                     <div class="mt-8 flex items-center gap-6">
                         <div class="flex flex-col">
-                            <span class="text-[10px] text-slate-500 font-bold uppercase">Rider Account</span>
+                            <span class="text-[10px] text-slate-500 font-bold uppercase">Account</span>
                             <span id="owner-display" class="font-bold text-lg">---</span>
                         </div>
-                        <div class="h-8 w-[1px] bg-slate-800"></div>
-                        <div class="flex flex-col">
-                            <span class="text-[10px] text-slate-500 font-bold uppercase">Auto-Deposit</span>
-                            <span class="text-emerald-400 font-bold text-lg flex items-center gap-2">
-                                <span class="w-2.5 h-2.5 bg-emerald-500 rounded-full pulse-emerald"></span>
-                                ACTIVE
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="payment-toast" class="opacity-0 translate-y-4 transition-all duration-500 glass-card p-4 rounded-2xl flex items-center gap-4 border border-emerald-500/30 bg-emerald-500/5">
-                    <div class="bg-emerald-500 text-white p-2 rounded-lg">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                    </div>
-                    <div class="flex-1">
-                        <p class="text-xs font-black uppercase text-emerald-400">Update Received</p>
-                        <p id="toast-msg" class="text-sm text-slate-300 font-bold">Account synchronized.</p>
                     </div>
                 </div>
             </div>
 
-            <div class="glass-card rounded-3xl flex flex-col overflow-hidden border border-slate-800 shadow-2xl bg-slate-900/40">
-                <div class="p-6 border-b border-slate-800 flex justify-between items-center">
-                    <h3 class="text-xs font-black uppercase tracking-widest text-slate-400 italic">Live History</h3>
-                    <button onclick="switchView('history')" class="text-[10px] font-bold text-blue-500 uppercase hover:underline">See All</button>
-                </div>
-                <div id="transactions-list-mini" class="flex-1 overflow-y-auto p-2"></div>
+            <div class="glass-card rounded-3xl p-6 border border-slate-800">
+                <h3 class="text-xs font-black uppercase text-slate-400 mb-4">Quick Pay</h3>
+                <div id="quick-bill-list" class="space-y-3"></div>
             </div>
         </div>
 
-        <!-- PAYMENTS VIEW -->
-        <div id="view-payments" class="view-section hidden-view max-w-4xl w-full mx-auto flex-1 overflow-hidden">
-            <h2 class="text-2xl font-black uppercase italic tracking-tight mb-6">Daily Obligations</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div id="bill-taxes" class="bill-card p-6 rounded-[2rem] flex flex-col items-center text-center">
-                    <div class="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center mb-4"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-400"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
-                    <h3 class="font-black uppercase italic text-sm mb-1">City Taxes</h3>
-                    <p class="text-2xl font-black mb-4">$25.00</p>
-                    <div id="status-taxes" class="mb-6"><span class="text-[10px] font-black uppercase px-3 py-1 bg-slate-800 text-slate-500 rounded-full">Pending</span></div>
-                    <button id="btn-pay-taxes" onclick="processPayment('Taxes', 25.00)" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-3 rounded-xl uppercase text-xs tracking-widest transition-all">Pay Now</button>
-                </div>
-                <div id="bill-groceries" class="bill-card p-6 rounded-[2rem] flex flex-col items-center text-center">
-                    <div class="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center mb-4"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-400"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg></div>
-                    <h3 class="font-black uppercase italic text-sm mb-1">Groceries</h3>
-                    <p class="text-2xl font-black mb-4">$15.00</p>
-                    <div id="status-groceries" class="mb-6"><span class="text-[10px] font-black uppercase px-3 py-1 bg-slate-800 text-slate-500 rounded-full">Pending</span></div>
-                    <button id="btn-pay-groceries" onclick="processPayment('Groceries', 15.00)" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-3 rounded-xl uppercase text-xs tracking-widest transition-all">Pay Now</button>
-                </div>
-                <div id="bill-gas" class="bill-card p-6 rounded-[2rem] flex flex-col items-center text-center">
-                    <div class="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center mb-4"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-400"><path d="M3 22L15 22M4 9L15 9M14 22V4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v12M18 5v4M21 10.3c.2.5.4 1 .4 1.7 0 2.5-2 4.5-4.4 4.5M15 19l-9-9 9 9Z"/></svg></div>
-                    <h3 class="font-black uppercase italic text-sm mb-1">Fuel Refill</h3>
-                    <p class="text-2xl font-black mb-4">$10.00</p>
-                    <div id="status-gas" class="mb-6"><span class="text-[10px] font-black uppercase px-3 py-1 bg-slate-800 text-slate-500 rounded-full">Pending</span></div>
-                    <button id="btn-pay-gas" onclick="processPayment('Gas', 10.00)" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-3 rounded-xl uppercase text-xs tracking-widest transition-all">Pay Now</button>
-                </div>
+        <!-- PAYMENTS -->
+        <div id="view-payments" class="view-section hidden-view max-w-4xl w-full mx-auto">
+            <h2 class="text-2xl font-black uppercase italic tracking-tight mb-6">Obligations</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="payments-grid">
+                <!-- Cards injected here -->
             </div>
         </div>
-
-        <!-- HISTORY VIEW -->
-        <div id="view-history" class="view-section hidden-view max-w-4xl w-full mx-auto flex-1 overflow-hidden">
-            <div class="glass-card rounded-3xl h-full flex flex-col border border-slate-800 shadow-2xl overflow-hidden">
-                <div class="p-8 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
-                    <h2 class="text-xl font-black uppercase italic tracking-tight">Full Ledger</h2>
-                    <button onclick="switchView('dashboard')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 p-2 rounded-xl transition-all"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
-                </div>
-                <div id="transactions-list-full" class="flex-1 overflow-y-auto p-6 space-y-4"></div>
-            </div>
-        </div>
-
-        <!-- ADMIN VIEW -->
-        <div id="view-admin" class="view-section hidden-view max-w-4xl w-full mx-auto flex-1 overflow-hidden">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-black uppercase italic tracking-tight text-orange-500">Master Control Panel</h2>
-                <div class="bg-orange-500/10 border border-orange-500/20 px-3 py-1 rounded-full text-[10px] font-black text-orange-500 uppercase tracking-widest">Authorized Only</div>
-            </div>
-            <div class="glass-card rounded-3xl h-full flex flex-col border border-slate-800 shadow-2xl overflow-hidden">
-                <div id="admin-account-list" class="flex-1 overflow-y-auto p-6 space-y-4">
-                    <!-- List of all accounts in localStorage will be generated here -->
-                </div>
-            </div>
-        </div>
-
     </main>
-
-    <!-- CREATE ACCOUNT OVERLAY -->
-    <div id="create-overlay" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[100] hidden flex items-center justify-center p-4">
-        <div class="glass-card p-8 rounded-[2.5rem] max-w-sm w-full text-center shadow-2xl">
-            <h2 class="text-2xl font-black mb-2 uppercase italic">Identify Rider</h2>
-            <div class="mb-6">
-                <input type="text" id="new-rider-name" placeholder="CALLSIGN" class="w-full bg-slate-900 border border-slate-800 p-4 rounded-2xl text-center font-black uppercase tracking-[0.2em] focus:ring-2 focus:ring-blue-500 outline-none text-white">
-            </div>
-            <button onclick="createNewAccount()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-2xl transition uppercase tracking-widest text-sm">Start Session</button>
-        </div>
-    </div>
 
     <script>
         let currentAccount = null;
-        let lastKnownDataString = "";
-        let inactivityTimer = null;
-        let isAdmin = false;
+        const BILLS = [
+            { id: 'taxes', label: 'City Taxes', amount: 25 },
+            { id: 'groceries', label: 'Groceries', amount: 15 },
+            { id: 'gas', label: 'Fuel/Gas', amount: 10 }
+        ];
 
-        function getSimulatedDate() {
+        function getSimTime() {
+            return localStorage.getItem('sim_current_bike_time') || "00:00 AM";
+        }
+
+        function getSimDate() {
             const directoryData = localStorage.getItem('global_directory_data');
-            if (directoryData) {
-                try {
-                    const data = JSON.parse(directoryData);
-                    if (data.date) return data.date;
-                } catch(e) {}
+            try {
+                return JSON.parse(directoryData).date || new Date().toDateString();
+            } catch(e) { return new Date().toDateString(); }
+        }
+
+        function isOverdue() {
+            const timeStr = getSimTime();
+            // Check if minutes passed 24 and it's 12 AM
+            if (timeStr.includes("AM")) {
+                const parts = timeStr.split(":");
+                const hours = parseInt(parts[0]);
+                const minutes = parseInt(parts[1]);
+                if (hours === 12 && minutes >= 24) return true;
+                if (hours > 12 && hours < 6) return true; // Early morning
             }
-            return new Date().toLocaleDateString();
+            return false;
         }
 
-        function resetInactivity() {
-            clearTimeout(inactivityTimer);
-            const bar = document.getElementById('inactivity-bar');
-            bar.style.transition = 'none';
-            bar.style.width = '100%';
-            void bar.offsetWidth;
-            bar.style.transition = 'width 5s linear';
-            bar.style.width = '0%';
-            inactivityTimer = setTimeout(() => {
-                window.location.href = "https://rubiks13.github.io/bikes/";
-            }, 5000);
-        }
+        function updateUI() {
+            const time = getSimTime();
+            document.getElementById('world-time').innerText = time;
 
-        window.addEventListener('mousemove', resetInactivity);
-        window.addEventListener('keydown', resetInactivity);
-        window.addEventListener('click', resetInactivity);
-        window.addEventListener('touchstart', resetInactivity);
-
-        function updateDirectoryTime() {
-            const displayEl = document.getElementById('world-time');
-            const broadcastTime = localStorage.getItem('sim_current_bike_time');
-            if (broadcastTime) {
-                displayEl.innerText = broadcastTime;
-                return;
-            }
-            const now = new Date();
-            displayEl.innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        }
-        setInterval(updateDirectoryTime, 100);
-
-        window.onload = () => {
-            const params = new URLSearchParams(window.location.search);
-            if (params.get('user')?.toLowerCase() === 'admin') {
-                isAdmin = true;
-                document.getElementById('nav-admin').classList.remove('hidden');
-                document.getElementById('mode-label').innerText = "Admin Access";
-                document.getElementById('mode-label').classList.add('admin-badge');
-            }
-            startLiveSync();
-            updateDirectoryTime();
-            resetInactivity();
-        };
-
-        function switchView(viewName) {
-            resetInactivity();
-            ['dashboard', 'history', 'payments', 'admin'].forEach(s => {
-                const el = document.getElementById(`view-${s}`);
-                const nav = document.getElementById(`nav-${s}`);
-                if (!el) return;
-                if (s === viewName) {
-                    el.classList.remove('hidden-view');
-                    el.style.display = (s === 'dashboard' ? 'grid' : 'block');
-                    if(nav) nav.classList.add('bg-blue-600/10', 'text-blue-400');
-                    if(s === 'admin') renderAdminPanel();
-                } else {
-                    el.classList.add('hidden-view');
-                    el.style.display = 'none';
-                    if(nav) nav.classList.remove('bg-blue-600/10', 'text-blue-400');
-                }
-            });
-        }
-
-        function startLiveSync() {
-            const sync = () => {
-                const params = new URLSearchParams(window.location.search);
-                const userName = params.get('user') || localStorage.getItem('last_rider_session');
-                
-                if (userName) {
-                    checkForUrlDeposit(userName, params);
-                    const storageKey = `rider_bank_${userName.toLowerCase()}`;
-                    const rawData = localStorage.getItem(storageKey);
-
-                    if (rawData && rawData !== lastKnownDataString) {
-                        lastKnownDataString = rawData;
-                        currentAccount = JSON.parse(rawData);
-                        if (!currentAccount.payments) currentAccount.payments = {};
-                        renderDashboard();
-                        document.getElementById('create-overlay').classList.add('hidden');
-                    } else if (!rawData) {
-                        initDefaultAccount(userName);
-                    }
-                } else {
-                    showCreateView();
-                }
-            };
-            sync(); 
-            setInterval(sync, 1000);
-        }
-
-        function checkForUrlDeposit(userName, params) {
-            const depositAmt = parseFloat(params.get('deposit'));
-            if (isNaN(depositAmt) || depositAmt <= 0) return;
-            
-            const txId = params.get('txid') || `tx_${Date.now()}`;
-            if (localStorage.getItem(`processed_${txId}`)) return;
-
-            const storageKey = `rider_bank_${userName.toLowerCase()}`;
-            const rawData = localStorage.getItem(storageKey);
-            let acc = rawData ? JSON.parse(rawData) : { ownerName: userName, balance: 100, transactions: [], payments: {} };
-
-            acc.balance += depositAmt;
-            acc.transactions.push({ id: txId, type: 'deposit', amount: depositAmt, label: params.get('label') || 'Mission Reward', date: new Date().toISOString() });
-
-            localStorage.setItem(`processed_${txId}`, 'true');
-            localStorage.setItem(storageKey, JSON.stringify(acc));
-            
-            currentAccount = acc;
-            lastKnownDataString = JSON.stringify(acc);
-            renderDashboard();
-            showToast(`+$${depositAmt.toFixed(2)}: Received`);
-            resetInactivity();
-
-            const newUrl = window.location.origin + window.location.pathname + `?user=${userName}`;
-            window.history.replaceState({}, '', newUrl);
-        }
-
-        function processPayment(type, amount) {
-            resetInactivity();
             if (!currentAccount) return;
-            currentAccount.balance -= amount;
-            currentAccount.transactions.push({
-                id: `pay_${Date.now()}`,
-                type: 'payment',
-                amount: amount,
-                label: `Daily ${type}`,
-                date: new Date().toISOString()
-            });
-            currentAccount.payments[type] = { lastPaidDate: getSimulatedDate() };
-            saveCurrentData();
-            renderDashboard();
-            showToast(`Paid $${amount} for ${type}`);
-        }
 
-        function saveCurrentData() {
-            if (!currentAccount) return;
-            const storageKey = `rider_bank_${currentAccount.ownerName.toLowerCase()}`;
-            const dataString = JSON.stringify(currentAccount);
-            localStorage.setItem(storageKey, dataString);
-            lastKnownDataString = dataString;
-        }
-
-        function initDefaultAccount(name) {
-            currentAccount = {
-                ownerName: name,
-                balance: 100,
-                transactions: [{ id: Date.now(), type: 'deposit', amount: 100, label: 'Account Activation', date: new Date().toISOString() }],
-                payments: {}
-            };
-            saveCurrentData();
-            localStorage.setItem('last_rider_session', name);
-            document.getElementById('create-overlay').classList.add('hidden');
-        }
-
-        function showCreateView() { document.getElementById('create-overlay').classList.remove('hidden'); }
-        function createNewAccount() {
-            const name = document.getElementById('new-rider-name').value.trim();
-            if (name) initDefaultAccount(name);
-        }
-
-        function showToast(msg) {
-            const toast = document.getElementById('payment-toast');
-            document.getElementById('toast-msg').innerText = msg;
-            toast.classList.remove('opacity-0', 'translate-y-4');
-            setTimeout(() => toast.classList.add('opacity-0', 'translate-y-4'), 4000);
-        }
-
-        function renderDashboard() {
-            if (!currentAccount) return;
-            const balanceEl = document.getElementById('balance-display');
-            const formatted = (currentAccount.balance < 0 ? '-' : '') + '$' + Math.abs(currentAccount.balance).toLocaleString(undefined, {minimumFractionDigits: 2});
+            const overdue = isOverdue();
+            const alert = document.getElementById('overdue-alert');
             
-            if (balanceEl.innerText !== formatted) {
-                balanceEl.classList.add('money-pop');
-                setTimeout(() => balanceEl.classList.remove('money-pop'), 400);
+            // Check if any bills are unpaid for current "date"
+            const simDate = getSimDate();
+            let anyUnpaid = BILLS.some(b => currentAccount.payments[b.id] !== simDate);
+
+            if (overdue && anyUnpaid) {
+                alert.classList.remove('hidden');
+            } else {
+                alert.classList.add('hidden');
             }
-            balanceEl.innerText = formatted;
-            document.getElementById('owner-display').innerText = currentAccount.ownerName;
-            
-            const listMini = document.getElementById('transactions-list-mini');
-            const listFull = document.getElementById('transactions-list-full');
-            listMini.innerHTML = '';
-            listFull.innerHTML = '';
-            
-            [...currentAccount.transactions].reverse().forEach((tx, idx) => {
-                const isDep = tx.type === 'deposit';
-                const row = `<div class="p-4 mb-2 rounded-2xl bg-slate-800/30 border border-slate-800/50 flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-lg ${isDep ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'} flex items-center justify-center">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="${isDep ? 'm7 10 5 5 5-5M12 15V3' : 'm17 14-5-5-5 5M12 19V9'}"/></svg>
-                        </div>
-                        <p class="text-[11px] font-black uppercase text-slate-300">${tx.label}</p>
-                    </div>
-                    <span class="text-sm font-black ${isDep ? 'text-emerald-400' : 'text-rose-400'}">${isDep ? '+' : '-'}$${tx.amount.toFixed(2)}</span>
-                </div>`;
-                if (idx < 5) listMini.innerHTML += row;
-                listFull.innerHTML += row;
-            });
+
             renderPayments();
         }
 
-        function renderPayments() {
-            if (!currentAccount) return;
-            const simDate = getSimulatedDate();
-            ['Taxes', 'Groceries', 'Gas'].forEach(type => {
-                const btn = document.getElementById(`btn-pay-${type.toLowerCase()}`);
-                const status = document.getElementById(`status-${type.toLowerCase()}`);
-                if (!btn || !status) return;
-                const isPaid = currentAccount.payments[type]?.lastPaidDate === simDate;
-                if (isPaid) {
-                    status.innerHTML = '<span class="text-[10px] font-black uppercase px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-full">Paid</span>';
-                    btn.disabled = true;
-                    btn.innerText = "Cleared";
-                    btn.className = "w-full bg-slate-800 text-slate-500 font-black py-3 rounded-xl uppercase text-xs tracking-widest opacity-50";
-                } else {
-                    status.innerHTML = '<span class="text-[10px] font-black uppercase px-3 py-1 bg-slate-800 text-slate-500 rounded-full">Pending</span>';
-                    btn.disabled = false;
-                    btn.innerText = "Pay Now";
-                    btn.className = "w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-3 rounded-xl uppercase text-xs tracking-widest transition-all";
-                }
+        function processPayment(billId, amount) {
+            const simDate = getSimDate();
+            if (currentAccount.payments[billId] === simDate) return;
+
+            currentAccount.balance -= amount;
+            currentAccount.payments[billId] = simDate;
+            currentAccount.transactions.push({
+                type: 'payment',
+                amount: amount,
+                label: `Daily ${billId}`,
+                date: new Date().toISOString()
             });
+
+            saveData();
+            renderDashboard();
         }
 
-        // --- ADMIN FUNCTIONS ---
-        function renderAdminPanel() {
-            if (!isAdmin) return;
-            const listEl = document.getElementById('admin-account-list');
-            listEl.innerHTML = '';
+        function renderPayments() {
+            const grid = document.getElementById('payments-grid');
+            const quick = document.getElementById('quick-bill-list');
+            if (!grid) return;
             
-            const keys = Object.keys(localStorage).filter(k => k.startsWith('rider_bank_'));
-            
-            keys.forEach(key => {
-                const acc = JSON.parse(localStorage.getItem(key));
-                const card = document.createElement('div');
-                card.className = "bg-slate-900 border border-slate-800 p-6 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-4";
-                card.innerHTML = `
-                    <div class="flex-1">
-                        <p class="text-[10px] font-black text-slate-500 uppercase">Callsign</p>
-                        <h3 class="font-black uppercase text-lg">${acc.ownerName}</h3>
-                    </div>
-                    <div class="flex-1">
-                        <p class="text-[10px] font-black text-slate-500 uppercase">Balance</p>
-                        <input type="number" step="0.01" value="${acc.balance}" onchange="adminUpdateBalance('${acc.ownerName}', this.value)" 
-                            class="bg-slate-950 border border-slate-800 p-2 rounded-xl text-emerald-400 font-black w-32 outline-none focus:ring-1 focus:ring-orange-500">
-                    </div>
-                    <div class="flex gap-2">
-                        <button onclick="adminDeleteAccount('${acc.ownerName}')" class="bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white p-3 rounded-xl transition-all">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            grid.innerHTML = '';
+            quick.innerHTML = '';
+            const simDate = getSimDate();
+            const overdue = isOverdue();
+
+            BILLS.forEach(bill => {
+                const paid = currentAccount.payments[bill.id] === simDate;
+                const status = paid ? 'CLEARED' : (overdue ? 'OVERDUE' : 'PENDING');
+                const statusColor = paid ? 'text-emerald-400' : (overdue ? 'text-red-500' : 'text-slate-500');
+
+                grid.innerHTML += `
+                    <div class="glass-card p-6 rounded-3xl text-center border ${overdue && !paid ? 'border-red-500' : 'border-slate-800'}">
+                        <h3 class="font-black uppercase text-sm mb-1">${bill.label}</h3>
+                        <p class="text-2xl font-black mb-4">$${bill.amount.toFixed(2)}</p>
+                        <div class="mb-4">
+                            <span class="text-[10px] font-black uppercase px-3 py-1 bg-slate-800 ${statusColor} rounded-full">${status}</span>
+                        </div>
+                        <button onclick="processPayment('${bill.id}', ${bill.amount})" 
+                            ${paid ? 'disabled' : ''} 
+                            class="w-full ${paid ? 'bg-slate-800 text-slate-600' : 'bg-blue-600'} font-black py-3 rounded-xl uppercase text-xs">
+                            ${paid ? 'Paid' : 'Pay Now'}
                         </button>
                     </div>
                 `;
-                listEl.appendChild(card);
+
+                if (!paid) {
+                    quick.innerHTML += `
+                        <button onclick="processPayment('${bill.id}', ${bill.amount})" class="w-full p-3 rounded-xl bg-slate-800 flex justify-between items-center hover:bg-slate-700 transition">
+                            <span class="text-[10px] font-black uppercase text-slate-400">${bill.label}</span>
+                            <span class="text-xs font-black">$${bill.amount}</span>
+                        </button>
+                    `;
+                }
             });
+            if (quick.innerHTML === '') quick.innerHTML = '<p class="text-center text-[10px] font-bold text-emerald-500 uppercase">All clear for today</p>';
         }
 
-        function adminUpdateBalance(owner, newVal) {
-            const storageKey = `rider_bank_${owner.toLowerCase()}`;
-            const acc = JSON.parse(localStorage.getItem(storageKey));
-            const oldVal = acc.balance;
-            acc.balance = parseFloat(newVal);
-            acc.transactions.push({
-                id: `admin_${Date.now()}`,
-                type: acc.balance > oldVal ? 'deposit' : 'payment',
-                amount: Math.abs(acc.balance - oldVal),
-                label: 'Admin Adjustment',
-                date: new Date().toISOString()
-            });
-            localStorage.setItem(storageKey, JSON.stringify(acc));
-            if (currentAccount && currentAccount.ownerName.toLowerCase() === owner.toLowerCase()) {
-                currentAccount = acc;
-                renderDashboard();
-            }
-            showToast(`Modified ${owner}'s balance.`);
+        function renderDashboard() {
+            document.getElementById('balance-display').innerText = `$${currentAccount.balance.toFixed(2)}`;
+            document.getElementById('owner-display').innerText = currentAccount.ownerName;
+            renderPayments();
         }
 
-        function adminDeleteAccount(owner) {
-            const storageKey = `rider_bank_${owner.toLowerCase()}`;
-            localStorage.removeItem(storageKey);
-            renderAdminPanel();
-            showToast(`Deleted account: ${owner}`);
-            if (currentAccount && currentAccount.ownerName.toLowerCase() === owner.toLowerCase()) {
-                window.location.reload();
-            }
+        function switchView(v) {
+            document.querySelectorAll('.view-section').forEach(s => s.classList.add('hidden-view'));
+            document.getElementById(`view-${v}`).classList.remove('hidden-view');
         }
+
+        function saveData() {
+            localStorage.setItem(`rider_bank_${currentAccount.ownerName.toLowerCase()}`, JSON.stringify(currentAccount));
+        }
+
+        window.onload = () => {
+            const params = new URLSearchParams(window.location.search);
+            const user = params.get('user') || "Rider";
+            const key = `rider_bank_${user.toLowerCase()}`;
+            const data = localStorage.getItem(key);
+            
+            if (data) {
+                currentAccount = JSON.parse(data);
+                if (!currentAccount.payments) currentAccount.payments = {};
+            } else {
+                currentAccount = { ownerName: user, balance: 100, transactions: [], payments: {} };
+                saveData();
+            }
+            
+            renderDashboard();
+            setInterval(updateUI, 1000);
+        };
     </script>
 </body>
 </html>
