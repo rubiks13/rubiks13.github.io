@@ -82,6 +82,15 @@
 
         .page-hidden { display: none !important; }
         .page-visible { display: flex !important; }
+
+        .bank-pop {
+            animation: pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
     </style>
 </head>
 <body class="min-h-screen">
@@ -130,10 +139,15 @@
                     <p>> System ready...</p>
                 </div>
             </div>
-            <div class="bg-blue-50 p-6 rounded-xl border border-blue-100 flex flex-col items-center justify-center text-blue-600 font-bold text-center italic">
+            <div id="bank-status-container" class="bg-blue-50 p-6 rounded-xl border border-blue-100 flex flex-col items-center justify-center text-blue-600 font-bold text-center italic transition-all">
                 <p id="status-text">Ready for departure. Earn $5.00 per flight.</p>
-                <!-- DYNAMIC BANK LINK -->
-                <a id="bank-link" href="#" target="_blank" class="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg text-xs font-black hover:bg-blue-700 transition-colors hidden">Go to Bank App →</a>
+                <!-- PRIMARY DEPOSIT BUTTON -->
+                <div id="bank-link-wrapper" class="hidden mt-4 bank-pop">
+                    <a id="bank-link" href="#" class="inline-flex items-center gap-2 px-8 py-4 bg-green-600 hover:bg-green-700 text-white rounded-2xl shadow-xl font-black text-lg uppercase tracking-tight transition-all active:scale-95">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                        Claim $5.00
+                    </a>
+                </div>
             </div>
         </div>
     </div>
@@ -146,6 +160,7 @@
         </div>
 
         <div id="print-area">
+            <!-- Thermal Layout -->
             <div id="layout-view-thermal" class="layout-thermal mx-auto hidden">
                 <div class="flex justify-between items-center mb-4">
                     <div class="font-black text-xl italic tracking-tighter">FLY USA</div>
@@ -192,6 +207,7 @@
                 </div>
             </div>
 
+            <!-- Modern Layout -->
             <div id="layout-view-modern" class="layout-modern mx-auto hidden">
                 <div class="bg-blue-600 p-4 text-white flex justify-between items-center">
                     <div>
@@ -241,7 +257,7 @@
         </button>
     </div>
 
-    <!-- Settings & Modals -->
+    <!-- Settings Modal -->
     <div id="settings-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-[100] px-4">
         <div class="bg-white p-8 rounded-2xl max-w-lg w-full shadow-2xl">
             <h3 class="text-2xl font-bold mb-4">Station Settings</h3>
@@ -281,7 +297,7 @@
         let currentLayout = localStorage.getItem('flyusa_layout') || 'thermal';
         let qrInstances = [];
         let idleTimer;
-        const IDLE_TIME_LIMIT = 10000;
+        const IDLE_TIME_LIMIT = 15000;
         const REDIRECT_URL = "https://rubiks13.github.io/bikes/";
         const BANK_BASE_URL = "https://rubiks13.github.io/bank/";
 
@@ -291,11 +307,13 @@
             idleTimer = setTimeout(() => {
                 const isPrinting = !document.getElementById('print-view').classList.contains('page-hidden');
                 const isSettingsOpen = !document.getElementById('settings-modal').classList.contains('hidden');
-                if (!isPrinting && !isSettingsOpen) { window.location.href = REDIRECT_URL; } else { resetIdleTimer(); }
+                const isBankReady = !document.getElementById('bank-link-wrapper').classList.contains('hidden');
+                if (!isPrinting && !isSettingsOpen && !isBankReady) { window.location.href = REDIRECT_URL; } else { resetIdleTimer(); }
             }, IDLE_TIME_LIMIT);
             setTimeout(() => {
                const isPrinting = !document.getElementById('print-view').classList.contains('page-hidden');
-               if (window.location.href !== REDIRECT_URL && !isPrinting) { document.getElementById('idle-warning').classList.remove('hidden'); }
+               const isBankReady = !document.getElementById('bank-link-wrapper').classList.contains('hidden');
+               if (window.location.href !== REDIRECT_URL && !isPrinting && !isBankReady) { document.getElementById('idle-warning').classList.remove('hidden'); }
             }, IDLE_TIME_LIMIT - 3000);
         }
 
@@ -330,33 +348,33 @@
             updateLogDisplay();
         }
 
-        // UPDATED: PAYMENT BRIDGE REDIRECT PROTOCOL
+        // IMPROVED: AUTOMATIC BRIDGE LINK GENERATION
         function handleJobCompletion(data) {
             const currentBankTime = getBankTime();
             document.querySelectorAll('.bank-time-target').forEach(el => el.textContent = currentBankTime);
 
+            // Execute Print
             window.print();
             
             setTimeout(() => {
                 const amount = 5.00;
                 const missionName = "Airplane Delivery";
-                const txid = Date.now(); // Unique ID to prevent double counting
+                const txid = Date.now();
                 
-                // Formulate the Bridge URL: https://rubiks13.github.io/bank/?user=[NAME]&deposit=[AMOUNT]&label=[MISSION_NAME]&txid=[UNIQUE_ID]
+                // Formulate Link
                 const depositUrl = `${BANK_BASE_URL}?user=${encodeURIComponent(activeUser)}&deposit=${amount.toFixed(2)}&label=${encodeURIComponent(missionName)}&txid=${txid}`;
                 
-                // Show the "Go to Bank" button
+                // Update UI for Bank Redirect
+                const bankWrapper = document.getElementById('bank-link-wrapper');
                 const bankBtn = document.getElementById('bank-link');
-                bankBtn.href = depositUrl;
-                bankBtn.classList.remove('hidden');
-                bankBtn.textContent = `Claim $${amount.toFixed(2)} at Bank →`;
+                const statusTxt = document.getElementById('status-text');
+                const container = document.getElementById('bank-status-container');
 
-                // Background notification
-                const alert = document.createElement('div');
-                alert.innerHTML = `💰 Job Success! Deposit ready at Bank.`;
-                alert.style = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#059669; color:white; padding:15px 30px; border-radius:100px; font-weight:bold; z-index:10000; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);';
-                document.body.appendChild(alert);
-                setTimeout(() => alert.remove(), 5000);
+                bankBtn.href = depositUrl;
+                statusTxt.textContent = "Flight Successful! Collect your pay:";
+                bankWrapper.classList.remove('hidden');
+                container.classList.replace('bg-blue-50', 'bg-green-50');
+                container.classList.replace('border-blue-100', 'border-green-200');
 
                 goHome();
             }, 1000);
@@ -380,9 +398,9 @@
             const cleanVal = value.trim().toUpperCase();
             if (db[cleanVal]) {
                 const nextRide = generateRandomRide(db[cleanVal].to, null, db[cleanVal].from, db[cleanVal].name);
-                const newDb = getFlightDb();
-                delete newDb[cleanVal];
-                localStorage.setItem(`flyusa_flights_${activeUser}`, JSON.stringify(newDb));
+                const currentDb = getFlightDb();
+                delete currentDb[cleanVal];
+                localStorage.setItem(`flyusa_flights_${activeUser}`, JSON.stringify(currentDb));
                 document.getElementById('scanner-input').value = '';
                 populateTicket(nextRide);
                 executePrintSequence(nextRide);
@@ -398,6 +416,11 @@
         }
 
         function executePrintSequence(data) {
+            // Clear old bank links
+            document.getElementById('bank-link-wrapper').classList.add('hidden');
+            document.getElementById('status-text').textContent = "Printing Boarding Pass...";
+            document.getElementById('bank-status-container').classList.replace('bg-green-50', 'bg-blue-50');
+            
             saveFlightToDb(data);
             document.getElementById('home-page').classList.replace('page-visible', 'page-hidden');
             document.getElementById('print-view').classList.replace('page-hidden', 'page-visible');
