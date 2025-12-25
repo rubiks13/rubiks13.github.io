@@ -86,7 +86,7 @@
             <div id="payment-warning" class="hidden flex items-center gap-2 bg-red-500/10 text-red-400 px-4 py-2 rounded-xl border border-red-500/20">
                 <span class="text-[10px] font-bold uppercase animate-pulse">BILLS OVERDUE</span>
             </div>
-            <div class="bg-slate-800 px-4 py-2 rounded-xl font-mono text-blue-400 font-bold border border-blue-500/20" id="bike-time-display">00:00</div>
+            <div class="bg-slate-800 px-4 py-2 rounded-xl font-mono text-blue-400 font-bold border border-blue-500/20 whitespace-nowrap" id="bike-time-display">00:00 AM</div>
         </div>
     </header>
 
@@ -215,10 +215,12 @@
         const STORAGE_KEY = "bike_bank_v2_accounts";
         const BILL_KEY = "bike_bank_v2_bills";
         const TIME_KEY = "sim_current_bike_time";
+        const MINUTES_KEY = "sim_current_bike_minutes";
+        
         const BILL_TYPES = [
-            { id: 'gas', name: 'Fuel Cells', price: 10 },
-            { id: 'food', name: 'Rations', price: 15 },
-            { id: 'tax', name: 'City Tax', price: 5 }
+            { id: 'gas', name: 'Fuel Cells', price: 10, triggerMinute: 480 }, // 8:00 AM
+            { id: 'food', name: 'Rations', price: 15, triggerMinute: 720 }, // 12:00 PM
+            { id: 'tax', name: 'City Tax', price: 5, triggerMinute: 1080 }  // 6:00 PM
         ];
 
         let currentUser = null;
@@ -240,19 +242,52 @@
                 renderAll();
             }
 
+            // Time and Bill Logic
             setInterval(() => {
-                const time = localStorage.getItem(TIME_KEY) || "00:00:00";
-                document.getElementById('bike-time-display').innerText = time.substring(0, 5);
+                // 1. Update Display Time
+                const timeStr = localStorage.getItem(TIME_KEY) || "12:00 PM";
+                document.getElementById('bike-time-display').innerText = timeStr;
+
+                // 2. Logic processing behind the scenes using minutes
+                const totalMinutes = parseInt(localStorage.getItem(MINUTES_KEY) || "0");
+                processAutomatedBills(totalMinutes);
             }, 1000);
 
-            // Auto-logout after 15s idle
             let idle;
-            const reset = () => {
+            const resetTimer = () => {
                 clearTimeout(idle);
-                idle = setTimeout(() => window.location.href = "https://rubiks13.github.io/bikes/", 15000);
+                idle = setTimeout(() => {
+                    window.location.href = "https://rubiks13.github.io/bikes/";
+                }, 5000); 
             };
-            window.onload = reset;
-            document.onmousemove = reset;
+
+            window.onload = resetTimer;
+            document.onmousemove = resetTimer;
+            document.onkeypress = resetTimer;
+            document.ontouchstart = resetTimer;
+            document.onclick = resetTimer;
+        }
+
+        function processAutomatedBills(currentMin) {
+            if (!currentUser) return;
+            let user = accounts[currentUser];
+            let needsUpdate = false;
+
+            BILL_TYPES.forEach(bill => {
+                // If the simulation is past the trigger time and we haven't recorded this bill for the current "day"
+                // (Using a simple flag for current session, you can make this more complex if needed)
+                if (currentMin >= bill.triggerMinute && !user.billsPaid[bill.id]) {
+                    user.billsPaid[bill.id] = true;
+                    showToast(`NEW BILL: ${bill.name} - $${bill.price}`);
+                    needsUpdate = true;
+                    document.getElementById('payment-warning').classList.remove('hidden');
+                }
+            });
+
+            if (needsUpdate) {
+                saveData();
+                renderAll();
+            }
         }
 
         function checkIncomingFunds() {
@@ -268,10 +303,12 @@
 
         function renderAll() {
             const user = accounts[currentUser];
+            if (!user) return;
+
             document.getElementById('balance-display').innerText = `$${user.balance.toFixed(2)}`;
             document.getElementById('user-name-display').innerText = user.name;
             
-            // Render History
+            // History
             const list = document.getElementById('activity-list');
             list.innerHTML = user.activity.map(a => `
                 <div class="glass-panel p-5 rounded-2xl flex justify-between items-center">
@@ -282,18 +319,45 @@
                 </div>
             `).join('');
 
-            // Render Bills
+            if (user.activity.length > 0) {
+                document.getElementById('last-activity-preview').innerText = `${user.activity[0].type} (${user.activity[0].amount > 0 ? '+' : ''}$${user.activity[0].amount})`;
+            }
+
+            // Bills
             const billContainer = document.getElementById('bill-container');
-            billContainer.innerHTML = BILL_TYPES.map(b => `
-                <div class="glass-panel p-6 rounded-3xl flex justify-between items-center">
-                    <div><h4 class="font-bold">${b.name}</h4><p class="text-xs text-slate-400">$${b.price} Due Today</p></div>
-                    <button onclick="payBill('${b.id}', ${b.price})" class="bg-blue-500 hover:bg-blue-400 text-white px-6 py-2 rounded-xl font-bold text-xs uppercase">Pay Now</button>
+            const totalMinutes = parseInt(localStorage.getItem(MINUTES_KEY) || "0");
+            
+            // Filter bills to only show those that have been "triggered" by the sim time
+            const visibleBills = BILL_TYPES.filter(b => totalMinutes >= b.triggerMinute);
+            document.getElementById('pending-bills-count').innerText = `${visibleBills.length} Available`;
+
+            billContainer.innerHTML = visibleBills.map(b => {
+                const isPaid = user.billsPaid[b.id] === "COMPLETED";
+                return `
+                <div class="glass-panel p-6 rounded-3xl flex justify-between items-center ${isPaid ? 'opacity-50' : ''}">
+                    <div>
+                        <h4 class="font-bold">${b.name}</h4>
+                        <p class="text-xs text-slate-400">$${b.price} ${isPaid ? '(PAID)' : 'Due'}</p>
+                    </div>
+                    ${isPaid ? 
+                        '<span class="text-green-400 font-bold text-xs uppercase">Settled</span>' : 
+                        `<button onclick="payBill('${b.id}', ${b.price})" class="bg-blue-500 hover:bg-blue-400 text-white px-6 py-2 rounded-xl font-bold text-xs uppercase">Pay Now</button>`
+                    }
                 </div>
-            `).join('');
+            `}).join('');
+
+            // Hide warning if all visible bills are settled
+            const anyUnpaid = visibleBills.some(b => user.billsPaid[b.id] === true);
+            if (!anyUnpaid) {
+                document.getElementById('payment-warning').classList.add('hidden');
+            } else {
+                document.getElementById('payment-warning').classList.remove('hidden');
+            }
         }
 
         function payBill(id, price) {
             if (accounts[currentUser].balance < price) return showToast("INSUFFICIENT FUNDS");
+            accounts[currentUser].billsPaid[id] = "COMPLETED"; // Mark as fully settled
             logTransaction(-price, `PAID ${id.toUpperCase()}`);
             showToast("BILL SETTLED");
         }
