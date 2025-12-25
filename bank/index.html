@@ -3,205 +3,406 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bike Sim Bank - Canvas Edition</title>
+    <title>Cousins Bike Bank</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Libre+Barcode+128&display=swap');
+
         body {
+            font-family: 'Space+Grotesk', sans-serif;
             background-color: #0f172a;
-            margin: 0;
-            overflow: hidden; /* Prevent scroll for the full-screen canvas feel */
-            font-family: 'Inter', sans-serif;
+            color: #f8fafc;
+            overflow-x: hidden;
         }
-        #ui-overlay {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 90%;
-            max-width: 500px;
-            z-index: 10;
-        }
-        .glass-input {
-            background: rgba(30, 41, 59, 0.6);
-            backdrop-filter: blur(8px);
+
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .gradient-text {
+            background: linear-gradient(90deg, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .barcode {
+            font-family: 'Libre+Barcode+128', cursive;
+            font-size: 60px;
+        }
+
+        .receipt-paper {
+            background: white;
+            color: black;
+            width: 80mm;
+            min-height: 120mm;
+            padding: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        @media print {
+            body * { visibility: hidden; }
+            #receipt-content, #receipt-content * { visibility: visible; }
+            #receipt-content { 
+                position: absolute; 
+                left: 0; 
+                top: 0; 
+                width: 80mm; 
+                box-shadow: none;
+            }
+            .no-print { display: none !important; }
+        }
+
+        .sidebar-link {
+            transition: all 0.2s;
+        }
+        .sidebar-link.active {
+            background: rgba(59, 130, 246, 0.2);
+            border-right: 4px solid #3b82f6;
         }
     </style>
 </head>
-<body>
+<body class="min-h-screen flex">
 
-    <!-- Main Canvas -->
-    <canvas id="bankCanvas"></canvas>
-
-    <!-- Overlay for Inputs (Canvas doesn't handle text inputs well for mobile/accessibility) -->
-    <div id="ui-overlay" class="glass-input p-6 rounded-2xl shadow-2xl">
-        <div id="msg-box" class="hidden mb-4 p-2 rounded text-center text-sm font-bold"></div>
-        <div class="flex flex-col gap-4">
-            <input type="number" id="amount-input" placeholder="Amount..." 
-                class="w-full bg-slate-900/50 border border-slate-700 rounded-lg p-3 text-white outline-none focus:border-blue-500 transition-all">
-            
-            <div class="grid grid-cols-2 gap-4">
-                <button onclick="handleTransaction('deposit')" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition-all active:scale-95 shadow-lg shadow-blue-900/20">
-                    Deposit
-                </button>
-                <button onclick="handleTransaction('withdraw')" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-lg transition-all active:scale-95 shadow-lg">
-                    Withdraw
-                </button>
-            </div>
+    <!-- Registration Overlay -->
+    <div id="registration-modal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 hidden px-4">
+        <div class="glass-card p-8 rounded-3xl w-full max-w-md text-center border-2 border-blue-500/30">
+            <h2 class="text-3xl font-bold mb-4">Create Account</h2>
+            <p class="text-slate-400 mb-6">Join the Bike Banking System</p>
+            <input type="text" id="new-user-name" placeholder="Your Name" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 mb-4 text-white focus:ring-2 focus:ring-blue-500 outline-none">
+            <button onclick="createNewAccount()" class="w-full bg-blue-600 hover:bg-blue-500 py-3 rounded-xl font-bold transition-all">Start Banking</button>
         </div>
     </div>
 
-    <script>
-        const canvas = document.getElementById('bankCanvas');
-        const ctx = canvas.getContext('2d');
-        const amountInput = document.getElementById('amount-input');
+    <!-- Sidebar -->
+    <nav id="sidebar" class="w-20 md:w-64 bg-slate-900 border-r border-slate-800 flex flex-col h-screen sticky top-0 transition-all no-print">
+        <div class="p-6 text-center font-bold text-xl hidden md:block gradient-text">BIKE BANK</div>
+        <div class="flex-1 flex flex-col gap-2 p-2">
+            <button onclick="switchTab('dashboard')" class="sidebar-link p-4 rounded-xl flex items-center gap-4 hover:bg-white/5 active" id="tab-btn-dashboard">
+                <span>🏠</span> <span class="hidden md:inline">Dashboard</span>
+            </button>
+            <button onclick="switchTab('payment')" class="sidebar-link p-4 rounded-xl flex items-center gap-4 hover:bg-white/5" id="tab-btn-payment">
+                <span>💳</span> <span class="hidden md:inline">Payment</span>
+            </button>
+            <button onclick="switchTab('activity')" class="sidebar-link p-4 rounded-xl flex items-center gap-4 hover:bg-white/5" id="tab-btn-activity">
+                <span>📝</span> <span class="hidden md:inline">Activity</span>
+            </button>
+            <button onclick="switchTab('print')" class="sidebar-link p-4 rounded-xl flex items-center gap-4 hover:bg-white/5" id="tab-btn-print">
+                <span>🖨️</span> <span class="hidden md:inline">Print Money</span>
+            </button>
+            <button onclick="switchTab('deposit')" class="sidebar-link p-4 rounded-xl flex items-center gap-4 hover:bg-white/5" id="tab-btn-deposit">
+                <span>💰</span> <span class="hidden md:inline">Deposit</span>
+            </button>
+        </div>
+        <div class="p-4 border-t border-slate-800 text-[10px] text-slate-500 text-center">
+            Idle Redirect: 5s
+        </div>
+    </nav>
 
-        // 1. Data Setup
-        const urlParams = new URLSearchParams(window.location.search);
-        const username = urlParams.get('user') || 'Guest';
-        const balanceKey = `bike_bank_balance_${username}`;
+    <!-- Main Content Area -->
+    <main class="flex-1 overflow-y-auto p-4 md:p-10 flex flex-col items-center no-print">
         
-        let currentBalance = parseFloat(localStorage.getItem(balanceKey)) || 0.00;
-        let bikeTime = "Syncing...";
-        let transactions = [];
+        <!-- Tab: Dashboard -->
+        <section id="tab-dashboard" class="w-full max-w-2xl space-y-6">
+            <div class="glass-card rounded-3xl p-8 text-center relative overflow-hidden border-b-4 border-blue-500">
+                <p class="text-slate-400 text-sm uppercase tracking-widest mb-2">My Balance</p>
+                <h2 id="balance-display" class="text-6xl font-black mb-2">$0.00</h2>
+                <p id="user-name-display" class="text-blue-400 font-medium"></p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="glass-card p-6 rounded-2xl">
+                    <h4 class="text-slate-400 text-xs mb-1">Last Earning</h4>
+                    <p id="last-earn" class="text-xl font-bold text-green-400">--</p>
+                </div>
+                <div class="glass-card p-6 rounded-2xl">
+                    <h4 class="text-slate-400 text-xs mb-1">Active Bills</h4>
+                    <p id="active-bills-count" class="text-xl font-bold text-blue-400">0</p>
+                </div>
+            </div>
+        </section>
 
-        // Resize handler
-        function resize() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-        window.addEventListener('resize', resize);
-        resize();
+        <!-- Tab: Payment -->
+        <section id="tab-payment" class="w-full max-w-2xl hidden space-y-4">
+            <h2 class="text-2xl font-bold mb-6">Payments Due (Every 24m)</h2>
+            <div class="space-y-4">
+                <div class="glass-card p-6 rounded-2xl flex justify-between items-center">
+                    <div>
+                        <p class="font-bold">Gas Station</p>
+                        <p class="text-xs text-slate-400">Fuel for your bike trip</p>
+                    </div>
+                    <button onclick="payItem(5.50, 'Gas Payment')" class="bg-blue-600 px-6 py-2 rounded-lg font-bold hover:bg-blue-500">$5.50</button>
+                </div>
+                <div class="glass-card p-6 rounded-2xl flex justify-between items-center">
+                    <div>
+                        <p class="font-bold">Groceries</p>
+                        <p class="text-xs text-slate-400">Snacks and drinks</p>
+                    </div>
+                    <button onclick="payItem(12.00, 'Grocery Payment')" class="bg-blue-600 px-6 py-2 rounded-lg font-bold hover:bg-blue-500">$12.00</button>
+                </div>
+                <div class="glass-card p-6 rounded-2xl flex justify-between items-center">
+                    <div>
+                        <p class="font-bold">Bike Taxes</p>
+                        <p class="text-xs text-slate-400">Road maintenance fee</p>
+                    </div>
+                    <button onclick="payItem(2.00, 'Bike Taxes')" class="bg-red-500 px-6 py-2 rounded-lg font-bold hover:bg-red-400">$2.00</button>
+                </div>
+            </div>
+        </section>
 
-        // 2. Global Sync (100ms interval)
-        setInterval(() => {
-            const simTime = localStorage.getItem('sim_current_bike_time');
-            if (simTime) bikeTime = simTime;
-        }, 100);
+        <!-- Tab: Recent Activity -->
+        <section id="tab-activity" class="w-full max-w-2xl hidden space-y-4">
+            <h2 class="text-2xl font-bold mb-6">Recent Activity</h2>
+            <div id="activity-list" class="space-y-2">
+                <!-- Activity Injected -->
+            </div>
+        </section>
 
-        // 3. Transaction Logic
-        function handleTransaction(type) {
-            const amount = parseFloat(amountInput.value);
-            const currentTime = bikeTime;
+        <!-- Tab: Print -->
+        <section id="tab-print" class="w-full max-w-2xl hidden text-center">
+            <h2 class="text-2xl font-bold mb-8">Atm Print Service</h2>
+            <div class="flex gap-4 justify-center mb-10">
+                <button class="bg-blue-600/20 border border-blue-500 p-8 rounded-2xl w-32 font-bold shadow-lg shadow-blue-500/10">Cash</button>
+                <button class="bg-slate-800 p-8 rounded-2xl w-32 font-bold opacity-50 cursor-not-allowed">Checks</button>
+            </div>
+            <div class="grid grid-cols-3 gap-6">
+                <button onclick="printMoney(1)" class="glass-card p-6 rounded-2xl hover:bg-green-500/20 transition-all border-green-500/30">
+                    <span class="text-3xl block mb-2">💵</span> $1
+                </button>
+                <button onclick="printMoney(5)" class="glass-card p-6 rounded-2xl hover:bg-green-500/20 transition-all border-green-500/30">
+                    <span class="text-3xl block mb-2">💵</span> $5
+                </button>
+                <button onclick="printMoney(20)" class="glass-card p-6 rounded-2xl hover:bg-green-500/20 transition-all border-green-500/30">
+                    <span class="text-3xl block mb-2">💵</span> $20
+                </button>
+            </div>
+        </section>
 
-            if (isNaN(amount) || amount <= 0) {
-                showFeedback("Invalid Amount", false);
-                return;
-            }
+        <!-- Tab: Deposit -->
+        <section id="tab-deposit" class="w-full max-w-2xl hidden text-center space-y-6">
+            <h2 class="text-2xl font-bold">Deposit Terminal</h2>
+            <div class="glass-card p-10 rounded-3xl border-dashed border-2 border-slate-700">
+                <p class="text-slate-400 mb-6">Enter the 10-digit code or scan the bill barcode</p>
+                <input type="text" id="deposit-code" maxlength="10" placeholder="0000000000" class="bg-slate-900 border border-slate-700 p-4 rounded-xl text-center text-2xl font-mono tracking-widest w-full mb-6">
+                <button onclick="processDeposit()" class="w-full bg-green-600 py-4 rounded-xl font-bold text-xl hover:bg-green-500">Deposit Cash</button>
+            </div>
+            <div id="deposit-success-screen" class="hidden fixed inset-0 z-[110] bg-slate-900 flex flex-col items-center justify-center p-10 text-center">
+                <span class="text-9xl mb-8 animate-bounce">🗑️</span>
+                <h2 class="text-4xl font-bold mb-4">DEPOSIT COMPLETE!</h2>
+                <p class="text-xl text-slate-400 mb-10">Now throw the printed paper in the trash.</p>
+                <button onclick="closeDepositScreen()" class="bg-blue-600 px-10 py-4 rounded-2xl font-bold text-xl">Back to Dashboard</button>
+            </div>
+        </section>
 
-            if (type === 'withdraw' && amount > currentBalance) {
-                showFeedback("Insufficient Funds", false);
-                return;
-            }
+    </main>
 
-            if (type === 'deposit') {
-                currentBalance += amount;
-                transactions.unshift({ text: `+$${amount.toFixed(2)}`, time: currentTime, color: '#4ade80' });
+    <!-- Print Preview Overlay (Receipt) -->
+    <div id="receipt-container" class="hidden fixed inset-0 z-[120] bg-black/90 flex flex-col items-center justify-center overflow-y-auto py-10">
+        <div id="receipt-content" class="receipt-paper">
+            <div class="text-center border-b border-black pb-4 mb-4">
+                <h2 class="text-xl font-bold">BIKE BANK CASH</h2>
+                <p class="text-xs">Official Digital Receipt</p>
+            </div>
+            <div class="text-4xl font-bold text-center my-6">$<span id="receipt-amount">0</span></div>
+            <div class="space-y-2 text-sm">
+                <div class="flex justify-between"><span>DATE:</span> <span id="receipt-date"></span></div>
+                <div class="flex justify-between"><span>USER:</span> <span id="receipt-user" class="uppercase"></span></div>
+                <div class="flex justify-between"><span>TYPE:</span> <span>LEGAL TENDER</span></div>
+            </div>
+            <div class="mt-10 text-center">
+                <div class="barcode" id="receipt-barcode">1234567890</div>
+                <div class="text-xs mt-2" id="receipt-code-text">1234567890</div>
+            </div>
+            <div class="mt-10 pt-4 border-t border-dashed border-black text-[8px] text-center italic">
+                This ticket is valid for one-time deposit back into the bike banking system.
+            </div>
+        </div>
+        <!-- Buttons only visible on screen, not when printing -->
+        <div class="mt-8 flex gap-4 no-print">
+            <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold">RE-PRINT</button>
+            <button onclick="finalizePrint()" class="bg-white text-black px-8 py-3 rounded-xl font-bold">DONE / CLOSE</button>
+        </div>
+    </div>
+
+    <!-- Feedback Toast -->
+    <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-6 py-3 rounded-full shadow-xl transition-all opacity-0 pointer-events-none z-[200]">
+        <span id="toast-message"></span>
+    </div>
+
+    <script>
+        const STORAGE_KEY = "bike_bank_v2_accounts";
+        const BILL_STORAGE_KEY = "bike_bank_v2_bills";
+        const REDIRECT_URL = "https://rubiks13.github.io/bikes/";
+        
+        let currentUser = null;
+        let accounts = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+        let activeBills = JSON.parse(localStorage.getItem(BILL_STORAGE_KEY)) || {};
+        let idleTimer;
+
+        function init() {
+            resetIdleTimer();
+            document.addEventListener('mousemove', resetIdleTimer);
+            document.addEventListener('keydown', resetIdleTimer);
+            document.addEventListener('click', resetIdleTimer);
+
+            const params = new URLSearchParams(window.location.search);
+            const userName = params.get('user');
+
+            if (!userName || !accounts[userName.toLowerCase()]) {
+                document.getElementById('registration-modal').classList.remove('hidden');
             } else {
-                currentBalance -= amount;
-                transactions.unshift({ text: `-$${amount.toFixed(2)}`, time: currentTime, color: '#f87171' });
+                currentUser = userName.toLowerCase();
+                checkIncomingFunds();
+                renderAll();
             }
-
-            localStorage.setItem(balanceKey, currentBalance.toString());
-            amountInput.value = "";
-            showFeedback("Success!", true);
-            if (transactions.length > 5) transactions.pop();
         }
 
-        function showFeedback(msg, isSuccess) {
-            const box = document.getElementById('msg-box');
-            box.innerText = msg;
-            box.className = `mb-4 p-2 rounded text-center text-sm font-bold block ${isSuccess ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`;
-            setTimeout(() => box.className = 'hidden', 2000);
+        function resetIdleTimer() {
+            clearTimeout(idleTimer);
+            // Don't redirect if the receipt/print window is open
+            if (!document.getElementById('receipt-container').classList.contains('hidden')) return;
+            
+            idleTimer = setTimeout(() => {
+                window.location.href = REDIRECT_URL;
+            }, 5000); 
         }
 
-        // 4. Drawing Engine
-        function draw() {
-            // Background Gradient
-            const bgGrad = ctx.createRadialGradient(canvas.width/2, 0, 0, canvas.width/2, 0, canvas.height);
-            bgGrad.addColorStop(0, '#1e293b');
-            bgGrad.addColorStop(1, '#0f172a');
-            ctx.fillStyle = bgGrad;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        function createNewAccount() {
+            const name = document.getElementById('new-user-name').value.trim();
+            if (name.length < 2) return showToast("Enter a name!");
+            const slug = name.toLowerCase();
+            if (!accounts[slug]) {
+                accounts[slug] = { name, balance: 0, activity: [] };
+                saveData();
+            }
+            window.location.href = `?user=${slug}`;
+        }
 
-            // Draw Header Card
-            drawGlassRect(20, 20, canvas.width - 40, 100, 20);
-            
-            // Text: Title
-            ctx.fillStyle = '#3b82f6';
-            ctx.font = 'bold 24px Inter, sans-serif';
-            ctx.fillText("B.C.N.B.", 40, 60);
-            ctx.font = '14px Inter, sans-serif';
-            ctx.fillStyle = '#94a3b8';
-            ctx.fillText("Bike City National Bank", 40, 85);
+        function saveData() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts));
+            localStorage.setItem(BILL_STORAGE_KEY, JSON.stringify(activeBills));
+        }
 
-            // Text: Time & User
-            ctx.textAlign = 'right';
-            ctx.fillStyle = '#60a5fa';
-            ctx.font = 'bold 20px monospace';
-            ctx.fillText(bikeTime, canvas.width - 40, 60);
-            ctx.fillStyle = '#94a3b8';
-            ctx.font = '12px Inter, sans-serif';
-            ctx.fillText(`USER: ${username.toUpperCase()}`, canvas.width - 40, 85);
+        function switchTab(tabId) {
+            document.querySelectorAll('main section').forEach(s => s.classList.add('hidden'));
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            document.querySelectorAll('.sidebar-link').forEach(b => b.classList.remove('active'));
+            document.getElementById(`tab-btn-${tabId}`).classList.add('active');
+        }
 
-            // Draw Balance Display
-            ctx.textAlign = 'center';
-            ctx.fillStyle = '#f8fafc';
-            ctx.font = 'bold 16px Inter, sans-serif';
-            ctx.fillText("ACCOUNT BALANCE", canvas.width/2, 180);
-            
-            ctx.font = 'bold 64px Inter, sans-serif';
-            ctx.fillStyle = '#ffffff';
-            ctx.shadowBlur = 15;
-            ctx.shadowColor = 'rgba(59, 130, 246, 0.5)';
-            ctx.fillText(`$${currentBalance.toFixed(2)}`, canvas.width/2, 250);
-            ctx.shadowBlur = 0;
+        function checkIncomingFunds() {
+            const params = new URLSearchParams(window.location.search);
+            const amount = parseFloat(params.get('amount') || params.get('print'));
+            if (amount && !isNaN(amount)) {
+                logActivity(amount, "External Deposit");
+                const cleanUrl = window.location.origin + window.location.pathname + `?user=${currentUser}`;
+                window.history.replaceState({}, '', cleanUrl);
+            }
+        }
 
-            // Draw Recent Activity
-            ctx.textAlign = 'left';
-            ctx.font = 'bold 14px Inter, sans-serif';
-            ctx.fillStyle = '#475569';
-            ctx.fillText("RECENT ACTIVITY", 40, 320);
-
-            transactions.forEach((t, i) => {
-                const y = 350 + (i * 40);
-                ctx.fillStyle = 'rgba(255,255,255,0.05)';
-                ctx.fillRect(20, y - 25, canvas.width - 40, 35);
-                
-                ctx.fillStyle = t.color;
-                ctx.font = 'bold 16px monospace';
-                ctx.fillText(t.text, 40, y);
-                
-                ctx.textAlign = 'right';
-                ctx.fillStyle = '#64748b';
-                ctx.font = '12px monospace';
-                ctx.fillText(t.time, canvas.width - 40, y);
-                ctx.textAlign = 'left';
+        function logActivity(amount, type) {
+            if (!currentUser) return;
+            accounts[currentUser].balance += amount;
+            accounts[currentUser].activity.unshift({
+                id: Date.now(),
+                amount,
+                type,
+                date: new Date().toLocaleTimeString()
             });
-
-            requestAnimationFrame(draw);
+            if (accounts[currentUser].activity.length > 20) accounts[currentUser].activity.pop();
+            saveData();
+            renderAll();
         }
 
-        function drawGlassRect(x, y, w, h, r) {
-            ctx.save();
-            ctx.beginPath();
-            ctx.moveTo(x + r, y);
-            ctx.arcTo(x + w, y, x + w, y + h, r);
-            ctx.arcTo(x + w, y + h, x, y + h, r);
-            ctx.arcTo(x, y + h, x, y, r);
-            ctx.arcTo(x, y, x + w, y, r);
-            ctx.closePath();
+        function renderAll() {
+            const user = accounts[currentUser];
+            document.getElementById('balance-display').innerText = `$${user.balance.toFixed(2)}`;
+            document.getElementById('user-name-display').innerText = user.name;
+            document.getElementById('active-bills-count').innerText = Object.keys(activeBills).length;
             
-            ctx.fillStyle = 'rgba(30, 41, 59, 0.5)';
-            ctx.fill();
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-            ctx.lineWidth = 1;
-            ctx.stroke();
-            ctx.restore();
+            const list = document.getElementById('activity-list');
+            list.innerHTML = user.activity.map(a => `
+                <div class="glass-card p-4 rounded-xl flex justify-between items-center">
+                    <div>
+                        <p class="font-bold">${a.type}</p>
+                        <p class="text-[10px] text-slate-500">${a.date}</p>
+                    </div>
+                    <span class="font-mono font-bold ${a.amount >= 0 ? 'text-green-400' : 'text-red-400'}">
+                        ${a.amount >= 0 ? '+' : ''}$${Math.abs(a.amount).toFixed(2)}
+                    </span>
+                </div>
+            `).join('');
+            
+            if (user.activity.length > 0) {
+                document.getElementById('last-earn').innerText = `$${user.activity[0].amount.toFixed(2)}`;
+            }
         }
 
-        // Start animation loop
-        requestAnimationFrame(draw);
+        function payItem(amount, type) {
+            if (accounts[currentUser].balance < amount) return showToast("Not enough money!");
+            logActivity(-amount, type);
+            showToast(`Paid ${type}`);
+        }
+
+        function printMoney(amount) {
+            if (accounts[currentUser].balance < amount) return showToast("Insufficient Funds");
+            
+            const code = Math.floor(Math.random() * 9000000000) + 1000000000;
+            logActivity(-amount, `ATM Withdrawal ($${amount})`);
+            activeBills[code] = amount;
+            saveData();
+
+            document.getElementById('receipt-amount').innerText = amount;
+            document.getElementById('receipt-date').innerText = new Date().toLocaleString();
+            document.getElementById('receipt-user').innerText = accounts[currentUser].name;
+            document.getElementById('receipt-barcode').innerText = code;
+            document.getElementById('receipt-code-text').innerText = code;
+            
+            document.getElementById('receipt-container').classList.remove('hidden');
+
+            // AUTOMATIC PRINT TRIGGER
+            // Small delay to ensure the DOM has updated with the new values
+            setTimeout(() => {
+                window.print();
+            }, 500);
+        }
+
+        function finalizePrint() {
+            document.getElementById('receipt-container').classList.add('hidden');
+            showToast("Withdrawal Processed");
+            renderAll();
+            switchTab('dashboard');
+        }
+
+        function processDeposit() {
+            const code = document.getElementById('deposit-code').value.trim();
+            if (activeBills[code]) {
+                const amount = activeBills[code];
+                delete activeBills[code];
+                logActivity(amount, "Cash Deposit");
+                saveData();
+                document.getElementById('deposit-code').value = "";
+                document.getElementById('deposit-success-screen').classList.remove('hidden');
+            } else {
+                showToast("Invalid or expired barcode!");
+            }
+        }
+
+        function closeDepositScreen() {
+            document.getElementById('deposit-success-screen').classList.add('hidden');
+            switchTab('dashboard');
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            document.getElementById('toast-message').innerText = msg;
+            t.style.opacity = '1';
+            setTimeout(() => t.style.opacity = '0', 2500);
+        }
+
+        window.onload = init;
     </script>
 </body>
 </html>
