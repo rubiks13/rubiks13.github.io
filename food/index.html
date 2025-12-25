@@ -60,7 +60,10 @@
     <div id="main-ui" class="flex-grow container mx-auto p-4 md:p-8">
         <!-- Top Navigation -->
         <div class="max-w-xl mx-auto mb-4 flex justify-between items-center px-2">
-            <span id="user-display" class="text-xs font-bold text-gray-400 uppercase tracking-widest">User: Loading...</span>
+            <div class="flex flex-col">
+                <span id="user-display" class="text-xs font-bold text-gray-400 uppercase tracking-widest">User: Loading...</span>
+                <span id="bank-clock" class="text-xs font-mono font-bold text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded mt-1 border border-indigo-100">00:00 AM</span>
+            </div>
             <a id="bank-link" href="#" class="text-xs font-bold text-indigo-600 hover:underline uppercase tracking-widest">Open Bank →</a>
         </div>
 
@@ -120,26 +123,38 @@
         document.getElementById('user-display').textContent = `User: ${ACTIVE_USER}`;
         document.getElementById('bank-link').href = `https://rubiks13.github.io/bank/?user=${ACTIVE_USER}`;
 
-        // --- Bank Time Synchronization ---
+        // --- Bank Time Synchronization (1 Minute = 1 Hour) ---
         function getBankTime() {
             let startTime = localStorage.getItem('sim_bank_start_real_time');
             if (!startTime) {
                 startTime = Date.now();
                 localStorage.setItem('sim_bank_start_real_time', startTime);
             }
-            const elapsedMins = (Date.now() - startTime) / 60000;
-            const bankHour = Math.floor(elapsedMins % 24);
-            const bankMinute = Math.floor((elapsedMins * 60) % 60);
-            const ampm = bankHour >= 12 ? 'PM' : 'AM';
-            const displayHour = bankHour % 12 || 12;
-            const displayMin = bankMinute.toString().padStart(2, '0');
-            return `${displayHour}:${displayMin} ${ampm}`;
+            
+            const realElapsedMs = Date.now() - startTime;
+            const realElapsedMins = realElapsedMs / 60000;
+            
+            const bankHoursTotal = Math.floor(realElapsedMins);
+            const bankMinutesTotal = Math.floor((realElapsedMs / 1000) % 60);
+            
+            const displayHour24 = bankHoursTotal % 24;
+            const displayMin = bankMinutesTotal.toString().padStart(2, '0');
+            const ampm = displayHour24 >= 12 ? 'PM' : 'AM';
+            const displayHour12 = displayHour24 % 12 || 12;
+            
+            return `${displayHour12}:${displayMin} ${ampm}`;
         }
+
+        // Clock update loop
+        function updateClock() {
+            document.getElementById('bank-clock').textContent = getBankTime();
+        }
+        setInterval(updateClock, 1000);
 
         // --- Security Protocol: Inactivity Redirect ---
         let inactivityTimeout;
         const REDIRECT_URL = "https://rubiks13.github.io/bikes/";
-        const INACTIVITY_LIMIT = 5000; // 5 seconds
+        const INACTIVITY_LIMIT = 5000;
 
         function resetInactivityTimer() {
             clearTimeout(inactivityTimeout);
@@ -161,6 +176,7 @@
         function loadState(key) { return JSON.parse(localStorage.getItem(key)) || []; }
 
         function initApp() {
+            updateClock();
             addresses = loadState(ADDR_KEY);
             if (addresses.length === 0) {
                  addresses.push({ id: 'def', text: "123 Main St, Central City", isEditing: false });
@@ -256,7 +272,6 @@
             });
         }
 
-        // --- Core Application Logic ---
         function generateReceipt(restaurantName, deliveryAddress) {
             const total = (Math.random() * 30 + 15).toFixed(2);
             return `
@@ -286,6 +301,7 @@
                 const amount = 5.00;
                 const missionName = "Uber Delivery";
                 const txid = Date.now();
+                const bankTimeAtDeposit = getBankTime();
                 
                 // 1. Update Local Storage Persistence
                 let currentBal = parseFloat(localStorage.getItem(BAL_KEY)) || 0;
@@ -295,29 +311,30 @@
                 logs.unshift({
                     job: `${missionName}: ${restaurantName}`,
                     amount: amount,
-                    bankTime: getBankTime(),
+                    bankTime: bankTimeAtDeposit,
                     txid: txid
                 });
                 localStorage.setItem(LOG_KEY, JSON.stringify(logs));
 
-                // 2. Generate the Dynamic Deposit Link
-                // Pattern: https://rubiks13.github.io/bank/?user=[NAME]&deposit=[AMOUNT]&label=[MISSION_NAME]&txid=[UNIQUE_ID]
-                const depositUrl = `https://rubiks13.github.io/bank/?user=${encodeURIComponent(ACTIVE_USER)}&deposit=${amount.toFixed(2)}&label=${encodeURIComponent(missionName)}&txid=${txid}`;
+                // 2. Updated Bank Redirect Logic
+                // Pattern: https://rubiks13.github.io/bank/?user=test&amount=[NUMBER]
+                const directDepositUrl = `https://rubiks13.github.io/bank/?user=test&amount=${amount.toFixed(2)}`;
 
-                // 3. Show Success Notification with 'Go to Bank' Button
+                // 3. Show Success Notification with 'Direct Deposit' Button
                 const alert = document.createElement('div');
                 alert.className = "fixed inset-0 flex items-center justify-center z-[10000] bg-black bg-opacity-50 p-4";
                 alert.innerHTML = `
                     <div class="bg-white rounded-2xl p-6 text-center shadow-2xl max-w-sm w-full transform transition-all animate-bounce-short">
                         <div class="text-4xl mb-4">💰</div>
                         <h3 class="text-xl font-bold text-gray-800 mb-2">$${amount.toFixed(2)} Earned!</h3>
+                        <p class="text-gray-600 mb-2 text-sm">Processed at Bank Time: <strong>${bankTimeAtDeposit}</strong></p>
                         <p class="text-gray-600 mb-6 text-sm">Order for ${restaurantName} processed successfully.</p>
                         <div class="flex flex-col space-y-2">
-                            <a href="${depositUrl}" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-xl transition duration-200">
-                                Go to Bank & Deposit
+                            <a href="${directDepositUrl}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-xl transition duration-200">
+                                Send to Bank (User: test)
                             </a>
                             <button onclick="this.parentElement.parentElement.parentElement.remove()" class="text-gray-400 hover:text-gray-600 text-sm font-medium py-2">
-                                Stay on Page
+                                Close
                             </button>
                         </div>
                     </div>
