@@ -141,12 +141,9 @@
             </div>
             <div id="bank-status-container" class="bg-blue-50 p-6 rounded-xl border border-blue-100 flex flex-col items-center justify-center text-blue-600 font-bold text-center italic transition-all">
                 <p id="status-text">Ready for departure. Earn $5.00 per flight.</p>
-                <!-- PRIMARY DEPOSIT BUTTON -->
+                <!-- REDIRECT MESSAGE -->
                 <div id="bank-link-wrapper" class="hidden mt-4 bank-pop">
-                    <a id="bank-link" href="#" class="inline-flex items-center gap-2 px-8 py-4 bg-green-600 hover:bg-green-700 text-white rounded-2xl shadow-xl font-black text-lg uppercase tracking-tight transition-all active:scale-95">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-                        Claim $5.00
-                    </a>
+                    <p class="text-green-600 font-black text-lg animate-pulse">REDIRECTING TO BANK...</p>
                 </div>
             </div>
         </div>
@@ -348,7 +345,7 @@
             updateLogDisplay();
         }
 
-        // IMPROVED: AUTOMATIC BRIDGE LINK GENERATION
+        // UPDATED: DIRECT REDIRECT TO BANK
         function handleJobCompletion(data) {
             const currentBankTime = getBankTime();
             document.querySelectorAll('.bank-time-target').forEach(el => el.textContent = currentBankTime);
@@ -358,24 +355,25 @@
             
             setTimeout(() => {
                 const amount = 5.00;
-                const missionName = "Airplane Delivery";
-                const txid = Date.now();
                 
-                // Formulate Link
-                const depositUrl = `${BANK_BASE_URL}?user=${encodeURIComponent(activeUser)}&deposit=${amount.toFixed(2)}&label=${encodeURIComponent(missionName)}&txid=${txid}`;
+                // Formulate Bank URL with user=test and amount
+                const depositUrl = `${BANK_BASE_URL}?user=test&amount=${amount.toFixed(2)}`;
                 
-                // Update UI for Bank Redirect
+                // UI update before redirect
                 const bankWrapper = document.getElementById('bank-link-wrapper');
-                const bankBtn = document.getElementById('bank-link');
                 const statusTxt = document.getElementById('status-text');
                 const container = document.getElementById('bank-status-container');
 
-                bankBtn.href = depositUrl;
-                statusTxt.textContent = "Flight Successful! Collect your pay:";
+                statusTxt.textContent = "Flight Successful! Sending earnings to bank...";
                 bankWrapper.classList.remove('hidden');
                 container.classList.replace('bg-blue-50', 'bg-green-50');
                 container.classList.replace('border-blue-100', 'border-green-200');
 
+                // Perform the redirect
+                setTimeout(() => {
+                    window.location.href = depositUrl;
+                }, 1500); 
+                
                 goHome();
             }, 1000);
         }
@@ -416,7 +414,6 @@
         }
 
         function executePrintSequence(data) {
-            // Clear old bank links
             document.getElementById('bank-link-wrapper').classList.add('hidden');
             document.getElementById('status-text').textContent = "Printing Boarding Pass...";
             document.getElementById('bank-status-container').classList.replace('bg-green-50', 'bg-blue-50');
