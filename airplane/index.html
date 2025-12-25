@@ -132,8 +132,8 @@
             </div>
             <div class="bg-blue-50 p-6 rounded-xl border border-blue-100 flex flex-col items-center justify-center text-blue-600 font-bold text-center italic">
                 <p id="status-text">Ready for departure. Earn $5.00 per flight.</p>
-                <!-- UPDATED BANK LINK -->
-                <a id="bank-link" href="#" class="mt-4 text-xs underline uppercase tracking-widest font-black hover:text-blue-800 transition-colors">Go to Bank App →</a>
+                <!-- DYNAMIC BANK LINK -->
+                <a id="bank-link" href="#" target="_blank" class="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg text-xs font-black hover:bg-blue-700 transition-colors hidden">Go to Bank App →</a>
             </div>
         </div>
     </div>
@@ -264,20 +264,6 @@
         </div>
     </div>
 
-    <div id="clear-confirm-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-[110] px-4">
-        <div class="bg-white p-6 rounded-2xl max-w-sm w-full shadow-2xl text-center">
-            <div class="text-red-500 mb-4 flex justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-            </div>
-            <h3 class="text-xl font-bold mb-2 uppercase">Clear History?</h3>
-            <p class="text-gray-500 mb-6 text-sm">This will delete all local flight records.</p>
-            <div class="flex gap-3">
-                <button onclick="executeClearHistory()" class="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold">Clear All</button>
-                <button onclick="closeClearModal()" class="flex-1 bg-gray-100 text-gray-600 py-3 rounded-xl font-bold">Cancel</button>
-            </div>
-        </div>
-    </div>
-
     <script>
         function getActiveUser() {
             const urlParams = new URLSearchParams(window.location.search);
@@ -295,7 +281,7 @@
         let currentLayout = localStorage.getItem('flyusa_layout') || 'thermal';
         let qrInstances = [];
         let idleTimer;
-        const IDLE_TIME_LIMIT = 5000;
+        const IDLE_TIME_LIMIT = 10000;
         const REDIRECT_URL = "https://rubiks13.github.io/bikes/";
         const BANK_BASE_URL = "https://rubiks13.github.io/bank/";
 
@@ -310,7 +296,7 @@
             setTimeout(() => {
                const isPrinting = !document.getElementById('print-view').classList.contains('page-hidden');
                if (window.location.href !== REDIRECT_URL && !isPrinting) { document.getElementById('idle-warning').classList.remove('hidden'); }
-            }, IDLE_TIME_LIMIT - 1500);
+            }, IDLE_TIME_LIMIT - 3000);
         }
 
         window.addEventListener('mousemove', resetIdleTimer);
@@ -344,7 +330,7 @@
             updateLogDisplay();
         }
 
-        // NEW BRIDGE PROTOCOL: DEPOSIT LINK GENERATOR
+        // UPDATED: PAYMENT BRIDGE REDIRECT PROTOCOL
         function handleJobCompletion(data) {
             const currentBankTime = getBankTime();
             document.querySelectorAll('.bank-time-target').forEach(el => el.textContent = currentBankTime);
@@ -354,46 +340,27 @@
             setTimeout(() => {
                 const amount = 5.00;
                 const missionName = "Airplane Delivery";
-                const txid = Date.now();
+                const txid = Date.now(); // Unique ID to prevent double counting
                 
-                // Create the Deposit Link exactly as requested
-                const depositUrl = `${BANK_BASE_URL}?user=${activeUser}&deposit=${amount.toFixed(2)}&label=${encodeURIComponent(missionName)}&txid=${txid}`;
+                // Formulate the Bridge URL: https://rubiks13.github.io/bank/?user=[NAME]&deposit=[AMOUNT]&label=[MISSION_NAME]&txid=[UNIQUE_ID]
+                const depositUrl = `${BANK_BASE_URL}?user=${encodeURIComponent(activeUser)}&deposit=${amount.toFixed(2)}&label=${encodeURIComponent(missionName)}&txid=${txid}`;
                 
-                // Update the visual link in the UI
+                // Show the "Go to Bank" button
                 const bankBtn = document.getElementById('bank-link');
                 bankBtn.href = depositUrl;
+                bankBtn.classList.remove('hidden');
                 bankBtn.textContent = `Claim $${amount.toFixed(2)} at Bank →`;
 
-                // Handle local background processing as well
-                const balanceKey = `bank_${activeUser}_balance`;
-                const logsKey = `bank_${activeUser}_logs`;
-                let currentBal = parseFloat(localStorage.getItem(balanceKey)) || 0;
-                let logs = JSON.parse(localStorage.getItem(logsKey)) || [];
-
-                localStorage.setItem(balanceKey, (currentBal + amount).toFixed(2));
-                logs.unshift({ job: `Pilot: ${data.from} to ${data.to}`, amount: amount, bankTime: currentBankTime, txid: txid });
-                localStorage.setItem(logsKey, JSON.stringify(logs));
-
+                // Background notification
                 const alert = document.createElement('div');
-                alert.innerHTML = `💰 $5.00 ready for ${activeUser.toUpperCase()}!`;
-                alert.style = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#2563eb; color:white; padding:15px 30px; border-radius:100px; font-weight:bold; z-index:10000; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);';
+                alert.innerHTML = `💰 Job Success! Deposit ready at Bank.`;
+                alert.style = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#059669; color:white; padding:15px 30px; border-radius:100px; font-weight:bold; z-index:10000; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);';
                 document.body.appendChild(alert);
-                setTimeout(() => alert.remove(), 4000);
+                setTimeout(() => alert.remove(), 5000);
 
                 goHome();
-            }, 500);
+            }, 1000);
         }
-
-        function removeFlightFromDb(flightId) {
-            const db = getFlightDb();
-            delete db[flightId];
-            localStorage.setItem(`flyusa_flights_${activeUser}`, JSON.stringify(db));
-            updateLogDisplay();
-        }
-
-        function clearHistory() { document.getElementById('clear-confirm-modal').classList.remove('hidden'); }
-        function closeClearModal() { document.getElementById('clear-confirm-modal').classList.add('hidden'); }
-        function executeClearHistory() { localStorage.removeItem(`flyusa_flights_${activeUser}`); updateLogDisplay(); closeClearModal(); }
 
         function updateLogDisplay() {
             const db = getFlightDb();
@@ -413,7 +380,9 @@
             const cleanVal = value.trim().toUpperCase();
             if (db[cleanVal]) {
                 const nextRide = generateRandomRide(db[cleanVal].to, null, db[cleanVal].from, db[cleanVal].name);
-                removeFlightFromDb(cleanVal);
+                const newDb = getFlightDb();
+                delete newDb[cleanVal];
+                localStorage.setItem(`flyusa_flights_${activeUser}`, JSON.stringify(newDb));
                 document.getElementById('scanner-input').value = '';
                 populateTicket(nextRide);
                 executePrintSequence(nextRide);
@@ -506,8 +475,6 @@
 
         window.onload = () => {
             document.getElementById('display-user').textContent = activeUser;
-            // Default link until first job is done
-            document.getElementById('bank-link').href = `${BANK_BASE_URL}?user=${activeUser}`;
             initQRs();
             updateLogDisplay();
             document.getElementById('scanner-input').focus();
