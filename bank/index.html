@@ -245,22 +245,25 @@
             // Sync Time and Process Bills
             setInterval(() => {
                 const totalMinutesRaw = localStorage.getItem(MINUTES_KEY);
-                const totalMinutes = totalMinutesRaw !== null ? parseInt(totalMinutesRaw) : -1;
+                const simTimeStr = localStorage.getItem(TIME_KEY);
                 
                 let timeDisplay = "--:-- --";
 
-                if (totalMinutes !== -1) {
-                    // Calculate Time String with AM/PM from minutes
+                // Priority 1: Use the actual string from sim_current_bike_time if it exists
+                if (simTimeStr && simTimeStr.length > 2) {
+                    timeDisplay = simTimeStr;
+                } 
+                // Priority 2: Calculate from minutes if the string is missing
+                else if (totalMinutesRaw !== null) {
+                    const totalMinutes = parseInt(totalMinutesRaw);
                     const h24 = Math.floor(totalMinutes / 60) % 24;
                     const m = (totalMinutes % 60).toString().padStart(2, '0');
                     const ampm = h24 >= 12 ? 'PM' : 'AM';
                     const h12 = h24 % 12 || 12;
                     timeDisplay = `${h12}:${m} ${ampm}`;
-                    
-                    // Logic processing
-                    processAutomatedBills(totalMinutes);
-                } else {
-                    // Fallback to real clock if sim not running
+                } 
+                // Fallback: Real world clock
+                else {
                     const now = new Date();
                     let h = now.getHours();
                     const m = now.getMinutes().toString().padStart(2, '0');
@@ -270,15 +273,18 @@
                 }
 
                 document.getElementById('bike-time-display').innerText = timeDisplay;
+                
+                if (totalMinutesRaw !== null) {
+                    processAutomatedBills(parseInt(totalMinutesRaw));
+                }
             }, 1000);
 
-            // Inactivity redirect
             let idle;
             const resetTimer = () => {
                 clearTimeout(idle);
                 idle = setTimeout(() => {
                     window.location.href = "https://rubiks13.github.io/bikes/";
-                }, 10000); 
+                }, 15000); 
             };
             window.onload = resetTimer;
             document.onmousemove = resetTimer;
@@ -295,7 +301,7 @@
             BILL_TYPES.forEach(bill => {
                 if (currentMin >= bill.triggerMinute && user.billsPaid[bill.id] === undefined) {
                     user.billsPaid[bill.id] = true; 
-                    showToast(`BILL DISCOVERED: ${bill.name}`);
+                    showToast(`NEW EXPENSE: ${bill.name}`);
                     needsUpdate = true;
                 }
             });
@@ -328,34 +334,34 @@
             }
 
             const billContainer = document.getElementById('bill-container');
-            const totalMinutes = parseInt(localStorage.getItem(MINUTES_KEY) || "0");
+            const totalMinutesRaw = localStorage.getItem(MINUTES_KEY);
+            const totalMinutes = totalMinutesRaw !== null ? parseInt(totalMinutesRaw) : 0;
             
-            // Logic: If minutes haven't moved from 0, show all bills as a fallback
-            // Otherwise, only show bills that the user is "late" for based on sim time
-            const visibleBills = totalMinutes === 0 ? BILL_TYPES : BILL_TYPES.filter(b => totalMinutes >= b.triggerMinute);
+            // Fixed logic: Always show all bills so you can see them even at minute 0
+            const visibleBills = BILL_TYPES;
             
             document.getElementById('pending-bills-count').innerText = `${visibleBills.filter(b => user.billsPaid[b.id] !== "COMPLETED").length} Items`;
 
-            if (visibleBills.length === 0) {
-                billContainer.innerHTML = '<div class="glass-panel p-10 rounded-3xl text-center text-slate-500 font-bold uppercase tracking-widest">Everything is current</div>';
-            } else {
-                billContainer.innerHTML = visibleBills.map(b => {
-                    const isPaid = user.billsPaid[b.id] === "COMPLETED";
-                    return `
-                    <div class="glass-panel p-6 rounded-3xl flex justify-between items-center ${isPaid ? 'opacity-40' : ''}">
-                        <div>
-                            <h4 class="font-bold">${b.name}</h4>
-                            <p class="text-xs text-slate-400">$${b.price} ${isPaid ? '(PAID)' : 'Pending'}</p>
-                        </div>
-                        ${isPaid ? 
-                            '<span class="text-green-400 font-black text-xs uppercase">Settled</span>' : 
-                            `<button onclick="payBill('${b.id}', ${b.price})" class="bg-blue-500 hover:bg-blue-400 text-white px-6 py-2 rounded-xl font-bold text-xs uppercase">Pay $${b.price}</button>`
-                        }
+            billContainer.innerHTML = visibleBills.map(b => {
+                const isPaid = user.billsPaid[b.id] === "COMPLETED";
+                const isLate = totalMinutes >= b.triggerMinute;
+                return `
+                <div class="glass-panel p-6 rounded-3xl flex justify-between items-center ${isPaid ? 'opacity-40' : ''}">
+                    <div>
+                        <h4 class="font-bold flex items-center gap-2">
+                            ${b.name}
+                            ${(isLate && !isPaid) ? '<span class="bg-red-500 text-white text-[8px] px-1.5 py-0.5 rounded">DUE</span>' : ''}
+                        </h4>
+                        <p class="text-xs text-slate-400">$${b.price} ${isPaid ? '(PAID)' : 'Pending'}</p>
                     </div>
-                `}).join('');
-            }
+                    ${isPaid ? 
+                        '<span class="text-green-400 font-black text-xs uppercase">Settled</span>' : 
+                        `<button onclick="payBill('${b.id}', ${b.price})" class="bg-blue-500 hover:bg-blue-400 text-white px-6 py-2 rounded-xl font-bold text-xs uppercase">Pay $${b.price}</button>`
+                    }
+                </div>
+            `}).join('');
 
-            const anyUnpaid = visibleBills.some(b => user.billsPaid[b.id] !== "COMPLETED");
+            const anyUnpaid = visibleBills.some(b => user.billsPaid[b.id] !== "COMPLETED" && totalMinutes >= b.triggerMinute);
             if (anyUnpaid) {
                 document.getElementById('payment-warning').classList.remove('hidden');
             } else {
@@ -386,6 +392,7 @@
             logTransaction(-val, "CASH PRINTED");
             document.getElementById('receipt-container').classList.add('hidden');
             showToast("CASH ISSUED");
+            switchTab('dashboard'); // Now returns to dashboard automatically
         }
 
         function processDeposit() {
@@ -397,6 +404,7 @@
                 logTransaction(val, "CASH REDEEMED");
                 document.getElementById('deposit-code').value = "";
                 showToast(`+$${val} REDEEMED`);
+                setTimeout(() => switchTab('dashboard'), 1000);
             } else {
                 showToast("INVALID SERIAL");
             }
