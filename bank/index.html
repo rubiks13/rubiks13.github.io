@@ -3,312 +3,186 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rider Bank | Dashboard</title>
+    <title>Rider Bank | Terminal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-        
-        body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #020617;
-            color: #f8fafc;
-            overflow: hidden;
-        }
-
-        .glass-card {
-            background: rgba(15, 23, 42, 0.8);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        .gradient-border {
-            position: relative;
-            background: #0f172a;
-            border-radius: 1.5rem;
-        }
-        .gradient-border::before {
-            content: "";
-            position: absolute;
-            inset: -1px;
-            background: linear-gradient(45deg, #3b82f6, #6366f1, #a855f7);
-            border-radius: 1.6rem;
-            z-index: -1;
-            opacity: 0.3;
-        }
-
-        .hidden-view { display: none; }
-
-        .nav-active {
-            background: rgba(59, 130, 246, 0.1);
-            color: #60a5fa;
-        }
-
-        .bill-card {
-            transition: all 0.2s ease;
-        }
-        .bill-card:hover:not(.paid) {
-            transform: translateY(-4px);
-            border-color: rgba(59, 130, 246, 0.4);
-        }
-
-        ::-webkit-scrollbar {
-            width: 4px;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #1e293b;
-            border-radius: 10px;
-        }
-
-        .admin-btn {
-            opacity: 0.1;
-            transition: opacity 0.3s;
-        }
-        .admin-btn:hover {
-            opacity: 1;
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #020617; color: #f8fafc; overflow: hidden; height: 100vh; }
+        .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .hidden-view { display: none !important; }
+        .nav-active { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+        .scroll-custom::-webkit-scrollbar { width: 4px; }
+        .scroll-custom::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
     </style>
 </head>
-<body class="h-screen flex">
+<body class="flex">
 
-    <!-- Sidebar -->
-    <aside class="w-20 hover:w-64 bg-slate-900 border-r border-slate-800 flex flex-col items-center py-8 group z-50 transition-all duration-300">
-        <div class="mb-12 bg-blue-600 p-3 rounded-2xl shadow-lg shadow-blue-500/20">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M12 17.5V14l-3-3 4-3 2 3h2"/><circle cx="18.5" cy="17.5" r="3.5"/><circle cx="5.5" cy="17.5" r="3.5"/></svg>
+    <!-- Navigation -->
+    <aside class="w-20 hover:w-60 bg-slate-900 border-r border-slate-800 flex flex-col items-center py-8 group transition-all duration-300 z-50">
+        <div class="mb-10 bg-blue-600 p-3 rounded-xl shadow-lg shadow-blue-500/20">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
         </div>
-        
-        <nav class="flex-1 w-full px-4 space-y-4">
-            <button onclick="switchView('dashboard')" id="nav-dashboard" class="w-full flex items-center gap-4 p-3 rounded-xl nav-active">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/></svg>
-                <span class="opacity-0 group-hover:opacity-100 font-bold whitespace-nowrap">Dashboard</span>
+        <nav class="flex-1 w-full px-3 space-y-4">
+            <button onclick="switchView('dashboard')" class="nav-btn w-full flex items-center gap-4 p-3 rounded-xl nav-active" id="btn-dashboard">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/></svg>
+                <span class="opacity-0 group-hover:opacity-100 font-bold text-sm">Vault</span>
             </button>
-            <button onclick="switchView('payments')" id="nav-payments" class="w-full flex items-center gap-4 p-3 rounded-xl text-slate-500 hover:bg-slate-800 transition-all">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h7"/></svg>
-                <span class="opacity-0 group-hover:opacity-100 font-bold whitespace-nowrap">Bill Pay</span>
+            <button onclick="switchView('payments')" class="nav-btn w-full flex items-center gap-4 p-3 rounded-xl text-slate-500 hover:bg-slate-800" id="btn-payments">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h7"/></svg>
+                <span class="opacity-0 group-hover:opacity-100 font-bold text-sm">Bills</span>
             </button>
         </nav>
-
-        <button onclick="toggleAdmin()" class="admin-btn mt-auto p-4 text-slate-700">
+        <button onclick="switchView('admin')" class="mt-auto p-4 text-slate-700 hover:text-red-500 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         </button>
     </aside>
 
-    <main class="flex-1 flex flex-col p-8 overflow-hidden">
-        <header class="flex justify-between items-start mb-10">
-            <div>
-                <h1 class="text-2xl font-black tracking-tighter uppercase italic flex items-center gap-2">
-                    Rider <span class="text-blue-500">Bank</span>
-                </h1>
-                <p id="date-display" class="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-1">System Active</p>
-            </div>
+    <main class="flex-1 p-8 overflow-hidden flex flex-col">
+        <header class="flex justify-between items-center mb-8">
+            <h1 class="text-xl font-black uppercase italic tracking-tighter">Rider <span class="text-blue-500">Bank</span></h1>
+            <p id="date-display" class="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-900 px-4 py-2 rounded-lg border border-slate-800">Loading State...</p>
         </header>
 
-        <!-- DASHBOARD VIEW -->
-        <div id="view-dashboard" class="view-section max-w-5xl w-full mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div class="lg:col-span-2 space-y-8">
-                <div class="gradient-border p-10 h-72 flex flex-col justify-center relative shadow-2xl overflow-hidden">
-                    <p class="text-blue-400 text-[10px] font-black uppercase tracking-[0.4em] mb-4">Available Balance</p>
-                    <h2 id="balance-display" class="text-7xl font-black tracking-tighter tabular-nums">$0.00</h2>
-                    <div class="mt-10">
-                        <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest block mb-1">Account Holder</span>
-                        <span id="owner-display" class="font-black text-xl uppercase italic">---</span>
-                    </div>
+        <!-- View: Dashboard -->
+        <div id="view-dashboard" class="view-section grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 overflow-hidden">
+            <div class="lg:col-span-2 space-y-6 flex flex-col">
+                <div class="bg-gradient-to-br from-blue-600 to-indigo-700 p-8 rounded-[2rem] shadow-xl relative overflow-hidden min-h-[220px] flex flex-col justify-center">
+                    <div class="absolute top-0 right-0 p-8 opacity-10"><svg width="120" height="120" viewBox="0 0 24 24" fill="white"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg></div>
+                    <p class="text-blue-100 text-[10px] font-bold uppercase tracking-widest mb-2 opacity-80">Available Funds</p>
+                    <h2 id="balance-display" class="text-6xl font-black tracking-tighter tabular-nums">$0.00</h2>
+                    <p id="owner-display" class="mt-4 text-sm font-bold uppercase tracking-widest text-blue-200">User: ---</p>
                 </div>
-
-                <div class="glass-card rounded-[2rem] p-8 border border-slate-800">
-                    <h3 class="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-6">Recent History</h3>
-                    <div id="history-list" class="space-y-4 max-h-48 overflow-y-auto pr-2 text-sm">
-                        <!-- History injected here -->
-                    </div>
+                <div class="glass rounded-[2rem] p-6 flex-1 flex flex-col overflow-hidden">
+                    <h3 class="text-[10px] font-bold uppercase text-slate-500 tracking-widest mb-4">Activity Log</h3>
+                    <div id="history-list" class="space-y-2 overflow-y-auto scroll-custom pr-2 flex-1"></div>
                 </div>
             </div>
-
-            <div class="glass-card rounded-[2rem] p-8 border border-slate-800 flex flex-col">
-                <h3 class="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-6">Daily Quick Actions</h3>
-                <div id="quick-bill-list" class="space-y-4 flex-1"></div>
+            <div class="glass rounded-[2rem] p-6 flex flex-col overflow-hidden">
+                <h3 class="text-[10px] font-bold uppercase text-slate-500 tracking-widest mb-4">Pending Settlements</h3>
+                <div id="quick-bills" class="space-y-3 overflow-y-auto scroll-custom pr-1 flex-1"></div>
             </div>
         </div>
 
-        <!-- PAYMENTS VIEW -->
-        <div id="view-payments" class="view-section hidden-view max-w-5xl w-full mx-auto">
-            <h2 class="text-2xl font-black uppercase italic tracking-tight mb-8">Settlements</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="payments-grid"></div>
+        <!-- View: Payments -->
+        <div id="view-payments" class="view-section hidden-view overflow-y-auto scroll-custom flex-1">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="full-bills-grid"></div>
         </div>
 
-        <!-- ADMIN PANEL -->
-        <div id="view-admin" class="view-section hidden-view max-w-2xl w-full mx-auto glass-card p-10 rounded-[2.5rem] border border-blue-500/30">
-            <h2 class="text-2xl font-black uppercase italic mb-8">Terminal Admin</h2>
+        <!-- View: Admin -->
+        <div id="view-admin" class="view-section hidden-view max-w-xl mx-auto w-full glass p-10 rounded-[2.5rem] border-blue-500/20">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-xl font-black uppercase text-blue-400">Admin Console</h2>
+                <button onclick="switchView('dashboard')" class="text-[10px] font-bold text-slate-500 hover:text-white">Close</button>
+            </div>
             <div class="space-y-6">
-                <div>
-                    <label class="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-2 block">Adjust Balance</label>
-                    <div class="flex gap-4">
-                        <input type="number" id="admin-amount" class="flex-1 bg-slate-950 border border-slate-800 p-4 rounded-xl font-bold" placeholder="0.00">
-                        <button onclick="adjustBalance(true)" class="bg-emerald-600 px-6 rounded-xl font-bold">+</button>
-                        <button onclick="adjustBalance(false)" class="bg-rose-600 px-6 rounded-xl font-bold">-</button>
+                <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-4">Manual Adjustment</label>
+                    <div class="flex gap-3">
+                        <input type="number" id="admin-val" class="flex-1 bg-slate-900 border border-slate-700 rounded-xl p-4 text-white font-bold outline-none focus:border-blue-500" placeholder="0.00">
+                        <button onclick="adjust(true)" class="bg-emerald-600 hover:bg-emerald-500 px-6 rounded-xl font-bold">+</button>
+                        <button onclick="adjust(false)" class="bg-rose-600 hover:bg-rose-500 px-6 rounded-xl font-bold">-</button>
                     </div>
                 </div>
-                <button onclick="resetDailyPayments()" class="w-full py-4 bg-slate-800 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-slate-700">Force Reset Daily Bills</button>
+                <div class="grid grid-cols-2 gap-4">
+                    <button onclick="resetBills()" class="py-4 bg-slate-800 rounded-xl text-[10px] font-bold uppercase hover:bg-slate-700">Reset Bills</button>
+                    <button onclick="clearLogs()" class="py-4 bg-rose-950/20 border border-rose-900/40 text-rose-500 rounded-xl text-[10px] font-bold uppercase hover:bg-rose-900/30">Clear Logs</button>
+                </div>
             </div>
         </div>
     </main>
 
     <script>
-        let currentAccount = null;
+        let state = { owner: "Rider", balance: 100.0, txs: [], paid: {} };
         const BILLS = [
-            { id: 'taxes', label: 'City Taxes', amount: 25 },
-            { id: 'groceries', label: 'Groceries', amount: 15 },
-            { id: 'gas', label: 'Fuel/Gas', amount: 10 }
+            { id: 'tax', name: 'City Tax', amt: 25 },
+            { id: 'food', name: 'Groceries', amt: 15 },
+            { id: 'fuel', name: 'Vehicle Fuel', amt: 10 },
+            { id: 'rent', name: 'Rent/Stay', amt: 50 }
         ];
 
-        function getSimDate() {
-            const directoryData = localStorage.getItem('global_directory_data');
-            try { 
-                if (directoryData) {
-                    const parsed = JSON.parse(directoryData);
-                    return parsed.date || "Day 1";
+        function getDay() {
+            try { return JSON.parse(localStorage.getItem('global_directory_data')).date || "Day 1"; } 
+            catch { return "Day 1"; }
+        }
+
+        function save() { localStorage.setItem(`bank_${state.owner.toLowerCase()}`, JSON.stringify(state)); }
+
+        function switchView(id) {
+            document.querySelectorAll('.view-section').forEach(v => v.classList.add('hidden-view'));
+            document.getElementById(`view-${id}`).classList.remove('hidden-view');
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('nav-active', 'text-blue-400'));
+            const activeBtn = document.getElementById(`btn-${id}`);
+            if(activeBtn) activeBtn.classList.add('nav-active', 'text-blue-400');
+            render();
+        }
+
+        function adjust(add) {
+            const input = document.getElementById('admin-val');
+            const v = parseFloat(input.value);
+            if(!v || v <= 0) return;
+            state.balance = add ? state.balance + v : Math.max(0, state.balance - v);
+            state.txs.unshift({ id: Date.now(), label: `Admin ${add ? 'In' : 'Out'}`, amt: v, type: add ? 'in' : 'out', time: new Date().toLocaleTimeString() });
+            input.value = ''; save(); render();
+        }
+
+        function pay(id, amt) {
+            const day = getDay();
+            if(state.paid[id] === day || state.balance < amt) return;
+            state.balance -= amt;
+            state.paid[id] = day;
+            state.txs.unshift({ id: Date.now(), label: `Paid ${id}`, amt: amt, type: 'out', time: new Date().toLocaleTimeString() });
+            save(); render();
+        }
+
+        function resetBills() { state.paid = {}; save(); render(); }
+        function clearLogs() { state.txs = []; save(); render(); }
+
+        function render() {
+            const day = getDay();
+            document.getElementById('date-display').innerText = day;
+            document.getElementById('balance-display').innerText = `$${state.balance.toFixed(2)}`;
+            document.getElementById('owner-display').innerText = `Authorized: ${state.owner}`;
+
+            const hist = document.getElementById('history-list');
+            hist.innerHTML = state.txs.length ? '' : '<p class="text-center py-10 text-[10px] text-slate-700 font-bold uppercase">No records</p>';
+            state.txs.slice(0, 15).forEach(t => {
+                const isOut = t.type === 'out';
+                hist.innerHTML += `<div class="flex justify-between items-center p-3 bg-slate-800/20 border border-white/5 rounded-xl">
+                    <div><p class="text-[10px] font-bold uppercase">${t.label}</p><p class="text-[8px] text-slate-500">${t.time}</p></div>
+                    <p class="font-bold ${isOut ? 'text-rose-400' : 'text-emerald-400'}">${isOut ? '-' : '+'}$${t.amt.toFixed(2)}</p>
+                </div>`;
+            });
+
+            const qb = document.getElementById('quick-bills');
+            const fb = document.getElementById('full-bills-grid');
+            qb.innerHTML = ''; fb.innerHTML = '';
+            
+            BILLS.forEach(b => {
+                const isPaid = state.paid[b.id] === day;
+                if(!isPaid) {
+                    qb.innerHTML += `<button onclick="pay('${b.id}', ${b.amt})" class="w-full p-4 bg-slate-800/40 hover:bg-slate-800 rounded-xl flex justify-between items-center transition-colors">
+                        <span class="text-[10px] font-bold uppercase text-slate-400">${b.name}</span>
+                        <span class="text-xs font-bold">$${b.amt}</span>
+                    </button>`;
                 }
-            } catch(e) {}
-            return "Day 1";
-        }
-
-        function switchView(v) {
-            document.querySelectorAll('.view-section').forEach(s => s.classList.add('hidden-view'));
-            const target = document.getElementById(`view-${v}`);
-            if(target) target.classList.remove('hidden-view');
-            
-            document.querySelectorAll('nav button').forEach(b => {
-                b.classList.remove('nav-active', 'text-blue-400');
-                b.classList.add('text-slate-500');
+                fb.innerHTML += `<div class="glass p-8 rounded-3xl text-center ${isPaid ? 'opacity-30' : ''}">
+                    <p class="text-[10px] font-bold text-slate-500 uppercase mb-2">${b.name}</p>
+                    <p class="text-3xl font-black mb-6">$${b.amt}</p>
+                    <button onclick="pay('${b.id}', ${b.amt})" ${isPaid ? 'disabled' : ''} class="w-full py-3 rounded-xl text-[10px] font-bold uppercase ${isPaid ? 'bg-slate-800 text-slate-500' : 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'}">
+                        ${isPaid ? 'Settled' : 'Pay Now'}
+                    </button>
+                </div>`;
             });
-            const navBtn = document.getElementById(`nav-${v}`);
-            if(navBtn) navBtn.classList.add('nav-active', 'text-blue-400');
-            renderUI();
-        }
-
-        function toggleAdmin() {
-            switchView('admin');
-        }
-
-        function adjustBalance(isAdd) {
-            const amt = parseFloat(document.getElementById('admin-amount').value);
-            if (isNaN(amt)) return;
-            
-            if (isAdd) currentAccount.balance += amt;
-            else currentAccount.balance -= amt;
-
-            currentAccount.transactions.unshift({
-                id: crypto.randomUUID(),
-                type: isAdd ? 'deposit' : 'payment',
-                amount: amt,
-                label: `Admin Adjustment`,
-                date: new Date().toISOString()
-            });
-            saveData();
-            renderUI();
-        }
-
-        function resetDailyPayments() {
-            currentAccount.payments = {};
-            saveData();
-            renderUI();
-        }
-
-        function processPayment(billId, amount) {
-            const simDate = getSimDate();
-            if (currentAccount.payments[billId] === simDate) return;
-
-            if (currentAccount.balance >= amount) {
-                currentAccount.balance -= amount;
-                currentAccount.payments[billId] = simDate;
-                
-                currentAccount.transactions.unshift({
-                    id: crypto.randomUUID(),
-                    type: 'payment',
-                    amount: amount,
-                    label: `Settled: ${billId}`,
-                    date: new Date().toISOString()
-                });
-
-                saveData();
-                renderUI();
-            }
-        }
-
-        function renderUI() {
-            const simDate = getSimDate();
-            document.getElementById('date-display').innerText = `Sync: ${simDate}`;
-            document.getElementById('balance-display').innerText = `$${currentAccount.balance.toFixed(2)}`;
-            document.getElementById('owner-display').innerText = currentAccount.ownerName;
-
-            const historyList = document.getElementById('history-list');
-            if(historyList) {
-                historyList.innerHTML = currentAccount.transactions.length ? '' : '<p class="text-xs text-slate-600 italic">No recent transactions recorded.</p>';
-                currentAccount.transactions.slice(0, 15).forEach(tx => {
-                    const isNeg = tx.type === 'payment';
-                    historyList.innerHTML += `
-                        <div class="flex justify-between items-center p-4 rounded-xl bg-slate-800/30 border border-white/5 mb-2">
-                            <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 rounded-lg ${isNeg ? 'bg-rose-500/10' : 'bg-emerald-500/10'} flex items-center justify-center">
-                                    <span class="text-xs font-bold ${isNeg ? 'text-rose-400' : 'text-emerald-400'}">${isNeg ? '-' : '+'}</span>
-                                </div>
-                                <span class="text-xs font-bold uppercase tracking-widest">${tx.label}</span>
-                            </div>
-                            <span class="font-black ${isNeg ? 'text-rose-400' : 'text-emerald-400'}">${isNeg ? '-' : ''}$${tx.amount.toFixed(2)}</span>
-                        </div>
-                    `;
-                });
-            }
-
-            const grid = document.getElementById('payments-grid');
-            const quick = document.getElementById('quick-bill-list');
-            if(grid && quick) {
-                grid.innerHTML = '';
-                quick.innerHTML = '';
-                BILLS.forEach(bill => {
-                    const isPaid = currentAccount.payments[bill.id] === simDate;
-                    grid.innerHTML += `
-                        <div class="glass-card p-8 rounded-[2.5rem] border border-slate-800 text-center bill-card ${isPaid ? 'opacity-40' : ''}">
-                            <h3 class="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-2">${bill.label}</h3>
-                            <p class="text-4xl font-black mb-8 tabular-nums">$${bill.amount.toFixed(2)}</p>
-                            <button onclick="processPayment('${bill.id}', ${bill.amount})" ${isPaid ? 'disabled' : ''} 
-                                class="w-full py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all
-                                ${isPaid ? 'bg-slate-800 text-slate-600' : 'bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-600/20 text-white'}">
-                                ${isPaid ? 'Paid' : 'Settle'}
-                            </button>
-                        </div>`;
-
-                    if (!isPaid) {
-                        quick.innerHTML += `
-                            <button onclick="processPayment('${bill.id}', ${bill.amount})" class="w-full p-4 rounded-2xl bg-slate-800/50 border border-white/5 flex justify-between items-center hover:bg-slate-800 transition">
-                                <span class="text-[10px] font-black uppercase text-slate-400">${bill.label}</span>
-                                <span class="text-sm font-black">$${bill.amount}</span>
-                            </button>`;
-                    }
-                });
-                if (!quick.innerHTML) quick.innerHTML = '<p class="text-center text-[10px] font-bold text-emerald-500 uppercase tracking-widest mt-6">All Bills Settled</p>';
-            }
-        }
-
-        function saveData() {
-            localStorage.setItem(`rider_bank_${currentAccount.ownerName.toLowerCase()}`, JSON.stringify(currentAccount));
+            if(!qb.innerHTML) qb.innerHTML = '<p class="text-center py-10 text-emerald-500 text-[10px] font-bold uppercase">All bills cleared</p>';
         }
 
         window.onload = () => {
-            const params = new URLSearchParams(window.location.search);
-            const user = params.get('user') || "Rider";
-            const storageKey = `rider_bank_${user.toLowerCase()}`;
-            const data = localStorage.getItem(storageKey);
-            
-            if (data) {
-                currentAccount = JSON.parse(data);
-                if (!currentAccount.payments) currentAccount.payments = {};
-                if (!currentAccount.transactions) currentAccount.transactions = [];
-            } else {
-                currentAccount = { ownerName: user, balance: 100, transactions: [], payments: {} };
-                saveData();
-            }
-            
-            renderUI();
-            setInterval(renderUI, 5000);
+            const user = new URLSearchParams(window.location.search).get('user') || "Rider";
+            const stored = localStorage.getItem(`bank_${user.toLowerCase()}`);
+            if(stored) state = JSON.parse(stored);
+            state.owner = user;
+            render();
+            setInterval(render, 2000);
         };
     </script>
 </body>
