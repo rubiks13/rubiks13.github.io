@@ -7,7 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-        
+        @import url('https://fonts.googleapis.com/css2?family=Libre+Barcode+128&display=swap');
+
         :root {
             --brand-primary: #0ea5e9;
             --bg-dark: #020617;
@@ -35,6 +36,20 @@
             background: linear-gradient(135deg, #0ea5e9, #6366f1);
         }
 
+        .barcode {
+            font-family: 'Libre Barcode 128', cursive;
+            font-size: 64px;
+        }
+
+        .receipt-paper {
+            background: #ffffff;
+            color: #1e293b;
+            width: 80mm;
+            padding: 24px;
+            font-family: 'Courier New', Courier, monospace;
+            border-radius: 4px;
+        }
+
         .nav-item {
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
@@ -44,31 +59,17 @@
             box-shadow: inset 4px 0 0 #0ea5e9;
         }
 
-        @keyframes pulse-ring {
-            0% { transform: scale(.33); opacity: 1; }
-            80%, 100% { opacity: 0; }
-        }
-
-        .status-dot {
-            position: relative;
-            width: 8px;
-            height: 8px;
-            background-color: #10b981;
-            border-radius: 50%;
-        }
-        .status-dot::after {
-            content: '';
-            position: absolute;
-            top: -4px; left: -4px; right: -4px; bottom: -4px;
-            border: 2px solid #10b981;
-            border-radius: 50%;
-            animation: pulse-ring 1.5s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
+        @media print {
+            body * { visibility: hidden; }
+            #receipt-content, #receipt-content * { visibility: visible; }
+            #receipt-content { position: fixed; left: 0; top: 0; width: 100%; margin: 0; box-shadow: none; }
+            .no-print { display: none !important; }
         }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
-    <header class="w-full h-20 glass-panel border-b border-white/5 px-6 flex justify-between items-center sticky top-0 z-[60]">
+    <header class="w-full h-20 glass-panel border-b border-white/5 px-6 flex justify-between items-center sticky top-0 z-[60] no-print">
         <div class="flex items-center gap-3">
             <div class="w-10 h-10 gradient-brand rounded-xl flex items-center justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -76,142 +77,175 @@
                 </svg>
             </div>
             <div>
-                <h1 class="font-extrabold text-lg tracking-tight leading-none">BIKE BANK</h1>
-                <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Global Ledger V3</span>
+                <h1 class="font-extrabold text-lg tracking-tight leading-none uppercase">Bike Bank</h1>
+                <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Global Ledger V4</span>
             </div>
         </div>
 
         <div class="flex items-center gap-4">
-            <div class="hidden md:flex items-center gap-2 bg-slate-900/80 px-4 py-2 rounded-full border border-white/5">
-                <div class="status-dot"></div>
-                <span class="text-[10px] font-bold text-slate-400 tracking-widest">RECEIVING PORT: ACTIVE</span>
+            <div id="payment-warning" class="hidden flex items-center gap-2 bg-red-500/10 text-red-400 px-4 py-2 rounded-xl border border-red-500/20">
+                <span class="text-[10px] font-bold uppercase animate-pulse">BILLS OVERDUE</span>
             </div>
             <div class="bg-slate-800 px-4 py-2 rounded-xl font-mono text-blue-400 font-bold border border-blue-500/20" id="bike-time-display">00:00</div>
         </div>
     </header>
 
     <div class="flex flex-1">
-        <nav class="w-20 lg:w-72 glass-panel border-r border-white/5 flex flex-col sticky top-20 h-[calc(100vh-80px)]">
+        <nav class="w-20 lg:w-72 glass-panel border-r border-white/5 flex flex-col sticky top-20 h-[calc(100vh-80px)] no-print">
             <div class="flex-1 py-6 flex flex-col gap-1">
                 <button onclick="switchTab('dashboard')" class="nav-item mx-3 p-4 rounded-2xl flex items-center gap-4 hover:bg-white/5 active" id="tab-btn-dashboard">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-                    <span class="hidden lg:inline font-semibold">Dashboard</span>
+                    <span class="hidden lg:inline font-semibold">Overview</span>
+                </button>
+                <button onclick="switchTab('payment')" class="nav-item mx-3 p-4 rounded-2xl flex items-center gap-4 hover:bg-white/5" id="tab-btn-payment">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+                    <span class="hidden lg:inline font-semibold">Daily Bills</span>
+                </button>
+                <button onclick="switchTab('print')" class="nav-item mx-3 p-4 rounded-2xl flex items-center gap-4 hover:bg-white/5" id="tab-btn-print">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                    <span class="hidden lg:inline font-semibold">Print Cash</span>
+                </button>
+                <button onclick="switchTab('deposit')" class="nav-item mx-3 p-4 rounded-2xl flex items-center gap-4 hover:bg-white/5" id="tab-btn-deposit">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    <span class="hidden lg:inline font-semibold">Redeem Bill</span>
                 </button>
                 <button onclick="switchTab('activity')" class="nav-item mx-3 p-4 rounded-2xl flex items-center gap-4 hover:bg-white/5" id="tab-btn-activity">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     <span class="hidden lg:inline font-semibold">History</span>
                 </button>
-                <button onclick="switchTab('dev')" class="nav-item mx-3 p-4 rounded-2xl flex items-center gap-4 hover:bg-white/5" id="tab-btn-dev">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
-                    <span class="hidden lg:inline font-semibold">Integrations</span>
-                </button>
             </div>
-            <div class="p-6 text-center opacity-50 text-[10px] font-bold">AUTO-LOG: 10S</div>
         </nav>
 
-        <main class="flex-1 p-6 lg:p-12 overflow-y-auto">
+        <main class="flex-1 p-6 lg:p-12 overflow-y-auto no-print">
             
             <!-- Dashboard -->
             <section id="tab-dashboard" class="max-w-4xl mx-auto space-y-8">
                 <div class="glass-panel rounded-[40px] p-10 relative overflow-hidden">
-                    <div class="relative z-10">
-                        <p class="text-slate-400 font-bold text-xs uppercase tracking-[0.2em] mb-2">Total Bike Credits</p>
-                        <h2 id="balance-display" class="text-7xl font-black tracking-tighter mb-8">$0.00</h2>
-                        
-                        <div class="flex flex-wrap gap-4">
-                            <div class="bg-blue-500/10 border border-blue-500/20 px-4 py-2 rounded-xl flex items-center gap-2">
-                                <span class="text-blue-400 font-bold text-xs uppercase" id="user-name-display">USER</span>
-                            </div>
-                            <button onclick="copyAiPrompt()" class="bg-white text-black px-6 py-2 rounded-xl font-bold text-xs uppercase hover:bg-slate-200 transition-all flex items-center gap-2">
-                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"/><path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"/></svg>
-                                Copy AI Instructions
-                            </button>
-                        </div>
+                    <p class="text-slate-400 font-bold text-xs uppercase tracking-widest mb-2">Account Balance</p>
+                    <h2 id="balance-display" class="text-7xl font-black tracking-tighter mb-8">$0.00</h2>
+                    
+                    <div class="flex flex-wrap gap-4">
+                        <div class="bg-blue-500/10 border border-blue-500/20 px-4 py-2 rounded-xl text-blue-400 font-bold text-xs uppercase" id="user-name-display">USER</div>
+                        <button onclick="copyAiPrompt()" class="bg-white text-black px-6 py-2 rounded-xl font-bold text-xs uppercase hover:bg-slate-200 transition-all flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"/><path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"/></svg>
+                            Fix Money Not Sending
+                        </button>
                     </div>
-                    <div class="absolute -right-20 -bottom-20 w-80 h-80 gradient-brand rounded-full blur-[120px] opacity-20"></div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="glass-panel p-8 rounded-3xl">
-                        <h3 class="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-4">Latest Receipt</h3>
-                        <div id="last-activity-preview" class="text-2xl font-bold text-green-400">Waiting for data...</div>
+                        <h3 class="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-4">Latest History</h3>
+                        <div id="last-activity-preview" class="text-2xl font-bold text-slate-500">No activity</div>
                     </div>
                     <div class="glass-panel p-8 rounded-3xl">
-                        <h3 class="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-4">Network Status</h3>
-                        <div class="flex items-center gap-2 text-blue-400 font-bold">
-                            <span class="w-2 h-2 rounded-full bg-blue-500 animate-ping"></span>
-                            Synched with Grid
-                        </div>
+                        <h3 class="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-4">Pending Bills</h3>
+                        <div id="pending-bills-count" class="text-2xl font-bold text-blue-400">0 Items</div>
                     </div>
+                </div>
+            </section>
+
+            <!-- Bills -->
+            <section id="tab-payment" class="max-w-3xl mx-auto hidden space-y-6">
+                <h2 class="text-2xl font-black uppercase">Daily Expenses</h2>
+                <div id="bill-container" class="grid gap-4"></div>
+            </section>
+
+            <!-- Printing -->
+            <section id="tab-print" class="max-w-3xl mx-auto hidden text-center">
+                <h2 class="text-3xl font-black mb-8 uppercase">Cash Printer</h2>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
+                    <button onclick="initiatePrint(1)" class="glass-panel p-10 rounded-3xl hover:border-blue-500/50 transition-all font-black text-2xl">$1</button>
+                    <button onclick="initiatePrint(5)" class="glass-panel p-10 rounded-3xl hover:border-blue-500/50 transition-all font-black text-2xl">$5</button>
+                    <button onclick="initiatePrint(10)" class="glass-panel p-10 rounded-3xl hover:border-blue-500/50 transition-all font-black text-2xl">$10</button>
+                    <button onclick="initiatePrint(20)" class="glass-panel p-10 rounded-3xl hover:border-blue-500/50 transition-all font-black text-2xl">$20</button>
+                    <button onclick="initiatePrint(50)" class="glass-panel p-10 rounded-3xl hover:border-blue-500/50 transition-all font-black text-2xl">$50</button>
+                    <button onclick="initiatePrint(100)" class="glass-panel p-10 rounded-3xl hover:border-blue-500/50 transition-all font-black text-2xl">$100</button>
+                </div>
+            </section>
+
+            <!-- Deposit -->
+            <section id="tab-deposit" class="max-w-xl mx-auto hidden space-y-6">
+                <div class="glass-panel p-10 rounded-[40px] text-center border-2 border-dashed border-slate-800">
+                    <h2 class="text-2xl font-black mb-6 uppercase">Redeem Bill Serial</h2>
+                    <input type="text" id="deposit-code" maxlength="10" placeholder="000-000-000" class="w-full bg-slate-900 border border-white/10 p-6 rounded-2xl text-center text-3xl font-mono text-blue-400 focus:outline-none mb-6">
+                    <button onclick="processDeposit()" class="w-full gradient-brand py-5 rounded-2xl font-black">DEPOSIT FUNDS</button>
                 </div>
             </section>
 
             <!-- Activity -->
             <section id="tab-activity" class="max-w-2xl mx-auto hidden space-y-4">
-                <h2 class="text-2xl font-black uppercase tracking-tight mb-8">Financial Log</h2>
+                <h2 class="text-2xl font-black uppercase mb-8">Financial Log</h2>
                 <div id="activity-list" class="space-y-3"></div>
-            </section>
-
-            <!-- Integrations (Developer) -->
-            <section id="tab-dev" class="max-w-2xl mx-auto hidden space-y-6">
-                <div class="glass-panel p-8 rounded-3xl">
-                    <h2 class="text-xl font-black mb-2 uppercase">How to send money here</h2>
-                    <p class="text-slate-400 text-sm mb-6">If your other games are not sending money, it is because they don't have the correct URL. Copy the message below and give it to the AI building your other system.</p>
-                    
-                    <div class="bg-black/50 p-6 rounded-2xl border border-white/10 font-mono text-xs text-blue-300 whitespace-pre-wrap mb-6" id="dev-prompt-text">
-                        <!-- Loaded via JS -->
-                    </div>
-                    
-                    <button onclick="copyAiPrompt()" class="w-full gradient-brand py-4 rounded-xl font-black uppercase tracking-widest text-sm shadow-lg shadow-blue-500/20">Copy Instruction Message</button>
-                </div>
             </section>
 
         </main>
     </div>
 
-    <!-- Registration -->
-    <div id="registration-modal" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/95 backdrop-blur-md hidden">
+    <!-- Modals -->
+    <div id="registration-modal" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/95 hidden">
         <div class="glass-panel p-10 rounded-[40px] w-full max-w-md text-center">
-            <h2 class="text-3xl font-black mb-8 uppercase">Create Identity</h2>
-            <input type="text" id="new-user-name" placeholder="YOUR NAME" class="w-full bg-slate-900 border border-white/10 rounded-2xl px-6 py-5 mb-6 text-white font-bold text-center">
-            <button onclick="createNewAccount()" class="w-full gradient-brand py-5 rounded-2xl font-black">LOGIN TO BANK</button>
+            <h2 class="text-3xl font-black mb-8">IDENTITY</h2>
+            <input type="text" id="new-user-name" placeholder="FULL NAME" class="w-full bg-slate-900 border border-white/10 rounded-2xl px-6 py-5 mb-6 text-white font-bold text-center">
+            <button onclick="createNewAccount()" class="w-full gradient-brand py-5 rounded-2xl font-black">ENTER BANK</button>
         </div>
     </div>
 
-    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-white text-black px-8 py-3 rounded-full shadow-2xl transition-all duration-500 opacity-0 translate-y-10 pointer-events-none font-bold text-xs uppercase tracking-widest">
+    <div id="receipt-container" class="hidden fixed inset-0 z-[120] bg-slate-950/95 flex flex-col items-center justify-center p-4">
+        <div id="receipt-content" class="receipt-paper shadow-2xl">
+            <div class="text-center border-b-2 border-slate-900 pb-2 mb-4">
+                <h2 class="font-black">BIKE BANK ASSET</h2>
+            </div>
+            <div class="text-6xl font-black text-center my-6">$<span id="receipt-amount">0</span></div>
+            <div class="text-center">
+                <div class="barcode" id="receipt-barcode">00000000</div>
+            </div>
+        </div>
+        <div class="mt-8 flex gap-4 no-print">
+            <button onclick="window.print()" class="bg-blue-500 text-white px-8 py-3 rounded-xl font-bold">Print Paper</button>
+            <button onclick="finalizePrint()" class="bg-white text-black px-8 py-3 rounded-xl font-bold">Done</button>
+        </div>
+    </div>
+
+    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-white text-black px-8 py-3 rounded-full shadow-2xl transition-all duration-500 opacity-0 translate-y-10 pointer-events-none font-bold text-xs uppercase tracking-widest z-[200]">
         <span id="toast-message"></span>
     </div>
 
     <script>
         const STORAGE_KEY = "bike_bank_v2_accounts";
-        const TIME_STORAGE_KEY = "sim_current_bike_time";
-        
+        const BILL_KEY = "bike_bank_v2_bills";
+        const TIME_KEY = "sim_current_bike_time";
+        const BILL_TYPES = [
+            { id: 'gas', name: 'Fuel Cells', price: 10 },
+            { id: 'food', name: 'Rations', price: 15 },
+            { id: 'tax', name: 'City Tax', price: 5 }
+        ];
+
         let currentUser = null;
         let accounts = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+        let activeBills = JSON.parse(localStorage.getItem(BILL_KEY)) || {};
 
         function init() {
             const params = new URLSearchParams(window.location.search);
-            const userName = params.get('user');
+            const user = params.get('user');
 
-            if (!userName) {
+            if (!user) {
                 document.getElementById('registration-modal').classList.remove('hidden');
             } else {
-                currentUser = userName.toLowerCase();
+                currentUser = user.toLowerCase();
                 if (!accounts[currentUser]) {
-                    accounts[currentUser] = { name: userName, balance: 0, activity: [] };
+                    accounts[currentUser] = { name: user, balance: 100, activity: [], billsPaid: {} };
                 }
-                
                 checkIncomingFunds();
                 renderAll();
-                updateDevPrompt();
             }
 
             setInterval(() => {
-                const time = localStorage.getItem(TIME_STORAGE_KEY) || "00:00:00";
+                const time = localStorage.getItem(TIME_KEY) || "00:00:00";
                 document.getElementById('bike-time-display').innerText = time.substring(0, 5);
             }, 1000);
 
-            // Idle redirect after 15s
+            // Auto-logout after 15s idle
             let idle;
             const reset = () => {
                 clearTimeout(idle);
@@ -224,66 +258,91 @@
         function checkIncomingFunds() {
             const params = new URLSearchParams(window.location.search);
             const amount = parseFloat(params.get('amount'));
-            
             if (!isNaN(amount) && amount !== 0) {
-                // Clear URL to prevent re-adding on refresh
-                const newUrl = window.location.origin + window.location.pathname + `?user=${currentUser}`;
-                window.history.replaceState({}, '', newUrl);
-
-                accounts[currentUser].balance += amount;
-                accounts[currentUser].activity.unshift({
-                    type: amount > 0 ? "EXTERNAL DEPOSIT" : "EXTERNAL PAYMENT",
-                    amount: amount,
-                    date: new Date().toLocaleTimeString()
-                });
-                
-                saveData();
-                showToast(`RECEIVING $${Math.abs(amount).toFixed(2)}`);
+                const cleanUrl = window.location.origin + window.location.pathname + `?user=${currentUser}`;
+                window.history.replaceState({}, '', cleanUrl);
+                logTransaction(amount, "EXTERNAL DEPOSIT");
+                showToast(`+$${amount} DEPOSITED`);
             }
         }
 
         function renderAll() {
             const user = accounts[currentUser];
-            document.getElementById('balance-display').innerText = `$${user.balance.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            document.getElementById('balance-display').innerText = `$${user.balance.toFixed(2)}`;
             document.getElementById('user-name-display').innerText = user.name;
             
-            if (user.activity.length > 0) {
-                const last = user.activity[0];
-                document.getElementById('last-activity-preview').innerText = `${last.amount > 0 ? '+' : '-'}$${Math.abs(last.amount).toFixed(2)}`;
-                document.getElementById('last-activity-preview').className = `text-2xl font-bold ${last.amount > 0 ? 'text-green-400' : 'text-red-400'}`;
-            }
-
+            // Render History
             const list = document.getElementById('activity-list');
             list.innerHTML = user.activity.map(a => `
                 <div class="glass-panel p-5 rounded-2xl flex justify-between items-center">
-                    <div>
-                        <p class="font-black text-xs uppercase opacity-80">${a.type}</p>
-                        <p class="text-[9px] text-slate-500 font-bold uppercase">${a.date}</p>
-                    </div>
+                    <div><p class="font-black text-xs uppercase">${a.type}</p></div>
                     <span class="font-mono font-black text-lg ${a.amount >= 0 ? 'text-green-400' : 'text-red-400'}">
                         ${a.amount >= 0 ? '+' : '-'}$${Math.abs(a.amount).toFixed(2)}
                     </span>
                 </div>
             `).join('');
+
+            // Render Bills
+            const billContainer = document.getElementById('bill-container');
+            billContainer.innerHTML = BILL_TYPES.map(b => `
+                <div class="glass-panel p-6 rounded-3xl flex justify-between items-center">
+                    <div><h4 class="font-bold">${b.name}</h4><p class="text-xs text-slate-400">$${b.price} Due Today</p></div>
+                    <button onclick="payBill('${b.id}', ${b.price})" class="bg-blue-500 hover:bg-blue-400 text-white px-6 py-2 rounded-xl font-bold text-xs uppercase">Pay Now</button>
+                </div>
+            `).join('');
         }
 
-        function updateDevPrompt() {
-            const baseUrl = window.location.href.split('?')[0];
-            const prompt = `I need you to update my code to send money to my bank. 
+        function payBill(id, price) {
+            if (accounts[currentUser].balance < price) return showToast("INSUFFICIENT FUNDS");
+            logTransaction(-price, `PAID ${id.toUpperCase()}`);
+            showToast("BILL SETTLED");
+        }
 
-When the player [wins/earns money], redirect them to this URL:
-${baseUrl}?user=${currentUser}&amount=[NUMBER]
-
-Replace [NUMBER] with the actual amount earned. Make sure the 'user' parameter is exactly '${currentUser}'.`;
+        function initiatePrint(val) {
+            if (accounts[currentUser].balance < val) return showToast("INSUFFICIENT FUNDS");
+            const serial = Math.random().toString().slice(2, 12);
+            activeBills[serial] = val;
+            localStorage.setItem(BILL_KEY, JSON.stringify(activeBills));
             
-            document.getElementById('dev-prompt-text').innerText = prompt;
+            document.getElementById('receipt-amount').innerText = val;
+            document.getElementById('receipt-barcode').innerText = serial;
+            document.getElementById('receipt-container').classList.remove('hidden');
+        }
+
+        function finalizePrint() {
+            const val = parseFloat(document.getElementById('receipt-amount').innerText);
+            logTransaction(-val, "CASH PRINTED");
+            document.getElementById('receipt-container').classList.add('hidden');
+            showToast("CASH ISSUED");
+        }
+
+        function processDeposit() {
+            const code = document.getElementById('deposit-code').value.trim();
+            if (activeBills[code]) {
+                const val = activeBills[code];
+                delete activeBills[code];
+                localStorage.setItem(BILL_KEY, JSON.stringify(activeBills));
+                logTransaction(val, "CASH REDEEMED");
+                document.getElementById('deposit-code').value = "";
+                showToast(`+$${val} REDEEMED`);
+            } else {
+                showToast("INVALID SERIAL");
+            }
+        }
+
+        function logTransaction(amount, type) {
+            accounts[currentUser].balance += amount;
+            accounts[currentUser].activity.unshift({ type, amount, date: new Date().toLocaleTimeString() });
+            saveData();
+            renderAll();
         }
 
         function copyAiPrompt() {
-            const text = document.getElementById('dev-prompt-text').innerText;
-            navigator.clipboard.writeText(text).then(() => {
-                showToast("INSTRUCTIONS COPIED");
-            });
+            const baseUrl = window.location.href.split('?')[0];
+            const msg = `UPDATE YOUR CODE TO SEND MONEY TO MY BANK: 
+URL: ${baseUrl}?user=${currentUser}&amount=[NUMBER]
+Replace [NUMBER] with the amount I earned. Make sure the user is ${currentUser}.`;
+            navigator.clipboard.writeText(msg).then(() => showToast("AI INSTRUCTIONS COPIED"));
         }
 
         function switchTab(tabId) {
@@ -295,14 +354,10 @@ Replace [NUMBER] with the actual amount earned. Make sure the 'user' parameter i
 
         function createNewAccount() {
             const name = document.getElementById('new-user-name').value.trim();
-            if (!name) return;
-            window.location.href = `?user=${encodeURIComponent(name)}`;
+            if (name) window.location.href = `?user=${encodeURIComponent(name)}`;
         }
 
-        function saveData() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts));
-        }
-
+        function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts)); }
         function showToast(msg) {
             const t = document.getElementById('toast');
             document.getElementById('toast-message').innerText = msg;
