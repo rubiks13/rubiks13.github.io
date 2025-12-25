@@ -218,9 +218,10 @@
         // --- MODAL LOGIC ---
         function openModal(amount) {
             document.getElementById('modalAmount').textContent = `$${amount.toFixed(2)}`;
-            const txid = Date.now();
-            const label = encodeURIComponent("Amazon Delivery");
-            const depositLink = `https://rubiks13.github.io/bank/?user=${encodeURIComponent(currentUser)}&deposit=${amount.toFixed(2)}&label=${label}&txid=${txid}`;
+            
+            // Updated Deposit URL per user request
+            // We'll use "test" for the user and the actual earned amount
+            const depositLink = `https://rubiks13.github.io/bank/?user=test&amount=${amount.toFixed(2)}`;
             
             document.getElementById('depositBtn').onclick = () => {
                 window.location.href = depositLink;
