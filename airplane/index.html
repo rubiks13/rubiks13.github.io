@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fly USA | GlassOS</title>
+    <title>Fly USA | Midnight GlassOS</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -11,10 +11,13 @@
 
         :root {
             --printer-width: 75mm;
+            --os-blue: #3b82f6;
+            --os-dark: #0f172a;
         }
 
         body {
-            background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+            /* Updated to Blue and Black Gradient */
+            background: radial-gradient(circle at top right, #1e293b, #020617);
             background-attachment: fixed;
             font-family: 'Plus Jakarta Sans', sans-serif;
             margin: 0;
@@ -27,28 +30,30 @@
 
         /* GlassOS Core Components */
         .glass-card {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(30, 41, 59, 0.4);
             backdrop-filter: blur(20px) saturate(180%);
             -webkit-backdrop-filter: blur(20px) saturate(180%);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
         }
 
         .glass-card-dark {
-            background: rgba(15, 23, 42, 0.4);
+            background: rgba(2, 6, 23, 0.6);
             backdrop-filter: blur(25px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.1);
         }
 
         .os-button {
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(59, 130, 246, 0.15);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(59, 130, 246, 0.3);
         }
 
         .os-button:hover {
-            background: rgba(255, 255, 255, 0.3);
+            background: rgba(59, 130, 246, 0.3);
+            border-color: rgba(59, 130, 246, 0.6);
             transform: translateY(-2px);
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
         }
 
         .os-button:active {
@@ -154,7 +159,7 @@
         <!-- OS Top Bar -->
         <header class="flex justify-between items-center px-4">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-2xl glass-card flex items-center justify-center font-bold text-lg">
+                <div class="w-10 h-10 rounded-2xl glass-card flex items-center justify-center font-bold text-lg text-blue-400">
                     <span id="user-initial">G</span>
                 </div>
                 <div>
@@ -162,407 +167,45 @@
                     <p id="display-user" class="text-xs opacity-60">Guest Session</p>
                 </div>
             </div>
-            <div class="glass-card px-4 py-2 rounded-xl text-[11px] font-bold tracking-widest uppercase flex items-center gap-3">
-                <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                System Active
+            <div class="glass-card px-4 py-2 rounded-xl text-[11px] font-bold tracking-widest uppercase flex items-center gap-3 border-blue-500/30">
+                <span class="w-2 h-2 bg-blue-400 rounded-full animate-pulse shadow-[0_0_8px_#3b82f6]"></span>
+                Network Active
             </div>
         </header>
 
         <!-- Main Window -->
         <main class="glass-card rounded-[2.5rem] p-8 md:p-12 overflow-hidden relative">
-            <!-- Decorative Gradient Blob -->
-            <div class="absolute -right-20 -top-20 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+            <!-- Decorative Blue Blob -->
+            <div class="absolute -right-20 -top-20 w-80 h-80 bg-blue-600/20 rounded-full blur-[100px] pointer-events-none"></div>
+            <div class="absolute -left-20 -bottom-20 w-80 h-80 bg-blue-900/30 rounded-full blur-[100px] pointer-events-none"></div>
             
             <div class="grid grid-cols-1 md:grid-cols-12 gap-10 items-center">
                 
                 <!-- Left Content -->
-                <div class="md:col-span-7 space-y-8">
+                <div class="md:col-span-7 space-y-8 relative z-10">
                     <div>
-                        <h2 class="text-4xl md:text-5xl font-extrabold tracking-tighter leading-none mb-4">Boarding<br><span class="opacity-50">Control Center</span></h2>
-                        <p class="text-sm opacity-70 max-w-xs leading-relaxed">Scan a hub code or select a flight count to begin the automated ticketing sequence.</p>
+                        <h2 class="text-4xl md:text-5xl font-extrabold tracking-tighter leading-none mb-4">Fly USA<br><span class="text-blue-400">Control Center</span></h2>
+                        <p class="text-sm opacity-70 max-w-xs leading-relaxed">Enter a flight quantity sequence or hub code to initiate automated ticket generation.</p>
                     </div>
 
                     <div class="space-y-4">
-                        <div class="glass-card-dark p-1 rounded-2xl flex items-center pr-4">
-                            <input type="text" id="scanner-input" oninput="handleMultiInput(this.value)" placeholder="Input Hub Code (1-5)" 
-                                class="bg-transparent border-none text-white font-bold text-lg px-6 py-4 w-full outline-none placeholder:text-white/20">
-                            <kbd class="text-[10px] bg-white/10 px-2 py-1 rounded opacity-50 uppercase font-mono">Input</kbd>
+                        <div class="glass-card-dark p-1 rounded-2xl flex items-center pr-4 focus-within:border-blue-500/50 transition-colors">
+                            <input type="text" id="scanner-input" oninput="handleMultiInput(this.value)" placeholder="Input Sequence (1-5)" 
+                                class="bg-transparent border-none text-white font-bold text-lg px-6 py-4 w-full outline-none placeholder:text-blue-300/20">
+                            <kbd class="text-[10px] bg-blue-500/20 text-blue-300 px-2 py-1 rounded uppercase font-mono border border-blue-500/20">Active</kbd>
                         </div>
                         
                         <div class="flex flex-wrap gap-2">
-                            <button onclick="startFlightChain(1)" class="os-button px-4 py-2 rounded-xl text-xs font-bold">1x Leg</button>
-                            <button onclick="startFlightChain(3)" class="os-button px-4 py-2 rounded-xl text-xs font-bold">3x Chain</button>
-                            <button onclick="startFlightChain(5)" class="os-button px-4 py-2 rounded-xl text-xs font-bold">5x Full</button>
+                            <button onclick="startFlightChain(1)" class="os-button px-6 py-2.5 rounded-xl text-xs font-bold text-blue-100 uppercase tracking-wider">1x Leg</button>
+                            <button onclick="startFlightChain(3)" class="os-button px-6 py-2.5 rounded-xl text-xs font-bold text-blue-100 uppercase tracking-wider">3x Chain</button>
+                            <button onclick="startFlightChain(5)" class="os-button px-6 py-2.5 rounded-xl text-xs font-bold text-blue-100 uppercase tracking-wider">5x Full</button>
                         </div>
                     </div>
                 </div>
 
                 <!-- Right Action Section -->
-                <div class="md:col-span-5 flex flex-col gap-4">
-                    <div id="bank-status-container" class="glass-card-dark rounded-3xl p-6 flex flex-col justify-between h-[280px] transition-all duration-500">
+                <div class="md:col-span-5 flex flex-col gap-4 relative z-10">
+                    <div id="bank-status-container" class="glass-card-dark rounded-3xl p-6 flex flex-col justify-between h-[280px] transition-all duration-500 border-blue-500/10">
                         <div>
-                            <div class="text-[10px] uppercase font-black tracking-widest text-white/40 mb-2">Earnings Balance</div>
-                            <div class="text-4xl font-extrabold tracking-tighter">$5.00 <span class="text-xs opacity-40 font-normal">/ ride</span></div>
-                        </div>
-
-                        <div id="status-text" class="text-xs opacity-60 leading-relaxed font-medium">
-                            System idle. Waiting for flight initialization...
-                        </div>
-
-                        <div id="bank-link-wrapper" class="hidden bank-pop">
-                            <div class="bg-white text-indigo-600 px-4 py-3 rounded-2xl text-center text-xs font-bold shadow-xl">
-                                Connecting to Gateway...
-                            </div>
-                        </div>
-
-                        <div class="pt-4 border-t border-white/5 flex justify-between items-center">
-                            <div id="idle-warning" class="text-[10px] text-orange-400 font-bold hidden animate-pulse">AUTORETURN ACTIVE</div>
-                            <div class="text-[10px] opacity-30 font-bold uppercase tracking-widest">OS v.4.0</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </main>
-
-        <!-- Bottom Bar -->
-        <footer class="flex justify-between items-center px-4">
-            <button onclick="openSettings()" class="os-button flex items-center gap-2 px-6 py-3 rounded-2xl text-xs font-bold">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                Preferences
-            </button>
-            <div class="glass-card px-4 py-2 rounded-xl text-[10px] opacity-60 italic">Secure Flight Channel Encrypted</div>
-        </footer>
-    </div>
-
-    <!-- PRINT VIEW (UNTOUCHED THEME) -->
-    <div id="print-view" class="page-hidden fixed inset-0 bg-white z-[50] flex flex-col items-center justify-center overflow-hidden p-4">
-        <div class="no-print mb-8 text-center">
-            <h2 class="text-2xl font-black text-indigo-600 uppercase" id="print-title">Dispatching Ticket...</h2>
-            <p class="text-gray-400 text-sm font-bold" id="print-subtitle">Linking Session</p>
-        </div>
-
-        <div id="print-area">
-            <!-- Thermal View -->
-            <div id="layout-view-thermal" class="layout-thermal hidden">
-                <div class="flex justify-between items-center mb-4">
-                    <div class="font-black text-lg italic tracking-tighter">FLY USA</div>
-                    <div class="text-[8px] font-bold border border-black px-1.5 py-0.5 uppercase">Boarding Pass</div>
-                </div>
-                <div class="dashed-line"></div>
-                <div class="mb-3">
-                    <div class="label">Passenger</div>
-                    <div class="value name-target">---</div>
-                </div>
-                <div class="flex justify-between mb-3">
-                    <div><div class="label">From</div><div class="text-xl font-black from-target">---</div></div>
-                    <div class="flex items-center px-1 text-lg">✈</div>
-                    <div class="text-right"><div class="label">To</div><div class="text-xl font-black to-target">---</div></div>
-                </div>
-                <div class="flex justify-between gap-2 mb-3">
-                    <div class="flex-1"><div class="label">Ride ID</div><div class="value flight-target text-[9pt]">US000</div></div>
-                    <div class="text-right flex-1"><div class="label">Date</div><div class="value date-target text-[9pt]">---</div></div>
-                </div>
-                <div class="dashed-line"></div>
-                <div class="grid grid-cols-2 gap-1 mb-2 text-center bg-gray-50 p-1.5">
-                    <div><div class="label">Gate</div><div class="value gate-target">--</div></div>
-                    <div class="border-l border-gray-200"><div class="label">Bike</div><div class="value seat-target">--</div></div>
-                </div>
-                <div class="grid grid-cols-2 gap-1 mb-5 text-center bg-gray-50 p-1.5 pt-0">
-                    <div><div class="label">Real Time</div><div class="value time-target">--:--</div></div>
-                    <div class="border-l border-gray-200"><div class="label">Bank Time</div><div class="value bank-time-target">--:--</div></div>
-                </div>
-                <div class="flex flex-col items-center gap-3">
-                    <div class="qr-target bg-white p-1"></div>
-                    <div class="barcode text-center barcode-target">US000</div>
-                </div>
-            </div>
-
-            <!-- Modern Card View -->
-            <div id="layout-view-modern" class="layout-modern hidden">
-                <div class="bg-indigo-600 p-4 text-white flex justify-between items-center">
-                    <div>
-                        <div class="text-xs opacity-80 uppercase font-bold tracking-widest">Boarding Pass</div>
-                        <div class="text-2xl font-black italic">FLY USA</div>
-                    </div>
-                    <div class="text-right"><div class="text-xs opacity-80 uppercase font-bold">Ride ID</div><div class="text-xl font-bold flight-target">US000</div></div>
-                </div>
-                <div class="p-6 grid grid-cols-2 gap-6">
-                    <div>
-                        <div class="mb-4"><div class="label">Passenger</div><div class="text-lg font-bold name-target">---</div></div>
-                        <div class="flex justify-between items-end bg-gray-50 p-3 rounded-lg border border-gray-100">
-                            <div><div class="label">From</div><div class="text-2xl font-black text-indigo-600 from-target">---</div></div>
-                            <div class="pb-1 text-gray-300">→</div>
-                            <div class="text-right"><div class="label">To</div><div class="text-2xl font-black text-indigo-600 to-target">---</div></div>
-                        </div>
-                    </div>
-                    <div class="flex flex-col items-center justify-center border-l border-gray-100 pl-6">
-                        <div class="qr-target mb-2"></div>
-                        <div class="text-[7pt] font-mono barcode-target uppercase">US000</div>
-                    </div>
-                </div>
-                <div class="bg-gray-100 p-4 grid grid-cols-5 gap-2 text-center border-t border-gray-200">
-                    <div><div class="label">Gate</div><div class="font-bold gate-target text-xs">--</div></div>
-                    <div><div class="label">Bike</div><div class="font-bold seat-target text-xs">--</div></div>
-                    <div><div class="label">Time</div><div class="font-bold time-target text-xs">--:--</div></div>
-                    <div><div class="label">Bank</div><div class="font-bold bank-time-target text-xs">--:--</div></div>
-                    <div><div class="label">Date</div><div class="font-bold date-target text-[10px]">--/--</div></div>
-                </div>
-            </div>
-        </div>
-
-        <button onclick="goHome()" class="no-print mt-10 os-button bg-gray-900 text-white px-8 py-3 rounded-full font-bold">
-            ← ABORT SEQUENCE
-        </button>
-    </div>
-
-    <!-- SETTINGS MODAL -->
-    <div id="settings-modal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-[100] px-4 backdrop-blur-xl">
-        <div class="glass-card-dark p-8 rounded-[2rem] max-w-lg w-full shadow-2xl overflow-y-auto max-h-[90vh] border border-white/20">
-            <h3 class="text-xl font-bold mb-6 tracking-tight">System Configuration</h3>
-            
-            <div class="space-y-6">
-                <div>
-                    <label class="block text-[10px] font-bold uppercase opacity-40 mb-3 tracking-widest">Interface Layout</label>
-                    <div class="grid grid-cols-2 gap-3">
-                        <button onclick="setLayout('thermal')" id="btn-layout-thermal" class="py-4 rounded-xl font-bold transition-all border border-white/10 bg-white/5">Thermal Receipt</button>
-                        <button onclick="setLayout('modern')" id="btn-layout-modern" class="py-4 rounded-xl font-bold transition-all border border-white/10 bg-white/5">Modern Card</button>
-                    </div>
-                </div>
-
-                <div id="thermal-width-setting" class="hidden">
-                    <label class="block text-[10px] font-bold uppercase opacity-40 mb-3 tracking-widest">Thermal Width (mm)</label>
-                    <div class="flex items-center gap-4 bg-white/5 p-4 rounded-xl">
-                        <input type="range" id="width-range" min="40" max="120" step="1" class="flex-1 accent-white" oninput="updateWidthDisplay(this.value)">
-                        <span id="width-value" class="font-mono font-bold w-12 text-right">75mm</span>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-[10px] font-bold uppercase opacity-40 mb-3 tracking-widest">Home Station</label>
-                    <input type="text" id="main-hub" class="w-full bg-white/5 border border-white/10 p-4 rounded-xl font-bold uppercase outline-none focus:border-white/30 transition-colors" placeholder="e.g., SFO">
-                </div>
-
-                <div class="flex gap-3 pt-4">
-                    <button onclick="saveSettings()" class="flex-1 bg-white text-indigo-600 py-4 rounded-xl font-bold">Apply Changes</button>
-                    <button onclick="closeSettings()" class="bg-white/10 px-6 py-4 rounded-xl font-bold">Cancel</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        function getActiveUser() {
-            const urlParams = new URLSearchParams(window.location.search);
-            let user = urlParams.get('user');
-            if (!user) user = localStorage.getItem('active_directory_user') || 'guest';
-            return user.toLowerCase();
-        }
-
-        const activeUser = getActiveUser();
-        const defaultAirports = ["HOME", "PARK", "SHOP", "SCHOOL", "TRAIL", "HILL", "LAKE", "BRIDGE", "CENTER"];
-        const names = ["Alex River", "Jamie Smith", "Casey Lane", "Taylor Reed", "Morgan Hill", "Jordan West", "Skyler Blue", "Riley Quinn", "Peyton Ross", "Charlie Day"];
-
-        let currentLayout = localStorage.getItem('flyusa_layout') || 'thermal';
-        let currentWidth = localStorage.getItem('flyusa_width') || '75';
-        let qrInstances = [];
-        let idleTimer;
-        const IDLE_TIME_LIMIT = 15000;
-        const REDIRECT_URL = "https://rubiks13.github.io/bikes/";
-        const BANK_BASE_URL = "https://rubiks13.github.io/bank/";
-
-        let chainRemaining = 0;
-        let chainTotalCount = 0;
-
-        function resetIdleTimer() {
-            clearTimeout(idleTimer);
-            const warningEl = document.getElementById('idle-warning');
-            if (warningEl) warningEl.classList.add('hidden');
-            
-            idleTimer = setTimeout(() => {
-                const isPrinting = !document.getElementById('print-view').classList.contains('page-hidden');
-                const isSettingsOpen = !document.getElementById('settings-modal').classList.contains('hidden');
-                const isBankActive = !document.getElementById('bank-link-wrapper').classList.contains('hidden');
-                if (!isPrinting && !isSettingsOpen && !isBankActive) { window.location.href = REDIRECT_URL; } else { resetIdleTimer(); }
-            }, IDLE_TIME_LIMIT);
-
-            setTimeout(() => {
-               const isPrinting = !document.getElementById('print-view').classList.contains('page-hidden');
-               if (window.location.href !== REDIRECT_URL && !isPrinting) { if (warningEl) warningEl.classList.remove('hidden'); }
-            }, IDLE_TIME_LIMIT - 3000);
-        }
-
-        window.addEventListener('keydown', (e) => {
-            if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); openSettings(); }
-            resetIdleTimer();
-        });
-
-        window.addEventListener('mousemove', resetIdleTimer);
-        window.addEventListener('touchstart', resetIdleTimer);
-
-        function updateWidthDisplay(val) {
-            document.getElementById('width-value').textContent = val + 'mm';
-            document.documentElement.style.setProperty('--printer-width', val + 'mm');
-            currentWidth = val;
-        }
-
-        function getBankTime() {
-            let startTime = localStorage.getItem('sim_bank_start_real_time');
-            if (!startTime) { startTime = Date.now(); localStorage.setItem('sim_bank_start_real_time', startTime); }
-            const elapsedMins = (Date.now() - startTime) / 60000;
-            const bankHour = Math.floor(elapsedMins % 24);
-            const bankMinute = Math.floor((elapsedMins * 60) % 60);
-            const ampm = bankHour >= 12 ? 'PM' : 'AM';
-            const displayHour = bankHour % 12 || 12;
-            const displayMin = bankMinute.toString().padStart(2, '0');
-            return `${displayHour}:${displayMin} ${ampm}`;
-        }
-
-        function initQRs() {
-            document.querySelectorAll('.qr-target').forEach((el) => { 
-                qrInstances.push(new QRCode(el, { width: 90, height: 90 })); 
-            });
-        }
-
-        function handleJobCompletion(data) {
-            const currentBankTime = getBankTime();
-            document.querySelectorAll('.bank-time-target').forEach(el => el.textContent = currentBankTime);
-
-            window.print();
-            
-            setTimeout(() => {
-                chainRemaining--;
-                if (chainRemaining > 0) {
-                    const nextRide = generateRandomRide(data.to);
-                    populateTicket(nextRide);
-                    executePrintSequence(nextRide);
-                } else {
-                    const totalAmount = chainTotalCount * 5.00;
-                    const paymentUrl = `${BANK_BASE_URL}?user=${encodeURIComponent(activeUser)}&amount=${totalAmount.toFixed(2)}`;
-                    document.getElementById('status-text').textContent = "Processing payload transfer...";
-                    document.getElementById('bank-link-wrapper').classList.remove('hidden');
-                    setTimeout(() => { window.location.href = paymentUrl; }, 1500); 
-                }
-            }, 800);
-        }
-
-        function handleMultiInput(value) {
-            const num = parseInt(value);
-            if (!isNaN(num) && num >= 1 && num <= 5) {
-                document.getElementById('scanner-input').value = '';
-                startFlightChain(num);
-            }
-        }
-
-        function startFlightChain(count) {
-            chainTotalCount = count;
-            chainRemaining = count;
-            const firstRide = generateRandomRide();
-            populateTicket(firstRide);
-            executePrintSequence(firstRide);
-        }
-
-        function executePrintSequence(data) {
-            document.getElementById('status-text').textContent = `Building leg ${chainTotalCount - chainRemaining + 1} of ${chainTotalCount}...`;
-            document.getElementById('home-page').classList.replace('page-visible', 'page-hidden');
-            document.getElementById('print-view').classList.replace('page-hidden', 'page-visible');
-            document.body.style.background = "white";
-            document.getElementById('layout-view-thermal').classList.add('hidden');
-            document.getElementById('layout-view-modern').classList.add('hidden');
-            document.getElementById('print-subtitle').textContent = `Sequence ${chainTotalCount - chainRemaining + 1} / ${chainTotalCount}`;
-
-            if (currentLayout === 'thermal') {
-                document.getElementById('layout-view-thermal').classList.remove('hidden');
-            } else {
-                document.getElementById('layout-view-modern').classList.remove('hidden');
-            }
-            setTimeout(() => { handleJobCompletion(data); }, 500);
-        }
-
-        function goHome() {
-            chainRemaining = 0;
-            document.getElementById('print-view').classList.replace('page-visible', 'page-hidden');
-            document.getElementById('home-page').classList.replace('page-hidden', 'page-visible');
-            document.body.style.background = "linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%)";
-            setTimeout(() => { document.getElementById('scanner-input')?.focus(); }, 100);
-            resetIdleTimer();
-        }
-
-        function generateRandomRide(forceFrom = null) {
-            const pool = getAirports();
-            const hub = localStorage.getItem('flyusa_hub')?.trim().toUpperCase();
-            let from = forceFrom || (hub || pool[Math.floor(Math.random() * pool.length)]);
-            let to;
-            if (chainRemaining === 1 && hub && hub !== "" && from !== hub) {
-                to = hub;
-            } else {
-                do { to = pool[Math.floor(Math.random() * pool.length)]; } while (to === from);
-            }
-            let selectedName = names[Math.floor(Math.random() * names.length)].toUpperCase();
-            const now = new Date();
-            return {
-                name: selectedName,
-                flight: "US" + Math.floor(100000000 + Math.random() * 900000000),
-                from, to,
-                gate: String.fromCharCode(65 + Math.floor(Math.random() * 4)) + Math.floor(Math.random() * 9 + 1),
-                seat: (Math.floor(Math.random() * 12) + 1) + "B",
-                time: String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0'),
-                date: now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }).toUpperCase()
-            };
-        }
-
-        function populateTicket(data) {
-            document.querySelectorAll('.name-target').forEach(el => el.textContent = data.name);
-            document.querySelectorAll('.from-target').forEach(el => el.textContent = data.from);
-            document.querySelectorAll('.to-target').forEach(el => el.textContent = data.to);
-            document.querySelectorAll('.flight-target').forEach(el => el.textContent = data.flight);
-            document.querySelectorAll('.date-target').forEach(el => el.textContent = data.date);
-            document.querySelectorAll('.gate-target').forEach(el => el.textContent = data.gate);
-            document.querySelectorAll('.seat-target').forEach(el => el.textContent = data.seat);
-            document.querySelectorAll('.time-target').forEach(el => el.textContent = data.time);
-            document.querySelectorAll('.barcode-target').forEach(el => el.textContent = data.flight);
-            qrInstances.forEach(inst => { inst.clear(); inst.makeCode(data.flight); });
-        }
-
-        function setLayout(type) {
-            currentLayout = type;
-            document.getElementById('btn-layout-thermal').className = type === 'thermal' ? 'py-4 rounded-xl font-bold border border-white/40 bg-white/20' : 'py-4 rounded-xl font-bold border border-white/10 bg-white/5 opacity-50';
-            document.getElementById('btn-layout-modern').className = type === 'modern' ? 'py-4 rounded-xl font-bold border border-white/40 bg-white/20' : 'py-4 rounded-xl font-bold border border-white/10 bg-white/5 opacity-50';
-            document.getElementById('thermal-width-setting').classList.toggle('hidden', type !== 'thermal');
-        }
-
-        function openSettings() {
-            document.getElementById('main-hub').value = localStorage.getItem('flyusa_hub') || "";
-            const savedWidth = localStorage.getItem('flyusa_width') || '75';
-            document.getElementById('width-range').value = savedWidth;
-            updateWidthDisplay(savedWidth);
-            setLayout(currentLayout);
-            document.getElementById('settings-modal').classList.remove('hidden');
-        }
-
-        function closeSettings() { document.getElementById('settings-modal').classList.add('hidden'); resetIdleTimer(); }
-
-        function saveSettings() {
-            localStorage.setItem('flyusa_hub', document.getElementById('main-hub').value);
-            localStorage.setItem('flyusa_layout', currentLayout);
-            localStorage.setItem('flyusa_width', currentWidth);
-            closeSettings();
-        }
-
-        function getAirports() {
-            return defaultAirports;
-        }
-
-        window.onload = () => {
-            const userDisplay = document.getElementById('display-user');
-            const userInitial = document.getElementById('user-initial');
-            if (userDisplay) userDisplay.textContent = activeUser + " Session";
-            if (userInitial) userInitial.textContent = activeUser.charAt(0).toUpperCase();
-            const savedWidth = localStorage.getItem('flyusa_width') || '75';
-            updateWidthDisplay(savedWidth);
-            initQRs();
-            document.getElementById('scanner-input')?.focus();
-            resetIdleTimer();
-        };
-    </script>
-</body>
-</html>
+                            <div class="text-[10px] uppercase font-black tracking-widest text-blue-400/40 mb-2">Earnings Balance</div>
+                            <div class="text-4xl font-extrabold tracking-tighter">$5.00
