@@ -10,7 +10,8 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Libre+Barcode+128&display=swap');
 
         :root {
-            --printer-width: 80mm;
+            /* Adjusted to 75mm to prevent edge-clipping on standard thermal printers */
+            --printer-width: 75mm;
         }
 
         body {
@@ -25,7 +26,7 @@
             width: var(--printer-width);
             background: white;
             color: black;
-            padding: 5mm;
+            padding: 4mm; /* Slightly tighter padding for smaller width */
             box-sizing: border-box;
             border: 1px dashed #ccc;
         }
@@ -43,24 +44,24 @@
 
         .barcode {
             font-family: 'Libre Barcode 128', cursive;
-            font-size: 40px;
+            font-size: 36px; /* Slightly smaller to fit 75mm width better */
             line-height: 1;
         }
 
         .dashed-line {
             border-top: 1px dashed black;
-            margin: 10px 0;
+            margin: 8px 0;
         }
 
         .label {
-            font-size: 8pt;
+            font-size: 7.5pt;
             text-transform: uppercase;
             font-weight: 600;
             color: #666;
         }
 
         .value {
-            font-size: 11pt;
+            font-size: 10.5pt;
             font-weight: 800;
         }
 
@@ -159,45 +160,45 @@
             <!-- Thermal Layout -->
             <div id="layout-view-thermal" class="layout-thermal mx-auto hidden">
                 <div class="flex justify-between items-center mb-4">
-                    <div class="font-black text-xl italic tracking-tighter">FLY USA</div>
-                    <div class="text-xs font-bold border border-black px-2 py-0.5 uppercase">Boarding Pass</div>
+                    <div class="font-black text-lg italic tracking-tighter">FLY USA</div>
+                    <div class="text-[8px] font-bold border border-black px-1.5 py-0.5 uppercase">Boarding Pass</div>
                 </div>
                 <div class="dashed-line"></div>
-                <div class="mb-4">
+                <div class="mb-3">
                     <div class="label">Passenger</div>
                     <div class="value name-target">---</div>
                 </div>
-                <div class="flex justify-between mb-4">
+                <div class="flex justify-between mb-3">
                     <div>
                         <div class="label">From</div>
-                        <div class="text-2xl font-black from-target">---</div>
+                        <div class="text-xl font-black from-target">---</div>
                     </div>
-                    <div class="flex items-center px-2 text-xl">✈</div>
+                    <div class="flex items-center px-1 text-lg">✈</div>
                     <div class="text-right">
                         <div class="label">To</div>
-                        <div class="text-2xl font-black to-target">---</div>
+                        <div class="text-xl font-black to-target">---</div>
                     </div>
                 </div>
-                <div class="flex justify-between gap-4 mb-4">
+                <div class="flex justify-between gap-2 mb-3">
                     <div class="flex-1">
                         <div class="label">Ride ID</div>
-                        <div class="value flight-target">US000000000</div>
+                        <div class="value flight-target text-[9pt]">US000000000</div>
                     </div>
                     <div class="text-right flex-1">
                         <div class="label">Date</div>
-                        <div class="value date-target">-- --- ----</div>
+                        <div class="value date-target text-[9pt]">-- --- ----</div>
                     </div>
                 </div>
                 <div class="dashed-line"></div>
-                <div class="grid grid-cols-2 gap-2 mb-2 text-center bg-gray-50 p-2">
+                <div class="grid grid-cols-2 gap-1 mb-2 text-center bg-gray-50 p-1.5">
                     <div><div class="label">Gate</div><div class="value gate-target">--</div></div>
                     <div class="border-l border-gray-200"><div class="label">Bike</div><div class="value seat-target">--</div></div>
                 </div>
-                <div class="grid grid-cols-2 gap-2 mb-6 text-center bg-gray-50 p-2 pt-0">
+                <div class="grid grid-cols-2 gap-1 mb-5 text-center bg-gray-50 p-1.5 pt-0">
                     <div><div class="label">Real Time</div><div class="value time-target">--:--</div></div>
                     <div class="border-l border-gray-200"><div class="label">Bank Time</div><div class="value bank-time-target">--:-- --</div></div>
                 </div>
-                <div class="flex flex-col items-center gap-4">
+                <div class="flex flex-col items-center gap-3">
                     <div class="qr-target bg-white p-1"></div>
                     <div class="barcode text-center barcode-target">US000000000</div>
                 </div>
@@ -315,9 +316,8 @@
 
         // KEYBOARD SHORTCUTS
         window.addEventListener('keydown', (e) => {
-            // Check for Ctrl+S or Cmd+S
             if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-                e.preventDefault(); // Stop browser save dialog
+                e.preventDefault();
                 openSettings();
             }
             resetIdleTimer();
@@ -338,7 +338,7 @@
         }
 
         function initQRs() {
-            document.querySelectorAll('.qr-target').forEach((el) => { qrInstances.push(new QRCode(el, { width: 100, height: 100 })); });
+            document.querySelectorAll('.qr-target').forEach((el) => { qrInstances.push(new QRCode(el, { width: 90, height: 90 })); });
         }
 
         function getFlightDb() {
