@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+=<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -141,9 +141,8 @@
             </div>
             <div id="bank-status-container" class="bg-blue-50 p-6 rounded-xl border border-blue-100 flex flex-col items-center justify-center text-blue-600 font-bold text-center italic transition-all">
                 <p id="status-text">Ready for departure. Earn $5.00 per flight.</p>
-                <!-- REDIRECT MESSAGE -->
                 <div id="bank-link-wrapper" class="hidden mt-4 bank-pop">
-                    <p class="text-green-600 font-black text-lg animate-pulse">REDIRECTING TO BANK...</p>
+                    <p class="text-green-600 font-black text-lg animate-pulse uppercase tracking-tight">Updating Bike Bank...</p>
                 </div>
             </div>
         </div>
@@ -151,9 +150,9 @@
 
     <!-- PRINT PAGE SECTION -->
     <div id="print-view" class="page-hidden fixed inset-0 bg-white z-[50] flex flex-col items-center justify-center overflow-auto p-4">
-        <div class="no-print mb-8 text-center animate-pulse">
-            <h2 class="text-2xl font-black text-blue-600 uppercase" id="print-title">Printing Boarding Pass...</h2>
-            <p class="text-gray-500">Preparing layout for printer.</p>
+        <div class="no-print mb-8 text-center">
+            <h2 class="text-2xl font-black text-blue-600 uppercase" id="print-title">Processing Flight Ticket...</h2>
+            <p class="text-gray-500">Connecting to Pilot Network</p>
         </div>
 
         <div id="print-area">
@@ -173,7 +172,7 @@
                         <div class="label">From</div>
                         <div class="text-2xl font-black from-target">---</div>
                     </div>
-                    <div class="flex items-center">✈</div>
+                    <div class="flex items-center px-2 text-xl">✈</div>
                     <div class="text-right">
                         <div class="label">To</div>
                         <div class="text-2xl font-black to-target">---</div>
@@ -304,13 +303,13 @@
             idleTimer = setTimeout(() => {
                 const isPrinting = !document.getElementById('print-view').classList.contains('page-hidden');
                 const isSettingsOpen = !document.getElementById('settings-modal').classList.contains('hidden');
-                const isBankReady = !document.getElementById('bank-link-wrapper').classList.contains('hidden');
-                if (!isPrinting && !isSettingsOpen && !isBankReady) { window.location.href = REDIRECT_URL; } else { resetIdleTimer(); }
+                const isBankActive = !document.getElementById('bank-link-wrapper').classList.contains('hidden');
+                if (!isPrinting && !isSettingsOpen && !isBankActive) { window.location.href = REDIRECT_URL; } else { resetIdleTimer(); }
             }, IDLE_TIME_LIMIT);
             setTimeout(() => {
                const isPrinting = !document.getElementById('print-view').classList.contains('page-hidden');
-               const isBankReady = !document.getElementById('bank-link-wrapper').classList.contains('hidden');
-               if (window.location.href !== REDIRECT_URL && !isPrinting && !isBankReady) { document.getElementById('idle-warning').classList.remove('hidden'); }
+               const isBankActive = !document.getElementById('bank-link-wrapper').classList.contains('hidden');
+               if (window.location.href !== REDIRECT_URL && !isPrinting && !isBankActive) { document.getElementById('idle-warning').classList.remove('hidden'); }
             }, IDLE_TIME_LIMIT - 3000);
         }
 
@@ -345,34 +344,34 @@
             updateLogDisplay();
         }
 
-        // UPDATED: DIRECT REDIRECT TO BANK
+        // REDIRECT TO BIKE BANK ENDPOINT
         function handleJobCompletion(data) {
             const currentBankTime = getBankTime();
             document.querySelectorAll('.bank-time-target').forEach(el => el.textContent = currentBankTime);
 
-            // Execute Print
+            // Open OS Print Dialog
             window.print();
             
             setTimeout(() => {
-                const amount = 5.00;
+                const amount = 5.00; // Standard Pilot Pay
                 
-                // Formulate Bank URL with user=test and amount
-                const depositUrl = `${BANK_BASE_URL}?user=test&amount=${amount.toFixed(2)}`;
+                // Formulate Bank URL
+                const paymentUrl = `${BANK_BASE_URL}?user=${encodeURIComponent(activeUser)}&amount=${amount.toFixed(2)}`;
                 
-                // UI update before redirect
+                // Update Local UI
                 const bankWrapper = document.getElementById('bank-link-wrapper');
                 const statusTxt = document.getElementById('status-text');
                 const container = document.getElementById('bank-status-container');
 
-                statusTxt.textContent = "Flight Successful! Sending earnings to bank...";
+                statusTxt.textContent = "Payment processing for " + activeUser;
                 bankWrapper.classList.remove('hidden');
                 container.classList.replace('bg-blue-50', 'bg-green-50');
                 container.classList.replace('border-blue-100', 'border-green-200');
 
-                // Perform the redirect
+                // Perform the Bank Redirect after short delay
                 setTimeout(() => {
-                    window.location.href = depositUrl;
-                }, 1500); 
+                    window.location.href = paymentUrl;
+                }, 2000); 
                 
                 goHome();
             }, 1000);
@@ -389,6 +388,13 @@
                 logs.appendChild(p);
             });
             if (Object.keys(db).length === 0) logs.innerHTML = '<p>> No current records.</p>';
+        }
+
+        function clearHistory() {
+            if(confirm("Delete all flight logs for " + activeUser + "?")) {
+                localStorage.removeItem(`flyusa_flights_${activeUser}`);
+                updateLogDisplay();
+            }
         }
 
         function handleScan(value) {
@@ -415,7 +421,7 @@
 
         function executePrintSequence(data) {
             document.getElementById('bank-link-wrapper').classList.add('hidden');
-            document.getElementById('status-text').textContent = "Printing Boarding Pass...";
+            document.getElementById('status-text').textContent = "Preparing flight logs...";
             document.getElementById('bank-status-container').classList.replace('bg-green-50', 'bg-blue-50');
             
             saveFlightToDb(data);
@@ -424,8 +430,10 @@
             document.body.style.backgroundColor = "white";
             document.getElementById('layout-view-thermal').classList.add('hidden');
             document.getElementById('layout-view-modern').classList.add('hidden');
+            
             if (currentLayout === 'thermal') document.getElementById('layout-view-thermal').classList.remove('hidden');
             else document.getElementById('layout-view-modern').classList.remove('hidden');
+            
             setTimeout(() => { handleJobCompletion(data); }, 500);
         }
 
