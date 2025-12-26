@@ -130,7 +130,7 @@
                 <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
                     <span class="bg-blue-500 text-white p-1 rounded">🚲</span> Delivery Route
                 </h2>
-                <p class="text-sm text-gray-600 mb-4">Each delivery stop adds $5.00 to your personal bike bank account.</p>
+                <p class="text-sm text-gray-600 mb-4">You earn $5.00 for every individual stop on your route.</p>
                 <button id="generateBtn" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-lg transition-colors shadow-md">
                     Generate Optimized Route & Print
                 </button>
@@ -153,7 +153,7 @@
     <div id="depositModal" class="deposit-modal hidden no-print">
         <div class="text-4xl mb-4">💰</div>
         <h3 class="text-xl font-bold mb-2">Earnings Ready!</h3>
-        <p class="text-gray-600 mb-6">You earned <span id="modalAmount" class="font-bold text-green-600">$0.00</span> from this delivery run.</p>
+        <p class="text-gray-600 mb-6">You earned <span id="modalAmount" class="font-bold text-green-600">$0.00</span> (<span id="stopCountText">0</span> stops x $5.00).</p>
         <button id="depositBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-lg transition-all mb-3">
             Go to Bank to Deposit
         </button>
@@ -165,17 +165,14 @@
     </div>
 
     <script>
-        // --- v2.7 SYSTEM IDENTITY & USER HAND-OFF ---
         const urlParams = new URLSearchParams(window.location.search);
         const currentUser = urlParams.get('user') || localStorage.getItem('active_directory_user') || 'Guest';
         document.getElementById('activeUserName').textContent = currentUser;
 
-        // --- BANK REDIRECT LOGIC ---
         document.getElementById('goToBankBtn').onclick = () => {
             window.location.href = `https://rubiks13.github.io/bikes/bank_app.html?user=${encodeURIComponent(currentUser)}`;
         };
 
-        // --- BANK TIME SYNC LOGIC ---
         function getBankTime() {
             let startTime = localStorage.getItem('sim_bank_start_real_time');
             if (!startTime) {
@@ -191,12 +188,10 @@
             return `${displayHour}:${displayMin} ${ampm}`;
         }
 
-        // Live clock update
         setInterval(() => {
             document.getElementById('bankClock').textContent = getBankTime();
         }, 1000);
 
-        // --- INACTIVITY REDIRECT LOGIC ---
         let idleTimer;
         const idleLimit = 5000; 
         const redirectUrl = "https://rubiks13.github.io/bikes/";
@@ -215,11 +210,11 @@
         window.onclick = resetTimer;     
         window.onkeydown = resetTimer;   
 
-        // --- MODAL LOGIC ---
-        function openModal(amount) {
+        function openModal(amount, stops) {
             document.getElementById('modalAmount').textContent = `$${amount.toFixed(2)}`;
+            document.getElementById('stopCountText').textContent = stops;
             
-            // v2.7 TRANSACTION ENDPOINT LOGIC
+            // Send the total accumulated amount for the whole route (all orders)
             const depositLink = `https://rubiks13.github.io/bank/?user=${encodeURIComponent(currentUser)}&amount=${amount.toFixed(2)}`;
             
             document.getElementById('depositBtn').onclick = () => {
@@ -235,7 +230,6 @@
             document.getElementById('depositModal').classList.add('hidden');
         }
 
-        // --- APP LOGIC ---
         let savedAddresses = JSON.parse(localStorage.getItem(`fieldAddresses_${currentUser}`) || '[]');
 
         const itemPool = [
@@ -288,7 +282,6 @@
             return shuffled.slice(0, count).map(item => `1x ${item}`);
         }
 
-        // v2.7 MANDATORY DATA STORAGE LOGIC
         function processPayment(stopName) {
             const balanceKey = `bank_${currentUser}_balance`;
             const logsKey = `bank_${currentUser}_logs`;
@@ -325,7 +318,9 @@
                 .sort((a, b) => a.seq - b.seq);
 
             const now = new Date().toLocaleString();
-            let sessionEarnings = stopCount * 5.00;
+            
+            // Calculate total earnings for all orders in this route
+            let totalEarnings = stopCount * 5.00;
 
             selectedStops.forEach((stop, index) => {
                 const orderNum = generateOrderNumber();
@@ -378,7 +373,8 @@
 
             setTimeout(() => {
                 window.print();
-                openModal(sessionEarnings);
+                // Pass total earnings based on count of orders
+                openModal(totalEarnings, stopCount);
                 resetTimer();
             }, 500);
         });
