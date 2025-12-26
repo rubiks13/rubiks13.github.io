@@ -159,30 +159,36 @@
         const REDIRECT_URL = 'https://rubiks13.github.io/bikes/';
         let currentUser = null;
         let inactivityTimer;
-        let lastKnownBikeDay = "";
 
         const getBankData = () => JSON.parse(localStorage.getItem(APP_ID)) || { users: {}, validTickets: {} };
         const saveBankData = (data) => localStorage.setItem(APP_ID, JSON.stringify(data));
 
         function updateBikeClock() {
             const rawTime = localStorage.getItem('sim_current_bike_time') || "12:00 AM";
+            const currentBikeDate = localStorage.getItem('sim_current_bike_date') || new Date().toLocaleDateString();
+            
             document.getElementById('bike-clock').innerText = rawTime;
 
-            if (rawTime === "12:00 AM") {
-                const data = getBankData();
-                if (currentUser && data.users[currentUser]) {
-                    const today = new Date().toLocaleDateString(); 
-                    if (lastKnownBikeDay !== today) {
-                        // Reset all three required payments
-                        data.users[currentUser].dailyFees = {
-                            fuel: false,
-                            rations: false,
-                            taxes: false
-                        };
-                        saveBankData(data);
-                        lastKnownBikeDay = today;
-                        console.log("New Bike Day: All Fees Reset");
-                        if (document.getElementById('btn-dashboard').classList.contains('active')) setView('dashboard');
+            const data = getBankData();
+            if (currentUser && data.users[currentUser]) {
+                const user = data.users[currentUser];
+                
+                // CRITICAL FIX: Use the saved 'lastResetDate' to check if we moved to a new day
+                // This works even if the user checks in at 1 AM, 2 AM, etc.
+                if (user.lastResetDate !== currentBikeDate) {
+                    user.dailyFees = {
+                        fuel: false,
+                        rations: false,
+                        taxes: false
+                    };
+                    user.lastResetDate = currentBikeDate;
+                    saveBankData(data);
+                    console.log("Bike Bank: New Day detected. Fees reset.");
+                    
+                    // Refresh current view if on dashboard or payments
+                    const activeView = document.querySelector('.nav-btn.active')?.id.replace('btn-', '');
+                    if (activeView === 'dashboard' || activeView === 'payments') {
+                        setView(activeView);
                     }
                 }
             }
@@ -212,8 +218,13 @@
                     
                     if (!data.users[userName].dailyFees) {
                         data.users[userName].dailyFees = { fuel: false, rations: false, taxes: false };
-                        saveBankData(data);
                     }
+                    
+                    // Initialize lastResetDate if not exists
+                    if (!data.users[userName].lastResetDate) {
+                        data.users[userName].lastResetDate = localStorage.getItem('sim_current_bike_date') || new Date().toLocaleDateString();
+                    }
+                    saveBankData(data);
 
                     const amount = params.get('amount');
                     if(amount) {
@@ -235,10 +246,13 @@
             const name = document.getElementById('new-user-name').value.trim();
             if (!name) return;
             const data = getBankData();
+            const bikeDate = localStorage.getItem('sim_current_bike_date') || new Date().toLocaleDateString();
+            
             if (!data.users[name]) {
                 data.users[name] = {
                     balance: 25.00,
                     dailyFees: { fuel: false, rations: false, taxes: false },
+                    lastResetDate: bikeDate,
                     history: [{date: new Date().toLocaleString(), type: 'Credit', desc: 'Registry Initialized', amount: 25}]
                 };
                 saveBankData(data);
@@ -249,6 +263,7 @@
         function setView(view) {
             const container = document.getElementById('content-area');
             const data = getBankData().users[currentUser];
+            if (!data) return;
             
             document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
             const activeBtn = document.getElementById(`btn-${view}`);
@@ -305,7 +320,7 @@
                     container.innerHTML = `
                         <div class="mb-10">
                             <h2 class="text-4xl font-black mb-2">Service Terminal</h2>
-                            <p class="text-slate-400">All three fees must be paid daily. Reset at 12:00 AM.</p>
+                            <p class="text-slate-400">All three fees must be paid daily. Reset occurs every new day.</p>
                         </div>
                         
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -434,9 +449,7 @@
                 return;
             }
 
-            // Temporarily store amount for confirmation
             window.pendingPrintAmount = amount;
-
             document.getElementById('print-date').innerText = new Date().toLocaleString().toUpperCase();
             document.getElementById('print-amount').innerText = `$${amount}`;
             document.getElementById('print-user').innerText = currentUser.toUpperCase();
