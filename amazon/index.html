@@ -42,6 +42,15 @@
             word-break: break-all;
         }
 
+        /* Enhanced styling for the address to make it stand out */
+        .address-text {
+            font-size: 14px;
+            font-weight: 900;
+            line-height: 1.2;
+            margin-top: 4px;
+            text-transform: uppercase;
+        }
+
         .divider {
             border-top: 1px dashed black;
             margin: 4px 0;
@@ -214,7 +223,6 @@
             document.getElementById('modalAmount').textContent = `$${amount.toFixed(2)}`;
             document.getElementById('stopCountText').textContent = stops;
             
-            // Send the total accumulated amount for the whole route (all orders)
             const depositLink = `https://rubiks13.github.io/bank/?user=${encodeURIComponent(currentUser)}&amount=${amount.toFixed(2)}`;
             
             document.getElementById('depositBtn').onclick = () => {
@@ -318,8 +326,6 @@
                 .sort((a, b) => a.seq - b.seq);
 
             const now = new Date().toLocaleString();
-            
-            // Calculate total earnings for all orders in this route
             let totalEarnings = stopCount * 5.00;
 
             selectedStops.forEach((stop, index) => {
@@ -344,7 +350,7 @@
                     </div>
                     <div class="my-2">
                         <p class="font-bold receipt-text underline">SHIP TO:</p>
-                        <p class="receipt-text mt-1">${stop.name}</p>
+                        <div class="address-text">${stop.name}</div>
                     </div>
                     <div class="divider"></div>
                     <div class="my-2">
@@ -373,7 +379,6 @@
 
             setTimeout(() => {
                 window.print();
-                // Pass total earnings based on count of orders
                 openModal(totalEarnings, stopCount);
                 resetTimer();
             }, 500);
