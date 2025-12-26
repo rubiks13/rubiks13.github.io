@@ -126,24 +126,24 @@
                 <h1 class="text-2xl font-black uppercase tracking-tight italic">Fly USA</h1>
             </div>
             
-            <p class="text-gray-600 mb-6">Hit the button or scan a ticket to begin!</p>
+            <p class="text-gray-600 mb-6">Enter <span class="font-bold text-blue-600">1-5</span> for a Round Trip or hit Start!</p>
             
             <div class="flex justify-center mb-6">
-                <button onclick="goToPrintPage()" class="w-full max-w-md bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-2xl font-black py-12 rounded-2xl shadow-xl transition-all flex flex-col items-center justify-center gap-2">
+                <button onclick="startFlightChain(1)" class="w-full max-w-md bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-2xl font-black py-12 rounded-2xl shadow-xl transition-all flex flex-col items-center justify-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12.2 2h-.4a2 2 0 0 0-2 2v1.2a2 2 0 0 1-1.2 1.8l-1.5.7a2 2 0 0 1-2.4-.7l-.8-1a2 2 0 0 0-2.8-.2l-.3.3a2 2 0 0 0-.2 2.8l1 1a2 2 0 0 1 .7 2.4l-.7 1.5a2 2 0 0 1-1.8 1.2H2.2a2 2 0 0 0-2 2v.4a2 2 0 0 0 2 2h1.2a2 2 0 0 1 1.8 1.2l.7 1.5a2 2 0 0 1-.7 2.4l-1 1a2 2 0 0 0 .2 2.8l.3.3a2 2 0 0 0 2.8-.2l.8-1a2 2 0 0 1 2.4-.7l1.5.7a2 2 0 0 1 1.2 1.8v1.2a2 2 0 0 0 2 2h.4a2 2 0 0 0 2-2v-1.2a2 2 0 0 1 1.2-1.8l1.5-.7a2 2 0 0 1 2.4.7l.8 1a2 2 0 0 0 2.8.2l.3-.3a2 2 0 0 0 2.8-.2l.8-1a2 2 0 0 1 2.4-.7l1.5.7a2 2 0 0 1 1.2 1.8V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
                     START RIDE
                 </button>
             </div>
 
             <div class="bg-gray-100 p-4 rounded-xl border-2 border-dashed border-gray-300">
-                <p class="text-xs font-bold text-gray-500 uppercase mb-2">Gate Scanner (Scan to Return)</p>
-                <input type="text" id="scanner-input" oninput="handleScan(this.value)" onkeydown="checkInputEnter(event)" placeholder="SCAN BOARDING PASS..." class="w-full bg-white border border-gray-300 p-3 rounded-lg font-mono text-center text-xl uppercase tracking-widest focus:ring-2 focus:ring-blue-500 outline-none">
+                <p class="text-xs font-bold text-gray-500 uppercase mb-2">Gate Input (Enter # 1-5 for multi-stop)</p>
+                <input type="text" id="scanner-input" oninput="handleMultiInput(this.value)" placeholder="SCAN OR TYPE #..." class="w-full bg-white border border-gray-300 p-3 rounded-lg font-mono text-center text-xl uppercase tracking-widest focus:ring-2 focus:ring-blue-500 outline-none">
             </div>
             
             <div class="mt-4 flex justify-between items-center text-xs text-gray-400 font-bold uppercase">
                 <div class="flex items-center gap-4">
                     <span id="idle-warning" class="text-orange-500 hidden animate-pulse">Auto-return soon...</span>
-                    <span id="stored-count">0 Flights Logged</span>
+                    <span id="stored-count">Ready for Departure</span>
                 </div>
             </div>
         </div>
@@ -151,8 +151,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
             <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold italic tracking-tight uppercase">Flight History</h2>
-                    <button onclick="clearHistory()" class="text-[10pt] font-bold text-red-500 hover:text-red-700 uppercase tracking-tighter">Clear All</button>
+                    <h2 class="text-xl font-bold italic tracking-tight uppercase">Current Journey</h2>
                 </div>
                 <div id="logs" class="space-y-2 font-mono text-xs text-gray-500 overflow-y-auto max-h-40">
                     <p>> System ready...</p>
@@ -177,7 +176,7 @@
     <div id="print-view" class="page-hidden fixed inset-0 bg-white z-[50] flex flex-col items-center justify-center overflow-hidden p-4">
         <div class="no-print mb-8 text-center">
             <h2 class="text-2xl font-black text-blue-600 uppercase" id="print-title">Processing Flight Ticket...</h2>
-            <p class="text-gray-500">Connecting to Pilot Network</p>
+            <p class="text-gray-500" id="print-subtitle">Connecting to Pilot Network</p>
         </div>
 
         <div id="print-area">
@@ -272,7 +271,7 @@
         </div>
 
         <button onclick="goHome()" class="no-print mt-10 bg-gray-800 text-white px-8 py-3 rounded-full font-bold hover:bg-black transition-colors">
-            ← BACK TO STATION
+            ← CANCEL JOURNEY
         </button>
     </div>
 
@@ -295,7 +294,11 @@
                     <input type="range" id="width-range" min="40" max="120" step="1" class="flex-1" oninput="updateWidthDisplay(this.value)">
                     <span id="width-value" class="font-mono font-bold text-blue-600 w-16 text-right">75mm</span>
                 </div>
-                <p class="text-[10px] text-gray-400 mt-1 uppercase italic">Slide left if edges are cut off, right if there is too much white space.</p>
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Main Hub (Always Starts/Ends Here)</label>
+                <input type="text" id="main-hub" class="w-full border p-3 rounded-xl font-mono uppercase tracking-widest text-sm" placeholder="e.g., SFO">
             </div>
 
             <div class="mb-6">
@@ -329,6 +332,11 @@
         const IDLE_TIME_LIMIT = 15000;
         const REDIRECT_URL = "https://rubiks13.github.io/bikes/";
         const BANK_BASE_URL = "https://rubiks13.github.io/bank/";
+
+        // Chain Management State
+        let chainRemaining = 0;
+        let chainTotalCount = 0;
+        let currentOrigin = null;
 
         function resetIdleTimer() {
             clearTimeout(idleTimer);
@@ -393,18 +401,6 @@
             });
         }
 
-        function getFlightDb() {
-            const db = localStorage.getItem(`flyusa_flights_${activeUser}`);
-            return db ? JSON.parse(db) : {};
-        }
-
-        function saveFlightToDb(data) {
-            const db = getFlightDb();
-            db[data.flight] = data;
-            localStorage.setItem(`flyusa_flights_${activeUser}`, JSON.stringify(db));
-            updateLogDisplay();
-        }
-
         function handleJobCompletion(data) {
             const currentBankTime = getBankTime();
             document.querySelectorAll('.bank-time-target').forEach(el => el.textContent = currentBankTime);
@@ -412,65 +408,51 @@
             window.print();
             
             setTimeout(() => {
-                const amount = 5.00;
-                const paymentUrl = `${BANK_BASE_URL}?user=${encodeURIComponent(activeUser)}&amount=${amount.toFixed(2)}`;
+                chainRemaining--;
                 
-                const bankWrapper = document.getElementById('bank-link-wrapper');
-                const statusTxt = document.getElementById('status-text');
-                const container = document.getElementById('bank-status-container');
+                if (chainRemaining > 0) {
+                    // Start next flight in chain
+                    const nextRide = generateRandomRide(data.to);
+                    populateTicket(nextRide);
+                    executePrintSequence(nextRide);
+                } else {
+                    // Chain Finished
+                    const totalAmount = chainTotalCount * 5.00;
+                    const paymentUrl = `${BANK_BASE_URL}?user=${encodeURIComponent(activeUser)}&amount=${totalAmount.toFixed(2)}`;
+                    
+                    const bankWrapper = document.getElementById('bank-link-wrapper');
+                    const statusTxt = document.getElementById('status-text');
+                    const container = document.getElementById('bank-status-container');
 
-                statusTxt.textContent = "Payment processing for " + activeUser;
-                bankWrapper.classList.remove('hidden');
-                container.classList.replace('bg-blue-50', 'bg-green-50');
-                container.classList.replace('border-blue-100', 'border-green-200');
+                    statusTxt.textContent = `Processing $${totalAmount.toFixed(2)} for ${activeUser}...`;
+                    bankWrapper.classList.remove('hidden');
+                    container.classList.replace('bg-blue-50', 'bg-green-50');
+                    container.classList.replace('border-blue-100', 'border-green-200');
 
-                setTimeout(() => { window.location.href = paymentUrl; }, 2000); 
-                goHome();
+                    setTimeout(() => { window.location.href = paymentUrl; }, 2000); 
+                }
             }, 1000);
         }
 
-        function updateLogDisplay() {
-            const db = getFlightDb();
-            document.getElementById('stored-count').textContent = `${Object.keys(db).length} Flights Logged`;
-            const logs = document.getElementById('logs');
-            logs.innerHTML = '';
-            Object.keys(db).slice(-10).reverse().forEach(id => {
-                const p = document.createElement('p');
-                p.textContent = `> ${id}: ${db[id].from} ✈ ${db[id].to}`;
-                logs.appendChild(p);
-            });
-            if (Object.keys(db).length === 0) logs.innerHTML = '<p>> No current records.</p>';
-        }
-
-        function clearHistory() {
-            if(confirm("Delete all flight logs?")) {
-                localStorage.removeItem(`flyusa_flights_${activeUser}`);
-                updateLogDisplay();
-            }
-        }
-
-        function handleScan(value) {
-            const db = getFlightDb();
-            const cleanVal = value.trim().toUpperCase();
-            if (db[cleanVal]) {
-                const nextRide = generateRandomRide(db[cleanVal].to, null, db[cleanVal].from, db[cleanVal].name);
-                const currentDb = getFlightDb();
-                delete currentDb[cleanVal];
-                localStorage.setItem(`flyusa_flights_${activeUser}`, JSON.stringify(currentDb));
+        function handleMultiInput(value) {
+            const num = parseInt(value);
+            if (!isNaN(num) && num >= 1 && num <= 5) {
                 document.getElementById('scanner-input').value = '';
-                populateTicket(nextRide);
-                executePrintSequence(nextRide);
+                startFlightChain(num);
             }
         }
 
-        function checkInputEnter(event) { 
-            if (event.key === "Enter" && event.target.value.trim() === "") goToPrintPage(); 
-        }
-
-        function goToPrintPage() {
-            const data = generateRandomRide();
-            populateTicket(data);
-            executePrintSequence(data);
+        function startFlightChain(count) {
+            chainTotalCount = count;
+            chainRemaining = count;
+            currentOrigin = null; // Reset for new journey
+            
+            const logs = document.getElementById('logs');
+            logs.innerHTML = `<p>> Starting ${count}-stop journey...</p>`;
+            
+            const firstRide = generateRandomRide();
+            populateTicket(firstRide);
+            executePrintSequence(firstRide);
         }
 
         function executePrintSequence(data) {
@@ -478,13 +460,21 @@
             document.getElementById('status-text').textContent = "Preparing flight logs...";
             document.getElementById('bank-status-container').classList.replace('bg-green-50', 'bg-blue-50');
             
-            saveFlightToDb(data);
+            // Add to current UI logs
+            const logs = document.getElementById('logs');
+            const p = document.createElement('p');
+            p.textContent = `> Flight ${chainTotalCount - chainRemaining + 1}: ${data.from} ✈ ${data.to}`;
+            logs.appendChild(p);
+
             document.getElementById('home-page').classList.replace('page-visible', 'page-hidden');
             document.getElementById('print-view').classList.replace('page-hidden', 'page-visible');
             document.body.style.backgroundColor = "white";
             document.getElementById('layout-view-thermal').classList.add('hidden');
             document.getElementById('layout-view-modern').classList.add('hidden');
             
+            // Update UI status for multi-flight
+            document.getElementById('print-subtitle').textContent = `Stop ${chainTotalCount - chainRemaining + 1} of ${chainTotalCount}`;
+
             if (currentLayout === 'thermal') {
                 document.getElementById('layout-view-thermal').classList.remove('hidden');
             } else {
@@ -495,23 +485,41 @@
         }
 
         function goHome() {
+            // Cancellation
+            chainRemaining = 0;
             document.getElementById('print-view').classList.replace('page-visible', 'page-hidden');
             document.getElementById('home-page').classList.replace('page-hidden', 'page-visible');
             document.body.style.backgroundColor = "#f3f4f6";
-            setTimeout(() => { 
-                const input = document.getElementById('scanner-input');
-                if (input) input.focus(); 
-            }, 100);
+            setTimeout(() => { document.getElementById('scanner-input')?.focus(); }, 100);
             resetIdleTimer();
         }
 
-        function generateRandomRide(customFrom = null, customName = null, restrictedTo = null, restrictedName = null) {
+        function generateRandomRide(forceFrom = null) {
             const pool = getAirports();
-            let from = customFrom || pool[Math.floor(Math.random() * pool.length)];
-            let to; 
-            do { to = pool[Math.floor(Math.random() * pool.length)]; } while (to === from || (restrictedTo && to === restrictedTo));
+            const hub = localStorage.getItem('flyusa_hub')?.trim().toUpperCase();
             
-            let selectedName = customName || names[Math.floor(Math.random() * names.length)].toUpperCase();
+            // Logic for FROM
+            let from;
+            if (forceFrom) {
+                from = forceFrom;
+            } else if (hub && hub !== "") {
+                from = hub;
+            } else {
+                from = pool[Math.floor(Math.random() * pool.length)];
+            }
+
+            // Logic for TO
+            let to;
+            // If it's the LAST flight in the chain and a hub is set, force it back to the hub
+            if (chainRemaining === 1 && hub && hub !== "" && from !== hub) {
+                to = hub;
+            } else {
+                do { 
+                    to = pool[Math.floor(Math.random() * pool.length)]; 
+                } while (to === from);
+            }
+            
+            let selectedName = names[Math.floor(Math.random() * names.length)].toUpperCase();
             const now = new Date();
             return {
                 name: selectedName,
@@ -546,6 +554,7 @@
 
         function openSettings() {
             document.getElementById('airport-list').value = localStorage.getItem('flyusa_airports') || defaultAirports.join(", ");
+            document.getElementById('main-hub').value = localStorage.getItem('flyusa_hub') || "";
             const savedWidth = localStorage.getItem('flyusa_width') || '75';
             document.getElementById('width-range').value = savedWidth;
             updateWidthDisplay(savedWidth);
@@ -560,6 +569,7 @@
 
         function saveSettings() {
             localStorage.setItem('flyusa_airports', document.getElementById('airport-list').value);
+            localStorage.setItem('flyusa_hub', document.getElementById('main-hub').value);
             localStorage.setItem('flyusa_layout', currentLayout);
             localStorage.setItem('flyusa_width', currentWidth);
             closeSettings();
@@ -578,7 +588,6 @@
             updateWidthDisplay(savedWidth);
             
             initQRs();
-            updateLogDisplay();
             
             const input = document.getElementById('scanner-input');
             if (input) input.focus();
