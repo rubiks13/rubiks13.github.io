@@ -178,6 +178,8 @@
                 const user = data.users[currentUser];
                 const allPaid = Object.values(user.dailyFees).every(v => v === true);
                 
+                // Only trigger a reset to "unpaid" if we have actually moved to a NEW world day
+                // AND the user has finished paying for their previous recorded day.
                 if (user.lastResetDate !== currentBikeDate && allPaid) {
                     user.dailyFees = { fuel: false, rations: false, taxes: false };
                     user.lastResetDate = currentBikeDate;
@@ -188,13 +190,13 @@
                 }
             }
         }
-        setInterval(updateBikeClock, 1000);
+        setInterval(updateBikeClock, 2000); // Check every 2s
 
         function resetInactivityTimer() {
             clearTimeout(inactivityTimer);
             inactivityTimer = setTimeout(() => {
                 window.location.href = REDIRECT_URL;
-            }, 15000);
+            }, 30000); // 30 seconds
         }
 
         ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(evt => {
@@ -211,12 +213,14 @@
                     currentUser = userName;
                     document.getElementById('display-name').innerText = userName.toUpperCase();
                     
+                    // Ensure core data exists
                     if (!data.users[userName].dailyFees) {
                         data.users[userName].dailyFees = { fuel: false, rations: false, taxes: false };
                     }
                     
+                    const currentSimDate = localStorage.getItem('sim_current_bike_date') || "Day 1";
                     if (!data.users[userName].lastResetDate) {
-                        data.users[userName].lastResetDate = localStorage.getItem('sim_current_bike_date') || "Day 1";
+                        data.users[userName].lastResetDate = currentSimDate;
                     }
                     saveBankData(data);
 
@@ -268,14 +272,12 @@
                     const unpaidCount = Object.values(data.dailyFees).filter(v => v === false).length;
                     const worldDate = localStorage.getItem('sim_current_bike_date') || "Day 1";
                     
-                    // Logic check: only "Overdue" if we are past Day 1 AND the recorded date is behind OR if it is current day and unpaid.
-                    const isArrears = data.lastResetDate !== worldDate;
+                    const isBehind = data.lastResetDate !== worldDate;
                     const isDayOne = worldDate.toLowerCase().includes("day 1");
                     
-                    // Warning only shows if:
-                    // 1. We are in arrears (behind in days)
-                    // 2. Or it's after Day 1 and we have unpaid fees for the current day.
-                    const showWarning = (isArrears || (!isDayOne && unpaidCount > 0));
+                    // Logic: Warning shows if we are behind (missed day) 
+                    // OR if it's Day 2+ and we have unpaid current fees.
+                    const showWarning = isBehind || (!isDayOne && unpaidCount > 0);
 
                     container.innerHTML = `
                         ${showWarning ? `
@@ -284,9 +286,9 @@
                                     <span class="text-2xl">⚠️</span>
                                     <div>
                                         <div class="font-bold text-red-400">
-                                            ${isArrears ? `ARREARS DETECTED: ${data.lastResetDate}` : `DAILY FEES OVERDUE (${unpaidCount}/3)`}
+                                            ${isBehind ? `ARREARS: Owed for ${data.lastResetDate}` : `DAILY FEES UNPAID (${unpaidCount}/3)`}
                                         </div>
-                                        <div class="text-xs text-red-300/70">Missing days must be settled before current cycle access.</div>
+                                        <div class="text-xs text-red-300/70">Payment required for vault access. Settlements are stored locally.</div>
                                     </div>
                                 </div>
                                 <button onclick="setView('payments')" class="bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-bold">GO TO FEES</button>
@@ -311,12 +313,12 @@
                                 <div class="text-xl font-bold">RIDER_ACTIVE</div>
                              </div>
                              <div class="cyber-card p-6 rounded-2xl border-l-4 border-purple-400">
-                                <div class="text-xs text-slate-500 uppercase font-bold mb-1">Fee State</div>
-                                <div class="text-xl font-bold uppercase">${isArrears ? 'Arrears' : (isDayOne ? 'Cycle Start' : 'Current')}</div>
+                                <div class="text-xs text-slate-500 uppercase font-bold mb-1">Cycle Tracking</div>
+                                <div class="text-xl font-bold uppercase">${isBehind ? 'Arrears' : 'Up to Date'}</div>
                              </div>
                              <div class="cyber-card p-6 rounded-2xl border-l-4 border-green-400">
-                                <div class="text-xs text-slate-500 uppercase font-bold mb-1">Vault Health</div>
-                                <div class="text-xl font-bold">ENCRYPTED</div>
+                                <div class="text-xs text-slate-500 uppercase font-bold mb-1">Local Storage</div>
+                                <div class="text-xl font-bold">SYNC_OK</div>
                              </div>
                         </div>
                     `;
@@ -325,15 +327,14 @@
                 case 'payments':
                     const currentWorldDate = localStorage.getItem('sim_current_bike_date') || "Day 1";
                     const isArrearsTerm = data.lastResetDate !== currentWorldDate;
-                    const statusText = isArrearsTerm 
-                        ? `<span class="text-red-400 font-bold">OWED FOR ${data.lastResetDate}</span>` 
-                        : `<span class="text-cyan-400 font-bold">CURRENT: ${currentWorldDate}</span>`;
-
+                    
                     container.innerHTML = `
                         <div class="mb-10">
                             <h2 class="text-4xl font-black mb-2">Service Terminal</h2>
-                            <p class="text-slate-400">Status: ${statusText}</p>
-                            ${isArrearsTerm ? `<p class="text-[10px] text-red-400 mt-2 uppercase tracking-widest font-bold">Note: You are paying for a missed day. Once finished, current day fees will unlock.</p>` : ''}
+                            <p class="text-slate-400">
+                                ${isArrearsTerm ? `<span class="text-red-400 font-bold">SETTLING DEBT FOR: ${data.lastResetDate}</span>` : `<span class="text-cyan-400 font-bold">CURRENT CYCLE: ${currentWorldDate}</span>`}
+                            </p>
+                            ${isArrearsTerm ? `<p class="text-xs text-red-300 mt-2">Paying these will unlock ${currentWorldDate} fees immediately.</p>` : ''}
                         </div>
                         
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -443,7 +444,7 @@
             const currentWorldDate = localStorage.getItem('sim_current_bike_date') || "Day 1";
             
             if (user.balance < amount) {
-                alert("CRITICAL ERROR: INSUFFICIENT ASSETS");
+                alert("INSUFFICIENT FUNDS");
                 return;
             }
 
@@ -452,17 +453,19 @@
             user.history.push({
                 date: new Date().toLocaleString(),
                 type: 'Debit',
-                desc: `Service: ${service} (for ${user.lastResetDate})`,
+                desc: `Paid ${service} for ${user.lastResetDate}`,
                 amount: amount
             });
 
-            // If we just finished paying a missed day, check if everything for that missed day is now paid
-            const allPaid = Object.values(user.dailyFees).every(v => v === true);
-            if (allPaid && user.lastResetDate !== currentWorldDate) {
-                // Arrears for the old day are cleared. Update date to current and reset fees to unpaid.
+            // Check if all fees for the day being paid are now complete
+            const allPaidForCycle = Object.values(user.dailyFees).every(v => v === true);
+            
+            if (allPaidForCycle && user.lastResetDate !== currentWorldDate) {
+                // If we just finished Day 1 while in Day 2...
+                // Move the user's recorded date to current Day 2 and reset for next payment
                 user.lastResetDate = currentWorldDate;
                 user.dailyFees = { fuel: false, rations: false, taxes: false };
-                console.log("Arrears settled. Redirecting to current day fees.");
+                console.log("Arrears cleared. Resetting for current day.");
             }
 
             saveBankData(data);
@@ -472,7 +475,7 @@
         function preparePrint(amount) {
             const data = getBankData();
             if (data.users[currentUser].balance < amount) {
-                alert("CRITICAL ERROR: INSUFFICIENT ASSETS");
+                alert("INSUFFICIENT FUNDS");
                 return;
             }
 
@@ -507,7 +510,7 @@
             data.users[currentUser].history.push({
                 date: new Date().toLocaleString(),
                 type: 'Debit',
-                desc: `Note Extraction ($${amount})`,
+                desc: `Extracted $${amount} Note`,
                 amount: amount
             });
             saveBankData(data);
@@ -532,14 +535,14 @@
                 data.users[currentUser].history.push({
                     date: new Date().toLocaleString(),
                     type: 'Credit',
-                    desc: `Note Ingestion (#${code})`,
+                    desc: `Deposited $${amount} (#${code})`,
                     amount: amount
                 });
                 delete data.validTickets[code];
                 saveBankData(data);
                 setView('cleanup');
             } else {
-                alert("INVALID SERIAL DETECTED");
+                alert("INVALID SERIAL");
             }
         }
 
