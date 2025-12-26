@@ -219,9 +219,8 @@
         function openModal(amount) {
             document.getElementById('modalAmount').textContent = `$${amount.toFixed(2)}`;
             
-            // Updated Deposit URL per user request
-            // We'll use "test" for the user and the actual earned amount
-            const depositLink = `https://rubiks13.github.io/bank/?user=test&amount=${amount.toFixed(2)}`;
+            // v2.7 TRANSACTION ENDPOINT LOGIC
+            const depositLink = `https://rubiks13.github.io/bank/?user=${encodeURIComponent(currentUser)}&amount=${amount.toFixed(2)}`;
             
             document.getElementById('depositBtn').onclick = () => {
                 window.location.href = depositLink;
@@ -332,7 +331,6 @@
                 const orderNum = generateOrderNumber();
                 const items = generateItems();
                 
-                // Process local storage storage per v2.7 protocol
                 processPayment(stop.name);
 
                 const section = document.createElement('div');
@@ -380,7 +378,7 @@
 
             setTimeout(() => {
                 window.print();
-                openModal(sessionEarnings); // Show the Deposit Link button
+                openModal(sessionEarnings);
                 resetTimer();
             }, 500);
         });
