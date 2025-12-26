@@ -108,7 +108,7 @@
             <div class="mt-auto space-y-4">
                 <div class="cyber-card p-4 rounded-2xl border-cyan-400/30 border">
                     <div class="text-[10px] uppercase font-bold text-cyan-400 mb-1">Bike World Time</div>
-                    <div id="bike-clock" class="text-2xl font-mono font-bold text-white">00:00 AM</div>
+                    <div id="bike-clock" class="text-2xl font-mono font-bold text-white">--:-- --</div>
                 </div>
                 <div class="px-2">
                     <div class="text-[10px] uppercase font-bold text-slate-500 mb-1">Authenticated As</div>
@@ -164,7 +164,9 @@
         const saveBankData = (data) => localStorage.setItem(APP_ID, JSON.stringify(data));
 
         function updateBikeClock() {
-            const rawTime = localStorage.getItem('sim_current_bike_time') || "12:00 AM";
+            // Get the simulated time/date
+            const rawTime = localStorage.getItem('sim_current_bike_time') || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            // Failsafe: Use real date if simulated date is missing
             const currentBikeDate = localStorage.getItem('sim_current_bike_date') || new Date().toLocaleDateString();
             
             document.getElementById('bike-clock').innerText = rawTime;
@@ -173,8 +175,7 @@
             if (currentUser && data.users[currentUser]) {
                 const user = data.users[currentUser];
                 
-                // CRITICAL FIX: Use the saved 'lastResetDate' to check if we moved to a new day
-                // This works even if the user checks in at 1 AM, 2 AM, etc.
+                // RESET LOGIC: Checks if the stored reset date is different from the current date
                 if (user.lastResetDate !== currentBikeDate) {
                     user.dailyFees = {
                         fuel: false,
@@ -183,9 +184,8 @@
                     };
                     user.lastResetDate = currentBikeDate;
                     saveBankData(data);
-                    console.log("Bike Bank: New Day detected. Fees reset.");
                     
-                    // Refresh current view if on dashboard or payments
+                    // Refresh current view to show reset state
                     const activeView = document.querySelector('.nav-btn.active')?.id.replace('btn-', '');
                     if (activeView === 'dashboard' || activeView === 'payments') {
                         setView(activeView);
@@ -220,7 +220,6 @@
                         data.users[userName].dailyFees = { fuel: false, rations: false, taxes: false };
                     }
                     
-                    // Initialize lastResetDate if not exists
                     if (!data.users[userName].lastResetDate) {
                         data.users[userName].lastResetDate = localStorage.getItem('sim_current_bike_date') || new Date().toLocaleDateString();
                     }
@@ -258,6 +257,17 @@
                 saveBankData(data);
             }
             window.location.href = `?user=${name}`;
+        }
+
+        function forceResetFees() {
+            const data = getBankData();
+            if (currentUser && data.users[currentUser]) {
+                data.users[currentUser].dailyFees = { fuel: false, rations: false, taxes: false };
+                data.users[currentUser].lastResetDate = localStorage.getItem('sim_current_bike_date') || new Date().toLocaleDateString();
+                saveBankData(data);
+                setView('payments');
+                alert("SYSTEM SYNCED: ALL FEES RESET");
+            }
         }
 
         function setView(view) {
@@ -318,9 +328,12 @@
                 
                 case 'payments':
                     container.innerHTML = `
-                        <div class="mb-10">
-                            <h2 class="text-4xl font-black mb-2">Service Terminal</h2>
-                            <p class="text-slate-400">All three fees must be paid daily. Reset occurs every new day.</p>
+                        <div class="mb-10 flex justify-between items-end">
+                            <div>
+                                <h2 class="text-4xl font-black mb-2">Service Terminal</h2>
+                                <p class="text-slate-400">All three fees must be paid daily. Reset occurs every new day.</p>
+                            </div>
+                            <button onclick="forceResetFees()" class="text-[10px] font-bold border border-white/10 px-4 py-2 rounded-lg hover:bg-white/5 uppercase tracking-widest transition-all">Manual Sync</button>
                         </div>
                         
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
