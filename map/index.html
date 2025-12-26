@@ -14,7 +14,7 @@
         #canvas-container {
             position: relative;
             box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            background-color: #222;
+            background-color: #2c3e50;
             border-radius: 12px;
             overflow: hidden;
             cursor: crosshair;
@@ -25,18 +25,15 @@
             position: relative;
             z-index: 10;
         }
-        #map-frame-wrapper {
+        #uploaded-image {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             z-index: 1;
-        }
-        iframe {
-            width: 100%;
-            height: 100%;
-            border: 0;
+            object-fit: contain;
+            display: none;
         }
         .tool-btn {
             transition: all 0.2s;
@@ -56,7 +53,7 @@
         <header class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
                 <h1 class="text-3xl font-bold text-green-800">Field Road Planner</h1>
-                <p class="text-green-600">Fine-tune your zoom and grid for the perfect layout.</p>
+                <p class="text-green-600">Upload a screenshot of your field and start drawing!</p>
             </div>
             <div class="flex gap-2 flex-wrap">
                 <button id="btn-road" class="tool-btn active-tool bg-white border border-green-600 text-green-700 px-4 py-2 rounded-lg font-medium">Road Tool</button>
@@ -68,57 +65,52 @@
 
         <main class="grid grid-cols-1 lg:grid-cols-4 gap-6">
             <div class="lg:col-span-1 space-y-4">
-                <!-- Map Search & Zoom -->
+                <!-- Image Upload -->
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-green-100">
                     <h2 class="font-bold text-gray-800 mb-3 text-sm flex items-center gap-2">
-                        <span class="bg-green-100 p-1 rounded">1</span> 1. Find Location
+                        <span class="bg-green-100 p-1 rounded">1</span> 1. Upload Field Image
                     </h2>
-                    <input type="text" id="map-search" placeholder="Enter address or town" class="w-full p-2 border rounded mb-2 text-sm focus:ring-2 focus:ring-green-500 outline-none">
-                    <button id="btn-load-map" class="w-full bg-blue-600 text-white py-2 rounded text-sm font-bold mb-4">Find Field</button>
-                    
-                    <label class="block text-xs font-bold text-gray-500 mb-1">MAP ZOOM LEVEL</label>
-                    <input type="range" id="zoom-slider" min="15" max="21" value="18" step="0.1" class="w-full mb-4">
-                    
-                    <button id="btn-capture" class="w-full bg-orange-500 text-white py-2 rounded text-sm font-bold shadow-md hover:bg-orange-600">Lock This View</button>
+                    <p class="text-[10px] text-gray-500 mb-3 leading-tight">Take a screenshot of your field on Google Maps at the perfect zoom level, then upload it here.</p>
+                    <input type="file" id="image-upload" accept="image/*" class="hidden">
+                    <button onclick="document.getElementById('image-upload').click()" class="w-full bg-blue-600 text-white py-2 rounded text-sm font-bold mb-2 shadow-sm">Choose Screenshot</button>
                 </div>
 
                 <!-- Grid Settings -->
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-green-100">
-                    <h2 class="font-bold text-gray-800 mb-3 text-sm">2. Grid & Scale</h2>
-                    <label class="block text-xs font-bold text-gray-500 mb-1">GRID DENSITY (SQUARES)</label>
-                    <input type="range" id="grid-slider" min="5" max="40" value="15" class="w-full mb-2">
-                    <div class="flex justify-between text-[10px] text-gray-400">
-                        <span>Big Squares</span>
-                        <span>Small Squares</span>
-                    </div>
+                    <h2 class="font-bold text-gray-800 mb-3 text-sm flex items-center gap-2">
+                        <span class="bg-green-100 p-1 rounded">2</span> 2. Grid Settings
+                    </h2>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">GRID OPACITY</label>
+                    <input type="range" id="grid-opacity" min="0" max="100" value="20" class="w-full mb-4">
+                    
+                    <label class="block text-xs font-bold text-gray-500 mb-1">GRID SIZE</label>
+                    <input type="range" id="grid-slider" min="5" max="50" value="20" class="w-full">
                 </div>
 
                 <!-- Stats -->
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-green-100">
-                    <h2 class="font-bold text-gray-800 mb-2 text-sm">3. Stats</h2>
+                    <h2 class="font-bold text-gray-800 mb-2 text-sm">3. Plan Data</h2>
                     <div class="space-y-2 text-sm">
                         <div class="flex justify-between">
-                            <span class="text-gray-500">Road Length:</span>
+                            <span class="text-gray-500">Estimated Road:</span>
                             <span id="road-length" class="font-mono font-bold text-green-700">0 ft</span>
                         </div>
                     </div>
                     <div id="road-controls" class="hidden mt-3">
                         <button id="btn-finish-road" class="w-full bg-green-700 text-white py-2 rounded-lg text-xs font-bold shadow">
-                            Finish This Road Segment
+                            Finish This Road
                         </button>
                     </div>
                 </div>
 
                 <button id="btn-download" class="w-full bg-gray-800 text-white font-bold py-3 rounded-xl shadow-lg flex items-center justify-center gap-2">
-                    Save Design
+                    Save Finished Map
                 </button>
             </div>
 
             <div class="lg:col-span-3">
                 <div id="canvas-container">
-                    <div id="map-frame-wrapper">
-                        <iframe id="google-map" src="about:blank"></iframe>
-                    </div>
+                    <img id="uploaded-image" src="" alt="Field layer">
                     <canvas id="mapCanvas"></canvas>
                 </div>
             </div>
@@ -133,25 +125,24 @@
         const canvas = document.getElementById('mapCanvas');
         const ctx = canvas.getContext('2d');
         const container = document.getElementById('canvas-container');
-        const mapIframe = document.getElementById('google-map');
+        const imgElement = document.getElementById('uploaded-image');
+        const fileInput = document.getElementById('image-upload');
         const roadLenEl = document.getElementById('road-length');
         const msgBox = document.getElementById('message-box');
         const roadControls = document.getElementById('road-controls');
-        const searchInput = document.getElementById('map-search');
-        const zoomSlider = document.getElementById('zoom-slider');
         const gridSlider = document.getElementById('grid-slider');
+        const gridOpacitySlider = document.getElementById('grid-opacity');
 
         let currentTool = 'road';
         let roads = [];
         let landmarks = [];
         let currentPath = [];
         let mousePos = { x: 0, y: 0 };
-        let isMapLocked = false;
         
-        // Scale helper (4 acres approx 417ft wide)
         const FIELD_SIDE_FT = 417.4; 
         let scale = 1;
-        let gridCount = 15;
+        let gridCount = 20;
+        let gridOpacity = 0.2;
 
         function showMessage(text) {
             msgBox.textContent = text;
@@ -159,32 +150,29 @@
             setTimeout(() => msgBox.classList.add('opacity-0'), 2500);
         }
 
-        function updateMap() {
-            const query = encodeURIComponent(searchInput.value);
-            if (!query) return;
-            const z = zoomSlider.value;
-            // Using 'k' for satellite, 'z' for zoom level
-            mapIframe.src = `https://www.google.com/maps?q=${query}&z=${z}&t=k&output=embed`;
-            isMapLocked = false;
-            mapIframe.style.pointerEvents = 'auto';
-            showMessage("Map updated. Use the slider to zoom more!");
-        }
-
-        document.getElementById('btn-load-map').onclick = updateMap;
-        zoomSlider.oninput = () => {
-            if (searchInput.value) updateMap();
-        };
+        // Handle Image Upload
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    imgElement.src = event.target.result;
+                    imgElement.style.display = 'block';
+                    showMessage("Image uploaded! Ready to draw.");
+                    draw();
+                };
+                reader.readAsDataURL(file);
+            }
+        });
 
         gridSlider.oninput = (e) => {
             gridCount = parseInt(e.target.value);
             draw();
         };
 
-        document.getElementById('btn-capture').onclick = () => {
-            if (mapIframe.src === "about:blank") return showMessage("Find your field first!");
-            isMapLocked = true;
-            mapIframe.style.pointerEvents = 'none';
-            showMessage("Map Locked! Grid is ready for drawing.");
+        gridOpacitySlider.oninput = (e) => {
+            gridOpacity = e.target.value / 100;
+            draw();
         };
 
         function resizeCanvas() {
@@ -207,7 +195,7 @@
             roads = []; landmarks = []; currentPath = [];
             roadControls.classList.add('hidden');
             calculateLength(); draw();
-            showMessage("All paths cleared.");
+            showMessage("Cleared all drawings.");
         };
 
         function setTool(tool, el) {
@@ -232,7 +220,6 @@
         }
 
         canvas.addEventListener('mousedown', (e) => {
-            if (!isMapLocked) return showMessage("Search and 'Lock' your field first!");
             const pos = getCoords(e);
             if (currentTool === 'road') {
                 currentPath.push(pos);
@@ -251,7 +238,7 @@
         });
 
         function erase(pos) {
-            const radius = 20;
+            const radius = 25;
             roads = roads.filter(path => !path.some(p => Math.hypot(p.x - pos.x, p.y - pos.y) < radius));
             landmarks = landmarks.filter(p => Math.hypot(p.x - pos.x, p.y - pos.y) < radius);
             calculateLength(); draw();
@@ -272,9 +259,9 @@
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Responsive Grid
+            // Subtle Grid
             const gridSpacing = canvas.width / gridCount;
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+            ctx.strokeStyle = `rgba(255, 255, 255, ${gridOpacity})`;
             ctx.lineWidth = 1;
             for (let i = 0; i <= gridCount; i++) {
                 ctx.beginPath();
@@ -287,8 +274,8 @@
                 if (path.length < 1) return;
                 ctx.lineCap = 'round'; ctx.lineJoin = 'round';
                 
-                // Outer glow/border
-                ctx.strokeStyle = isPreview ? 'rgba(59, 130, 246, 0.5)' : 'rgba(0,0,0,0.4)';
+                // Shadow/Glow
+                ctx.strokeStyle = isPreview ? 'rgba(59, 130, 246, 0.5)' : 'rgba(0,0,0,0.5)';
                 ctx.lineWidth = 14;
                 ctx.beginPath();
                 ctx.moveTo(path[0].x, path[0].y);
@@ -296,15 +283,15 @@
                 if (isPreview) ctx.lineTo(mousePos.x, mousePos.y);
                 ctx.stroke();
 
-                // Main road body
-                ctx.strokeStyle = isPreview ? '#60a5fa' : '#555';
+                // Main Road
+                ctx.strokeStyle = isPreview ? '#93c5fd' : '#444';
                 ctx.lineWidth = 10;
                 ctx.stroke();
 
-                // Center line
+                // Marking Line
                 if (!isPreview) {
-                    ctx.strokeStyle = '#fbbf24'; 
-                    ctx.setLineDash([8, 12]);
+                    ctx.strokeStyle = '#fde047'; 
+                    ctx.setLineDash([10, 15]);
                     ctx.lineWidth = 2;
                     ctx.stroke();
                     ctx.setLineDash([]);
@@ -314,6 +301,7 @@
             roads.forEach(path => drawPathStyle(path, false));
             if (currentPath.length > 0) drawPathStyle(currentPath, true);
 
+            // Draw Landmarks (dots for trees/gates)
             landmarks.forEach(p => {
                 ctx.fillStyle = '#ef4444';
                 ctx.beginPath(); ctx.arc(p.x, p.y, 8, 0, Math.PI * 2); ctx.fill();
@@ -322,12 +310,26 @@
         }
 
         document.getElementById('btn-download').onclick = () => {
-            const dataURL = canvas.toDataURL('image/png');
+            // Create a temp canvas to merge background image and drawing
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            if (imgElement.src && imgElement.style.display !== 'none') {
+                tempCtx.drawImage(imgElement, 0, 0, canvas.width, canvas.height);
+            } else {
+                tempCtx.fillStyle = '#2c3e50';
+                tempCtx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+            tempCtx.drawImage(canvas, 0, 0);
+
+            const dataURL = tempCanvas.toDataURL('image/png');
             const link = document.createElement('a');
-            link.download = 'field-map-plan.png';
+            link.download = 'field-plan.png';
             link.href = dataURL;
             link.click();
-            showMessage("Design saved!");
+            showMessage("Map saved to your device!");
         };
     </script>
 </body>
