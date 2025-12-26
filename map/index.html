@@ -53,59 +53,54 @@
         <header class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
                 <h1 class="text-3xl font-bold text-green-800">Field Road Planner</h1>
-                <p class="text-green-600">Upload a screenshot, draw your roads, and export a clean blueprint!</p>
+                <p class="text-green-600">Plan curves and roundabouts for your 4-acre field!</p>
             </div>
             <div class="flex gap-2 flex-wrap">
-                <button id="btn-road" class="tool-btn active-tool bg-white border border-green-600 text-green-700 px-4 py-2 rounded-lg font-medium">Road Tool</button>
-                <button id="btn-landmark" class="tool-btn bg-white border border-green-600 text-green-700 px-4 py-2 rounded-lg font-medium">Landmark</button>
-                <button id="btn-eraser" class="tool-btn bg-white border border-red-600 text-red-700 px-4 py-2 rounded-lg font-medium">Eraser</button>
-                <button id="btn-clear" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium">Clear All</button>
+                <button id="btn-road" class="tool-btn active-tool bg-white border border-green-600 text-green-700 px-3 py-2 rounded-lg font-medium text-sm">Road Tool</button>
+                <button id="btn-roundabout" class="tool-btn bg-white border border-green-600 text-green-700 px-3 py-2 rounded-lg font-medium text-sm">Roundabout</button>
+                <button id="btn-landmark" class="tool-btn bg-white border border-green-600 text-green-700 px-3 py-2 rounded-lg font-medium text-sm">Landmark</button>
+                <button id="btn-eraser" class="tool-btn bg-white border border-red-600 text-red-700 px-3 py-2 rounded-lg font-medium text-sm">Eraser</button>
+                <button id="btn-clear" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-lg font-medium text-sm">Clear All</button>
             </div>
         </header>
 
         <main class="grid grid-cols-1 lg:grid-cols-4 gap-6">
             <div class="lg:col-span-1 space-y-4">
-                <!-- Image Upload -->
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-green-100">
-                    <h2 class="font-bold text-gray-800 mb-3 text-sm flex items-center gap-2">
-                        <span class="bg-green-100 p-1 rounded">1</span> 1. Background
-                    </h2>
+                    <h2 class="font-bold text-gray-800 mb-3 text-sm">1. Setup</h2>
                     <input type="file" id="image-upload" accept="image/*" class="hidden">
                     <button onclick="document.getElementById('image-upload').click()" class="w-full bg-blue-600 text-white py-2 rounded text-sm font-bold mb-2">Upload Screenshot</button>
-                </div>
-
-                <!-- Grid Settings -->
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-green-100">
-                    <h2 class="font-bold text-gray-800 mb-3 text-sm flex items-center gap-2">
-                        <span class="bg-green-100 p-1 rounded">2</span> 2. Grid (Black)
-                    </h2>
-                    <label class="block text-xs font-bold text-gray-500 mb-1">GRID OPACITY</label>
-                    <input type="range" id="grid-opacity" min="0" max="100" value="15" class="w-full mb-4">
                     
-                    <label class="block text-xs font-bold text-gray-500 mb-1">GRID SIZE</label>
-                    <input type="range" id="grid-slider" min="5" max="50" value="20" class="w-full">
+                    <label class="block text-xs font-bold text-gray-500 mb-1">GRID OPACITY</label>
+                    <input type="range" id="grid-opacity" min="0" max="100" value="15" class="w-full mb-2">
                 </div>
 
-                <!-- Stats -->
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-green-100">
-                    <h2 class="font-bold text-gray-800 mb-2 text-sm">3. Plan Data</h2>
+                    <h2 class="font-bold text-gray-800 mb-2 text-sm">2. Stats</h2>
                     <div class="space-y-2 text-sm">
                         <div class="flex justify-between">
-                            <span class="text-gray-500">Estimated Road:</span>
+                            <span class="text-gray-500">Total Road:</span>
                             <span id="road-length" class="font-mono font-bold text-green-700">0 ft</span>
                         </div>
                     </div>
                     <div id="road-controls" class="hidden mt-3">
-                        <button id="btn-finish-road" class="w-full bg-green-700 text-white py-2 rounded-lg text-xs font-bold shadow">
-                            Finish This Road
+                        <button id="btn-finish-road" class="w-full bg-green-700 text-white py-2 rounded-lg text-xs font-bold">
+                            Finish This Path
                         </button>
                     </div>
                 </div>
 
+                <div class="bg-blue-50 p-4 rounded-xl border border-blue-200 text-xs text-blue-800">
+                    <p class="font-bold mb-1">Pro Tips:</p>
+                    <ul class="list-disc ml-4 space-y-1">
+                        <li><strong>Curves:</strong> Click frequently in an arc.</li>
+                        <li><strong>Roundabout:</strong> Click for center, move mouse to size, click again.</li>
+                    </ul>
+                </div>
+
                 <button id="btn-download" class="w-full bg-gray-800 text-white font-bold py-3 rounded-xl shadow-lg flex items-center justify-center gap-2">
-                    Export Clean Blueprint
+                    Export Blueprint
                 </button>
-                <p class="text-[10px] text-center text-gray-400">Export removes background and grid lines.</p>
             </div>
 
             <div class="lg:col-span-3">
@@ -130,13 +125,14 @@
         const roadLenEl = document.getElementById('road-length');
         const msgBox = document.getElementById('message-box');
         const roadControls = document.getElementById('road-controls');
-        const gridSlider = document.getElementById('grid-slider');
         const gridOpacitySlider = document.getElementById('grid-opacity');
 
         let currentTool = 'road';
-        let roads = [];
+        let roads = []; // Each element is an array of points
+        let roundabouts = []; // Each element is {center: {x,y}, radius: r}
         let landmarks = [];
         let currentPath = [];
+        let rCenter = null; // For roundabout creation
         let mousePos = { x: 0, y: 0 };
         
         const FIELD_SIDE_FT = 417.4; 
@@ -164,11 +160,6 @@
             }
         });
 
-        gridSlider.oninput = (e) => {
-            gridCount = parseInt(e.target.value);
-            draw();
-        };
-
         gridOpacitySlider.oninput = (e) => {
             gridOpacity = e.target.value / 100;
             draw();
@@ -186,12 +177,13 @@
         window.onload = resizeCanvas;
 
         document.getElementById('btn-road').onclick = (e) => setTool('road', e.target);
+        document.getElementById('btn-roundabout').onclick = (e) => setTool('roundabout', e.target);
         document.getElementById('btn-landmark').onclick = (e) => setTool('landmark', e.target);
         document.getElementById('btn-eraser').onclick = (e) => setTool('eraser', e.target);
         document.getElementById('btn-finish-road').onclick = finishCurrentRoad;
         
         document.getElementById('btn-clear').onclick = () => {
-            roads = []; landmarks = []; currentPath = [];
+            roads = []; landmarks = []; currentPath = []; roundabouts = [];
             roadControls.classList.add('hidden');
             calculateLength(); draw();
             showMessage("Cleared all.");
@@ -200,6 +192,7 @@
         function setTool(tool, el) {
             if (currentPath.length > 0) finishCurrentRoad();
             currentTool = tool;
+            rCenter = null;
             document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active-tool'));
             el.closest('button').classList.add('active-tool');
         }
@@ -223,6 +216,15 @@
             if (currentTool === 'road') {
                 currentPath.push(pos);
                 roadControls.classList.remove('hidden');
+            } else if (currentTool === 'roundabout') {
+                if (!rCenter) {
+                    rCenter = pos;
+                    showMessage("Move mouse to set size...");
+                } else {
+                    const radius = Math.hypot(pos.x - rCenter.x, pos.y - rCenter.y);
+                    if (radius > 5) roundabouts.push({center: rCenter, radius: radius});
+                    rCenter = null;
+                }
             } else if (currentTool === 'landmark') {
                 landmarks.push(pos);
             } else if (currentTool === 'eraser') {
@@ -233,12 +235,18 @@
 
         window.addEventListener('mousemove', (e) => {
             mousePos = getCoords(e);
-            if (currentTool === 'road' && currentPath.length > 0) draw();
+            if ((currentTool === 'road' && currentPath.length > 0) || (currentTool === 'roundabout' && rCenter)) draw();
         });
 
         function erase(pos) {
             const radius = 25;
             roads = roads.filter(path => !path.some(p => Math.hypot(p.x - pos.x, p.y - pos.y) < radius));
+            roundabouts = roundabouts.filter(r => Math.hypot(r.center.x - pos.x, r.center.y - pos.y) > (r.radius + radius) && Math.hypot(r.center.x - pos.x, r.center.y - pos.y) > radius);
+            // Better circle erasing:
+            roundabouts = roundabouts.filter(r => {
+                const dist = Math.hypot(r.center.x - pos.x, r.center.y - pos.y);
+                return Math.abs(dist - r.radius) > radius;
+            });
             landmarks = landmarks.filter(p => Math.hypot(p.x - pos.x, p.y - pos.y) < radius);
             calculateLength(); draw();
         }
@@ -252,29 +260,31 @@
                     totalPx += Math.hypot(path[i].x - path[i-1].x, path[i].y - path[i-1].y);
                 }
             });
+            // Add circumference of roundabouts
+            roundabouts.forEach(r => {
+                totalPx += 2 * Math.PI * r.radius;
+            });
             roadLenEl.textContent = Math.round(totalPx * scale).toLocaleString() + " ft";
         }
 
-        // Separate function to render content to any context (for preview or export)
         function renderToContext(targetCtx, width, height, includeGrid = true) {
             targetCtx.clearRect(0, 0, width, height);
 
             if (includeGrid) {
                 const gridSpacing = width / gridCount;
-                targetCtx.strokeStyle = `rgba(0, 0, 0, ${gridOpacity})`; // BLACK GRID
+                targetCtx.strokeStyle = `rgba(0, 0, 0, ${gridOpacity})`;
                 targetCtx.lineWidth = 1;
                 for (let i = 0; i <= gridCount; i++) {
                     targetCtx.beginPath();
                     targetCtx.moveTo(i * gridSpacing, 0); targetCtx.lineTo(i * gridSpacing, height); targetCtx.stroke();
                     targetCtx.beginPath();
-                    targetCtx.moveTo(0, i * gridSpacing); targetCtx.lineTo(width, i * gridSpacing); targetCtx.stroke();
+                    targetCtx.moveTo(0, i * gridSpacing); targetCtx.lineTo(width, i * gridSpacing, height); targetCtx.stroke();
                 }
             }
 
             const drawPathStyle = (path, isPreview = false) => {
                 if (path.length < 1) return;
                 targetCtx.lineCap = 'round'; targetCtx.lineJoin = 'round';
-                
                 targetCtx.strokeStyle = isPreview ? 'rgba(59, 130, 246, 0.5)' : 'rgba(0,0,0,0.5)';
                 targetCtx.lineWidth = 14;
                 targetCtx.beginPath();
@@ -282,11 +292,28 @@
                 path.forEach(p => targetCtx.lineTo(p.x, p.y));
                 if (isPreview) targetCtx.lineTo(mousePos.x, mousePos.y);
                 targetCtx.stroke();
-
                 targetCtx.strokeStyle = isPreview ? '#93c5fd' : '#444';
                 targetCtx.lineWidth = 10;
                 targetCtx.stroke();
+                if (!isPreview) {
+                    targetCtx.strokeStyle = '#fde047'; 
+                    targetCtx.setLineDash([10, 15]);
+                    targetCtx.lineWidth = 2;
+                    targetCtx.stroke();
+                    targetCtx.setLineDash([]);
+                }
+            };
 
+            const drawCircleStyle = (center, radius, isPreview = false) => {
+                targetCtx.lineCap = 'round';
+                targetCtx.strokeStyle = isPreview ? 'rgba(59, 130, 246, 0.5)' : 'rgba(0,0,0,0.5)';
+                targetCtx.lineWidth = 14;
+                targetCtx.beginPath();
+                targetCtx.arc(center.x, center.y, radius, 0, Math.PI * 2);
+                targetCtx.stroke();
+                targetCtx.strokeStyle = isPreview ? '#93c5fd' : '#444';
+                targetCtx.lineWidth = 10;
+                targetCtx.stroke();
                 if (!isPreview) {
                     targetCtx.strokeStyle = '#fde047'; 
                     targetCtx.setLineDash([10, 15]);
@@ -298,6 +325,12 @@
 
             roads.forEach(path => drawPathStyle(path, false));
             if (currentPath.length > 0) drawPathStyle(currentPath, true);
+            
+            roundabouts.forEach(r => drawCircleStyle(r.center, r.radius, false));
+            if (currentTool === 'roundabout' && rCenter) {
+                const r = Math.hypot(mousePos.x - rCenter.x, mousePos.y - rCenter.y);
+                drawCircleStyle(rCenter, r, true);
+            }
 
             landmarks.forEach(p => {
                 targetCtx.fillStyle = '#ef4444';
@@ -315,20 +348,15 @@
             exportCanvas.width = canvas.width;
             exportCanvas.height = canvas.height;
             const exportCtx = exportCanvas.getContext('2d');
-            
-            // Background for the exported image (White or transparent)
             exportCtx.fillStyle = '#ffffff';
             exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
-            
-            // Render content WITHOUT grid and WITHOUT background screenshot
             renderToContext(exportCtx, exportCanvas.width, exportCanvas.height, false);
-
             const dataURL = exportCanvas.toDataURL('image/png');
             const link = document.createElement('a');
             link.download = 'field-blueprint.png';
             link.href = dataURL;
             link.click();
-            showMessage("Blueprint exported (clean view)!");
+            showMessage("Blueprint exported!");
         };
     </script>
 </body>
