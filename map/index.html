@@ -14,7 +14,7 @@
         #canvas-container {
             position: relative;
             box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            background-color: #2c3e50;
+            background-color: #e2e8f0;
             border-radius: 12px;
             overflow: hidden;
             cursor: crosshair;
@@ -53,7 +53,7 @@
         <header class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
                 <h1 class="text-3xl font-bold text-green-800">Field Road Planner</h1>
-                <p class="text-green-600">Upload a screenshot of your field and start drawing!</p>
+                <p class="text-green-600">Upload a screenshot, draw your roads, and export a clean blueprint!</p>
             </div>
             <div class="flex gap-2 flex-wrap">
                 <button id="btn-road" class="tool-btn active-tool bg-white border border-green-600 text-green-700 px-4 py-2 rounded-lg font-medium">Road Tool</button>
@@ -68,20 +68,19 @@
                 <!-- Image Upload -->
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-green-100">
                     <h2 class="font-bold text-gray-800 mb-3 text-sm flex items-center gap-2">
-                        <span class="bg-green-100 p-1 rounded">1</span> 1. Upload Field Image
+                        <span class="bg-green-100 p-1 rounded">1</span> 1. Background
                     </h2>
-                    <p class="text-[10px] text-gray-500 mb-3 leading-tight">Take a screenshot of your field on Google Maps at the perfect zoom level, then upload it here.</p>
                     <input type="file" id="image-upload" accept="image/*" class="hidden">
-                    <button onclick="document.getElementById('image-upload').click()" class="w-full bg-blue-600 text-white py-2 rounded text-sm font-bold mb-2 shadow-sm">Choose Screenshot</button>
+                    <button onclick="document.getElementById('image-upload').click()" class="w-full bg-blue-600 text-white py-2 rounded text-sm font-bold mb-2">Upload Screenshot</button>
                 </div>
 
                 <!-- Grid Settings -->
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-green-100">
                     <h2 class="font-bold text-gray-800 mb-3 text-sm flex items-center gap-2">
-                        <span class="bg-green-100 p-1 rounded">2</span> 2. Grid Settings
+                        <span class="bg-green-100 p-1 rounded">2</span> 2. Grid (Black)
                     </h2>
                     <label class="block text-xs font-bold text-gray-500 mb-1">GRID OPACITY</label>
-                    <input type="range" id="grid-opacity" min="0" max="100" value="20" class="w-full mb-4">
+                    <input type="range" id="grid-opacity" min="0" max="100" value="15" class="w-full mb-4">
                     
                     <label class="block text-xs font-bold text-gray-500 mb-1">GRID SIZE</label>
                     <input type="range" id="grid-slider" min="5" max="50" value="20" class="w-full">
@@ -104,8 +103,9 @@
                 </div>
 
                 <button id="btn-download" class="w-full bg-gray-800 text-white font-bold py-3 rounded-xl shadow-lg flex items-center justify-center gap-2">
-                    Save Finished Map
+                    Export Clean Blueprint
                 </button>
+                <p class="text-[10px] text-center text-gray-400">Export removes background and grid lines.</p>
             </div>
 
             <div class="lg:col-span-3">
@@ -142,7 +142,7 @@
         const FIELD_SIDE_FT = 417.4; 
         let scale = 1;
         let gridCount = 20;
-        let gridOpacity = 0.2;
+        let gridOpacity = 0.15;
 
         function showMessage(text) {
             msgBox.textContent = text;
@@ -150,7 +150,6 @@
             setTimeout(() => msgBox.classList.add('opacity-0'), 2500);
         }
 
-        // Handle Image Upload
         fileInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
@@ -158,7 +157,7 @@
                 reader.onload = function(event) {
                     imgElement.src = event.target.result;
                     imgElement.style.display = 'block';
-                    showMessage("Image uploaded! Ready to draw.");
+                    showMessage("Image uploaded!");
                     draw();
                 };
                 reader.readAsDataURL(file);
@@ -195,7 +194,7 @@
             roads = []; landmarks = []; currentPath = [];
             roadControls.classList.add('hidden');
             calculateLength(); draw();
-            showMessage("Cleared all drawings.");
+            showMessage("Cleared all.");
         };
 
         function setTool(tool, el) {
@@ -256,80 +255,80 @@
             roadLenEl.textContent = Math.round(totalPx * scale).toLocaleString() + " ft";
         }
 
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // Separate function to render content to any context (for preview or export)
+        function renderToContext(targetCtx, width, height, includeGrid = true) {
+            targetCtx.clearRect(0, 0, width, height);
 
-            // Subtle Grid
-            const gridSpacing = canvas.width / gridCount;
-            ctx.strokeStyle = `rgba(255, 255, 255, ${gridOpacity})`;
-            ctx.lineWidth = 1;
-            for (let i = 0; i <= gridCount; i++) {
-                ctx.beginPath();
-                ctx.moveTo(i * gridSpacing, 0); ctx.lineTo(i * gridSpacing, canvas.height); ctx.stroke();
-                ctx.beginPath();
-                ctx.moveTo(0, i * gridSpacing); ctx.lineTo(canvas.width, i * gridSpacing); ctx.stroke();
+            if (includeGrid) {
+                const gridSpacing = width / gridCount;
+                targetCtx.strokeStyle = `rgba(0, 0, 0, ${gridOpacity})`; // BLACK GRID
+                targetCtx.lineWidth = 1;
+                for (let i = 0; i <= gridCount; i++) {
+                    targetCtx.beginPath();
+                    targetCtx.moveTo(i * gridSpacing, 0); targetCtx.lineTo(i * gridSpacing, height); targetCtx.stroke();
+                    targetCtx.beginPath();
+                    targetCtx.moveTo(0, i * gridSpacing); targetCtx.lineTo(width, i * gridSpacing); targetCtx.stroke();
+                }
             }
 
             const drawPathStyle = (path, isPreview = false) => {
                 if (path.length < 1) return;
-                ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+                targetCtx.lineCap = 'round'; targetCtx.lineJoin = 'round';
                 
-                // Shadow/Glow
-                ctx.strokeStyle = isPreview ? 'rgba(59, 130, 246, 0.5)' : 'rgba(0,0,0,0.5)';
-                ctx.lineWidth = 14;
-                ctx.beginPath();
-                ctx.moveTo(path[0].x, path[0].y);
-                path.forEach(p => ctx.lineTo(p.x, p.y));
-                if (isPreview) ctx.lineTo(mousePos.x, mousePos.y);
-                ctx.stroke();
+                targetCtx.strokeStyle = isPreview ? 'rgba(59, 130, 246, 0.5)' : 'rgba(0,0,0,0.5)';
+                targetCtx.lineWidth = 14;
+                targetCtx.beginPath();
+                targetCtx.moveTo(path[0].x, path[0].y);
+                path.forEach(p => targetCtx.lineTo(p.x, p.y));
+                if (isPreview) targetCtx.lineTo(mousePos.x, mousePos.y);
+                targetCtx.stroke();
 
-                // Main Road
-                ctx.strokeStyle = isPreview ? '#93c5fd' : '#444';
-                ctx.lineWidth = 10;
-                ctx.stroke();
+                targetCtx.strokeStyle = isPreview ? '#93c5fd' : '#444';
+                targetCtx.lineWidth = 10;
+                targetCtx.stroke();
 
-                // Marking Line
                 if (!isPreview) {
-                    ctx.strokeStyle = '#fde047'; 
-                    ctx.setLineDash([10, 15]);
-                    ctx.lineWidth = 2;
-                    ctx.stroke();
-                    ctx.setLineDash([]);
+                    targetCtx.strokeStyle = '#fde047'; 
+                    targetCtx.setLineDash([10, 15]);
+                    targetCtx.lineWidth = 2;
+                    targetCtx.stroke();
+                    targetCtx.setLineDash([]);
                 }
             };
 
             roads.forEach(path => drawPathStyle(path, false));
             if (currentPath.length > 0) drawPathStyle(currentPath, true);
 
-            // Draw Landmarks (dots for trees/gates)
             landmarks.forEach(p => {
-                ctx.fillStyle = '#ef4444';
-                ctx.beginPath(); ctx.arc(p.x, p.y, 8, 0, Math.PI * 2); ctx.fill();
-                ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+                targetCtx.fillStyle = '#ef4444';
+                targetCtx.beginPath(); targetCtx.arc(p.x, p.y, 8, 0, Math.PI * 2); targetCtx.fill();
+                targetCtx.strokeStyle = '#fff'; targetCtx.lineWidth = 2; targetCtx.stroke();
             });
         }
 
-        document.getElementById('btn-download').onclick = () => {
-            // Create a temp canvas to merge background image and drawing
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = canvas.width;
-            tempCanvas.height = canvas.height;
-            const tempCtx = tempCanvas.getContext('2d');
-            
-            if (imgElement.src && imgElement.style.display !== 'none') {
-                tempCtx.drawImage(imgElement, 0, 0, canvas.width, canvas.height);
-            } else {
-                tempCtx.fillStyle = '#2c3e50';
-                tempCtx.fillRect(0, 0, canvas.width, canvas.height);
-            }
-            tempCtx.drawImage(canvas, 0, 0);
+        function draw() {
+            renderToContext(ctx, canvas.width, canvas.height, true);
+        }
 
-            const dataURL = tempCanvas.toDataURL('image/png');
+        document.getElementById('btn-download').onclick = () => {
+            const exportCanvas = document.createElement('canvas');
+            exportCanvas.width = canvas.width;
+            exportCanvas.height = canvas.height;
+            const exportCtx = exportCanvas.getContext('2d');
+            
+            // Background for the exported image (White or transparent)
+            exportCtx.fillStyle = '#ffffff';
+            exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+            
+            // Render content WITHOUT grid and WITHOUT background screenshot
+            renderToContext(exportCtx, exportCanvas.width, exportCanvas.height, false);
+
+            const dataURL = exportCanvas.toDataURL('image/png');
             const link = document.createElement('a');
-            link.download = 'field-plan.png';
+            link.download = 'field-blueprint.png';
             link.href = dataURL;
             link.click();
-            showMessage("Map saved to your device!");
+            showMessage("Blueprint exported (clean view)!");
         };
     </script>
 </body>
