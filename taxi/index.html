@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Field Bike Taxi HQ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;700;900&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .ticket-font {
+            font-family: 'Space Mono', monospace;
+        }
+
+        /* Specialized printing for 80mm receipt paper */
+        @media print {
+            body * { visibility: hidden; }
+            #receipt-to-print, #receipt-to-print * { visibility: visible; }
+            #receipt-to-print {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 80mm !important;
+                padding: 10mm;
+                border: none !important;
+                color: black !important;
+                background: white !important;
+            }
+            .no-print { display: none !important; }
+        }
+
+        /* Hide Scrollbars */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        .nav-btn.active { color: #eab308; background-color: #fefce8; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 pb-20">
+
+    <!-- Header -->
+    <header class="bg-yellow-400 p-4 shadow-md sticky top-0 z-10 no-print">
+        <div class="max-w-md mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18.5" cy="17.5" r="3.5"/><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="15" cy="5" r="1"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/></svg>
+                <h1 class="font-black italic text-xl uppercase tracking-tighter">Field Dispatch</h1>
+            </div>
+            <button onclick="window.print()" class="bg-black text-white px-4 py-2 rounded-full text-xs flex items-center gap-2 font-bold active:scale-95 transition-transform">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                PRINT TICKET
+            </button>
+        </div>
+    </header>
+
+    <main class="max-w-md mx-auto p-4 no-print">
+        <!-- Tab 1: Dispatch -->
+        <div id="tab-dispatch" class="tab-content active space-y-6">
+            <section class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                <h2 class="font-bold flex items-center gap-2 mb-4 text-slate-500 uppercase text-xs tracking-widest">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+                    New Route
+                </h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-[10px] font-black text-slate-400 ml-1">PICKUP LOCATION</label>
+                        <select id="start-select" class="w-full p-4 bg-slate-100 rounded-xl border-2 border-transparent focus:border-yellow-400 outline-none mt-1 appearance-none">
+                            <option value="">Select Address...</option>
+                        </select>
+                    </div>
+                    <div class="flex justify-center py-1">
+                        <svg class="text-slate-300" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/></svg>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black text-slate-400 ml-1">DESTINATION</label>
+                        <select id="end-select" class="w-full p-4 bg-slate-100 rounded-xl border-2 border-transparent focus:border-yellow-400 outline-none mt-1 appearance-none">
+                            <option value="">Select Address...</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <div id="ticket-preview-area" class="hidden">
+                <div id="receipt-preview" class="ticket-font bg-white text-black p-6 border-2 border-dashed border-slate-300 rounded-lg shadow-inner">
+                    <!-- Dynamic Ticket Content -->
+                </div>
+                <p class="text-center text-[10px] text-slate-400 mt-3 italic">↑ Preview of your handlebar ticket</p>
+            </div>
+        </div>
+
+        <!-- Tab 2: Map Management -->
+        <div id="tab-map" class="tab-content space-y-6">
+            <section class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                <h2 class="font-bold mb-4 text-slate-500 uppercase text-xs tracking-widest">Register New Spot</h2>
+                <div class="space-y-3">
+                    <input id="place-name" type="text" placeholder="Spot Name (e.g. The Big Oak)" class="w-full p-4 bg-slate-100 rounded-xl outline-none focus:ring-2 ring-yellow-400">
+                    <select id="city-select-input" class="w-full p-4 bg-slate-100 rounded-xl outline-none appearance-none">
+                        <option value="">Select Region/City...</option>
+                    </select>
+                    <input id="place-notes" type="text" placeholder="Short directions or warnings..." class="w-full p-4 bg-slate-100 rounded-xl text-sm outline-none">
+                    <button onclick="handleAddPlace()" class="w-full bg-black text-white p-4 rounded-xl font-black text-sm tracking-wider hover:bg-slate-800 transition-colors">
+                        SAVE TO MAP
+                    </button>
+                </div>
+            </section>
+
+            <section class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                <h2 class="font-bold mb-4 text-slate-500 uppercase text-xs tracking-widest">Create Region</h2>
+                <div class="flex gap-2">
+                    <input id="city-name" type="text" placeholder="e.g. North Pasture" class="flex-1 p-4 bg-slate-100 rounded-xl outline-none">
+                    <button onclick="handleAddCity()" class="bg-yellow-400 p-4 rounded-xl hover:bg-yellow-500 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    </button>
+                </div>
+            </section>
+        </div>
+
+        <!-- Tab 3: Database -->
+        <div id="tab-settings" class="tab-content space-y-4">
+            <h2 class="font-bold text-slate-500 uppercase text-xs tracking-widest px-1">Manage All Locations</h2>
+            <div id="places-list" class="space-y-3">
+                <!-- Places will appear here -->
+            </div>
+            
+            <h2 class="font-bold text-slate-500 uppercase text-xs tracking-widest px-1 mt-8">Manage Regions</h2>
+            <div id="cities-list" class="space-y-2">
+                <!-- Cities will appear here -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Invisible Printing Container -->
+    <div id="receipt-to-print" class="hidden"></div>
+
+    <!-- Navigation -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-2 no-print shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
+        <div class="max-w-md mx-auto flex justify-around">
+            <button onclick="switchTab('dispatch')" id="btn-dispatch" class="nav-btn active flex flex-col items-center p-3 gap-1 rounded-2xl flex-1 mx-1 transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+                <span class="text-[10px] font-black uppercase tracking-tighter">Dispatch</span>
+            </button>
+            <button onclick="switchTab('map')" id="btn-map" class="nav-btn flex flex-col items-center p-3 gap-1 rounded-2xl flex-1 mx-1 transition-all text-slate-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                <span class="text-[10px] font-black uppercase tracking-tighter">Add Spot</span>
+            </button>
+            <button onclick="switchTab('settings')" id="btn-settings" class="nav-btn flex flex-col items-center p-3 gap-1 rounded-2xl flex-1 mx-1 transition-all text-slate-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                <span class="text-[10px] font-black uppercase tracking-tighter">Database</span>
+            </button>
+        </div>
+    </nav>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, addDoc, deleteDoc, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global Variables
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'bike-taxi-vanilla';
+
+        let currentUser = null;
+        let cities = [];
+        let places = [];
+
+        // UI Selectors
+        const startSelect = document.getElementById('start-select');
+        const endSelect = document.getElementById('end-select');
+        const citySelectInput = document.getElementById('city-select-input');
+        const placesList = document.getElementById('places-list');
+        const citiesList = document.getElementById('cities-list');
+        const receiptPreview = document.getElementById('receipt-preview');
+        const receiptToPrint = document.getElementById('receipt-to-print');
+        const previewArea = document.getElementById('ticket-preview-area');
+
+        // --- AUTH ---
+        async function init() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (err) {
+                console.error("Auth failed:", err);
+            }
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                setupListeners();
+            }
+        });
+
+        // --- FIRESTORE LISTENERS ---
+        function setupListeners() {
+            const citiesRef = collection(db, 'artifacts', appId, 'public', 'data', 'cities');
+            const placesRef = collection(db, 'artifacts', appId, 'public', 'data', 'places');
+
+            onSnapshot(citiesRef, (snapshot) => {
+                cities = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderOptions();
+            }, (err) => console.error("Cities error", err));
+
+            onSnapshot(placesRef, (snapshot) => {
+                places = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderOptions();
+                renderManagementLists();
+            }, (err) => console.error("Places error", err));
+        }
+
+        // --- RENDERING ---
+        function renderOptions() {
+            // Start/End Selects
+            const optionsHtml = '<option value="">Select Address...</option>' + 
+                places.map(p => {
+                    const cityName = cities.find(c => c.id === p.cityId)?.name || 'Outskirts';
+                    return `<option value="${p.id}">${p.name} (${cityName})</option>`;
+                }).join('');
+            
+            startSelect.innerHTML = optionsHtml;
+            endSelect.innerHTML = optionsHtml;
+
+            // City Select for adding places
+            citySelectInput.innerHTML = '<option value="">Select Region/City...</option>' + 
+                cities.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        }
+
+        function renderManagementLists() {
+            placesList.innerHTML = places.map(p => {
+                const cityName = cities.find(c => c.id === p.cityId)?.name || 'Outskirts';
+                return `
+                    <div class="bg-white p-4 rounded-xl shadow-sm flex items-center justify-between border border-slate-200">
+                        <div>
+                            <p class="font-bold">${p.name}</p>
+                            <p class="text-[10px] text-slate-500 uppercase">${cityName}</p>
+                        </div>
+                        <button onclick="handleDelete('places', '${p.id}')" class="text-red-400 p-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+
+            citiesList.innerHTML = cities.map(c => `
+                <div class="bg-white p-3 rounded-xl flex items-center justify-between border border-slate-200">
+                    <span class="text-sm font-medium">${c.name}</span>
+                    <button onclick="handleDelete('cities', '${c.id}')" class="text-red-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function updateTicket() {
+            const startId = startSelect.value;
+            const endId = endSelect.value;
+            
+            if (!startId || !endId) {
+                previewArea.classList.add('hidden');
+                return;
+            }
+
+            const start = places.find(p => p.id === startId);
+            const end = places.find(p => p.id === endId);
+            const startCity = cities.find(c => c.id === start.cityId)?.name || 'Outskirts';
+            const endCity = cities.find(c => c.id === end.cityId)?.name || 'Outskirts';
+
+            const ticketHtml = `
+                <div class="text-center border-b-2 border-black pb-2 mb-4">
+                    <h2 class="text-xl font-black uppercase tracking-tight">FIELD TAXI CO.</h2>
+                    <p class="text-[10px] mt-1">${new Date().toLocaleString()}</p>
+                </div>
+                
+                <div class="space-y-6">
+                    <div>
+                        <p class="text-[9px] uppercase font-bold text-gray-500">Pickup From:</p>
+                        <p class="text-lg font-black leading-none">${start.name.toUpperCase()}</p>
+                        <p class="text-xs italic">${startCity}</p>
+                    </div>
+
+                    <div class="flex justify-center opacity-50">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
+                    </div>
+
+                    <div>
+                        <p class="text-[9px] uppercase font-bold text-gray-500">Destination:</p>
+                        <p class="text-lg font-black leading-none">${end.name.toUpperCase()}</p>
+                        <p class="text-xs italic">${endCity}</p>
+                    </div>
+
+                    ${(start.notes || end.notes) ? `
+                        <div class="border-t border-black pt-3">
+                            <p class="text-[9px] uppercase font-bold">Rider Notes:</p>
+                            <p class="text-xs leading-tight mt-1">${end.notes || start.notes}</p>
+                        </div>
+                    ` : ''}
+                </div>
+
+                <div class="text-center mt-8 pt-4 border-t-2 border-dashed border-gray-300">
+                    <p class="text-[10px] font-bold">RIDE SAFE, COUSIN!</p>
+                    <div class="mt-2 h-10 w-full bg-black flex items-center justify-center">
+                        <span class="text-white text-[12px] tracking-[0.6em] font-bold">DISPATCHED</span>
+                    </div>
+                </div>
+            `;
+
+            receiptPreview.innerHTML = ticketHtml;
+            receiptToPrint.innerHTML = ticketHtml;
+            previewArea.classList.remove('hidden');
+        }
+
+        // --- ACTIONS ---
+        window.handleAddCity = async function() {
+            const name = document.getElementById('city-name').value;
+            if (!name.trim() || !currentUser) return;
+            await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'cities'), {
+                name,
+                createdAt: Date.now()
+            });
+            document.getElementById('city-name').value = '';
+        }
+
+        window.handleAddPlace = async function() {
+            const name = document.getElementById('place-name').value;
+            const cityId = citySelectInput.value;
+            const notes = document.getElementById('place-notes').value;
+
+            if (!name.trim() || !cityId || !currentUser) return;
+            
+            await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'places'), {
+                name,
+                cityId,
+                notes,
+                createdAt: Date.now()
+            });
+
+            document.getElementById('place-name').value = '';
+            document.getElementById('place-notes').value = '';
+        }
+
+        window.handleDelete = async function(col, id) {
+            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', col, id));
+        }
+
+        window.switchTab = function(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active', 'text-slate-400'));
+            
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            document.getElementById(`btn-${tabId}`).classList.add('active');
+            
+            // Re-add text color to non-active buttons
+            document.querySelectorAll('.nav-btn:not(.active)').forEach(el => el.classList.add('text-slate-400'));
+        }
+
+        startSelect.addEventListener('change', updateTicket);
+        endSelect.addEventListener('change', updateTicket);
+
+        init();
+    </script>
+</body>
+</html>
