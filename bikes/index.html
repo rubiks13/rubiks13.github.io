@@ -20,7 +20,6 @@
             background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: all 0.3s ease;
         }
 
         .link-button {
@@ -69,18 +68,6 @@
             font-size: 24px;
             width: 200px;
             outline: none;
-            transition: all 0.3s;
-        }
-
-        #password-input:focus {
-            border-color: #3b82f6;
-            box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
-        }
-
-        .lock-icon {
-            font-size: 4rem;
-            margin-bottom: 1rem;
-            color: #3b82f6;
         }
 
         .page {
@@ -109,9 +96,7 @@
             padding: 8px 16px;
             border-radius: 12px;
             font-family: monospace;
-            font-weight: bold;
             border: 1px solid rgba(51, 65, 85, 0.5);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
             z-index: 1000;
             text-align: center;
         }
@@ -120,8 +105,8 @@
 <body class="flex items-center justify-center p-4">
 
     <div id="sim-clock-display">
-        <div style="font-size: 9px; color: #94a3b8; margin-bottom: 2px; letter-spacing: 0.1em;">BIKE TIME SYNCED</div>
-        <div id="sim-time-text" style="font-size: 18px;">--:-- --</div>
+        <div id="sim-date-text" style="font-size: 10px; color: #94a3b8; margin-bottom: 2px; font-weight: bold;">DAY 1</div>
+        <div id="sim-time-text" style="font-size: 18px; font-weight: bold;">--:-- --</div>
     </div>
 
     <div id="home-page" class="page active">
@@ -160,17 +145,16 @@
                 </div>
                 <div id="keys-list" class="space-y-2"></div>
                 <div class="pt-4 border-t border-white/10">
-                    <button onclick="localStorage.clear(); location.reload();" class="text-red-400 text-xs">Full Factory Reset (Sync Wipe)</button>
+                    <button onclick="localStorage.clear(); location.reload();" class="text-red-400 text-xs">Full Sync Reset</button>
                 </div>
             </div>
         </div>
     </div>
 
     <div id="lock-screen">
-        <div class="lock-icon">🔒</div>
+        <div class="text-4xl mb-4">🔒</div>
         <h2 class="text-blue-400 text-2xl font-bold mb-4">SYSTEM LOCKED</h2>
         <input type="password" id="password-input" placeholder="Scan Pass" autocomplete="off">
-        <p class="text-gray-500 text-xs mt-4">Broadcasting Global Sync...</p>
     </div>
 
     <script>
@@ -186,10 +170,8 @@
 
         function initSimulationClock() {
             function refreshTime() {
-                // Shared key for the start time across all tabs
                 let start = localStorage.getItem('sim_bank_start_real_time');
                 if(!start) {
-                    // Set to a clean start point
                     start = Date.now().toString();
                     localStorage.setItem('sim_bank_start_real_time', start);
                 }
@@ -197,8 +179,15 @@
                 const startTime = parseInt(start);
                 const elapsedRealMs = Date.now() - startTime;
                 
-                // Rule: 1 real second = 1 simulation minute
-                // (Total sim minutes = elapsedRealMs / 1000)
+                // MATH: 24 real minutes (1,440,000ms) = 1 simulation day
+                const msPerSimDay = 1440000;
+                
+                // Calculate current Day
+                const currentDay = Math.floor(elapsedRealMs / msPerSimDay) + 1;
+                const dateString = `DAY ${currentDay}`;
+
+                // Calculate current Time within the day
+                // (Total sim minutes = elapsedRealMs / 1000 since 1 real sec = 1 sim min)
                 const totalSimMinutesSinceStart = Math.floor(elapsedRealMs / 1000);
                 const currentSimMinutesInDay = totalSimMinutesSinceStart % 1440;
                 
@@ -210,18 +199,14 @@
                 const displayMin = mins.toString().padStart(2, '0');
                 const timeString = `${displayHour}:${displayMin} ${ampm}`;
 
-                // FORCE UPDATE ALL SYSTEMS
-                // We save the string AND the raw minutes so other systems can use whichever they prefer
+                // BROADCAST GLOBAL SYNC
                 localStorage.setItem('sim_current_bike_time', timeString);
-                localStorage.setItem('sim_current_bike_minutes', currentSimMinutesInDay.toString());
-                localStorage.setItem('sim_last_sync_update', Date.now().toString());
+                localStorage.setItem('sim_current_bike_date', dateString);
                 
-                const textElement = document.getElementById('sim-time-text');
-                if (textElement) textElement.innerText = timeString;
+                document.getElementById('sim-time-text').innerText = timeString;
+                document.getElementById('sim-date-text').innerText = dateString;
             }
-            
-            // Running at 50ms for hyper-sync
-            setInterval(refreshTime, 50); 
+            setInterval(refreshTime, 100); 
             refreshTime();
         }
 
@@ -279,35 +264,20 @@
             document.getElementById('greeting-text').innerText = `Hi, ${user.name}`;
             renderLinks();
             lockScreen.classList.add('hidden');
-            passInput.value = "";
         }
 
         passInput.addEventListener('input', () => {
             const val = passInput.value;
             const match = savedKeys.find(e => e.key === val);
-            if(match) {
-                unlock(match);
-            } else if(savedKeys.length === 0 && val === "1") {
+            if(match) unlock(match);
+            else if(savedKeys.length === 0 && val === "1") {
                 unlock({name:"Admin", key:"1"});
                 navigateTo('settings-page');
             }
         });
 
-        document.addEventListener('click', () => {
-            if(!lockScreen.classList.contains('hidden')) passInput.focus();
-        });
-
-        window.onload = () => {
-            initSimulationClock();
-            passInput.focus();
-        };
-
-        window.addEventListener('keydown', (e) => {
-            if (e.ctrlKey && e.key === 's') {
-                e.preventDefault();
-                navigateTo('settings-page');
-            }
-        });
+        document.addEventListener('click', () => { if(!lockScreen.classList.contains('hidden')) passInput.focus(); });
+        window.onload = () => { initSimulationClock(); passInput.focus(); };
     </script>
 </body>
 </html>
