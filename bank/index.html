@@ -3,437 +3,389 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bike Bank | Future of Cycling Finance</title>
+    <title>Bike Bank System</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Barcode Library -->
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=Libre+Barcode+128&display=swap');
-
-        :root {
-            --brand-primary: #0ea5e9;
-            --bg-dark: #020617;
-            --card-bg: rgba(15, 23, 42, 0.6);
-        }
-
-        body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: var(--bg-dark);
-            color: #f8fafc;
-            overflow-x: hidden;
-            background-image: 
-                radial-gradient(circle at 0% 0%, rgba(14, 165, 233, 0.15) 0%, transparent 40%),
-                radial-gradient(circle at 100% 100%, rgba(99, 102, 241, 0.1) 0%, transparent 40%);
-        }
-
-        .glass-panel {
-            background: var(--card-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-        }
-
-        .gradient-brand {
-            background: linear-gradient(135deg, #0ea5e9, #6366f1);
-        }
-
-        .barcode {
-            font-family: 'Libre Barcode 128', cursive;
-            font-size: 64px;
-        }
-
-        .receipt-paper {
-            background: #ffffff;
-            color: #1e293b;
+        @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Inter:wght@400;600;800&display=swap');
+        
+        body { font-family: 'Inter', sans-serif; overflow-x: hidden; }
+        .receipt {
             width: 80mm;
-            padding: 24px;
-            font-family: 'Courier New', Courier, monospace;
-            border-radius: 4px;
+            padding: 10px;
+            background: white;
+            color: black;
+            font-family: 'Courier Prime', monospace;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin: auto;
         }
-
-        .nav-item {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .nav-item.active {
-            background: rgba(14, 165, 233, 0.15);
-            color: #0ea5e9;
-            box-shadow: inset 4px 0 0 #0ea5e9;
-        }
-
+        .sidebar-transition { transition: transform 0.3s ease-in-out; }
         @media print {
             body * { visibility: hidden; }
-            #receipt-content, #receipt-content * { visibility: visible; }
-            #receipt-content { position: fixed; left: 0; top: 0; width: 100%; margin: 0; box-shadow: none; }
-            .no-print { display: none !important; }
+            #print-area, #print-area * { visibility: visible; }
+            #print-area { position: absolute; left: 0; top: 0; width: 80mm; }
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col">
+<body class="bg-slate-900 text-slate-100 min-h-screen">
 
-    <header class="w-full h-20 glass-panel border-b border-white/5 px-6 flex justify-between items-center sticky top-0 z-[60] no-print">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 gradient-brand rounded-xl flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-            </div>
-            <div>
-                <h1 class="font-extrabold text-lg tracking-tight leading-none uppercase">Bike Bank</h1>
-                <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Global Ledger V4</span>
-            </div>
+    <!-- Account Creation Modal -->
+    <div id="setup-modal" class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center hidden">
+        <div class="bg-slate-800 p-8 rounded-2xl border border-slate-700 max-w-md w-full mx-4 text-center">
+            <h2 class="text-3xl font-black mb-4 text-blue-400">Welcome, Rider!</h2>
+            <p class="text-slate-400 mb-6">We couldn't find your account. What's your name?</p>
+            <input type="text" id="new-user-name" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white mb-4 outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter name...">
+            <button onclick="createNewAccount()" class="w-full bg-blue-600 hover:bg-blue-500 py-3 rounded-lg font-bold transition">Create Account</button>
         </div>
+    </div>
 
-        <div class="flex items-center gap-4">
-            <div id="payment-warning" class="hidden flex items-center gap-2 bg-red-500/10 text-red-400 px-4 py-2 rounded-xl border border-red-500/20">
-                <span class="text-[10px] font-bold uppercase animate-pulse">BILLS OVERDUE</span>
+    <!-- Main App Structure -->
+    <div id="app" class="flex min-h-screen">
+        <!-- Sidebar -->
+        <nav class="w-64 bg-slate-800 border-r border-slate-700 flex flex-col p-4 space-y-2 fixed h-full z-30">
+            <div class="text-2xl font-black mb-8 px-2 flex items-center gap-2">
+                <span class="text-blue-500">🚲</span> BIKE BANK
             </div>
-            <div class="bg-slate-800 px-4 py-2 rounded-xl font-mono text-blue-400 font-bold border border-blue-500/20 whitespace-nowrap" id="bike-time-display">08:00 AM</div>
-        </div>
-    </header>
-
-    <div class="flex flex-1">
-        <nav class="w-20 lg:w-72 glass-panel border-r border-white/5 flex flex-col sticky top-20 h-[calc(100vh-80px)] no-print">
-            <div class="flex-1 py-6 flex flex-col gap-1">
-                <button onclick="switchTab('dashboard')" class="nav-item mx-3 p-4 rounded-2xl flex items-center gap-4 hover:bg-white/5 active" id="tab-btn-dashboard">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-                    <span class="hidden lg:inline font-semibold">Overview</span>
-                </button>
-                <button onclick="switchTab('payment')" class="nav-item mx-3 p-4 rounded-2xl flex items-center gap-4 hover:bg-white/5" id="tab-btn-payment">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
-                    <span class="hidden lg:inline font-semibold">Daily Bills</span>
-                </button>
-                <button onclick="switchTab('print')" class="nav-item mx-3 p-4 rounded-2xl flex items-center gap-4 hover:bg-white/5" id="tab-btn-print">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-                    <span class="hidden lg:inline font-semibold">Print Cash</span>
-                </button>
-                <button onclick="switchTab('deposit')" class="nav-item mx-3 p-4 rounded-2xl flex items-center gap-4 hover:bg-white/5" id="tab-btn-deposit">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                    <span class="hidden lg:inline font-semibold">Redeem Bill</span>
-                </button>
-                <button onclick="switchTab('activity')" class="nav-item mx-3 p-4 rounded-2xl flex items-center gap-4 hover:bg-white/5" id="tab-btn-activity">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    <span class="hidden lg:inline font-semibold">History</span>
-                </button>
+            <button onclick="setView('dashboard')" class="nav-btn w-full text-left p-3 rounded-xl hover:bg-slate-700 flex items-center gap-3">
+                <span>🏠</span> Dashboard
+            </button>
+            <button onclick="setView('payments')" class="nav-btn w-full text-left p-3 rounded-xl hover:bg-slate-700 flex items-center gap-3">
+                <span>💳</span> Payments
+            </button>
+            <button onclick="setView('activity')" class="nav-btn w-full text-left p-3 rounded-xl hover:bg-slate-700 flex items-center gap-3">
+                <span>📝</span> Recent Activity
+            </button>
+            <button onclick="setView('print')" class="nav-btn w-full text-left p-3 rounded-xl hover:bg-slate-700 flex items-center gap-3">
+                <span>🖨️</span> Print Cash
+            </button>
+            <button onclick="setView('deposit')" class="nav-btn w-full text-left p-3 rounded-xl hover:bg-slate-700 flex items-center gap-3">
+                <span>📥</span> Deposit
+            </button>
+            
+            <div class="mt-auto pt-4 border-t border-slate-700">
+                <div class="px-2 text-xs text-slate-500 uppercase font-bold tracking-widest">Logged in as</div>
+                <div id="display-name" class="px-2 text-blue-400 font-bold truncate">...</div>
             </div>
         </nav>
 
-        <main class="flex-1 p-6 lg:p-12 overflow-y-auto no-print">
-            
-            <!-- Dashboard -->
-            <section id="tab-dashboard" class="max-w-4xl mx-auto space-y-8">
-                <div class="glass-panel rounded-[40px] p-10 relative overflow-hidden">
-                    <p class="text-slate-400 font-bold text-xs uppercase tracking-widest mb-2">Account Balance</p>
-                    <h2 id="balance-display" class="text-7xl font-black tracking-tighter mb-8">$0.00</h2>
-                    
-                    <div class="flex flex-wrap gap-4">
-                        <div class="bg-blue-500/10 border border-blue-500/20 px-4 py-2 rounded-xl text-blue-400 font-bold text-xs uppercase" id="user-name-display">USER</div>
-                        <button onclick="copyAiPrompt()" class="bg-white text-black px-6 py-2 rounded-xl font-bold text-xs uppercase hover:bg-slate-200 transition-all flex items-center gap-2">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"/><path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"/></svg>
-                            Fix Money Not Sending
-                        </button>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="glass-panel p-8 rounded-3xl">
-                        <h3 class="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-4">Latest History</h3>
-                        <div id="last-activity-preview" class="text-2xl font-bold text-slate-500">No activity</div>
-                    </div>
-                    <div class="glass-panel p-8 rounded-3xl">
-                        <h3 class="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-4">Pending Bills</h3>
-                        <div id="pending-bills-count" class="text-2xl font-bold text-blue-400">0 Items</div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Bills -->
-            <section id="tab-payment" class="max-w-3xl mx-auto hidden space-y-6">
-                <h2 class="text-2xl font-black uppercase">Daily Expenses</h2>
-                <div id="bill-container" class="grid gap-4"></div>
-            </section>
-
-            <!-- Printing -->
-            <section id="tab-print" class="max-w-3xl mx-auto hidden text-center">
-                <h2 class="text-3xl font-black mb-8 uppercase">Cash Printer</h2>
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
-                    <button onclick="initiatePrint(1)" class="glass-panel p-10 rounded-3xl hover:border-blue-500/50 transition-all font-black text-2xl">$1</button>
-                    <button onclick="initiatePrint(5)" class="glass-panel p-10 rounded-3xl hover:border-blue-500/50 transition-all font-black text-2xl">$5</button>
-                    <button onclick="initiatePrint(10)" class="glass-panel p-10 rounded-3xl hover:border-blue-500/50 transition-all font-black text-2xl">$10</button>
-                    <button onclick="initiatePrint(20)" class="glass-panel p-10 rounded-3xl hover:border-blue-500/50 transition-all font-black text-2xl">$20</button>
-                    <button onclick="initiatePrint(50)" class="glass-panel p-10 rounded-3xl hover:border-blue-500/50 transition-all font-black text-2xl">$50</button>
-                    <button onclick="initiatePrint(100)" class="glass-panel p-10 rounded-3xl hover:border-blue-500/50 transition-all font-black text-2xl">$100</button>
-                </div>
-            </section>
-
-            <!-- Deposit -->
-            <section id="tab-deposit" class="max-w-xl mx-auto hidden space-y-6">
-                <div class="glass-panel p-10 rounded-[40px] text-center border-2 border-dashed border-slate-800">
-                    <h2 class="text-2xl font-black mb-6 uppercase">Redeem Bill Serial</h2>
-                    <input type="text" id="deposit-code" maxlength="10" placeholder="000-000-000" class="w-full bg-slate-900 border border-white/10 p-6 rounded-2xl text-center text-3xl font-mono text-blue-400 focus:outline-none mb-6">
-                    <button onclick="processDeposit()" class="w-full gradient-brand py-5 rounded-2xl font-black">DEPOSIT FUNDS</button>
-                </div>
-            </section>
-
-            <!-- Activity -->
-            <section id="tab-activity" class="max-w-2xl mx-auto hidden space-y-4">
-                <h2 class="text-2xl font-black uppercase mb-8">Financial Log</h2>
-                <div id="activity-list" class="space-y-3"></div>
-            </section>
-
+        <!-- Main Content -->
+        <main class="flex-1 ml-64 p-8">
+            <div id="content-area" class="max-w-4xl mx-auto">
+                <!-- Views will be injected here -->
+            </div>
         </main>
     </div>
 
-    <!-- Modals -->
-    <div id="registration-modal" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/95 hidden">
-        <div class="glass-panel p-10 rounded-[40px] w-full max-w-md text-center">
-            <h2 class="text-3xl font-black mb-8">IDENTITY</h2>
-            <input type="text" id="new-user-name" placeholder="FULL NAME" class="w-full bg-slate-900 border border-white/10 rounded-2xl px-6 py-5 mb-6 text-white font-bold text-center">
-            <button onclick="createNewAccount()" class="w-full gradient-brand py-5 rounded-2xl font-black">ENTER BANK</button>
-        </div>
-    </div>
-
-    <div id="receipt-container" class="hidden fixed inset-0 z-[120] bg-slate-950/95 flex flex-col items-center justify-center p-4">
-        <div id="receipt-content" class="receipt-paper shadow-2xl">
-            <div class="text-center border-b-2 border-slate-900 pb-2 mb-4">
-                <h2 class="font-black">BIKE BANK ASSET</h2>
+    <!-- Print Area (Hidden except during printing) -->
+    <div id="print-area" class="hidden flex justify-center p-4 bg-white min-h-screen">
+        <div class="receipt">
+            <div class="text-center border-b border-black pb-2 mb-2">
+                <h1 class="text-xl font-bold">BIKE BANK NOTE</h1>
+                <p id="print-date" class="text-sm"></p>
             </div>
-            <div class="text-6xl font-black text-center my-6">$<span id="receipt-amount">0</span></div>
-            <div class="text-center">
-                <div class="barcode" id="receipt-barcode">00000000</div>
+            <div class="py-4 text-center">
+                <p class="text-xs uppercase">Legal Tender Amount</p>
+                <p id="print-amount" class="text-4xl font-bold">$0</p>
             </div>
+            <div class="border-t border-black pt-2 text-sm">
+                <p>Account Holder: <span id="print-user"></span></p>
+                <p>Status: Validated</p>
+            </div>
+            <div class="mt-4 flex justify-center">
+                <svg id="barcode"></svg>
+            </div>
+            <p id="barcode-num" class="text-center text-xs mt-1 tracking-widest"></p>
         </div>
-        <div class="mt-8 flex gap-4 no-print">
-            <button onclick="window.print()" class="bg-blue-500 text-white px-8 py-3 rounded-xl font-bold">Print Paper</button>
-            <button onclick="finalizePrint()" class="bg-white text-black px-8 py-3 rounded-xl font-bold">Done</button>
-        </div>
-    </div>
-
-    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-white text-black px-8 py-3 rounded-full shadow-2xl transition-all duration-500 opacity-0 translate-y-10 pointer-events-none font-bold text-xs uppercase tracking-widest z-[200]">
-        <span id="toast-message"></span>
     </div>
 
     <script>
-        const STORAGE_KEY = "bike_bank_v2_accounts";
-        const BILL_KEY = "bike_bank_v2_bills";
-        const TIME_KEY = "sim_current_bike_time";
-        const MINUTES_KEY = "sim_current_bike_minutes";
-        
-        const BILL_TYPES = [
-            { id: 'gas', name: 'Fuel Cells', price: 10, triggerMinute: 480 }, // 8:00 AM
-            { id: 'food', name: 'Rations', price: 15, triggerMinute: 720 }, // 12:00 PM
-            { id: 'tax', name: 'City Tax', price: 5, triggerMinute: 1080 }  // 6:00 PM
-        ];
-
+        // Configuration & State
+        const APP_ID = 'bike-bank-v1';
+        const REDIRECT_URL = 'https://rubiks13.github.io/bikes/';
         let currentUser = null;
-        let accounts = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
-        let activeBills = JSON.parse(localStorage.getItem(BILL_KEY)) || {};
+        let inactivityTimer;
 
-        function init() {
-            const params = new URLSearchParams(window.location.search);
-            const user = params.get('user');
+        // Initialize Data
+        const getBankData = () => JSON.parse(localStorage.getItem(APP_ID)) || { users: {}, validTickets: {} };
+        const saveBankData = (data) => localStorage.setItem(APP_ID, JSON.stringify(data));
 
-            if (!user) {
-                document.getElementById('registration-modal').classList.remove('hidden');
-            } else {
-                currentUser = user.toLowerCase();
-                if (!accounts[currentUser]) {
-                    accounts[currentUser] = { name: user, balance: 100, activity: [], billsPaid: {} };
-                }
-                checkIncomingFunds();
-                renderAll();
-            }
-
-            // Sync Time Loop
-            setInterval(() => {
-                const simTimeStr = localStorage.getItem(TIME_KEY);
-                const totalMinutesRaw = localStorage.getItem(MINUTES_KEY);
-                
-                let display = "08:00 AM"; // Default
-
-                if (simTimeStr && simTimeStr !== "" && simTimeStr !== "undefined") {
-                    display = simTimeStr;
-                } else if (totalMinutesRaw) {
-                    const mins = parseInt(totalMinutesRaw);
-                    const h24 = Math.floor(mins / 60) % 24;
-                    const m = (mins % 60).toString().padStart(2, '0');
-                    const ampm = h24 >= 12 ? 'PM' : 'AM';
-                    const h12 = h24 % 12 || 12;
-                    display = `${h12}:${m} ${ampm}`;
-                }
-
-                document.getElementById('bike-time-display').innerText = display;
-                
-                if (totalMinutesRaw) {
-                    processAutomatedBills(parseInt(totalMinutesRaw));
-                }
-            }, 1000);
-
-            // Inactivity timer
-            let idle;
-            const resetTimer = () => {
-                clearTimeout(idle);
-                idle = setTimeout(() => {
-                    window.location.href = "https://rubiks13.github.io/bikes/";
-                }, 15000); 
-            };
-            document.onclick = resetTimer;
-            document.onmousemove = resetTimer;
+        // Inactivity Logic
+        function resetInactivityTimer() {
+            clearTimeout(inactivityTimer);
+            inactivityTimer = setTimeout(() => {
+                window.location.href = REDIRECT_URL;
+            }, 5000);
         }
 
-        function processAutomatedBills(currentMin) {
-            if (!currentUser) return;
-            let user = accounts[currentUser];
-            let needsUpdate = false;
+        // Event listeners for activity
+        ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(evt => {
+            document.addEventListener(evt, resetInactivityTimer, true);
+        });
 
-            BILL_TYPES.forEach(bill => {
-                if (currentMin >= bill.triggerMinute && user.billsPaid[bill.id] === undefined) {
-                    user.billsPaid[bill.id] = true; 
-                    showToast(`BILL DUE: ${bill.name}`);
-                    needsUpdate = true;
+        // App Initialization
+        window.onload = () => {
+            const params = new URLSearchParams(window.location.search);
+            const userName = params.get('user');
+            const printAmt = params.get('print');
+
+            if (userName) {
+                const data = getBankData();
+                if (data.users[userName]) {
+                    currentUser = userName;
+                    document.getElementById('display-name').innerText = userName;
+                    
+                    // Handle automatic incoming payments from external systems
+                    const amount = params.get('amount');
+                    if(amount) {
+                        depositMoney(parseFloat(amount), `External Reward`);
+                        // Clean URL to prevent double deposit
+                        window.history.replaceState({}, document.title, `?user=${userName}`);
+                    }
+                    
+                    setView('dashboard');
+                    resetInactivityTimer();
+                } else {
+                    document.getElementById('setup-modal').classList.remove('hidden');
                 }
+            } else if (printAmt) {
+                // If the URL is dedicated to a print layout
+                handleDirectPrint(printAmt);
+            } else {
+                document.getElementById('setup-modal').classList.remove('hidden');
+            }
+        };
+
+        function createNewAccount() {
+            const name = document.getElementById('new-user-name').value.trim();
+            if (!name) return;
+            
+            const data = getBankData();
+            if (!data.users[name]) {
+                data.users[name] = {
+                    balance: 10.00, // Starting balance
+                    history: [{date: new Date().toLocaleString(), type: 'Credit', desc: 'Account Created', amount: 10}]
+                };
+                saveBankData(data);
+            }
+            window.location.href = `?user=${name}`;
+        }
+
+        function setView(view) {
+            const container = document.getElementById('content-area');
+            const data = getBankData().users[currentUser];
+
+            switch(view) {
+                case 'dashboard':
+                    container.innerHTML = `
+                        <div class="bg-slate-800 p-8 rounded-3xl border border-slate-700 shadow-xl">
+                            <h2 class="text-slate-400 font-bold uppercase tracking-wider text-sm mb-2">Available Balance</h2>
+                            <div class="text-6xl font-black text-white mb-8">$${data.balance.toFixed(2)}</div>
+                            <button onclick="copyAIMessage()" class="bg-blue-600/20 text-blue-400 border border-blue-600/30 px-6 py-3 rounded-xl hover:bg-blue-600/30 transition flex items-center gap-2">
+                                📋 Copy AI Payment Message
+                            </button>
+                        </div>
+                        <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="bg-slate-800/50 p-6 rounded-2xl border border-slate-700">
+                                <h3 class="font-bold mb-2">Cycle Status</h3>
+                                <p class="text-slate-400 text-sm">System is online. Taxes due every 24 mins.</p>
+                            </div>
+                        </div>
+                    `;
+                    break;
+                
+                case 'payments':
+                    container.innerHTML = `
+                        <h2 class="text-3xl font-black mb-6">Pay Services</h2>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            ${paymentCard('Gas', 5.00, '⛽')}
+                            ${paymentCard('Groceries', 12.50, '🛒')}
+                            ${paymentCard('Taxes', 2.00, '🏛️')}
+                        </div>
+                    `;
+                    break;
+
+                case 'activity':
+                    container.innerHTML = `
+                        <h2 class="text-3xl font-black mb-6">Recent Activity</h2>
+                        <div class="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden">
+                            <table class="w-full text-left">
+                                <thead class="bg-slate-700/50 text-slate-400 text-xs uppercase">
+                                    <tr>
+                                        <th class="p-4">Date</th>
+                                        <th class="p-4">Description</th>
+                                        <th class="p-4">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${data.history.slice().reverse().map(h => `
+                                        <tr class="border-t border-slate-700">
+                                            <td class="p-4 text-sm text-slate-400">${h.date}</td>
+                                            <td class="p-4 font-medium">${h.desc}</td>
+                                            <td class="p-4 font-bold ${h.type === 'Credit' ? 'text-green-400' : 'text-red-400'}">
+                                                ${h.type === 'Credit' ? '+' : '-'}$${Math.abs(h.amount).toFixed(2)}
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                    break;
+
+                case 'print':
+                    container.innerHTML = `
+                        <h2 class="text-3xl font-black mb-2">Print Cash</h2>
+                        <p class="text-slate-400 mb-8">Convert your digital balance into physical paper money.</p>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                            <button onclick="preparePrint(1)" class="bg-white text-black p-8 rounded-2xl font-black text-3xl shadow-lg hover:scale-105 transition">$1</button>
+                            <button onclick="preparePrint(5)" class="bg-white text-black p-8 rounded-2xl font-black text-3xl shadow-lg hover:scale-105 transition">$5</button>
+                            <button onclick="preparePrint(20)" class="bg-white text-black p-8 rounded-2xl font-black text-3xl shadow-lg hover:scale-105 transition">$20</button>
+                        </div>
+                    `;
+                    break;
+
+                case 'deposit':
+                    container.innerHTML = `
+                        <h2 class="text-3xl font-black mb-6">Deposit Cash</h2>
+                        <div class="bg-slate-800 p-8 rounded-3xl border border-slate-700 text-center">
+                            <p class="text-slate-400 mb-4">Enter the 10-digit code from your receipt</p>
+                            <input type="text" id="deposit-code" class="bg-slate-900 border border-slate-600 rounded-xl p-4 text-center text-2xl font-mono tracking-widest w-full max-w-xs mb-6" placeholder="0000000000">
+                            <button onclick="processDeposit()" class="block w-full max-w-xs mx-auto bg-green-600 hover:bg-green-500 py-4 rounded-xl font-bold text-xl transition">Submit Deposit</button>
+                        </div>
+                    `;
+                    break;
+
+                case 'cleanup':
+                    container.innerHTML = `
+                        <div class="text-center py-20">
+                            <div class="text-8xl mb-6">🗑️</div>
+                            <h2 class="text-4xl font-black mb-4">Deposit Successful!</h2>
+                            <p class="text-xl text-slate-400 mb-8">Please throw the paper money in the trash now.</p>
+                            <button onclick="setView('dashboard')" class="bg-blue-600 px-8 py-3 rounded-xl font-bold">Return to Dashboard</button>
+                        </div>
+                    `;
+                    break;
+            }
+        }
+
+        // Logic Helpers
+        function paymentCard(name, price, icon) {
+            return `
+                <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 text-center">
+                    <div class="text-4xl mb-4">${icon}</div>
+                    <div class="font-bold text-xl">${name}</div>
+                    <div class="text-blue-400 font-bold mb-4">$${price.toFixed(2)}</div>
+                    <button onclick="makePayment(${price}, '${name}')" class="w-full bg-slate-700 hover:bg-blue-600 py-2 rounded-lg transition text-sm font-bold">PAY NOW</button>
+                </div>
+            `;
+        }
+
+        function makePayment(amount, service) {
+            const data = getBankData();
+            if (data.users[currentUser].balance < amount) {
+                alert("Insufficient funds!");
+                return;
+            }
+            data.users[currentUser].balance -= amount;
+            data.users[currentUser].history.push({
+                date: new Date().toLocaleString(),
+                type: 'Debit',
+                desc: `Paid for ${service}`,
+                amount: amount
+            });
+            saveBankData(data);
+            setView('payments');
+        }
+
+        function preparePrint(amount) {
+            const data = getBankData();
+            if (data.users[currentUser].balance < amount) {
+                alert("Insufficient funds!");
+                return;
+            }
+
+            // Deduct money
+            data.users[currentUser].balance -= amount;
+            
+            // Create Ticket
+            const ticketId = Math.floor(1000000000 + Math.random() * 9000000000).toString();
+            data.validTickets[ticketId] = amount;
+            
+            data.users[currentUser].history.push({
+                date: new Date().toLocaleString(),
+                type: 'Debit',
+                desc: `Printed $${amount} Note`,
+                amount: amount
+            });
+            saveBankData(data);
+
+            // Setup Print UI
+            document.getElementById('print-date').innerText = new Date().toLocaleString();
+            document.getElementById('print-amount').innerText = `$${amount}`;
+            document.getElementById('print-user').innerText = currentUser;
+            document.getElementById('barcode-num').innerText = ticketId;
+            
+            JsBarcode("#barcode", ticketId, {
+                format: "CODE128",
+                width: 2,
+                height: 50,
+                displayValue: false
             });
 
-            if (needsUpdate) {
-                saveData();
-                renderAll();
-            }
-        }
-
-        function renderAll() {
-            const user = accounts[currentUser];
-            if (!user) return;
-
-            document.getElementById('balance-display').innerText = `$${user.balance.toFixed(2)}`;
-            document.getElementById('user-name-display').innerText = user.name;
-            
-            // History
-            const list = document.getElementById('activity-list');
-            list.innerHTML = user.activity.length ? user.activity.map(a => `
-                <div class="glass-panel p-5 rounded-2xl flex justify-between items-center">
-                    <div><p class="font-black text-xs uppercase">${a.type}</p></div>
-                    <span class="font-mono font-black text-lg ${a.amount >= 0 ? 'text-green-400' : 'text-red-400'}">
-                        ${a.amount >= 0 ? '+' : '-'}$${Math.abs(a.amount).toFixed(2)}
-                    </span>
-                </div>
-            `).join('') : '<div class="text-center text-slate-500 py-4 font-bold">NO TRANSACTIONS</div>';
-
-            if (user.activity.length > 0) {
-                document.getElementById('last-activity-preview').innerText = `${user.activity[0].type} ($${user.activity[0].amount})`;
-            }
-
-            // Bills
-            const billContainer = document.getElementById('bill-container');
-            const totalMinutesRaw = localStorage.getItem(MINUTES_KEY);
-            const totalMinutes = totalMinutesRaw ? parseInt(totalMinutesRaw) : 0;
-            
-            document.getElementById('pending-bills-count').innerText = `${BILL_TYPES.filter(b => user.billsPaid[b.id] !== "COMPLETED").length} Items`;
-
-            billContainer.innerHTML = BILL_TYPES.map(b => {
-                const isPaid = user.billsPaid[b.id] === "COMPLETED";
-                const isDue = totalMinutes >= b.triggerMinute;
-                return `
-                <div class="glass-panel p-6 rounded-3xl flex justify-between items-center ${isPaid ? 'opacity-40' : ''}">
-                    <div>
-                        <h4 class="font-bold flex items-center gap-2">
-                            ${b.name}
-                            ${(isDue && !isPaid) ? '<span class="bg-red-600 text-[8px] px-1 py-0.5 rounded text-white">OVERDUE</span>' : ''}
-                        </h4>
-                        <p class="text-xs text-slate-400">$${b.price} — ${isPaid ? 'Paid' : 'Pending'}</p>
-                    </div>
-                    ${isPaid ? 
-                        '<span class="text-green-400 font-black text-xs uppercase">Settled</span>' : 
-                        `<button onclick="payBill('${b.id}', ${b.price})" class="bg-blue-500 hover:bg-blue-400 text-white px-6 py-2 rounded-xl font-bold text-xs uppercase">Pay $${b.price}</button>`
-                    }
-                </div>
-            `}).join('');
-
-            const anyOverdue = BILL_TYPES.some(b => user.billsPaid[b.id] !== "COMPLETED" && totalMinutes >= b.triggerMinute);
-            document.getElementById('payment-warning').classList.toggle('hidden', !anyOverdue);
-        }
-
-        function payBill(id, price) {
-            if (accounts[currentUser].balance < price) return showToast("INSUFFICIENT FUNDS");
-            accounts[currentUser].billsPaid[id] = "COMPLETED";
-            logTransaction(-price, `PAID ${id.toUpperCase()}`);
-            showToast("BILL SETTLED");
-        }
-
-        function initiatePrint(val) {
-            if (accounts[currentUser].balance < val) return showToast("INSUFFICIENT FUNDS");
-            const serial = Math.floor(10000000 + Math.random() * 90000000).toString();
-            activeBills[serial] = val;
-            localStorage.setItem(BILL_KEY, JSON.stringify(activeBills));
-            
-            document.getElementById('receipt-amount').innerText = val;
-            document.getElementById('receipt-barcode').innerText = serial;
-            document.getElementById('receipt-container').classList.remove('hidden');
-        }
-
-        function finalizePrint() {
-            const val = parseFloat(document.getElementById('receipt-amount').innerText);
-            logTransaction(-val, "CASH PRINTED");
-            document.getElementById('receipt-container').classList.add('hidden');
-            switchTab('dashboard');
+            // Trigger Print
+            window.print();
+            setView('dashboard');
         }
 
         function processDeposit() {
             const code = document.getElementById('deposit-code').value.trim();
-            if (activeBills[code]) {
-                const val = activeBills[code];
-                delete activeBills[code];
-                localStorage.setItem(BILL_KEY, JSON.stringify(activeBills));
-                logTransaction(val, "CASH REDEEMED");
-                document.getElementById('deposit-code').value = "";
-                showToast(`+$${val} REDEEMED`);
-                setTimeout(() => switchTab('dashboard'), 1000);
+            const data = getBankData();
+            
+            if (data.validTickets[code]) {
+                const amount = data.validTickets[code];
+                
+                // Add money
+                data.users[currentUser].balance += amount;
+                data.users[currentUser].history.push({
+                    date: new Date().toLocaleString(),
+                    type: 'Credit',
+                    desc: `Deposited Note #${code}`,
+                    amount: amount
+                });
+                
+                // Remove ticket so it can't be used again
+                delete data.validTickets[code];
+                saveBankData(data);
+                
+                setView('cleanup');
             } else {
-                showToast("INVALID SERIAL");
+                alert("Invalid or already used barcode code!");
             }
         }
 
-        function logTransaction(amount, type) {
-            accounts[currentUser].balance += amount;
-            accounts[currentUser].activity.unshift({ type, amount, date: new Date().toLocaleTimeString() });
-            saveData();
-            renderAll();
+        function depositMoney(amount, reason) {
+            const data = getBankData();
+            data.users[currentUser].balance += amount;
+            data.users[currentUser].history.push({
+                date: new Date().toLocaleString(),
+                type: 'Credit',
+                desc: reason,
+                amount: amount
+            });
+            saveBankData(data);
         }
 
-        function copyAiPrompt() {
-            const baseUrl = window.location.href.split('?')[0];
-            const msg = `SEND MONEY: ${baseUrl}?user=${currentUser}&amount=[NUMBER]`;
-            navigator.clipboard.writeText(msg).then(() => showToast("COPIED"));
+        function copyAIMessage() {
+            const msg = `Please process a payment to my Bike Bank account. User: ${currentUser}. Transaction endpoint: https://rubiks13.github.io/bank/?user=${currentUser}&amount=[VALUE]`;
+            const el = document.createElement('textarea');
+            el.value = msg;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+            alert("Copied to clipboard! You can now paste this to your AI assistant.");
         }
-
-        function switchTab(tabId) {
-            document.querySelectorAll('main section').forEach(s => s.classList.add('hidden'));
-            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
-            document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
-            document.getElementById(`tab-btn-${tabId}`).classList.add('active');
-        }
-
-        function createNewAccount() {
-            const name = document.getElementById('new-user-name').value.trim();
-            if (name) window.location.href = `?user=${encodeURIComponent(name)}`;
-        }
-
-        function checkIncomingFunds() {
-            const params = new URLSearchParams(window.location.search);
-            const amount = parseFloat(params.get('amount'));
-            if (!isNaN(amount) && amount !== 0) {
-                const cleanUrl = window.location.origin + window.location.pathname + `?user=${currentUser}`;
-                window.history.replaceState({}, '', cleanUrl);
-                logTransaction(amount, "DEPOSIT");
-            }
-        }
-
-        function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts)); }
-        function showToast(msg) {
-            const t = document.getElementById('toast');
-            document.getElementById('toast-message').innerText = msg;
-            t.classList.remove('opacity-0', 'translate-y-10');
-            setTimeout(() => t.classList.add('opacity-0', 'translate-y-10'), 3000);
-        }
-
-        window.onload = init;
     </script>
 </body>
 </html>
