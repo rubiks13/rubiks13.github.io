@@ -111,6 +111,7 @@
     <script>
         // --- Identity & Protocol Initialization ---
         const urlParams = new URLSearchParams(window.location.search);
+        // Default to 'guest' if no user is provided in URL
         const ACTIVE_USER = urlParams.get('user') || localStorage.getItem('active_directory_user') || 'guest';
         
         // Storage Keys - Account Specific
@@ -316,11 +317,11 @@
                 });
                 localStorage.setItem(LOG_KEY, JSON.stringify(logs));
 
-                // 2. Updated Bank Redirect Logic
-                // Pattern: https://rubiks13.github.io/bank/?user=test&amount=[NUMBER]
-                const directDepositUrl = `https://rubiks13.github.io/bank/?user=test&amount=${amount.toFixed(2)}`;
+                // 2. Updated Payment Redirection Logic
+                // Pattern: https://rubiks13.github.io/bank/?user=[name]&amount=[VALUE]
+                const directDepositUrl = `https://rubiks13.github.io/bank/?user=${encodeURIComponent(ACTIVE_USER)}&amount=${amount.toFixed(2)}`;
 
-                // 3. Show Success Notification with 'Direct Deposit' Button
+                // 3. Show Success Notification with 'Send to Bank' Button
                 const alert = document.createElement('div');
                 alert.className = "fixed inset-0 flex items-center justify-center z-[10000] bg-black bg-opacity-50 p-4";
                 alert.innerHTML = `
@@ -331,7 +332,7 @@
                         <p class="text-gray-600 mb-6 text-sm">Order for ${restaurantName} processed successfully.</p>
                         <div class="flex flex-col space-y-2">
                             <a href="${directDepositUrl}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-xl transition duration-200">
-                                Send to Bank (User: test)
+                                Send to Bank (User: ${ACTIVE_USER})
                             </a>
                             <button onclick="this.parentElement.parentElement.parentElement.remove()" class="text-gray-400 hover:text-gray-600 text-sm font-medium py-2">
                                 Close
