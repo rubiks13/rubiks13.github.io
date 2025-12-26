@@ -1,4 +1,4 @@
-=<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -313,8 +313,17 @@
             }, IDLE_TIME_LIMIT - 3000);
         }
 
+        // KEYBOARD SHORTCUTS
+        window.addEventListener('keydown', (e) => {
+            // Check for Ctrl+S or Cmd+S
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault(); // Stop browser save dialog
+                openSettings();
+            }
+            resetIdleTimer();
+        });
+
         window.addEventListener('mousemove', resetIdleTimer);
-        window.addEventListener('keydown', resetIdleTimer);
 
         function getBankTime() {
             let startTime = localStorage.getItem('sim_bank_start_real_time');
@@ -344,21 +353,16 @@
             updateLogDisplay();
         }
 
-        // REDIRECT TO BIKE BANK ENDPOINT
         function handleJobCompletion(data) {
             const currentBankTime = getBankTime();
             document.querySelectorAll('.bank-time-target').forEach(el => el.textContent = currentBankTime);
 
-            // Open OS Print Dialog
             window.print();
             
             setTimeout(() => {
-                const amount = 5.00; // Standard Pilot Pay
-                
-                // Formulate Bank URL
+                const amount = 5.00;
                 const paymentUrl = `${BANK_BASE_URL}?user=${encodeURIComponent(activeUser)}&amount=${amount.toFixed(2)}`;
                 
-                // Update Local UI
                 const bankWrapper = document.getElementById('bank-link-wrapper');
                 const statusTxt = document.getElementById('status-text');
                 const container = document.getElementById('bank-status-container');
@@ -368,7 +372,6 @@
                 container.classList.replace('bg-blue-50', 'bg-green-50');
                 container.classList.replace('border-blue-100', 'border-green-200');
 
-                // Perform the Bank Redirect after short delay
                 setTimeout(() => {
                     window.location.href = paymentUrl;
                 }, 2000); 
