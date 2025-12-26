@@ -54,7 +54,7 @@
                 z-index: 9999;
             }
             .receipt {
-                margin: 0 !important; /* Forces top-left alignment */
+                margin: 0 !important;
                 border: none !important;
             }
         }
@@ -167,7 +167,7 @@
         const saveBankData = (data) => localStorage.setItem(APP_ID, JSON.stringify(data));
 
         function updateBikeClock() {
-            const currentBikeDate = localStorage.getItem('sim_current_bike_date') || "Day 0";
+            const currentBikeDate = localStorage.getItem('sim_current_bike_date') || "Day 1";
             const rawTime = localStorage.getItem('sim_current_bike_time') || "--:-- --";
             
             document.getElementById('bike-date-display').innerText = currentBikeDate.toUpperCase();
@@ -176,8 +176,6 @@
             const data = getBankData();
             if (currentUser && data.users[currentUser]) {
                 const user = data.users[currentUser];
-                
-                // If the user's last recorded date doesn't match the world date, and they've paid everything for the previous cycle
                 const allPaid = Object.values(user.dailyFees).every(v => v === true);
                 
                 if (user.lastResetDate !== currentBikeDate && allPaid) {
@@ -196,7 +194,7 @@
             clearTimeout(inactivityTimer);
             inactivityTimer = setTimeout(() => {
                 window.location.href = REDIRECT_URL;
-            }, 10000); // Increased to 10s for better usability
+            }, 15000);
         }
 
         ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(evt => {
@@ -218,7 +216,7 @@
                     }
                     
                     if (!data.users[userName].lastResetDate) {
-                        data.users[userName].lastResetDate = localStorage.getItem('sim_current_bike_date') || "Day 0";
+                        data.users[userName].lastResetDate = localStorage.getItem('sim_current_bike_date') || "Day 1";
                     }
                     saveBankData(data);
 
@@ -242,7 +240,7 @@
             const name = document.getElementById('new-user-name').value.trim();
             if (!name) return;
             const data = getBankData();
-            const bikeDate = localStorage.getItem('sim_current_bike_date') || "Day 0";
+            const bikeDate = localStorage.getItem('sim_current_bike_date') || "Day 1";
             
             if (!data.users[name]) {
                 data.users[name] = {
@@ -268,19 +266,27 @@
             switch(view) {
                 case 'dashboard':
                     const unpaidCount = Object.values(data.dailyFees).filter(v => v === false).length;
-                    const worldDate = localStorage.getItem('sim_current_bike_date') || "Day 0";
-                    const isBehind = data.lastResetDate !== worldDate;
+                    const worldDate = localStorage.getItem('sim_current_bike_date') || "Day 1";
+                    
+                    // Logic check: only "Overdue" if we are past Day 1 AND the recorded date is behind OR if it is current day and unpaid.
+                    const isArrears = data.lastResetDate !== worldDate;
+                    const isDayOne = worldDate.toLowerCase().includes("day 1");
+                    
+                    // Warning only shows if:
+                    // 1. We are in arrears (behind in days)
+                    // 2. Or it's after Day 1 and we have unpaid fees for the current day.
+                    const showWarning = (isArrears || (!isDayOne && unpaidCount > 0));
 
                     container.innerHTML = `
-                        ${unpaidCount > 0 ? `
+                        ${showWarning ? `
                             <div class="bg-red-500/10 border border-red-500/50 p-4 rounded-2xl mb-6 flex items-center justify-between animate-pulse">
                                 <div class="flex items-center gap-3">
                                     <span class="text-2xl">⚠️</span>
                                     <div>
                                         <div class="font-bold text-red-400">
-                                            ${isBehind ? `ARREARS DETECTED: ${data.lastResetDate}` : `DAILY FEES OVERDUE (${unpaidCount}/3)`}
+                                            ${isArrears ? `ARREARS DETECTED: ${data.lastResetDate}` : `DAILY FEES OVERDUE (${unpaidCount}/3)`}
                                         </div>
-                                        <div class="text-xs text-red-300/70">Please settle your balances. Missing days must be paid before current day.</div>
+                                        <div class="text-xs text-red-300/70">Missing days must be settled before current cycle access.</div>
                                     </div>
                                 </div>
                                 <button onclick="setView('payments')" class="bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-bold">GO TO FEES</button>
@@ -306,7 +312,7 @@
                              </div>
                              <div class="cyber-card p-6 rounded-2xl border-l-4 border-purple-400">
                                 <div class="text-xs text-slate-500 uppercase font-bold mb-1">Fee State</div>
-                                <div class="text-xl font-bold uppercase">${isBehind ? 'Arrears' : 'Current'}</div>
+                                <div class="text-xl font-bold uppercase">${isArrears ? 'Arrears' : (isDayOne ? 'Cycle Start' : 'Current')}</div>
                              </div>
                              <div class="cyber-card p-6 rounded-2xl border-l-4 border-green-400">
                                 <div class="text-xs text-slate-500 uppercase font-bold mb-1">Vault Health</div>
@@ -317,8 +323,9 @@
                     break;
                 
                 case 'payments':
-                    const currentWorldDate = localStorage.getItem('sim_current_bike_date') || "Day 0";
-                    const statusText = data.lastResetDate !== currentWorldDate 
+                    const currentWorldDate = localStorage.getItem('sim_current_bike_date') || "Day 1";
+                    const isArrearsTerm = data.lastResetDate !== currentWorldDate;
+                    const statusText = isArrearsTerm 
                         ? `<span class="text-red-400 font-bold">OWED FOR ${data.lastResetDate}</span>` 
                         : `<span class="text-cyan-400 font-bold">CURRENT: ${currentWorldDate}</span>`;
 
@@ -326,7 +333,7 @@
                         <div class="mb-10">
                             <h2 class="text-4xl font-black mb-2">Service Terminal</h2>
                             <p class="text-slate-400">Status: ${statusText}</p>
-                            <p class="text-[10px] text-slate-500 mt-2 uppercase tracking-widest">Note: Paying arrears will immediately unlock the current day's fees.</p>
+                            ${isArrearsTerm ? `<p class="text-[10px] text-red-400 mt-2 uppercase tracking-widest font-bold">Note: You are paying for a missed day. Once finished, current day fees will unlock.</p>` : ''}
                         </div>
                         
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -433,7 +440,7 @@
         function makePayment(amount, service, key) {
             const data = getBankData();
             const user = data.users[currentUser];
-            const currentWorldDate = localStorage.getItem('sim_current_bike_date') || "Day 0";
+            const currentWorldDate = localStorage.getItem('sim_current_bike_date') || "Day 1";
             
             if (user.balance < amount) {
                 alert("CRITICAL ERROR: INSUFFICIENT ASSETS");
@@ -449,14 +456,13 @@
                 amount: amount
             });
 
-            // LOGIC CHANGE: If we just finished paying a missed day, immediately check if we should reset for the current day
+            // If we just finished paying a missed day, check if everything for that missed day is now paid
             const allPaid = Object.values(user.dailyFees).every(v => v === true);
             if (allPaid && user.lastResetDate !== currentWorldDate) {
-                // Settle the old date
+                // Arrears for the old day are cleared. Update date to current and reset fees to unpaid.
                 user.lastResetDate = currentWorldDate;
-                // Reset fees to unpaid so they can pay for the CURRENT day now
                 user.dailyFees = { fuel: false, rations: false, taxes: false };
-                console.log("Arrears settled. Resetting fees for the current cycle.");
+                console.log("Arrears settled. Redirecting to current day fees.");
             }
 
             saveBankData(data);
