@@ -12,7 +12,8 @@
             font-family: 'Inter', sans-serif;
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
             min-height: 100vh;
-            overflow: hidden;
+            /* Changed overflow to allow vertical scrolling on mobile/smaller screens */
+            overflow-y: auto;
             color: white;
         }
 
@@ -75,6 +76,8 @@
             width: 100%;
             max-width: 28rem;
             animation: fadeIn 0.4s ease-out;
+            /* Ensure the page itself doesn't cut off content */
+            margin-bottom: 2rem;
         }
 
         .page.active {
@@ -111,7 +114,7 @@
         }
     </style>
 </head>
-<body class="flex items-center justify-center p-4">
+<body class="flex flex-col items-center justify-start p-4 pt-20 sm:justify-center sm:pt-4">
 
     <div id="sim-clock-display">
         <div id="sim-date-text" style="font-size: 10px; color: #94a3b8; margin-bottom: 2px; font-weight: bold;">DAY 1</div>
