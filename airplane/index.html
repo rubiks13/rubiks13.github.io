@@ -3,60 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fly USA | GlassOS</title>
+    <title>Fly USA Boarding Pass Generator</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Libre+Barcode+128&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Libre+Barcode+128&display=swap');
+
+        body {
+            background-color: #f3f4f6;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            transition: background-color 0.3s;
+            overflow-x: hidden;
+            width: 100vw;
+        }
 
         :root {
             --printer-width: 75mm;
         }
 
-        body {
-            background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
-            background-attachment: fixed;
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            margin: 0;
-            padding: 0;
-            color: #ffffff;
-            overflow-x: hidden;
-            width: 100vw;
-            min-height: 100vh;
-        }
-
-        /* GlassOS Core Components */
-        .glass-card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px) saturate(180%);
-            -webkit-backdrop-filter: blur(20px) saturate(180%);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
-        }
-
-        .glass-card-dark {
-            background: rgba(15, 23, 42, 0.4);
-            backdrop-filter: blur(25px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .os-button {
-            background: rgba(255, 255, 255, 0.2);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            cursor: pointer;
-        }
-
-        .os-button:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: translateY(-2px);
-        }
-
-        .os-button:active {
-            transform: scale(0.95);
-        }
-
-        /* TICKET STYLES */
         .layout-thermal {
             width: var(--printer-width);
             background: white;
@@ -147,95 +113,70 @@
         }
     </style>
 </head>
-<body class="flex items-center justify-center p-4">
+<body class="min-h-screen">
 
-    <!-- HOME PAGE -->
-    <div id="home-page" class="w-full max-w-4xl space-y-6 page-visible flex-col no-print">
-        
-        <!-- OS Top Bar -->
-        <header class="flex justify-between items-center px-4">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-2xl glass-card flex items-center justify-center font-bold text-lg">
-                    <span id="user-initial">G</span>
+    <!-- HOME PAGE SECTION -->
+    <div id="home-page" class="p-4 md:p-8 max-w-4xl mx-auto page-visible flex-col no-print">
+        <div class="mb-6 bg-white p-6 rounded-2xl shadow-lg border-4 border-blue-500 text-center">
+            <div class="flex justify-between items-start mb-2">
+                <div class="text-left">
+                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Active Pilot</span>
+                    <div id="display-user" class="text-sm font-black text-blue-600 uppercase">Guest</div>
                 </div>
-                <div>
-                    <h1 class="text-sm font-bold tracking-tight opacity-80">Welcome, Pilot</h1>
-                    <p id="display-user" class="text-xs opacity-60">Guest Session</p>
-                </div>
+                <h1 class="text-2xl font-black uppercase tracking-tight italic">Fly USA</h1>
             </div>
-            <div class="glass-card px-4 py-2 rounded-xl text-[11px] font-bold tracking-widest uppercase flex items-center gap-3">
-                <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                System Active
-            </div>
-        </header>
-
-        <!-- Main Window -->
-        <main class="glass-card rounded-[2.5rem] p-8 md:p-12 overflow-hidden relative">
-            <div class="absolute -right-20 -top-20 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
             
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-10 items-center">
-                <div class="md:col-span-7 space-y-8">
-                    <div>
-                        <h2 class="text-4xl md:text-5xl font-extrabold tracking-tighter leading-none mb-4">Boarding<br><span class="opacity-50">Control Center</span></h2>
-                        <p class="text-sm opacity-70 max-w-xs leading-relaxed">Scan a hub code or select a flight count to begin the automated ticketing sequence.</p>
-                    </div>
+            <p class="text-gray-600 mb-6">Enter <span class="font-bold text-blue-600">1-5</span> for a Round Trip or hit Start!</p>
+            
+            <div class="flex justify-center mb-6">
+                <button onclick="startFlightChain(1)" class="w-full max-w-md bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-2xl font-black py-12 rounded-2xl shadow-xl transition-all flex flex-col items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12.2 2h-.4a2 2 0 0 0-2 2v1.2a2 2 0 0 1-1.2 1.8l-1.5.7a2 2 0 0 1-2.4-.7l-.8-1a2 2 0 0 0-2.8-.2l-.3.3a2 2 0 0 0-.2 2.8l1 1a2 2 0 0 1 .7 2.4l-.7 1.5a2 2 0 0 1-1.8 1.2H2.2a2 2 0 0 0-2 2v.4a2 2 0 0 0 2 2h1.2a2 2 0 0 1 1.8 1.2l.7 1.5a2 2 0 0 1-.7 2.4l-1 1a2 2 0 0 0 .2 2.8l.3.3a2 2 0 0 0 2.8-.2l.8-1a2 2 0 0 1 2.4-.7l1.5.7a2 2 0 0 1 1.2 1.8v1.2a2 2 0 0 0 2 2h.4a2 2 0 0 0 2-2v-1.2a2 2 0 0 1 1.2-1.8l1.5-.7a2 2 0 0 1 2.4.7l.8 1a2 2 0 0 0 2.8.2l.3-.3a2 2 0 0 0 2.8-.2l.8-1a2 2 0 0 1 2.4-.7l1.5.7a2 2 0 0 1 1.2 1.8V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                    START RIDE
+                </button>
+            </div>
 
-                    <div class="space-y-4">
-                        <div class="glass-card-dark p-1 rounded-2xl flex items-center pr-4">
-                            <input type="text" id="scanner-input" oninput="handleMultiInput(this.value)" placeholder="Input Hub Code (1-5)" 
-                                class="bg-transparent border-none text-white font-bold text-lg px-6 py-4 w-full outline-none placeholder:text-white/20">
-                            <kbd class="text-[10px] bg-white/10 px-2 py-1 rounded opacity-50 uppercase font-mono">Input</kbd>
-                        </div>
-                        
-                        <div class="flex flex-wrap gap-2">
-                            <button onclick="startFlightChain(1)" class="os-button px-4 py-2 rounded-xl text-xs font-bold">1x Leg</button>
-                            <button onclick="startFlightChain(3)" class="os-button px-4 py-2 rounded-xl text-xs font-bold">3x Chain</button>
-                            <button onclick="startFlightChain(5)" class="os-button px-4 py-2 rounded-xl text-xs font-bold">5x Full</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="md:col-span-5 flex flex-col gap-4">
-                    <div id="bank-status-container" class="glass-card-dark rounded-3xl p-6 flex flex-col justify-between h-[280px] transition-all duration-500">
-                        <div>
-                            <div class="text-[10px] uppercase font-black tracking-widest text-white/40 mb-2">Earnings Balance</div>
-                            <div class="text-4xl font-extrabold tracking-tighter">$5.00 <span class="text-xs opacity-40 font-normal">/ ride</span></div>
-                        </div>
-
-                        <div id="status-text" class="text-xs opacity-60 leading-relaxed font-medium">
-                            System idle. Waiting for flight initialization...
-                        </div>
-
-                        <div id="bank-link-wrapper" class="hidden bank-pop">
-                            <div class="bg-white text-indigo-600 px-4 py-3 rounded-2xl text-center text-xs font-bold shadow-xl">
-                                Connecting to Gateway...
-                            </div>
-                        </div>
-
-                        <div class="pt-4 border-t border-white/5 flex justify-between items-center">
-                            <div id="idle-warning" class="text-[10px] text-orange-400 font-bold hidden animate-pulse uppercase">Autoreturn Active</div>
-                            <div class="text-[10px] opacity-30 font-bold uppercase tracking-widest">OS v.4.1</div>
-                        </div>
-                    </div>
+            <div class="bg-gray-100 p-4 rounded-xl border-2 border-dashed border-gray-300">
+                <p class="text-xs font-bold text-gray-500 uppercase mb-2">Gate Input (Enter # 1-5 for multi-stop)</p>
+                <input type="text" id="scanner-input" oninput="handleMultiInput(this.value)" placeholder="SCAN OR TYPE #..." class="w-full bg-white border border-gray-300 p-3 rounded-lg font-mono text-center text-xl uppercase tracking-widest focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+            
+            <div class="mt-4 flex justify-between items-center text-xs text-gray-400 font-bold uppercase">
+                <div class="flex items-center gap-4">
+                    <span id="idle-warning" class="text-orange-500 hidden animate-pulse">Auto-return soon...</span>
+                    <span id="stored-count">Ready for Departure</span>
                 </div>
             </div>
-        </main>
+        </div>
 
-        <!-- Bottom Bar -->
-        <footer class="flex justify-between items-center px-4">
-            <button onclick="openSettings()" class="os-button flex items-center gap-2 px-6 py-3 rounded-2xl text-xs font-bold">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                Preferences
-            </button>
-            <div class="glass-card px-4 py-2 rounded-xl text-[10px] opacity-60 italic">System Integrity Verified</div>
-        </footer>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold italic tracking-tight uppercase">Current Journey</h2>
+                </div>
+                <div id="logs" class="space-y-2 font-mono text-xs text-gray-500 overflow-y-auto max-h-40">
+                    <p>> System ready...</p>
+                </div>
+            </div>
+            <div id="bank-status-container" class="bg-blue-50 p-6 rounded-xl border border-blue-100 flex flex-col items-center justify-center text-blue-600 font-bold text-center italic transition-all">
+                <p id="status-text">Ready for departure. Earn $5.00 per flight.</p>
+                <div id="bank-link-wrapper" class="hidden mt-4 bank-pop">
+                    <p class="text-green-600 font-black text-lg animate-pulse uppercase tracking-tight">Updating Bike Bank...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- PHYSICAL SETTINGS BUTTON -->
+        <button onclick="openSettings()" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-600 font-black py-4 rounded-xl shadow transition-all flex items-center justify-center gap-2 uppercase tracking-widest text-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.1a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+            System Settings
+        </button>
     </div>
 
-    <!-- PRINT VIEW -->
+    <!-- PRINT PAGE SECTION -->
     <div id="print-view" class="page-hidden fixed inset-0 bg-white z-[50] flex flex-col items-center justify-center overflow-hidden p-4">
         <div class="no-print mb-8 text-center">
-            <h2 class="text-2xl font-black text-indigo-600 uppercase" id="print-title">Dispatching Ticket...</h2>
-            <p class="text-gray-400 text-sm font-bold" id="print-subtitle">Linking Session</p>
+            <h2 class="text-2xl font-black text-blue-600 uppercase" id="print-title">Processing Flight Ticket...</h2>
+            <p class="text-gray-500" id="print-subtitle">Connecting to Pilot Network</p>
         </div>
 
         <div id="print-area">
@@ -250,13 +191,25 @@
                     <div class="value name-target">---</div>
                 </div>
                 <div class="flex justify-between mb-3">
-                    <div><div class="label">From</div><div class="text-xl font-black from-target">---</div></div>
+                    <div>
+                        <div class="label">From</div>
+                        <div class="text-xl font-black from-target">---</div>
+                    </div>
                     <div class="flex items-center px-1 text-lg">✈</div>
-                    <div class="text-right"><div class="label">To</div><div class="text-xl font-black to-target">---</div></div>
+                    <div class="text-right">
+                        <div class="label">To</div>
+                        <div class="text-xl font-black to-target">---</div>
+                    </div>
                 </div>
                 <div class="flex justify-between gap-2 mb-3">
-                    <div class="flex-1"><div class="label">Ride ID</div><div class="value flight-target text-[9pt]">US000</div></div>
-                    <div class="text-right flex-1"><div class="label">Date</div><div class="value date-target text-[9pt]">---</div></div>
+                    <div class="flex-1">
+                        <div class="label">Ride ID</div>
+                        <div class="value flight-target text-[9pt]">US000000000</div>
+                    </div>
+                    <div class="text-right flex-1">
+                        <div class="label">Date</div>
+                        <div class="value date-target text-[9pt]">-- --- ----</div>
+                    </div>
                 </div>
                 <div class="dashed-line"></div>
                 <div class="grid grid-cols-2 gap-1 mb-2 text-center bg-gray-50 p-1.5">
@@ -265,39 +218,51 @@
                 </div>
                 <div class="grid grid-cols-2 gap-1 mb-5 text-center bg-gray-50 p-1.5 pt-0">
                     <div><div class="label">Real Time</div><div class="value time-target">--:--</div></div>
-                    <div class="border-l border-gray-200"><div class="label">Bank Time</div><div class="value bank-time-target">--:--</div></div>
+                    <div class="border-l border-gray-200"><div class="label">Bank Time</div><div class="value bank-time-target">--:-- --</div></div>
                 </div>
                 <div class="flex flex-col items-center gap-3">
                     <div class="qr-target bg-white p-1"></div>
-                    <div class="barcode text-center barcode-target">US000</div>
+                    <div class="barcode text-center barcode-target">US000000000</div>
                 </div>
             </div>
 
             <div id="layout-view-modern" class="layout-modern hidden">
-                <div class="bg-indigo-600 p-4 text-white flex justify-between items-center">
+                <div class="bg-blue-600 p-4 text-white flex justify-between items-center">
                     <div>
-                        <div class="text-xs opacity-80 uppercase font-bold tracking-widest">Boarding Pass</div>
+                        <div class="text-xs opacity-80 uppercase font-bold tracking-widest">Official Boarding Pass</div>
                         <div class="text-2xl font-black italic">FLY USA</div>
                     </div>
-                    <div class="text-right"><div class="text-xs opacity-80 uppercase font-bold">Ride ID</div><div class="text-xl font-bold flight-target">US000</div></div>
+                    <div class="text-right">
+                        <div class="text-xs opacity-80 uppercase font-bold">Ride No.</div>
+                        <div class="text-xl font-bold flight-target">US000</div>
+                    </div>
                 </div>
                 <div class="p-6 grid grid-cols-2 gap-6">
                     <div>
-                        <div class="mb-4"><div class="label">Passenger</div><div class="text-lg font-bold name-target">---</div></div>
+                        <div class="mb-4">
+                            <div class="label">Passenger Name</div>
+                            <div class="text-lg font-bold name-target">---</div>
+                        </div>
                         <div class="flex justify-between items-end bg-gray-50 p-3 rounded-lg border border-gray-100">
-                            <div><div class="label">From</div><div class="text-2xl font-black text-indigo-600 from-target">---</div></div>
+                            <div>
+                                <div class="label">Origin</div>
+                                <div class="text-2xl font-black text-blue-600 from-target">---</div>
+                            </div>
                             <div class="pb-1 text-gray-300">→</div>
-                            <div class="text-right"><div class="label">To</div><div class="text-2xl font-black text-indigo-600 to-target">---</div></div>
+                            <div class="text-right">
+                                <div class="label">Destination</div>
+                                <div class="text-2xl font-black text-blue-600 to-target">---</div>
+                            </div>
                         </div>
                     </div>
                     <div class="flex flex-col items-center justify-center border-l border-gray-100 pl-6">
                         <div class="qr-target mb-2"></div>
-                        <div class="text-[7pt] font-mono barcode-target uppercase">US000</div>
+                        <div class="text-[7pt] font-mono barcode-target">US000</div>
                     </div>
                 </div>
                 <div class="bg-gray-100 p-4 grid grid-cols-5 gap-2 text-center border-t border-gray-200">
                     <div><div class="label">Gate</div><div class="font-bold gate-target text-xs">--</div></div>
-                    <div><div class="label">Bike</div><div class="font-bold seat-target text-xs">--</div></div>
+                    <div><div class="label">Seat</div><div class="font-bold seat-target text-xs">--</div></div>
                     <div><div class="label">Time</div><div class="font-bold time-target text-xs">--:--</div></div>
                     <div><div class="label">Bank</div><div class="font-bold bank-time-target text-xs">--:--</div></div>
                     <div><div class="label">Date</div><div class="font-bold date-target text-[10px]">--/--</div></div>
@@ -305,61 +270,50 @@
             </div>
         </div>
 
-        <button onclick="goHome()" class="no-print mt-10 os-button bg-gray-900 text-white px-8 py-3 rounded-full font-bold">
-            ← ABORT SEQUENCE
+        <button onclick="goHome()" class="no-print mt-10 bg-gray-800 text-white px-8 py-3 rounded-full font-bold hover:bg-black transition-colors">
+            ← CANCEL JOURNEY
         </button>
     </div>
 
-    <!-- SETTINGS MODAL -->
-    <div id="settings-modal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-[100] px-4 backdrop-blur-xl">
-        <div class="glass-card-dark p-8 rounded-[2rem] max-w-lg w-full shadow-2xl overflow-y-auto max-h-[90vh] border border-white/20">
-            <h3 class="text-xl font-bold mb-6 tracking-tight">System Configuration</h3>
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-[100] px-4">
+        <div class="bg-white p-8 rounded-2xl max-w-lg w-full shadow-2xl overflow-y-auto max-h-[90vh]">
+            <h3 class="text-2xl font-bold mb-4">Station Settings</h3>
             
-            <div class="space-y-6">
-                <div>
-                    <label class="block text-[10px] font-bold uppercase opacity-40 mb-3 tracking-widest">Interface Layout</label>
-                    <div class="grid grid-cols-2 gap-3">
-                        <button onclick="setLayout('thermal')" id="btn-layout-thermal" class="py-4 rounded-xl font-bold transition-all border border-white/10 bg-white/5">Thermal Receipt</button>
-                        <button onclick="setLayout('modern')" id="btn-layout-modern" class="py-4 rounded-xl font-bold transition-all border border-white/10 bg-white/5">Modern Card</button>
-                    </div>
+            <div class="mb-6">
+                <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Ticket Layout</label>
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="setLayout('thermal')" id="btn-layout-thermal" class="py-3 border-2 rounded-xl font-bold transition-all">Thermal Receipt</button>
+                    <button onclick="setLayout('modern')" id="btn-layout-modern" class="py-3 border-2 rounded-xl font-bold transition-all">Modern Card</button>
                 </div>
+            </div>
 
-                <div id="thermal-width-setting" class="hidden">
-                    <label class="block text-[10px] font-bold uppercase opacity-40 mb-3 tracking-widest">Thermal Width (mm)</label>
-                    <div class="flex items-center gap-4 bg-white/5 p-4 rounded-xl">
-                        <input type="range" id="width-range" min="40" max="120" step="1" class="flex-1 accent-white" oninput="updateWidthDisplay(this.value)">
-                        <span id="width-value" class="font-mono font-bold w-12 text-right">75mm</span>
-                    </div>
+            <div id="thermal-width-setting" class="mb-6 hidden">
+                <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Receipt Width (mm)</label>
+                <div class="flex items-center gap-4">
+                    <input type="range" id="width-range" min="40" max="120" step="1" class="flex-1" oninput="updateWidthDisplay(this.value)">
+                    <span id="width-value" class="font-mono font-bold text-blue-600 w-16 text-right">75mm</span>
                 </div>
+            </div>
 
-                <div>
-                    <label class="block text-[10px] font-bold uppercase opacity-40 mb-3 tracking-widest">Home Station</label>
-                    <input type="text" id="main-hub" class="w-full bg-white/5 border border-white/10 p-4 rounded-xl font-bold uppercase outline-none focus:border-white/30 transition-colors" placeholder="e.g., SFO">
-                </div>
+            <div class="mb-6">
+                <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Main Hub (Always Starts/Ends Here)</label>
+                <input type="text" id="main-hub" class="w-full border p-3 rounded-xl font-mono uppercase tracking-widest text-sm" placeholder="e.g., SFO">
+            </div>
 
-                <div class="flex gap-3 pt-4">
-                    <button onclick="saveSettings()" class="flex-1 bg-white text-indigo-600 py-4 rounded-xl font-bold">Apply Changes</button>
-                    <button onclick="closeSettings()" class="bg-white/10 px-6 py-4 rounded-xl font-bold">Cancel</button>
-                </div>
+            <div class="mb-6">
+                <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Available Locations</label>
+                <textarea id="airport-list" rows="4" class="w-full border p-4 rounded-xl font-mono uppercase tracking-widest text-sm" placeholder="HOME, PARK, SHOP..."></textarea>
+            </div>
+            
+            <div class="flex gap-2">
+                <button onclick="saveSettings()" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold">Save & Apply</button>
+                <button onclick="closeSettings()" class="bg-gray-200 px-6 py-3 rounded-xl font-bold text-gray-600">Cancel</button>
             </div>
         </div>
     </div>
 
     <script>
-        // Core Logic State
-        let currentLayout = localStorage.getItem('flyusa_layout') || 'thermal';
-        let currentWidth = localStorage.getItem('flyusa_width') || '75';
-        let qrInstances = [];
-        let idleTimer;
-        let chainRemaining = 0;
-        let chainTotalCount = 0;
-        
-        const IDLE_TIME_LIMIT = 15000;
-        const REDIRECT_URL = "https://rubiks13.github.io/bikes/";
-        const BANK_BASE_URL = "https://rubiks13.github.io/bank/";
-        const defaultAirports = ["HOME", "PARK", "SHOP", "SCHOOL", "TRAIL", "HILL", "LAKE", "BRIDGE", "CENTER"];
-        const names = ["Alex River", "Jamie Smith", "Casey Lane", "Taylor Reed", "Morgan Hill", "Jordan West", "Skyler Blue", "Riley Quinn", "Peyton Ross", "Charlie Day"];
-
         function getActiveUser() {
             const urlParams = new URLSearchParams(window.location.search);
             let user = urlParams.get('user');
@@ -368,8 +322,22 @@
         }
 
         const activeUser = getActiveUser();
+        const defaultAirports = ["HOME", "PARK", "SHOP", "SCHOOL", "TRAIL", "HILL", "LAKE", "BRIDGE", "CENTER"];
+        const names = ["Alex River", "Jamie Smith", "Casey Lane", "Taylor Reed", "Morgan Hill", "Jordan West", "Skyler Blue", "Riley Quinn", "Peyton Ross", "Charlie Day"];
 
-        // UI Handlers
+        let currentLayout = localStorage.getItem('flyusa_layout') || 'thermal';
+        let currentWidth = localStorage.getItem('flyusa_width') || '75';
+        let qrInstances = [];
+        let idleTimer;
+        const IDLE_TIME_LIMIT = 15000;
+        const REDIRECT_URL = "https://rubiks13.github.io/bikes/";
+        const BANK_BASE_URL = "https://rubiks13.github.io/bank/";
+
+        // Chain Management State
+        let chainRemaining = 0;
+        let chainTotalCount = 0;
+        let currentOrigin = null;
+
         function resetIdleTimer() {
             clearTimeout(idleTimer);
             const warningEl = document.getElementById('idle-warning');
@@ -388,11 +356,23 @@
 
             setTimeout(() => {
                const isPrinting = !document.getElementById('print-view').classList.contains('page-hidden');
-               if (window.location.href !== REDIRECT_URL && !isPrinting) { 
+               const isBankActive = !document.getElementById('bank-link-wrapper').classList.contains('hidden');
+               if (window.location.href !== REDIRECT_URL && !isPrinting && !isBankActive) { 
                    if (warningEl) warningEl.classList.remove('hidden'); 
                }
             }, IDLE_TIME_LIMIT - 3000);
         }
+
+        window.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                openSettings();
+            }
+            resetIdleTimer();
+        });
+
+        window.addEventListener('mousemove', resetIdleTimer);
+        window.addEventListener('touchstart', resetIdleTimer);
 
         function updateWidthDisplay(val) {
             document.getElementById('width-value').textContent = val + 'mm';
@@ -400,41 +380,25 @@
             currentWidth = val;
         }
 
-        function handleMultiInput(value) {
-            // Only trigger if input matches 1-5 exactly
-            if (value.length === 1) {
-                const num = parseInt(value);
-                if (!isNaN(num) && num >= 1 && num <= 5) {
-                    document.getElementById('scanner-input').value = '';
-                    startFlightChain(num);
-                }
+        function getBankTime() {
+            let startTime = localStorage.getItem('sim_bank_start_real_time');
+            if (!startTime) { 
+                startTime = Date.now(); 
+                localStorage.setItem('sim_bank_start_real_time', startTime); 
             }
+            const elapsedMins = (Date.now() - startTime) / 60000;
+            const bankHour = Math.floor(elapsedMins % 24);
+            const bankMinute = Math.floor((elapsedMins * 60) % 60);
+            const ampm = bankHour >= 12 ? 'PM' : 'AM';
+            const displayHour = bankHour % 12 || 12;
+            const displayMin = bankMinute.toString().padStart(2, '0');
+            return `${displayHour}:${displayMin} ${ampm}`;
         }
 
-        function startFlightChain(count) {
-            chainTotalCount = count;
-            chainRemaining = count;
-            const firstRide = generateRandomRide();
-            populateTicket(firstRide);
-            executePrintSequence(firstRide);
-        }
-
-        function executePrintSequence(data) {
-            document.getElementById('status-text').textContent = `Building leg ${chainTotalCount - chainRemaining + 1} of ${chainTotalCount}...`;
-            document.getElementById('home-page').classList.replace('page-visible', 'page-hidden');
-            document.getElementById('print-view').classList.replace('page-hidden', 'page-visible');
-            document.body.style.background = "white";
-            
-            document.getElementById('layout-view-thermal').classList.add('hidden');
-            document.getElementById('layout-view-modern').classList.add('hidden');
-            document.getElementById('print-subtitle').textContent = `Sequence ${chainTotalCount - chainRemaining + 1} / ${chainTotalCount}`;
-
-            if (currentLayout === 'thermal') {
-                document.getElementById('layout-view-thermal').classList.remove('hidden');
-            } else {
-                document.getElementById('layout-view-modern').classList.remove('hidden');
-            }
-            setTimeout(() => { handleJobCompletion(data); }, 500);
+        function initQRs() {
+            document.querySelectorAll('.qr-target').forEach((el) => { 
+                qrInstances.push(new QRCode(el, { width: 90, height: 90 })); 
+            });
         }
 
         function handleJobCompletion(data) {
@@ -445,44 +409,116 @@
             
             setTimeout(() => {
                 chainRemaining--;
+                
                 if (chainRemaining > 0) {
+                    // Start next flight in chain
                     const nextRide = generateRandomRide(data.to);
                     populateTicket(nextRide);
                     executePrintSequence(nextRide);
                 } else {
+                    // Chain Finished
                     const totalAmount = chainTotalCount * 5.00;
                     const paymentUrl = `${BANK_BASE_URL}?user=${encodeURIComponent(activeUser)}&amount=${totalAmount.toFixed(2)}`;
-                    document.getElementById('status-text').textContent = "Processing payload transfer...";
-                    document.getElementById('bank-link-wrapper').classList.remove('hidden');
-                    setTimeout(() => { window.location.href = paymentUrl; }, 1500); 
+                    
+                    const bankWrapper = document.getElementById('bank-link-wrapper');
+                    const statusTxt = document.getElementById('status-text');
+                    const container = document.getElementById('bank-status-container');
+
+                    statusTxt.textContent = `Processing $${totalAmount.toFixed(2)} for ${activeUser}...`;
+                    bankWrapper.classList.remove('hidden');
+                    container.classList.replace('bg-blue-50', 'bg-green-50');
+                    container.classList.replace('border-blue-100', 'border-green-200');
+
+                    setTimeout(() => { window.location.href = paymentUrl; }, 2000); 
                 }
             }, 1000);
         }
 
+        function handleMultiInput(value) {
+            const num = parseInt(value);
+            if (!isNaN(num) && num >= 1 && num <= 5) {
+                document.getElementById('scanner-input').value = '';
+                startFlightChain(num);
+            }
+        }
+
+        function startFlightChain(count) {
+            chainTotalCount = count;
+            chainRemaining = count;
+            currentOrigin = null; // Reset for new journey
+            
+            const logs = document.getElementById('logs');
+            logs.innerHTML = `<p>> Starting ${count}-stop journey...</p>`;
+            
+            const firstRide = generateRandomRide();
+            populateTicket(firstRide);
+            executePrintSequence(firstRide);
+        }
+
+        function executePrintSequence(data) {
+            document.getElementById('bank-link-wrapper').classList.add('hidden');
+            document.getElementById('status-text').textContent = "Preparing flight logs...";
+            document.getElementById('bank-status-container').classList.replace('bg-green-50', 'bg-blue-50');
+            
+            // Add to current UI logs
+            const logs = document.getElementById('logs');
+            const p = document.createElement('p');
+            p.textContent = `> Flight ${chainTotalCount - chainRemaining + 1}: ${data.from} ✈ ${data.to}`;
+            logs.appendChild(p);
+
+            document.getElementById('home-page').classList.replace('page-visible', 'page-hidden');
+            document.getElementById('print-view').classList.replace('page-hidden', 'page-visible');
+            document.body.style.backgroundColor = "white";
+            document.getElementById('layout-view-thermal').classList.add('hidden');
+            document.getElementById('layout-view-modern').classList.add('hidden');
+            
+            // Update UI status for multi-flight
+            document.getElementById('print-subtitle').textContent = `Stop ${chainTotalCount - chainRemaining + 1} of ${chainTotalCount}`;
+
+            if (currentLayout === 'thermal') {
+                document.getElementById('layout-view-thermal').classList.remove('hidden');
+            } else {
+                document.getElementById('layout-view-modern').classList.remove('hidden');
+            }
+            
+            setTimeout(() => { handleJobCompletion(data); }, 500);
+        }
+
         function goHome() {
+            // Cancellation
             chainRemaining = 0;
             document.getElementById('print-view').classList.replace('page-visible', 'page-hidden');
             document.getElementById('home-page').classList.replace('page-hidden', 'page-visible');
-            document.body.style.background = "linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%)";
-            document.getElementById('bank-link-wrapper').classList.add('hidden');
-            document.getElementById('status-text').textContent = "System idle. Waiting for flight initialization...";
+            document.body.style.backgroundColor = "#f3f4f6";
             setTimeout(() => { document.getElementById('scanner-input')?.focus(); }, 100);
             resetIdleTimer();
         }
 
-        // Generator Logic
         function generateRandomRide(forceFrom = null) {
-            const pool = defaultAirports;
+            const pool = getAirports();
             const hub = localStorage.getItem('flyusa_hub')?.trim().toUpperCase();
-            let from = forceFrom || (hub || pool[Math.floor(Math.random() * pool.length)]);
-            let to;
             
+            // Logic for FROM
+            let from;
+            if (forceFrom) {
+                from = forceFrom;
+            } else if (hub && hub !== "") {
+                from = hub;
+            } else {
+                from = pool[Math.floor(Math.random() * pool.length)];
+            }
+
+            // Logic for TO
+            let to;
+            // If it's the LAST flight in the chain and a hub is set, force it back to the hub
             if (chainRemaining === 1 && hub && hub !== "" && from !== hub) {
                 to = hub;
             } else {
-                do { to = pool[Math.floor(Math.random() * pool.length)]; } while (to === from);
+                do { 
+                    to = pool[Math.floor(Math.random() * pool.length)]; 
+                } while (to === from);
             }
-
+            
             let selectedName = names[Math.floor(Math.random() * names.length)].toUpperCase();
             const now = new Date();
             return {
@@ -509,38 +545,15 @@
             qrInstances.forEach(inst => { inst.clear(); inst.makeCode(data.flight); });
         }
 
-        function getBankTime() {
-            let startTime = localStorage.getItem('sim_bank_start_real_time');
-            if (!startTime) { 
-                startTime = Date.now(); 
-                localStorage.setItem('sim_bank_start_real_time', startTime); 
-            }
-            const elapsedMins = (Date.now() - startTime) / 60000;
-            const bankHour = Math.floor(elapsedMins % 24);
-            const bankMinute = Math.floor((elapsedMins * 60) % 60);
-            const ampm = bankHour >= 12 ? 'PM' : 'AM';
-            const displayHour = bankHour % 12 || 12;
-            const displayMin = bankMinute.toString().padStart(2, '0');
-            return `${displayHour}:${displayMin} ${ampm}`;
-        }
-
-        // Settings Logic
         function setLayout(type) {
             currentLayout = type;
-            const btnT = document.getElementById('btn-layout-thermal');
-            const btnM = document.getElementById('btn-layout-modern');
-            
-            if (type === 'thermal') {
-                btnT.className = 'py-4 rounded-xl font-bold border border-white/40 bg-white/20';
-                btnM.className = 'py-4 rounded-xl font-bold border border-white/10 bg-white/5 opacity-50';
-            } else {
-                btnM.className = 'py-4 rounded-xl font-bold border border-white/40 bg-white/20';
-                btnT.className = 'py-4 rounded-xl font-bold border border-white/10 bg-white/5 opacity-50';
-            }
+            document.getElementById('btn-layout-thermal').className = type === 'thermal' ? 'py-3 border-2 rounded-xl font-bold border-blue-600 bg-blue-50 text-blue-600' : 'py-3 border-2 rounded-xl font-bold border-gray-200 text-gray-400';
+            document.getElementById('btn-layout-modern').className = type === 'modern' ? 'py-3 border-2 rounded-xl font-bold border-blue-600 bg-blue-50 text-blue-600' : 'py-3 border-2 rounded-xl font-bold border-gray-200 text-gray-400';
             document.getElementById('thermal-width-setting').classList.toggle('hidden', type !== 'thermal');
         }
 
         function openSettings() {
+            document.getElementById('airport-list').value = localStorage.getItem('flyusa_airports') || defaultAirports.join(", ");
             document.getElementById('main-hub').value = localStorage.getItem('flyusa_hub') || "";
             const savedWidth = localStorage.getItem('flyusa_width') || '75';
             document.getElementById('width-range').value = savedWidth;
@@ -555,39 +568,30 @@
         }
 
         function saveSettings() {
+            localStorage.setItem('flyusa_airports', document.getElementById('airport-list').value);
             localStorage.setItem('flyusa_hub', document.getElementById('main-hub').value);
             localStorage.setItem('flyusa_layout', currentLayout);
             localStorage.setItem('flyusa_width', currentWidth);
             closeSettings();
         }
 
-        // Init
-        window.addEventListener('keydown', (e) => {
-            if ((e.ctrlKey || e.metaKey) && e.key === 's') { 
-                e.preventDefault(); 
-                openSettings(); 
-            }
-            resetIdleTimer();
-        });
-
-        window.addEventListener('mousemove', resetIdleTimer);
-        window.addEventListener('touchstart', resetIdleTimer);
+        function getAirports() {
+            const stored = localStorage.getItem('flyusa_airports');
+            return stored ? stored.split(',').map(s => s.trim().toUpperCase()).filter(s => s.length > 0) : defaultAirports;
+        }
 
         window.onload = () => {
             const userDisplay = document.getElementById('display-user');
-            const userInitial = document.getElementById('user-initial');
-            if (userDisplay) userDisplay.textContent = activeUser + " Session";
-            if (userInitial) userInitial.textContent = activeUser.charAt(0).toUpperCase();
+            if (userDisplay) userDisplay.textContent = activeUser;
             
             const savedWidth = localStorage.getItem('flyusa_width') || '75';
             updateWidthDisplay(savedWidth);
             
-            // Setup QR
-            document.querySelectorAll('.qr-target').forEach((el) => { 
-                qrInstances.push(new QRCode(el, { width: 90, height: 90 })); 
-            });
-
-            document.getElementById('scanner-input')?.focus();
+            initQRs();
+            
+            const input = document.getElementById('scanner-input');
+            if (input) input.focus();
+            
             resetIdleTimer();
         };
     </script>
