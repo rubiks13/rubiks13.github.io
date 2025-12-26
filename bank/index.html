@@ -42,8 +42,16 @@
         }
 
         @media print {
-            body * { visibility: hidden; }
-            #print-area, #print-area * { visibility: visible; }
+            @page {
+                margin: 0; /* This removes the space where headers/footers live */
+            }
+            body {
+                margin: 0.5cm; /* Adds a small margin so your text doesn't hit the paper edge */
+                visibility: hidden;
+            }
+            #print-area, #print-area * { 
+                visibility: visible; 
+            }
             #print-area { 
                 position: fixed; 
                 left: 0; 
@@ -178,8 +186,6 @@
                 const user = data.users[currentUser];
                 const allPaid = Object.values(user.dailyFees).every(v => v === true);
                 
-                // Only trigger a reset to "unpaid" if we have actually moved to a NEW world day
-                // AND the user has finished paying for their previous recorded day.
                 if (user.lastResetDate !== currentBikeDate && allPaid) {
                     user.dailyFees = { fuel: false, rations: false, taxes: false };
                     user.lastResetDate = currentBikeDate;
@@ -190,13 +196,13 @@
                 }
             }
         }
-        setInterval(updateBikeClock, 2000); // Check every 2s
+        setInterval(updateBikeClock, 2000);
 
         function resetInactivityTimer() {
             clearTimeout(inactivityTimer);
             inactivityTimer = setTimeout(() => {
                 window.location.href = REDIRECT_URL;
-            }, 30000); // 30 seconds
+            }, 30000);
         }
 
         ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(evt => {
@@ -213,7 +219,6 @@
                     currentUser = userName;
                     document.getElementById('display-name').innerText = userName.toUpperCase();
                     
-                    // Ensure core data exists
                     if (!data.users[userName].dailyFees) {
                         data.users[userName].dailyFees = { fuel: false, rations: false, taxes: false };
                     }
@@ -271,12 +276,8 @@
                 case 'dashboard':
                     const unpaidCount = Object.values(data.dailyFees).filter(v => v === false).length;
                     const worldDate = localStorage.getItem('sim_current_bike_date') || "Day 1";
-                    
                     const isBehind = data.lastResetDate !== worldDate;
                     const isDayOne = worldDate.toLowerCase().includes("day 1");
-                    
-                    // Logic: Warning shows if we are behind (missed day) 
-                    // OR if it's Day 2+ and we have unpaid current fees.
                     const showWarning = isBehind || (!isDayOne && unpaidCount > 0);
 
                     container.innerHTML = `
@@ -457,15 +458,10 @@
                 amount: amount
             });
 
-            // Check if all fees for the day being paid are now complete
             const allPaidForCycle = Object.values(user.dailyFees).every(v => v === true);
-            
             if (allPaidForCycle && user.lastResetDate !== currentWorldDate) {
-                // If we just finished Day 1 while in Day 2...
-                // Move the user's recorded date to current Day 2 and reset for next payment
                 user.lastResetDate = currentWorldDate;
                 user.dailyFees = { fuel: false, rations: false, taxes: false };
-                console.log("Arrears cleared. Resetting for current day.");
             }
 
             saveBankData(data);
@@ -516,7 +512,6 @@
             saveBankData(data);
 
             window.print();
-            
             document.getElementById('print-overlay').classList.add('hidden');
             setView('dashboard');
         }
