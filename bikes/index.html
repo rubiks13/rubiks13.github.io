@@ -100,6 +100,15 @@
             z-index: 1000;
             text-align: center;
         }
+
+        .status-pill {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            margin-top: 4px;
+            display: inline-block;
+        }
     </style>
 </head>
 <body class="flex items-center justify-center p-4">
@@ -107,6 +116,7 @@
     <div id="sim-clock-display">
         <div id="sim-date-text" style="font-size: 10px; color: #94a3b8; margin-bottom: 2px; font-weight: bold;">DAY 1</div>
         <div id="sim-time-text" style="font-size: 18px; font-weight: bold;">--:-- --</div>
+        <div id="pause-indicator" class="status-pill bg-red-500/20 text-red-400 hidden">Paused</div>
     </div>
 
     <div id="home-page" class="page active">
@@ -119,7 +129,17 @@
                 <h1 class="text-3xl font-bold tracking-tight mb-2">Bike Occupation</h1>
                 <p class="text-blue-300 text-sm opacity-80">Link Directory & Scanner Hub</p>
             </div>
+            
+            <!-- Controls Container -->
+            <div id="sim-controls" class="mb-6 flex gap-2 justify-center">
+                <button id="pause-btn" onclick="togglePause()" class="bg-white/10 hover:bg-white/20 border border-white/10 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+                    <span id="pause-btn-icon">⏸</span>
+                    <span id="pause-btn-text">Pause Simulation</span>
+                </button>
+            </div>
+
             <div id="links-container" class="space-y-4"></div>
+            
             <div class="mt-12 pt-6 border-t border-white/10 flex justify-between items-center">
                 <p class="text-xs text-gray-500">Ctrl+S for Settings</p>
                 <button onclick="navigateTo('settings-page')" class="text-xs text-blue-400 hover:underline">Settings</button>
@@ -170,24 +190,35 @@
 
         function initSimulationClock() {
             function refreshTime() {
+                // Get simulation state
                 let start = localStorage.getItem('sim_bank_start_real_time');
+                let isPaused = localStorage.getItem('sim_is_paused') === 'true';
+                let pausedAt = localStorage.getItem('sim_paused_at_ms');
+
                 if(!start) {
                     start = Date.now().toString();
                     localStorage.setItem('sim_bank_start_real_time', start);
                 }
                 
                 const startTime = parseInt(start);
-                const elapsedRealMs = Date.now() - startTime;
+                let elapsedRealMs;
+
+                if (isPaused && pausedAt) {
+                    // If paused, use the frozen elapsed time
+                    elapsedRealMs = parseInt(pausedAt);
+                    document.getElementById('pause-indicator').classList.remove('hidden');
+                } else {
+                    // Otherwise calculate current elapsed time
+                    elapsedRealMs = Date.now() - startTime;
+                    document.getElementById('pause-indicator').classList.add('hidden');
+                }
                 
                 // MATH: 24 real minutes (1,440,000ms) = 1 simulation day
                 const msPerSimDay = 1440000;
                 
-                // Calculate current Day
                 const currentDay = Math.floor(elapsedRealMs / msPerSimDay) + 1;
                 const dateString = `DAY ${currentDay}`;
 
-                // Calculate current Time within the day
-                // (Total sim minutes = elapsedRealMs / 1000 since 1 real sec = 1 sim min)
                 const totalSimMinutesSinceStart = Math.floor(elapsedRealMs / 1000);
                 const currentSimMinutesInDay = totalSimMinutesSinceStart % 1440;
                 
@@ -205,9 +236,40 @@
                 
                 document.getElementById('sim-time-text').innerText = timeString;
                 document.getElementById('sim-date-text').innerText = dateString;
+
+                // Update Button UI
+                const btnIcon = document.getElementById('pause-btn-icon');
+                const btnText = document.getElementById('pause-btn-text');
+                if (isPaused) {
+                    btnIcon.innerText = '▶';
+                    btnText.innerText = 'Resume Simulation';
+                } else {
+                    btnIcon.innerText = '⏸';
+                    btnText.innerText = 'Pause Simulation';
+                }
             }
             setInterval(refreshTime, 100); 
             refreshTime();
+        }
+
+        function togglePause() {
+            const isCurrentlyPaused = localStorage.getItem('sim_is_paused') === 'true';
+            const startTime = parseInt(localStorage.getItem('sim_bank_start_real_time'));
+            
+            if (!isCurrentlyPaused) {
+                // PAUSING
+                const elapsed = Date.now() - startTime;
+                localStorage.setItem('sim_is_paused', 'true');
+                localStorage.setItem('sim_paused_at_ms', elapsed.toString());
+            } else {
+                // RESUMING
+                const pausedAt = parseInt(localStorage.getItem('sim_paused_at_ms'));
+                // To pick up where we left off: newStartTime = CurrentRealTime - SavedElapsedMs
+                const newStartTime = Date.now() - pausedAt;
+                localStorage.setItem('sim_bank_start_real_time', newStartTime.toString());
+                localStorage.setItem('sim_is_paused', 'false');
+                localStorage.removeItem('sim_paused_at_ms');
+            }
         }
 
         function renderLinks() {
