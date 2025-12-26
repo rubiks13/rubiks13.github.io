@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexGen POS System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+
+        .custom-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 10px;
+        }
+
+        /* 80mm Receipt Styling for Print */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #receipt-print-area, #receipt-print-area * {
+                visibility: visible;
+            }
+            #receipt-print-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 80mm;
+                color: black;
+                background: white;
+                padding: 5mm;
+                font-family: 'Courier New', Courier, monospace;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+
+        .product-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+<body class="h-screen overflow-hidden flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-slate-900 border-b border-slate-800 p-4 flex justify-between items-center shadow-lg">
+        <div class="flex items-center gap-3">
+            <div class="bg-blue-600 p-2 rounded-lg">
+                <i class="fas fa-cash-register text-xl text-white"></i>
+            </div>
+            <h1 class="text-xl font-bold tracking-tight">NexGen <span class="text-blue-500">POS</span></h1>
+        </div>
+        <div class="flex gap-4">
+            <button onclick="switchTab('pos')" class="px-4 py-2 rounded-md transition-all hover:bg-slate-800 focus:bg-blue-600" id="btn-pos">
+                <i class="fas fa-shopping-cart mr-2"></i>Register
+            </button>
+            <button onclick="switchTab('inventory')" class="px-4 py-2 rounded-md transition-all hover:bg-slate-800 focus:bg-blue-600" id="btn-inventory">
+                <i class="fas fa-boxes mr-2"></i>Inventory
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 overflow-hidden flex">
+        
+        <!-- POS SECTION -->
+        <section id="pos-section" class="flex-1 flex flex-col md:flex-row h-full">
+            <!-- Left Side: Products -->
+            <div class="flex-1 p-6 overflow-y-auto custom-scroll">
+                <div class="flex gap-4 mb-6">
+                    <div class="relative flex-1">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input type="text" id="pos-search" oninput="renderPOSProducts()" placeholder="Search name or scan barcode..." class="w-full bg-slate-800 border border-slate-700 rounded-lg py-2 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+                
+                <div id="pos-product-grid" class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    <!-- Products injected here -->
+                </div>
+            </div>
+
+            <!-- Right Side: Cart -->
+            <div class="w-full md:w-96 bg-slate-900 border-l border-slate-800 flex flex-col">
+                <div class="p-4 border-b border-slate-800 flex justify-between items-center">
+                    <h2 class="font-bold text-lg">Current Order</h2>
+                    <button onclick="clearCart()" class="text-slate-400 hover:text-red-400 text-sm">Clear All</button>
+                </div>
+
+                <div id="cart-items" class="flex-1 overflow-y-auto custom-scroll p-4 space-y-3">
+                    <!-- Cart items injected here -->
+                </div>
+
+                <div class="p-6 bg-slate-950 space-y-4">
+                    <div class="flex justify-between text-slate-400">
+                        <span>Subtotal</span>
+                        <span id="subtotal">$0.00</span>
+                    </div>
+                    <div class="flex justify-between text-slate-400">
+                        <span>Tax (0%)</span>
+                        <span>$0.00</span>
+                    </div>
+                    <div class="flex justify-between text-xl font-bold border-t border-slate-800 pt-4">
+                        <span>Total</span>
+                        <span id="total" class="text-blue-400">$0.00</span>
+                    </div>
+                    <button onclick="handleCheckout()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg transition-all active:scale-95">
+                        CHECKOUT & PRINT
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- INVENTORY SECTION -->
+        <section id="inventory-section" class="hidden flex-1 p-8 overflow-y-auto custom-scroll">
+            <div class="max-w-4xl mx-auto">
+                <div class="flex justify-between items-center mb-8">
+                    <h2 class="text-2xl font-bold">Product Management</h2>
+                    <button onclick="openAddModal()" class="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-lg font-medium">
+                        <i class="fas fa-plus mr-2"></i>Add New Product
+                    </button>
+                </div>
+
+                <div class="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-800 text-slate-400 text-sm uppercase">
+                            <tr>
+                                <th class="p-4">Product</th>
+                                <th class="p-4">Price</th>
+                                <th class="p-4">Barcode</th>
+                                <th class="p-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventory-table-body">
+                            <!-- Table items injected here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal for Adding/Editing -->
+    <div id="product-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl">
+            <h3 id="modal-title" class="text-xl font-bold mb-6 text-blue-400">Add Product</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1">Product Name</label>
+                    <input type="text" id="form-name" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div class="flex gap-4">
+                    <div class="flex-1">
+                        <label class="block text-sm text-slate-400 mb-1">Price ($)</label>
+                        <input type="number" step="0.01" id="form-price" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-sm text-slate-400 mb-1">Category</label>
+                        <select id="form-category" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="General">General</option>
+                            <option value="Food">Food</option>
+                            <option value="Electronics">Electronics</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1">Barcode (for scanner)</label>
+                    <input type="text" id="form-barcode" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button onclick="closeModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 py-2 rounded-lg font-medium">Cancel</button>
+                    <button onclick="saveProduct()" class="flex-1 bg-blue-600 hover:bg-blue-700 py-2 rounded-lg font-medium">Save Product</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Receipt Print Template -->
+    <div id="receipt-print-area" class="hidden">
+        <div style="text-align: center; border-bottom: 1px dashed #000; padding-bottom: 10px; margin-bottom: 10px;">
+            <h2 style="margin: 0;">NEXGEN STORE</h2>
+            <p style="margin: 5px 0; font-size: 12px;">123 Digital Avenue, Tech City</p>
+            <p style="margin: 0; font-size: 12px;">Tel: 555-0199</p>
+        </div>
+        <div id="receipt-date" style="font-size: 12px; margin-bottom: 10px;"></div>
+        <div style="border-bottom: 1px dashed #000; margin-bottom: 10px;">
+            <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
+                <thead>
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <th style="text-align: left;">Item</th>
+                        <th style="text-align: center;">Qty</th>
+                        <th style="text-align: right;">Total</th>
+                    </tr>
+                </thead>
+                <tbody id="receipt-items">
+                    <!-- Items injected -->
+                </tbody>
+            </table>
+        </div>
+        <div style="text-align: right; font-weight: bold; font-size: 14px;">
+            TOTAL: <span id="receipt-total"></span>
+        </div>
+        <div style="text-align: center; margin-top: 20px; font-size: 10px; border-top: 1px dashed #000; padding-top: 10px;">
+            THANK YOU FOR SHOPPING!<br>
+            Please keep your receipt.
+        </div>
+    </div>
+
+    <script>
+        // State Management
+        let products = JSON.parse(localStorage.getItem('pos_products')) || [
+            { id: 1, name: 'Sample Item', price: 10.00, barcode: '12345', category: 'General' }
+        ];
+        let cart = [];
+        let editingId = null;
+
+        // UI Initialization
+        window.onload = () => {
+            renderPOSProducts();
+            updateCartUI();
+            switchTab('pos');
+        };
+
+        // Navigation
+        function switchTab(tab) {
+            document.getElementById('pos-section').classList.toggle('hidden', tab !== 'pos');
+            document.getElementById('inventory-section').classList.toggle('hidden', tab !== 'inventory');
+            
+            document.getElementById('btn-pos').className = tab === 'pos' 
+                ? 'px-4 py-2 rounded-md bg-blue-600 text-white' 
+                : 'px-4 py-2 rounded-md text-slate-400 hover:bg-slate-800';
+            
+            document.getElementById('btn-inventory').className = tab === 'inventory' 
+                ? 'px-4 py-2 rounded-md bg-blue-600 text-white' 
+                : 'px-4 py-2 rounded-md text-slate-400 hover:bg-slate-800';
+
+            if (tab === 'inventory') renderInventory();
+        }
+
+        // Inventory Logic
+        function renderInventory() {
+            const tbody = document.getElementById('inventory-table-body');
+            tbody.innerHTML = products.map(p => `
+                <tr class="border-b border-slate-800 hover:bg-slate-800/50 transition-colors">
+                    <td class="p-4 font-medium">${p.name}</td>
+                    <td class="p-4 text-emerald-400">$${p.price.toFixed(2)}</td>
+                    <td class="p-4 text-slate-500 font-mono">${p.barcode}</td>
+                    <td class="p-4 text-right">
+                        <button onclick="editProduct(${p.id})" class="text-blue-400 hover:text-blue-300 mr-3"><i class="fas fa-edit"></i></button>
+                        <button onclick="deleteProduct(${p.id})" class="text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function openAddModal() {
+            editingId = null;
+            document.getElementById('modal-title').innerText = "Add New Product";
+            document.getElementById('form-name').value = "";
+            document.getElementById('form-price').value = "";
+            document.getElementById('form-barcode').value = "";
+            document.getElementById('product-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('product-modal').classList.add('hidden');
+        }
+
+        function saveProduct() {
+            const name = document.getElementById('form-name').value;
+            const price = parseFloat(document.getElementById('form-price').value);
+            const barcode = document.getElementById('form-barcode').value;
+            const category = document.getElementById('form-category').value;
+
+            if (!name || isNaN(price)) return alert("Please fill details correctly");
+
+            if (editingId) {
+                products = products.map(p => p.id === editingId ? { ...p, name, price, barcode, category } : p);
+            } else {
+                products.push({ id: Date.now(), name, price, barcode, category });
+            }
+
+            localStorage.setItem('pos_products', JSON.stringify(products));
+            renderInventory();
+            renderPOSProducts();
+            closeModal();
+        }
+
+        function editProduct(id) {
+            const p = products.find(x => x.id === id);
+            editingId = id;
+            document.getElementById('modal-title').innerText = "Edit Product";
+            document.getElementById('form-name').value = p.name;
+            document.getElementById('form-price').value = p.price;
+            document.getElementById('form-barcode').value = p.barcode;
+            document.getElementById('form-category').value = p.category;
+            document.getElementById('product-modal').classList.remove('hidden');
+        }
+
+        function deleteProduct(id) {
+            if (confirm('Delete this product?')) {
+                products = products.filter(p => p.id !== id);
+                localStorage.setItem('pos_products', JSON.stringify(products));
+                renderInventory();
+                renderPOSProducts();
+            }
+        }
+
+        // POS & Cart Logic
+        function renderPOSProducts() {
+            const search = document.getElementById('pos-search').value.toLowerCase();
+            const grid = document.getElementById('pos-product-grid');
+            
+            const filtered = products.filter(p => 
+                p.name.toLowerCase().includes(search) || 
+                p.barcode.toLowerCase() === search
+            );
+
+            // Auto-add if barcode matches exactly
+            if (search.length > 2) {
+                const exactMatch = products.find(p => p.barcode.toLowerCase() === search);
+                if (exactMatch) {
+                    addToCart(exactMatch.id);
+                    document.getElementById('pos-search').value = "";
+                    renderPOSProducts();
+                    return;
+                }
+            }
+
+            grid.innerHTML = filtered.map(p => `
+                <div onclick="addToCart(${p.id})" class="product-card bg-slate-900 border border-slate-800 p-4 rounded-xl cursor-pointer transition-all">
+                    <div class="h-10 w-10 bg-blue-600/20 text-blue-400 rounded-lg flex items-center justify-center mb-3">
+                        <i class="fas fa-tag"></i>
+                    </div>
+                    <h3 class="font-semibold truncate">${p.name}</h3>
+                    <p class="text-blue-400 font-bold">$${p.price.toFixed(2)}</p>
+                    <p class="text-xs text-slate-500 mt-1 uppercase tracking-wider">${p.category}</p>
+                </div>
+            `).join('');
+        }
+
+        function addToCart(productId) {
+            const product = products.find(p => p.id === productId);
+            const existing = cart.find(item => item.id === productId);
+
+            if (existing) {
+                existing.qty++;
+            } else {
+                cart.push({ ...product, qty: 1 });
+            }
+            updateCartUI();
+        }
+
+        function updateQty(id, delta) {
+            const item = cart.find(i => i.id === id);
+            if (item) {
+                item.qty += delta;
+                if (item.qty <= 0) {
+                    cart = cart.filter(i => i.id !== id);
+                }
+            }
+            updateCartUI();
+        }
+
+        function clearCart() {
+            cart = [];
+            updateCartUI();
+        }
+
+        function updateCartUI() {
+            const container = document.getElementById('cart-items');
+            container.innerHTML = cart.map(item => `
+                <div class="flex items-center justify-between bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+                    <div class="flex-1">
+                        <h4 class="font-medium text-sm text-white">${item.name}</h4>
+                        <p class="text-xs text-slate-400">$${item.price.toFixed(2)} each</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="flex items-center bg-slate-900 rounded-md border border-slate-700">
+                            <button onclick="updateQty(${item.id}, -1)" class="px-2 py-1 text-slate-400 hover:text-white">-</button>
+                            <span class="w-8 text-center text-sm font-bold">${item.qty}</span>
+                            <button onclick="updateQty(${item.id}, 1)" class="px-2 py-1 text-slate-400 hover:text-white">+</button>
+                        </div>
+                        <span class="font-bold text-blue-400 min-w-[60px] text-right">$${(item.price * item.qty).toFixed(2)}</span>
+                    </div>
+                </div>
+            `).join('');
+
+            const total = cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
+            document.getElementById('subtotal').innerText = `$${total.toFixed(2)}`;
+            document.getElementById('total').innerText = `$${total.toFixed(2)}`;
+        }
+
+        // Print Logic
+        function handleCheckout() {
+            if (cart.length === 0) return alert("Cart is empty");
+
+            // Prepare receipt data
+            const receiptItems = document.getElementById('receipt-items');
+            const total = cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
+            
+            receiptItems.innerHTML = cart.map(item => `
+                <tr>
+                    <td style="padding: 5px 0;">${item.name.substring(0, 18)}</td>
+                    <td style="text-align: center;">${item.qty}</td>
+                    <td style="text-align: right;">$${(item.price * item.qty).toFixed(2)}</td>
+                </tr>
+            `).join('');
+
+            document.getElementById('receipt-date').innerText = "Date: " + new Date().toLocaleString();
+            document.getElementById('receipt-total').innerText = `$${total.toFixed(2)}`;
+
+            // Trigger Print
+            window.print();
+            
+            // Success Message (Custom Modal instead of alert)
+            setTimeout(() => {
+                clearCart();
+                alert("Transaction Completed and Receipt Printed!");
+            }, 500);
+        }
+
+        // Keyboard support for barcode scanners (barcode scanners usually end with "Enter")
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const searchInput = document.getElementById('pos-search');
+                if (document.activeElement === searchInput) {
+                    renderPOSProducts();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
