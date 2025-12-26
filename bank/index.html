@@ -107,7 +107,9 @@
 
             <div class="mt-auto space-y-4">
                 <div class="cyber-card p-4 rounded-2xl border-cyan-400/30 border">
-                    <div class="text-[10px] uppercase font-bold text-cyan-400 mb-1">Bike World Time</div>
+                    <div class="text-[10px] uppercase font-bold text-cyan-400 mb-1">Bike World Date</div>
+                    <div id="bike-date-display" class="text-xl font-mono font-bold text-white mb-2">--</div>
+                    <div class="text-[10px] uppercase font-bold text-slate-500 mb-1">Current Time</div>
                     <div id="bike-clock" class="text-2xl font-mono font-bold text-white">--:-- --</div>
                 </div>
                 <div class="px-2">
@@ -164,19 +166,21 @@
         const saveBankData = (data) => localStorage.setItem(APP_ID, JSON.stringify(data));
 
         function updateBikeClock() {
-            // Get the simulated time/date
-            const rawTime = localStorage.getItem('sim_current_bike_time') || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            // Failsafe: Use real date if simulated date is missing
-            const currentBikeDate = localStorage.getItem('sim_current_bike_date') || new Date().toLocaleDateString();
+            // 1. Get the current Bike World Date (e.g., "Day 1", "Day 2")
+            const currentBikeDate = localStorage.getItem('sim_current_bike_date') || "Day 0";
+            const rawTime = localStorage.getItem('sim_current_bike_time') || "--:-- --";
             
+            document.getElementById('bike-date-display').innerText = currentBikeDate.toUpperCase();
             document.getElementById('bike-clock').innerText = rawTime;
 
             const data = getBankData();
             if (currentUser && data.users[currentUser]) {
                 const user = data.users[currentUser];
                 
-                // RESET LOGIC: Checks if the stored reset date is different from the current date
+                // 2. TRIGGER RESET: If the current bike date doesn't match our stored reset date
                 if (user.lastResetDate !== currentBikeDate) {
+                    console.log(`Bank System: Date change detected (${user.lastResetDate} -> ${currentBikeDate}). Resetting fees.`);
+                    
                     user.dailyFees = {
                         fuel: false,
                         rations: false,
@@ -193,6 +197,7 @@
                 }
             }
         }
+        // Check every second for date changes
         setInterval(updateBikeClock, 1000);
 
         function resetInactivityTimer() {
@@ -220,8 +225,9 @@
                         data.users[userName].dailyFees = { fuel: false, rations: false, taxes: false };
                     }
                     
+                    // Initialize reset tracking on first load
                     if (!data.users[userName].lastResetDate) {
-                        data.users[userName].lastResetDate = localStorage.getItem('sim_current_bike_date') || new Date().toLocaleDateString();
+                        data.users[userName].lastResetDate = localStorage.getItem('sim_current_bike_date') || "Day 0";
                     }
                     saveBankData(data);
 
@@ -245,7 +251,7 @@
             const name = document.getElementById('new-user-name').value.trim();
             if (!name) return;
             const data = getBankData();
-            const bikeDate = localStorage.getItem('sim_current_bike_date') || new Date().toLocaleDateString();
+            const bikeDate = localStorage.getItem('sim_current_bike_date') || "Day 0";
             
             if (!data.users[name]) {
                 data.users[name] = {
@@ -257,17 +263,6 @@
                 saveBankData(data);
             }
             window.location.href = `?user=${name}`;
-        }
-
-        function forceResetFees() {
-            const data = getBankData();
-            if (currentUser && data.users[currentUser]) {
-                data.users[currentUser].dailyFees = { fuel: false, rations: false, taxes: false };
-                data.users[currentUser].lastResetDate = localStorage.getItem('sim_current_bike_date') || new Date().toLocaleDateString();
-                saveBankData(data);
-                setView('payments');
-                alert("SYSTEM SYNCED: ALL FEES RESET");
-            }
         }
 
         function setView(view) {
@@ -328,12 +323,9 @@
                 
                 case 'payments':
                     container.innerHTML = `
-                        <div class="mb-10 flex justify-between items-end">
-                            <div>
-                                <h2 class="text-4xl font-black mb-2">Service Terminal</h2>
-                                <p class="text-slate-400">All three fees must be paid daily. Reset occurs every new day.</p>
-                            </div>
-                            <button onclick="forceResetFees()" class="text-[10px] font-bold border border-white/10 px-4 py-2 rounded-lg hover:bg-white/5 uppercase tracking-widest transition-all">Manual Sync</button>
+                        <div class="mb-10">
+                            <h2 class="text-4xl font-black mb-2">Service Terminal</h2>
+                            <p class="text-slate-400">Current Cycle: <span class="text-cyan-400 font-bold">${data.lastResetDate}</span>. Fees reset on next cycle change.</p>
                         </div>
                         
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
