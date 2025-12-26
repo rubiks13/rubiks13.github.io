@@ -44,7 +44,18 @@
         @media print {
             body * { visibility: hidden; }
             #print-area, #print-area * { visibility: visible; }
-            #print-area { position: absolute; left: 0; top: 0; width: 80mm; }
+            #print-area { 
+                position: fixed; 
+                left: 0; 
+                top: 0; 
+                width: 100%; 
+                height: 100%;
+                background: white;
+                display: flex !important;
+                justify-content: center;
+                align-items: flex-start;
+                z-index: 9999;
+            }
         }
 
         .nav-btn.active {
@@ -114,26 +125,32 @@
         </main>
     </div>
 
-    <!-- Print Area -->
-    <div id="print-area" class="hidden flex justify-center p-10 bg-zinc-200">
-        <div class="receipt shadow-2xl">
-            <div class="text-center border-b-2 border-black pb-4 mb-4">
-                <h1 class="text-2xl font-black">BIKE BANK</h1>
-                <p class="text-[10px] uppercase tracking-tighter">Official Exchange Note</p>
-                <p id="print-date" class="text-xs mt-2"></p>
+    <!-- Print Preview Overlay -->
+    <div id="print-overlay" class="fixed inset-0 bg-black/95 z-[100] hidden flex flex-col items-center justify-center p-4">
+        <div id="print-area" class="bg-white p-4 shadow-2xl mb-6">
+            <div class="receipt">
+                <div class="text-center border-b-2 border-black pb-4 mb-4">
+                    <h1 class="text-2xl font-black">BIKE BANK</h1>
+                    <p class="text-[10px] uppercase tracking-tighter">Official Exchange Note</p>
+                    <p id="print-date" class="text-xs mt-2"></p>
+                </div>
+                <div class="py-8 text-center">
+                    <p class="text-6xl font-black" id="print-amount">$0</p>
+                    <p class="text-[10px] mt-2 italic">Non-Transferable / Single Use</p>
+                </div>
+                <div class="border-y border-black py-2 text-xs mb-4">
+                    <p>HOLDER: <span id="print-user" class="font-bold"></span></p>
+                    <p>STATUS: VERIFIED_ASSET</p>
+                </div>
+                <div class="flex justify-center">
+                    <svg id="barcode"></svg>
+                </div>
+                <p id="barcode-num" class="text-center text-[10px] mt-2 tracking-[0.5em]"></p>
             </div>
-            <div class="py-8 text-center">
-                <p class="text-6xl font-black" id="print-amount">$0</p>
-                <p class="text-[10px] mt-2 italic">Non-Transferable / Single Use</p>
-            </div>
-            <div class="border-y border-black py-2 text-xs mb-4">
-                <p>HOLDER: <span id="print-user" class="font-bold"></span></p>
-                <p>STATUS: VERIFIED_ASSET</p>
-            </div>
-            <div class="flex justify-center">
-                <svg id="barcode"></svg>
-            </div>
-            <p id="barcode-num" class="text-center text-[10px] mt-2 tracking-[0.5em]"></p>
+        </div>
+        <div class="flex gap-4">
+            <button onclick="confirmAndPrint()" class="bg-cyan-500 text-black px-8 py-3 rounded-xl font-black hover:bg-cyan-400">PRINT NOW</button>
+            <button onclick="cancelPrint()" class="bg-white/10 text-white px-8 py-3 rounded-xl font-bold hover:bg-white/20">CANCEL</button>
         </div>
     </div>
 
@@ -147,23 +164,25 @@
         const getBankData = () => JSON.parse(localStorage.getItem(APP_ID)) || { users: {}, validTickets: {} };
         const saveBankData = (data) => localStorage.setItem(APP_ID, JSON.stringify(data));
 
-        // Sync with your directory's Bike Time
         function updateBikeClock() {
             const rawTime = localStorage.getItem('sim_current_bike_time') || "12:00 AM";
             document.getElementById('bike-clock').innerText = rawTime;
 
-            // Handle Daily Reset logic (Every 12:00 AM)
             if (rawTime === "12:00 AM") {
                 const data = getBankData();
                 if (currentUser && data.users[currentUser]) {
                     const today = new Date().toLocaleDateString(); 
-                    // Note: In a real simulation, you'd use a 'Bike Day' counter, 
-                    // but we use real date + 12AM trigger for safety.
                     if (lastKnownBikeDay !== today) {
-                        data.users[currentUser].dailyPaid = false;
+                        // Reset all three required payments
+                        data.users[currentUser].dailyFees = {
+                            fuel: false,
+                            rations: false,
+                            taxes: false
+                        };
                         saveBankData(data);
                         lastKnownBikeDay = today;
-                        console.log("New Bike Day: Fees Reset");
+                        console.log("New Bike Day: All Fees Reset");
+                        if (document.getElementById('btn-dashboard').classList.contains('active')) setView('dashboard');
                     }
                 }
             }
@@ -191,6 +210,11 @@
                     currentUser = userName;
                     document.getElementById('display-name').innerText = userName.toUpperCase();
                     
+                    if (!data.users[userName].dailyFees) {
+                        data.users[userName].dailyFees = { fuel: false, rations: false, taxes: false };
+                        saveBankData(data);
+                    }
+
                     const amount = params.get('amount');
                     if(amount) {
                         depositMoney(parseFloat(amount), `External Transfer`);
@@ -214,7 +238,7 @@
             if (!data.users[name]) {
                 data.users[name] = {
                     balance: 25.00,
-                    dailyPaid: false,
+                    dailyFees: { fuel: false, rations: false, taxes: false },
                     history: [{date: new Date().toLocaleString(), type: 'Credit', desc: 'Registry Initialized', amount: 25}]
                 };
                 saveBankData(data);
@@ -226,25 +250,25 @@
             const container = document.getElementById('content-area');
             const data = getBankData().users[currentUser];
             
-            // UI Styling for active tab
             document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
             const activeBtn = document.getElementById(`btn-${view}`);
             if(activeBtn) activeBtn.classList.add('active');
 
             switch(view) {
                 case 'dashboard':
-                    const needsToPay = !data.dailyPaid;
+                    const unpaidCount = Object.values(data.dailyFees).filter(v => v === false).length;
+                    const needsToPay = unpaidCount > 0;
                     container.innerHTML = `
                         ${needsToPay ? `
                             <div class="bg-red-500/10 border border-red-500/50 p-4 rounded-2xl mb-6 flex items-center justify-between animate-pulse">
                                 <div class="flex items-center gap-3">
                                     <span class="text-2xl">⚠️</span>
                                     <div>
-                                        <div class="font-bold text-red-400">DAILY FEES OVERDUE</div>
-                                        <div class="text-xs text-red-300/70">Please settle your gas, grocery, and tax balances.</div>
+                                        <div class="font-bold text-red-400">DAILY FEES OVERDUE (${unpaidCount}/3)</div>
+                                        <div class="text-xs text-red-300/70">Please settle your remaining balances in the Daily Fees tab.</div>
                                     </div>
                                 </div>
-                                <button onclick="setView('payments')" class="bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-bold">PAY NOW</button>
+                                <button onclick="setView('payments')" class="bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-bold">GO TO FEES</button>
                             </div>
                         ` : ''}
                         
@@ -266,8 +290,8 @@
                                 <div class="text-xl font-bold">RIDER_ACTIVE</div>
                              </div>
                              <div class="cyber-card p-6 rounded-2xl border-l-4 border-purple-400">
-                                <div class="text-xs text-slate-500 uppercase font-bold mb-1">Daily Dues</div>
-                                <div class="text-xl font-bold">${data.dailyPaid ? 'SETTLED' : 'PENDING'}</div>
+                                <div class="text-xs text-slate-500 uppercase font-bold mb-1">Dues Progress</div>
+                                <div class="text-xl font-bold">${3 - unpaidCount}/3 SETTLED</div>
                              </div>
                              <div class="cyber-card p-6 rounded-2xl border-l-4 border-green-400">
                                 <div class="text-xs text-slate-500 uppercase font-bold mb-1">Vault Health</div>
@@ -281,25 +305,14 @@
                     container.innerHTML = `
                         <div class="mb-10">
                             <h2 class="text-4xl font-black mb-2">Service Terminal</h2>
-                            <p class="text-slate-400">Daily fees reset every 12:00 AM Bike Time.</p>
+                            <p class="text-slate-400">All three fees must be paid daily. Reset at 12:00 AM.</p>
                         </div>
                         
-                        ${data.dailyPaid ? `
-                            <div class="cyber-card p-20 rounded-[2rem] text-center border-green-500/30">
-                                <div class="text-6xl mb-6">✅</div>
-                                <h3 class="text-2xl font-bold mb-2">Fees Settled</h3>
-                                <p class="text-slate-400">You are cleared for the day. Next payment cycle: 12:00 AM.</p>
-                            </div>
-                        ` : `
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                ${paymentCard('Fuel Supply', 5.00, '⛽')}
-                                ${paymentCard('Rations', 12.50, '🛒')}
-                                ${paymentCard('City Tax', 2.00, '🏛️')}
-                            </div>
-                            <div class="mt-8 text-center p-8 cyber-card rounded-2xl italic text-slate-400">
-                                Paying any service fulfills your daily obligation.
-                            </div>
-                        `}
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            ${paymentCard('Fuel Supply', 5.00, '⛽', data.dailyFees.fuel, 'fuel')}
+                            ${paymentCard('Rations', 12.50, '🛒', data.dailyFees.rations, 'rations')}
+                            ${paymentCard('City Tax', 2.00, '🏛️', data.dailyFees.taxes, 'taxes')}
+                        </div>
                     `;
                     break;
 
@@ -381,25 +394,29 @@
             }
         }
 
-        function paymentCard(name, price, icon) {
+        function paymentCard(name, price, icon, isPaid, key) {
             return `
-                <div class="cyber-card p-8 rounded-2xl text-center border-t-2 border-transparent hover:border-cyan-400 transition-all">
+                <div class="cyber-card p-8 rounded-2xl text-center border-t-2 ${isPaid ? 'border-green-500 bg-green-500/5' : 'border-transparent hover:border-cyan-400'} transition-all">
                     <div class="text-5xl mb-6">${icon}</div>
                     <div class="font-bold text-xl mb-2">${name}</div>
                     <div class="text-cyan-400 font-mono text-2xl font-bold mb-8">$${price.toFixed(2)}</div>
-                    <button onclick="makePayment(${price}, '${name}')" class="w-full bg-white/5 hover:bg-cyan-500 hover:text-black py-3 rounded-xl transition-all font-bold uppercase text-xs tracking-widest">Process Payment</button>
+                    ${isPaid ? `
+                        <div class="bg-green-500/20 text-green-400 py-3 rounded-xl font-bold text-xs tracking-widest uppercase">Settled</div>
+                    ` : `
+                        <button onclick="makePayment(${price}, '${name}', '${key}')" class="w-full bg-white/5 hover:bg-cyan-500 hover:text-black py-3 rounded-xl transition-all font-bold uppercase text-xs tracking-widest">Process Payment</button>
+                    `}
                 </div>
             `;
         }
 
-        function makePayment(amount, service) {
+        function makePayment(amount, service, key) {
             const data = getBankData();
             if (data.users[currentUser].balance < amount) {
                 alert("CRITICAL ERROR: INSUFFICIENT ASSETS");
                 return;
             }
             data.users[currentUser].balance -= amount;
-            data.users[currentUser].dailyPaid = true;
+            data.users[currentUser].dailyFees[key] = true;
             data.users[currentUser].history.push({
                 date: new Date().toLocaleString(),
                 type: 'Debit',
@@ -417,21 +434,15 @@
                 return;
             }
 
-            data.users[currentUser].balance -= amount;
-            const ticketId = Math.floor(1000000000 + Math.random() * 9000000000).toString();
-            data.validTickets[ticketId] = amount;
-            
-            data.users[currentUser].history.push({
-                date: new Date().toLocaleString(),
-                type: 'Debit',
-                desc: `Note Extraction ($${amount})`,
-                amount: amount
-            });
-            saveBankData(data);
+            // Temporarily store amount for confirmation
+            window.pendingPrintAmount = amount;
 
             document.getElementById('print-date').innerText = new Date().toLocaleString().toUpperCase();
             document.getElementById('print-amount').innerText = `$${amount}`;
             document.getElementById('print-user').innerText = currentUser.toUpperCase();
+            
+            const ticketId = Math.floor(1000000000 + Math.random() * 9000000000).toString();
+            window.pendingTicketId = ticketId;
             document.getElementById('barcode-num').innerText = ticketId;
             
             JsBarcode("#barcode", ticketId, {
@@ -442,8 +453,33 @@
                 lineColor: "#000000"
             });
 
+            document.getElementById('print-overlay').classList.remove('hidden');
+        }
+
+        function confirmAndPrint() {
+            const data = getBankData();
+            const amount = window.pendingPrintAmount;
+            const ticketId = window.pendingTicketId;
+
+            data.users[currentUser].balance -= amount;
+            data.validTickets[ticketId] = amount;
+            
+            data.users[currentUser].history.push({
+                date: new Date().toLocaleString(),
+                type: 'Debit',
+                desc: `Note Extraction ($${amount})`,
+                amount: amount
+            });
+            saveBankData(data);
+
             window.print();
+            
+            document.getElementById('print-overlay').classList.add('hidden');
             setView('dashboard');
+        }
+
+        function cancelPrint() {
+            document.getElementById('print-overlay').classList.add('hidden');
         }
 
         function processDeposit() {
