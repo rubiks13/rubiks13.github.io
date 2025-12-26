@@ -26,17 +26,13 @@
                 left: 0;
                 top: 0;
                 width: 80mm !important;
-                padding: 10mm;
+                padding: 5mm;
                 border: none !important;
                 color: black !important;
                 background: white !important;
             }
             .no-print { display: none !important; }
         }
-
-        /* Hide Scrollbars */
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
         .tab-content { display: none; }
         .tab-content.active { display: block; }
@@ -125,18 +121,13 @@
         <!-- Tab 3: Database -->
         <div id="tab-settings" class="tab-content space-y-4">
             <h2 class="font-bold text-slate-500 uppercase text-xs tracking-widest px-1">Manage All Locations</h2>
-            <div id="places-list" class="space-y-3">
-                <!-- Places will appear here -->
-            </div>
+            <div id="places-list" class="space-y-3"></div>
             
             <h2 class="font-bold text-slate-500 uppercase text-xs tracking-widest px-1 mt-8">Manage Regions</h2>
-            <div id="cities-list" class="space-y-2">
-                <!-- Cities will appear here -->
-            </div>
+            <div id="cities-list" class="space-y-2"></div>
         </div>
     </main>
 
-    <!-- Invisible Printing Container -->
     <div id="receipt-to-print" class="hidden"></div>
 
     <!-- Navigation -->
@@ -157,23 +148,17 @@
         </div>
     </nav>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, addDoc, deleteDoc, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    <script>
+        // Use LocalStorage for immediate use on GitHub without Firebase setup
+        let cities = JSON.parse(localStorage.getItem('taxi_cities')) || [];
+        let places = JSON.parse(localStorage.getItem('taxi_places')) || [];
 
-        // Global Variables
-        const firebaseConfig = JSON.parse(__firebase_config);
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'bike-taxi-vanilla';
+        function saveData() {
+            localStorage.setItem('taxi_cities', JSON.stringify(cities));
+            localStorage.setItem('taxi_places', JSON.stringify(places));
+            renderAll();
+        }
 
-        let currentUser = null;
-        let cities = [];
-        let places = [];
-
-        // UI Selectors
         const startSelect = document.getElementById('start-select');
         const endSelect = document.getElementById('end-select');
         const citySelectInput = document.getElementById('city-select-input');
@@ -183,46 +168,8 @@
         const receiptToPrint = document.getElementById('receipt-to-print');
         const previewArea = document.getElementById('ticket-preview-area');
 
-        // --- AUTH ---
-        async function init() {
-            try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            } catch (err) {
-                console.error("Auth failed:", err);
-            }
-        }
-
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                currentUser = user;
-                setupListeners();
-            }
-        });
-
-        // --- FIRESTORE LISTENERS ---
-        function setupListeners() {
-            const citiesRef = collection(db, 'artifacts', appId, 'public', 'data', 'cities');
-            const placesRef = collection(db, 'artifacts', appId, 'public', 'data', 'places');
-
-            onSnapshot(citiesRef, (snapshot) => {
-                cities = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderOptions();
-            }, (err) => console.error("Cities error", err));
-
-            onSnapshot(placesRef, (snapshot) => {
-                places = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderOptions();
-                renderManagementLists();
-            }, (err) => console.error("Places error", err));
-        }
-
-        // --- RENDERING ---
-        function renderOptions() {
-            // Start/End Selects
+        function renderAll() {
+            // Update Selects
             const optionsHtml = '<option value="">Select Address...</option>' + 
                 places.map(p => {
                     const cityName = cities.find(c => c.id === p.cityId)?.name || 'Outskirts';
@@ -232,143 +179,91 @@
             startSelect.innerHTML = optionsHtml;
             endSelect.innerHTML = optionsHtml;
 
-            // City Select for adding places
             citySelectInput.innerHTML = '<option value="">Select Region/City...</option>' + 
                 cities.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-        }
 
-        function renderManagementLists() {
-            placesList.innerHTML = places.map(p => {
-                const cityName = cities.find(c => c.id === p.cityId)?.name || 'Outskirts';
-                return `
-                    <div class="bg-white p-4 rounded-xl shadow-sm flex items-center justify-between border border-slate-200">
-                        <div>
-                            <p class="font-bold">${p.name}</p>
-                            <p class="text-[10px] text-slate-500 uppercase">${cityName}</p>
-                        </div>
-                        <button onclick="handleDelete('places', '${p.id}')" class="text-red-400 p-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-                        </button>
-                    </div>
-                `;
-            }).join('');
+            // Update Lists
+            placesList.innerHTML = places.map(p => `
+                <div class="bg-white p-4 rounded-xl shadow-sm flex items-center justify-between border border-slate-200">
+                    <div><p class="font-bold">${p.name}</p><p class="text-[10px] text-slate-500 uppercase">${cities.find(c => c.id === p.cityId)?.name || 'Outskirts'}</p></div>
+                    <button onclick="handleDelete('places', '${p.id}')" class="text-red-400 p-2"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></button>
+                </div>`).join('');
 
             citiesList.innerHTML = cities.map(c => `
                 <div class="bg-white p-3 rounded-xl flex items-center justify-between border border-slate-200">
                     <span class="text-sm font-medium">${c.name}</span>
-                    <button onclick="handleDelete('cities', '${c.id}')" class="text-red-300">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-                    </button>
-                </div>
-            `).join('');
+                    <button onclick="handleDelete('cities', '${c.id}')" class="text-red-300"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></button>
+                </div>`).join('');
+            
+            updateTicket();
         }
 
         function updateTicket() {
-            const startId = startSelect.value;
-            const endId = endSelect.value;
+            const start = places.find(p => p.id === startSelect.value);
+            const end = places.find(p => p.id === endSelect.value);
             
-            if (!startId || !endId) {
+            if (!start || !end) {
                 previewArea.classList.add('hidden');
                 return;
             }
-
-            const start = places.find(p => p.id === startId);
-            const end = places.find(p => p.id === endId);
-            const startCity = cities.find(c => c.id === start.cityId)?.name || 'Outskirts';
-            const endCity = cities.find(c => c.id === end.cityId)?.name || 'Outskirts';
 
             const ticketHtml = `
                 <div class="text-center border-b-2 border-black pb-2 mb-4">
                     <h2 class="text-xl font-black uppercase tracking-tight">FIELD TAXI CO.</h2>
                     <p class="text-[10px] mt-1">${new Date().toLocaleString()}</p>
                 </div>
-                
                 <div class="space-y-6">
-                    <div>
-                        <p class="text-[9px] uppercase font-bold text-gray-500">Pickup From:</p>
-                        <p class="text-lg font-black leading-none">${start.name.toUpperCase()}</p>
-                        <p class="text-xs italic">${startCity}</p>
-                    </div>
-
-                    <div class="flex justify-center opacity-50">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
-                    </div>
-
-                    <div>
-                        <p class="text-[9px] uppercase font-bold text-gray-500">Destination:</p>
-                        <p class="text-lg font-black leading-none">${end.name.toUpperCase()}</p>
-                        <p class="text-xs italic">${endCity}</p>
-                    </div>
-
-                    ${(start.notes || end.notes) ? `
-                        <div class="border-t border-black pt-3">
-                            <p class="text-[9px] uppercase font-bold">Rider Notes:</p>
-                            <p class="text-xs leading-tight mt-1">${end.notes || start.notes}</p>
-                        </div>
-                    ` : ''}
+                    <div><p class="text-[9px] uppercase font-bold text-gray-500">Pickup From:</p><p class="text-lg font-black leading-none">${start.name.toUpperCase()}</p></div>
+                    <div class="flex justify-center opacity-50"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg></div>
+                    <div><p class="text-[9px] uppercase font-bold text-gray-500">Destination:</p><p class="text-lg font-black leading-none">${end.name.toUpperCase()}</p></div>
+                    ${end.notes ? `<div class="border-t border-black pt-3"><p class="text-[9px] uppercase font-bold">Notes:</p><p class="text-xs mt-1">${end.notes}</p></div>` : ''}
                 </div>
-
                 <div class="text-center mt-8 pt-4 border-t-2 border-dashed border-gray-300">
                     <p class="text-[10px] font-bold">RIDE SAFE, COUSIN!</p>
-                    <div class="mt-2 h-10 w-full bg-black flex items-center justify-center">
-                        <span class="text-white text-[12px] tracking-[0.6em] font-bold">DISPATCHED</span>
-                    </div>
-                </div>
-            `;
+                    <div class="mt-2 h-10 w-full bg-black flex items-center justify-center"><span class="text-white text-[12px] tracking-[0.6em] font-bold">DISPATCHED</span></div>
+                </div>`;
 
             receiptPreview.innerHTML = ticketHtml;
             receiptToPrint.innerHTML = ticketHtml;
             previewArea.classList.remove('hidden');
         }
 
-        // --- ACTIONS ---
-        window.handleAddCity = async function() {
+        window.handleAddCity = function() {
             const name = document.getElementById('city-name').value;
-            if (!name.trim() || !currentUser) return;
-            await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'cities'), {
-                name,
-                createdAt: Date.now()
-            });
+            if (!name.trim()) return;
+            cities.push({ id: Date.now().toString(), name });
             document.getElementById('city-name').value = '';
+            saveData();
         }
 
-        window.handleAddPlace = async function() {
+        window.handleAddPlace = function() {
             const name = document.getElementById('place-name').value;
             const cityId = citySelectInput.value;
             const notes = document.getElementById('place-notes').value;
-
-            if (!name.trim() || !cityId || !currentUser) return;
-            
-            await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'places'), {
-                name,
-                cityId,
-                notes,
-                createdAt: Date.now()
-            });
-
+            if (!name.trim() || !cityId) return;
+            places.push({ id: Date.now().toString(), name, cityId, notes });
             document.getElementById('place-name').value = '';
             document.getElementById('place-notes').value = '';
+            saveData();
         }
 
-        window.handleDelete = async function(col, id) {
-            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', col, id));
+        window.handleDelete = function(type, id) {
+            if (type === 'cities') cities = cities.filter(c => c.id !== id);
+            else places = places.filter(p => p.id !== id);
+            saveData();
         }
 
         window.switchTab = function(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active', 'text-slate-400'));
-            
             document.getElementById(`tab-${tabId}`).classList.add('active');
             document.getElementById(`btn-${tabId}`).classList.add('active');
-            
-            // Re-add text color to non-active buttons
             document.querySelectorAll('.nav-btn:not(.active)').forEach(el => el.classList.add('text-slate-400'));
         }
 
         startSelect.addEventListener('change', updateTicket);
         endSelect.addEventListener('change', updateTicket);
-
-        init();
+        renderAll();
     </script>
 </body>
 </html>
