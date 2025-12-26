@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Field Road Planner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #f0f4f0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            touch-action: none;
+        }
+        #canvas-container {
+            position: relative;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            background-color: #222;
+            border-radius: 12px;
+            overflow: hidden;
+            cursor: crosshair;
+            aspect-ratio: 1 / 1;
+        }
+        canvas {
+            display: block;
+            position: relative;
+            z-index: 10;
+        }
+        #map-frame-wrapper {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: 0;
+        }
+        .tool-btn {
+            transition: all 0.2s;
+        }
+        .active-tool {
+            background-color: #166534 !important;
+            color: white !important;
+            transform: scale(1.05);
+        }
+        input[type="range"] {
+            accent-color: #166534;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-6xl mx-auto">
+        <header class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-green-800">Field Road Planner</h1>
+                <p class="text-green-600">Fine-tune your zoom and grid for the perfect layout.</p>
+            </div>
+            <div class="flex gap-2 flex-wrap">
+                <button id="btn-road" class="tool-btn active-tool bg-white border border-green-600 text-green-700 px-4 py-2 rounded-lg font-medium">Road Tool</button>
+                <button id="btn-landmark" class="tool-btn bg-white border border-green-600 text-green-700 px-4 py-2 rounded-lg font-medium">Landmark</button>
+                <button id="btn-eraser" class="tool-btn bg-white border border-red-600 text-red-700 px-4 py-2 rounded-lg font-medium">Eraser</button>
+                <button id="btn-clear" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium">Clear All</button>
+            </div>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <div class="lg:col-span-1 space-y-4">
+                <!-- Map Search & Zoom -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-green-100">
+                    <h2 class="font-bold text-gray-800 mb-3 text-sm flex items-center gap-2">
+                        <span class="bg-green-100 p-1 rounded">1</span> 1. Find Location
+                    </h2>
+                    <input type="text" id="map-search" placeholder="Enter address or town" class="w-full p-2 border rounded mb-2 text-sm focus:ring-2 focus:ring-green-500 outline-none">
+                    <button id="btn-load-map" class="w-full bg-blue-600 text-white py-2 rounded text-sm font-bold mb-4">Find Field</button>
+                    
+                    <label class="block text-xs font-bold text-gray-500 mb-1">MAP ZOOM LEVEL</label>
+                    <input type="range" id="zoom-slider" min="15" max="21" value="18" step="0.1" class="w-full mb-4">
+                    
+                    <button id="btn-capture" class="w-full bg-orange-500 text-white py-2 rounded text-sm font-bold shadow-md hover:bg-orange-600">Lock This View</button>
+                </div>
+
+                <!-- Grid Settings -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-green-100">
+                    <h2 class="font-bold text-gray-800 mb-3 text-sm">2. Grid & Scale</h2>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">GRID DENSITY (SQUARES)</label>
+                    <input type="range" id="grid-slider" min="5" max="40" value="15" class="w-full mb-2">
+                    <div class="flex justify-between text-[10px] text-gray-400">
+                        <span>Big Squares</span>
+                        <span>Small Squares</span>
+                    </div>
+                </div>
+
+                <!-- Stats -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-green-100">
+                    <h2 class="font-bold text-gray-800 mb-2 text-sm">3. Stats</h2>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Road Length:</span>
+                            <span id="road-length" class="font-mono font-bold text-green-700">0 ft</span>
+                        </div>
+                    </div>
+                    <div id="road-controls" class="hidden mt-3">
+                        <button id="btn-finish-road" class="w-full bg-green-700 text-white py-2 rounded-lg text-xs font-bold shadow">
+                            Finish This Road Segment
+                        </button>
+                    </div>
+                </div>
+
+                <button id="btn-download" class="w-full bg-gray-800 text-white font-bold py-3 rounded-xl shadow-lg flex items-center justify-center gap-2">
+                    Save Design
+                </button>
+            </div>
+
+            <div class="lg:col-span-3">
+                <div id="canvas-container">
+                    <div id="map-frame-wrapper">
+                        <iframe id="google-map" src="about:blank"></iframe>
+                    </div>
+                    <canvas id="mapCanvas"></canvas>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="message-box" class="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full opacity-0 pointer-events-none transition-opacity duration-300 z-50">
+        Message
+    </div>
+
+    <script>
+        const canvas = document.getElementById('mapCanvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('canvas-container');
+        const mapIframe = document.getElementById('google-map');
+        const roadLenEl = document.getElementById('road-length');
+        const msgBox = document.getElementById('message-box');
+        const roadControls = document.getElementById('road-controls');
+        const searchInput = document.getElementById('map-search');
+        const zoomSlider = document.getElementById('zoom-slider');
+        const gridSlider = document.getElementById('grid-slider');
+
+        let currentTool = 'road';
+        let roads = [];
+        let landmarks = [];
+        let currentPath = [];
+        let mousePos = { x: 0, y: 0 };
+        let isMapLocked = false;
+        
+        // Scale helper (4 acres approx 417ft wide)
+        const FIELD_SIDE_FT = 417.4; 
+        let scale = 1;
+        let gridCount = 15;
+
+        function showMessage(text) {
+            msgBox.textContent = text;
+            msgBox.classList.remove('opacity-0');
+            setTimeout(() => msgBox.classList.add('opacity-0'), 2500);
+        }
+
+        function updateMap() {
+            const query = encodeURIComponent(searchInput.value);
+            if (!query) return;
+            const z = zoomSlider.value;
+            // Using 'k' for satellite, 'z' for zoom level
+            mapIframe.src = `https://www.google.com/maps?q=${query}&z=${z}&t=k&output=embed`;
+            isMapLocked = false;
+            mapIframe.style.pointerEvents = 'auto';
+            showMessage("Map updated. Use the slider to zoom more!");
+        }
+
+        document.getElementById('btn-load-map').onclick = updateMap;
+        zoomSlider.oninput = () => {
+            if (searchInput.value) updateMap();
+        };
+
+        gridSlider.oninput = (e) => {
+            gridCount = parseInt(e.target.value);
+            draw();
+        };
+
+        document.getElementById('btn-capture').onclick = () => {
+            if (mapIframe.src === "about:blank") return showMessage("Find your field first!");
+            isMapLocked = true;
+            mapIframe.style.pointerEvents = 'none';
+            showMessage("Map Locked! Grid is ready for drawing.");
+        };
+
+        function resizeCanvas() {
+            const size = container.offsetWidth;
+            canvas.width = size;
+            canvas.height = size;
+            scale = FIELD_SIDE_FT / size;
+            draw();
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        window.onload = resizeCanvas;
+
+        document.getElementById('btn-road').onclick = (e) => setTool('road', e.target);
+        document.getElementById('btn-landmark').onclick = (e) => setTool('landmark', e.target);
+        document.getElementById('btn-eraser').onclick = (e) => setTool('eraser', e.target);
+        document.getElementById('btn-finish-road').onclick = finishCurrentRoad;
+        
+        document.getElementById('btn-clear').onclick = () => {
+            roads = []; landmarks = []; currentPath = [];
+            roadControls.classList.add('hidden');
+            calculateLength(); draw();
+            showMessage("All paths cleared.");
+        };
+
+        function setTool(tool, el) {
+            if (currentPath.length > 0) finishCurrentRoad();
+            currentTool = tool;
+            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active-tool'));
+            el.closest('button').classList.add('active-tool');
+        }
+
+        function finishCurrentRoad() {
+            if (currentPath.length > 1) roads.push([...currentPath]);
+            currentPath = [];
+            roadControls.classList.add('hidden');
+            calculateLength(); draw();
+        }
+
+        function getCoords(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return { x: clientX - rect.left, y: clientY - rect.top };
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            if (!isMapLocked) return showMessage("Search and 'Lock' your field first!");
+            const pos = getCoords(e);
+            if (currentTool === 'road') {
+                currentPath.push(pos);
+                roadControls.classList.remove('hidden');
+            } else if (currentTool === 'landmark') {
+                landmarks.push(pos);
+            } else if (currentTool === 'eraser') {
+                erase(pos);
+            }
+            draw();
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            mousePos = getCoords(e);
+            if (currentTool === 'road' && currentPath.length > 0) draw();
+        });
+
+        function erase(pos) {
+            const radius = 20;
+            roads = roads.filter(path => !path.some(p => Math.hypot(p.x - pos.x, p.y - pos.y) < radius));
+            landmarks = landmarks.filter(p => Math.hypot(p.x - pos.x, p.y - pos.y) < radius);
+            calculateLength(); draw();
+        }
+
+        function calculateLength() {
+            let totalPx = 0;
+            const allRoads = [...roads];
+            if (currentPath.length > 1) allRoads.push(currentPath);
+            allRoads.forEach(path => {
+                for (let i = 1; i < path.length; i++) {
+                    totalPx += Math.hypot(path[i].x - path[i-1].x, path[i].y - path[i-1].y);
+                }
+            });
+            roadLenEl.textContent = Math.round(totalPx * scale).toLocaleString() + " ft";
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Responsive Grid
+            const gridSpacing = canvas.width / gridCount;
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= gridCount; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * gridSpacing, 0); ctx.lineTo(i * gridSpacing, canvas.height); ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(0, i * gridSpacing); ctx.lineTo(canvas.width, i * gridSpacing); ctx.stroke();
+            }
+
+            const drawPathStyle = (path, isPreview = false) => {
+                if (path.length < 1) return;
+                ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+                
+                // Outer glow/border
+                ctx.strokeStyle = isPreview ? 'rgba(59, 130, 246, 0.5)' : 'rgba(0,0,0,0.4)';
+                ctx.lineWidth = 14;
+                ctx.beginPath();
+                ctx.moveTo(path[0].x, path[0].y);
+                path.forEach(p => ctx.lineTo(p.x, p.y));
+                if (isPreview) ctx.lineTo(mousePos.x, mousePos.y);
+                ctx.stroke();
+
+                // Main road body
+                ctx.strokeStyle = isPreview ? '#60a5fa' : '#555';
+                ctx.lineWidth = 10;
+                ctx.stroke();
+
+                // Center line
+                if (!isPreview) {
+                    ctx.strokeStyle = '#fbbf24'; 
+                    ctx.setLineDash([8, 12]);
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+            };
+
+            roads.forEach(path => drawPathStyle(path, false));
+            if (currentPath.length > 0) drawPathStyle(currentPath, true);
+
+            landmarks.forEach(p => {
+                ctx.fillStyle = '#ef4444';
+                ctx.beginPath(); ctx.arc(p.x, p.y, 8, 0, Math.PI * 2); ctx.fill();
+                ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+            });
+        }
+
+        document.getElementById('btn-download').onclick = () => {
+            const dataURL = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = 'field-map-plan.png';
+            link.href = dataURL;
+            link.click();
+            showMessage("Design saved!");
+        };
+    </script>
+</body>
+</html>
