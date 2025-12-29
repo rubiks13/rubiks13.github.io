@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Library System</title>
+</head>
+<body>
+  <h1>📚 Library</h1>
+  <button onclick="loadBooks()">Load Books</button>
+  <div id="books"></div>
+
+  <script>
+    const API = "https://habile-lissa-phytogenic.ngrok-free.dev/";
+
+    function loadBooks() {
+      fetch(API + "/books")
+        .then(res => res.json())
+        .then(data => {
+          const div = document.getElementById("books");
+          div.innerHTML = "";
+          data.forEach(b => {
+            div.innerHTML += `<p>${b[1]} by ${b[2]} — ${b[3] ? "Available" : "Out"}</p>`;
+          });
+        });
+    }
+  </script>
+</body>
+</html>
