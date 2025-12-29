@@ -7,20 +7,19 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        /* Smooth animations for the UI */
         .product-card { transition: all 0.2s ease-in-out; }
         .product-card:hover { transform: translateY(-4px); }
         .cart-sidebar { transition: transform 0.3s ease-in-out; }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800">
+<body class="bg-gray-50 text-gray-800 font-sans">
 
     <!-- Navigation -->
     <nav class="bg-blue-600 text-white sticky top-0 z-50 shadow-md">
         <div class="container mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center space-x-2">
                 <span class="text-2xl">🛒</span>
-                <h1 class="text-2xl font-black tracking-tight">CART MART</h1>
+                <h1 class="text-2xl font-black tracking-tight uppercase">Cart Mart</h1>
             </div>
             <button onclick="toggleCart()" class="relative p-2 bg-blue-700 rounded-full hover:bg-blue-800 transition">
                 <i class="fas fa-shopping-basket text-xl"></i>
@@ -31,9 +30,8 @@
 
     <!-- Hero Section -->
     <header class="bg-blue-500 text-white py-12 px-4 text-center">
-        <h2 class="text-4xl font-bold mb-2 text-white">Fresh Essentials, Delivered.</h2>
+        <h2 class="text-4xl font-bold mb-2">Fresh Essentials, Delivered.</h2>
         <p class="text-blue-100">Your local neighborhood store, powered by Raspberry Pi.</p>
-        <!-- Status Badge -->
         <div id="connection-status" class="mt-4 text-xs inline-block bg-blue-700 px-3 py-1 rounded-full text-white font-medium">
             Checking Pi Connection...
         </div>
@@ -41,15 +39,18 @@
 
     <!-- Main Content -->
     <main class="container mx-auto px-4 py-8">
-        <h3 class="text-2xl font-bold mb-6 text-gray-700 border-l-4 border-blue-600 pl-4">Browse Aisles</h3>
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-2xl font-bold text-gray-700 border-l-4 border-blue-600 pl-4">Browse Aisles</h3>
+            <button onclick="loadStore()" class="text-xs bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded-md text-gray-600">
+                <i class="fas fa-sync-alt mr-1"></i> Refresh Store
+            </button>
+        </div>
         
-        <!-- Product Grid -->
         <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <!-- Loading State -->
-            <div class="animate-pulse flex flex-col items-center">
-                <div class="w-full h-48 bg-gray-200 rounded-xl mb-4"></div>
-                <div class="w-3/4 h-6 bg-gray-200 rounded mb-2"></div>
-                <div class="w-1/2 h-6 bg-gray-200 rounded"></div>
+            <div class="animate-pulse flex flex-col items-center col-span-full">
+                <div class="w-20 h-20 bg-gray-200 rounded-full mb-4"></div>
+                <div class="w-48 h-4 bg-gray-200 rounded mb-2"></div>
+                <p class="text-gray-400">Loading your Pi-powered inventory...</p>
             </div>
         </div>
     </main>
@@ -61,54 +62,68 @@
                 <h2 class="text-xl font-bold">Your Basket</h2>
                 <button onclick="toggleCart()" class="text-gray-500 hover:text-red-500 text-2xl">&times;</button>
             </div>
-            
             <div id="cart-items-list" class="flex-1 overflow-y-auto p-4 space-y-4 text-sm">
-                <!-- Items go here -->
                 <p class="text-center text-gray-400 mt-10 italic">Your cart is empty!</p>
             </div>
-
             <div class="p-6 border-t bg-gray-50">
                 <div class="flex justify-between text-xl font-bold mb-4">
                     <span>Total</span>
                     <span id="cart-total">$0.00</span>
                 </div>
-                <button onclick="placeOrder()" id="checkout-btn" disabled class="w-full py-4 rounded-xl font-bold text-white bg-gray-300 transition-all duration-200">
+                <button onclick="placeOrder()" id="checkout-btn" disabled class="w-full py-4 rounded-xl font-bold text-white bg-gray-300">
                     Place Order
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Background Overlay when cart is open -->
     <div id="overlay" onclick="toggleCart()" class="fixed inset-0 bg-black opacity-0 pointer-events-none transition-opacity z-[55]"></div>
 
     <script>
-        // Update this with your current ngrok URL
+        // Check this URL very carefully - must start with https://
         const API_BASE = 'https://habile-lissa-phytogenic.ngrok-free.dev'; 
         
         let products = [];
         let cart = [];
 
-        // Fetch data from the Raspberry Pi
         async function loadStore() {
             const statusEl = document.getElementById('connection-status');
+            const grid = document.getElementById('product-grid');
+            
             try {
-                const res = await fetch(`${API_BASE}/api/products`);
-                if(!res.ok) throw new Error("Pi offline");
+                // Testing the connection
+                const res = await fetch(`${API_BASE}/api/products`, {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' }
+                });
+                
+                if(!res.ok) throw new Error("Status code: " + res.status);
+                
                 products = await res.json();
                 
-                // Update status to Green
                 statusEl.innerHTML = "🟢 Pi Server Online";
                 statusEl.className = "mt-4 text-xs inline-block bg-green-600 px-3 py-1 rounded-full text-white font-medium";
                 renderProducts();
             } catch (err) {
-                // Update status to Red
                 statusEl.innerHTML = "🔴 Pi Server Offline";
                 statusEl.className = "mt-4 text-xs inline-block bg-red-600 px-3 py-1 rounded-full text-white font-medium";
-                document.getElementById('product-grid').innerHTML = `
-                    <div class="col-span-full text-center py-10">
-                        <p class="text-gray-500 mb-2">Can't connect to the backend.</p>
-                        <p class="text-xs text-gray-400 font-mono">Check ngrok tunnel on your Raspberry Pi</p>
+                
+                grid.innerHTML = `
+                    <div class="col-span-full text-center bg-white p-8 rounded-2xl border border-red-100 shadow-sm">
+                        <div class="text-4xl mb-4">🔌</div>
+                        <h4 class="font-bold text-gray-800">Connection Failed</h4>
+                        <p class="text-sm text-gray-500 mb-6">GitHub can't see your Raspberry Pi.</p>
+                        
+                        <div class="bg-gray-50 p-4 rounded-lg text-left text-xs font-mono mb-6 overflow-x-auto">
+                            <p class="font-bold text-blue-600">Troubleshooting Steps:</p>
+                            <p>1. Open <a href="${API_BASE}" target="_blank" class="underline text-blue-500 font-bold">${API_BASE}</a> in a new tab.</p>
+                            <p>2. If you see a blue ngrok screen, click <b>"Visit Site"</b>.</p>
+                            <p>3. If that page loads your items, come back here and refresh.</p>
+                        </div>
+                        
+                        <button onclick="loadStore()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold shadow-lg hover:bg-blue-700 transition">
+                            Retry Connection
+                        </button>
                     </div>`;
             }
         }
@@ -116,12 +131,12 @@
         function renderProducts() {
             const grid = document.getElementById('product-grid');
             grid.innerHTML = products.map(p => `
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 product-card">
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 product-card flex flex-col h-full">
                     <div class="h-40 bg-blue-50 rounded-xl mb-4 flex items-center justify-center text-4xl">
                         ${getIcon(p.category)}
                     </div>
-                    <span class="text-xs font-bold text-blue-500 uppercase tracking-widest">${p.category}</span>
-                    <h4 class="text-lg font-bold text-gray-800 mb-1">${p.name}</h4>
+                    <span class="text-[10px] font-bold text-blue-500 uppercase tracking-widest">${p.category}</span>
+                    <h4 class="text-lg font-bold text-gray-800 mb-1 flex-grow">${p.name}</h4>
                     <div class="flex justify-between items-center mt-4">
                         <span class="text-2xl font-black text-gray-900">$${p.price.toFixed(2)}</span>
                         <button onclick="addToCart(${p.id})" 
