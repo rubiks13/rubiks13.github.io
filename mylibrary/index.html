@@ -5,24 +5,48 @@
   <title>Library System</title>
 </head>
 <body>
-  <h1>📚 Library</h1>
-  <button onclick="loadBooks()">Load Books</button>
-  <div id="books"></div>
 
-  <script>
-    const API = "https://habile-lissa-phytogenic.ngrok-free.dev/";
+<h1>📚 Library</h1>
 
-    function loadBooks() {
-      fetch(API + "/books")
-        .then(res => res.json())
-        .then(data => {
-          const div = document.getElementById("books");
-          div.innerHTML = "";
-          data.forEach(b => {
-            div.innerHTML += `<p>${b[1]} by ${b[2]} — ${b[3] ? "Available" : "Out"}</p>`;
-          });
+<h2>Add a Book</h2>
+<input id="title" placeholder="Book Title">
+<input id="author" placeholder="Author">
+<button onclick="addBook()">Add Book</button>
+
+<h2>Books</h2>
+<button onclick="loadBooks()">Load Books</button>
+<div id="books"></div>
+
+<script>
+  const API = "https://habile-lissa-phytogenic.ngrok-free.dev/";
+
+  function loadBooks() {
+    fetch(API + "/books")
+      .then(res => res.json())
+      .then(data => {
+        const div = document.getElementById("books");
+        div.innerHTML = "";
+        data.forEach(b => {
+          div.innerHTML += `<p>${b[1]} by ${b[2]} — ${b[3] ? "Available" : "Out"}</p>`;
         });
-    }
-  </script>
+      });
+  }
+
+  function addBook() {
+    const title = document.getElementById("title").value;
+    const author = document.getElementById("author").value;
+
+    fetch(API + "/add", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, author })
+    })
+    .then(res => res.json())
+    .then(() => {
+      loadBooks();
+    });
+  }
+</script>
+
 </body>
 </html>
