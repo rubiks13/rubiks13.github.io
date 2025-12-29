@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cart Mart | Shop Local</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Smooth animations for the UI */
+        .product-card { transition: all 0.2s ease-in-out; }
+        .product-card:hover { transform: translateY(-4px); }
+        .cart-sidebar { transition: transform 0.3s ease-in-out; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <!-- Navigation -->
+    <nav class="bg-blue-600 text-white sticky top-0 z-50 shadow-md">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <span class="text-2xl">🛒</span>
+                <h1 class="text-2xl font-black tracking-tight">CART MART</h1>
+            </div>
+            <button onclick="toggleCart()" class="relative p-2 bg-blue-700 rounded-full hover:bg-blue-800 transition">
+                <i class="fas fa-shopping-basket text-xl"></i>
+                <span id="cart-count" class="absolute -top-1 -right-1 bg-yellow-400 text-blue-900 text-xs font-bold px-2 py-0.5 rounded-full">0</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="bg-blue-500 text-white py-12 px-4 text-center">
+        <h2 class="text-4xl font-bold mb-2 text-white">Fresh Essentials, Delivered.</h2>
+        <p class="text-blue-100">Your local neighborhood store, powered by Raspberry Pi.</p>
+        <!-- Status Badge -->
+        <div id="connection-status" class="mt-4 text-xs inline-block bg-blue-700 px-3 py-1 rounded-full text-white font-medium">
+            Checking Pi Connection...
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <h3 class="text-2xl font-bold mb-6 text-gray-700 border-l-4 border-blue-600 pl-4">Browse Aisles</h3>
+        
+        <!-- Product Grid -->
+        <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Loading State -->
+            <div class="animate-pulse flex flex-col items-center">
+                <div class="w-full h-48 bg-gray-200 rounded-xl mb-4"></div>
+                <div class="w-3/4 h-6 bg-gray-200 rounded mb-2"></div>
+                <div class="w-1/2 h-6 bg-gray-200 rounded"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Shopping Cart Sidebar -->
+    <div id="cart-sidebar" class="fixed inset-y-0 right-0 w-full max-w-sm bg-white shadow-2xl z-[60] transform translate-x-full cart-sidebar border-l border-gray-200">
+        <div class="flex flex-col h-full">
+            <div class="p-4 border-b flex justify-between items-center bg-gray-50">
+                <h2 class="text-xl font-bold">Your Basket</h2>
+                <button onclick="toggleCart()" class="text-gray-500 hover:text-red-500 text-2xl">&times;</button>
+            </div>
+            
+            <div id="cart-items-list" class="flex-1 overflow-y-auto p-4 space-y-4 text-sm">
+                <!-- Items go here -->
+                <p class="text-center text-gray-400 mt-10 italic">Your cart is empty!</p>
+            </div>
+
+            <div class="p-6 border-t bg-gray-50">
+                <div class="flex justify-between text-xl font-bold mb-4">
+                    <span>Total</span>
+                    <span id="cart-total">$0.00</span>
+                </div>
+                <button onclick="placeOrder()" id="checkout-btn" disabled class="w-full py-4 rounded-xl font-bold text-white bg-gray-300 transition-all duration-200">
+                    Place Order
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Background Overlay when cart is open -->
+    <div id="overlay" onclick="toggleCart()" class="fixed inset-0 bg-black opacity-0 pointer-events-none transition-opacity z-[55]"></div>
+
+    <script>
+        // Update this with your current ngrok URL
+        const API_BASE = 'https://habile-lissa-phytogenic.ngrok-free.dev'; 
+        
+        let products = [];
+        let cart = [];
+
+        // Fetch data from the Raspberry Pi
+        async function loadStore() {
+            const statusEl = document.getElementById('connection-status');
+            try {
+                const res = await fetch(`${API_BASE}/api/products`);
+                if(!res.ok) throw new Error("Pi offline");
+                products = await res.json();
+                
+                // Update status to Green
+                statusEl.innerHTML = "🟢 Pi Server Online";
+                statusEl.className = "mt-4 text-xs inline-block bg-green-600 px-3 py-1 rounded-full text-white font-medium";
+                renderProducts();
+            } catch (err) {
+                // Update status to Red
+                statusEl.innerHTML = "🔴 Pi Server Offline";
+                statusEl.className = "mt-4 text-xs inline-block bg-red-600 px-3 py-1 rounded-full text-white font-medium";
+                document.getElementById('product-grid').innerHTML = `
+                    <div class="col-span-full text-center py-10">
+                        <p class="text-gray-500 mb-2">Can't connect to the backend.</p>
+                        <p class="text-xs text-gray-400 font-mono">Check ngrok tunnel on your Raspberry Pi</p>
+                    </div>`;
+            }
+        }
+
+        function renderProducts() {
+            const grid = document.getElementById('product-grid');
+            grid.innerHTML = products.map(p => `
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 product-card">
+                    <div class="h-40 bg-blue-50 rounded-xl mb-4 flex items-center justify-center text-4xl">
+                        ${getIcon(p.category)}
+                    </div>
+                    <span class="text-xs font-bold text-blue-500 uppercase tracking-widest">${p.category}</span>
+                    <h4 class="text-lg font-bold text-gray-800 mb-1">${p.name}</h4>
+                    <div class="flex justify-between items-center mt-4">
+                        <span class="text-2xl font-black text-gray-900">$${p.price.toFixed(2)}</span>
+                        <button onclick="addToCart(${p.id})" 
+                            class="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-xl shadow-lg transition active:scale-95">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    <p class="text-xs mt-3 ${p.stock < 10 ? 'text-red-500 font-bold' : 'text-gray-400'}">
+                        ${p.stock} units available
+                    </p>
+                </div>
+            `).join('');
+        }
+
+        function getIcon(category) {
+            const icons = {'Dairy': '🥛', 'Bakery': '🍞', 'Produce': '🍌', 'Beverages': '🥤', 'Frozen': '🍕'};
+            return icons[category] || '📦';
+        }
+
+        function addToCart(id) {
+            const item = products.find(p => p.id === id);
+            if (item && item.stock > 0) {
+                cart.push({...item});
+                updateUI();
+                if(cart.length === 1) toggleCart();
+            }
+        }
+
+        function updateUI() {
+            const list = document.getElementById('cart-items-list');
+            const count = document.getElementById('cart-count');
+            const total = document.getElementById('cart-total');
+            const btn = document.getElementById('checkout-btn');
+
+            count.innerText = cart.length;
+            
+            if (cart.length === 0) {
+                list.innerHTML = '<p class="text-center text-gray-400 mt-10 italic">Your cart is empty!</p>';
+                total.innerText = '$0.00';
+                btn.disabled = true;
+                btn.className = "w-full py-4 rounded-xl font-bold text-white bg-gray-300";
+                return;
+            }
+
+            list.innerHTML = cart.map((item, idx) => `
+                <div class="flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-100">
+                    <span>${item.name}</span>
+                    <div class="flex items-center space-x-3">
+                        <span class="font-bold">$${item.price.toFixed(2)}</span>
+                        <button onclick="removeFromCart(${idx})" class="text-gray-400 hover:text-red-500">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+
+            const sum = cart.reduce((acc, item) => acc + item.price, 0);
+            total.innerText = '$' + sum.toFixed(2);
+            btn.disabled = false;
+            btn.className = "w-full py-4 rounded-xl font-bold text-white bg-green-500 hover:bg-green-600 shadow-lg shadow-green-100";
+        }
+
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            updateUI();
+        }
+
+        function toggleCart() {
+            const sidebar = document.getElementById('cart-sidebar');
+            const overlay = document.getElementById('overlay');
+            const isOpen = sidebar.style.transform === 'translateX(0px)';
+            
+            sidebar.style.transform = isOpen ? 'translateX(100%)' : 'translateX(0px)';
+            overlay.style.opacity = isOpen ? '0' : '0.5';
+            overlay.style.pointerEvents = isOpen ? 'none' : 'auto';
+        }
+
+        async function placeOrder() {
+            const btn = document.getElementById('checkout-btn');
+            btn.innerText = "Processing...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(`${API_BASE}/api/checkout`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ items: cart })
+                });
+
+                if (res.ok) {
+                    alert("Order Placed! The Raspberry Pi database has been updated.");
+                    cart = [];
+                    updateUI();
+                    toggleCart();
+                    loadStore(); 
+                }
+            } catch (err) {
+                alert("Checkout failed. Please ensure the Raspberry Pi ngrok tunnel is active.");
+            } finally {
+                btn.innerText = "Place Order";
+            }
+        }
+
+        window.onload = loadStore;
+    </script>
+</body>
+</html>
