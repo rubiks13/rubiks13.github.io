@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bell Library | Cloud Connect</title>
+    <title>Bell Library | Emergency Fix</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
@@ -13,9 +13,8 @@
         .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
         .sidebar-link.active { background: #1e293b; border-left: 4px solid #3b82f6; color: #3b82f6; }
         
-        /* Loader Overlay */
-        #globalLoader { position: fixed; inset: 0; background: #0f172a; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s; }
-        .spinner { width: 50px; height: 50px; border: 5px solid rgba(59, 130, 246, 0.2); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; }
+        #globalLoader { position: fixed; inset: 0; background: #0f172a; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .spinner { width: 50px; height: 50px; border: 5px solid rgba(59, 130, 246, 0.1); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
         @media print {
@@ -31,10 +30,14 @@
 
     <!-- Global Connection Loader -->
     <div id="globalLoader">
-        <div class="spinner mb-4"></div>
-        <p id="loaderText" class="text-blue-400 font-bold animate-pulse">Establishing Link to Pi...</p>
-        <div id="loaderAction" class="hidden mt-6">
-            <button onclick="showSection('settings'); hideLoader();" class="bg-slate-800 px-6 py-2 rounded-xl text-sm font-bold border border-white/10">Configure Server Address</button>
+        <div class="spinner mb-6"></div>
+        <p id="loaderText" class="text-blue-400 font-bold text-lg">Attempting to reach Raspberry Pi...</p>
+        <div id="connectionHints" class="mt-8 max-w-sm text-center space-y-4 px-6">
+            <p class="text-xs text-slate-500 leading-relaxed">If this takes more than 10 seconds, your browser is likely blocking the connection. Ensure your ngrok URL is <span class="text-white font-mono">https://</span></p>
+            <div class="flex flex-col gap-2">
+                <button onclick="forceEntry()" class="bg-blue-600 hover:bg-blue-500 px-6 py-3 rounded-xl text-sm font-bold shadow-lg transition-all">Bypass & Enter Dashboard</button>
+                <button onclick="clearServer()" class="text-[10px] text-slate-500 underline uppercase tracking-widest">Reset Server URL</button>
+            </div>
         </div>
     </div>
 
@@ -49,16 +52,16 @@
         </div>
         <div class="no-print mt-10 flex gap-4">
             <button onclick="window.print()" class="bg-slate-900 text-white px-10 py-3 rounded-full font-bold">Print Label</button>
-            <button onclick="location.reload()" class="bg-blue-600 text-white px-10 py-3 rounded-full font-bold">Done</button>
+            <button onclick="location.reload()" class="bg-blue-600 text-white px-10 py-3 rounded-full font-bold">Back to App</button>
         </div>
     </div>
 
-    <div id="appContent" class="flex w-full h-full">
+    <div id="appContent" class="flex w-full h-full opacity-0 pointer-events-none transition-opacity duration-500">
         <!-- Sidebar -->
         <aside class="w-64 glass flex flex-col border-r border-white/5">
             <div class="p-6">
                 <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">Bell Library</h1>
-                <div id="statusIndicator" class="mt-2 text-[10px] font-bold uppercase px-2 py-1 rounded bg-red-500/20 text-red-400 inline-block">Offline</div>
+                <div id="statusIndicator" class="mt-2 text-[10px] font-bold uppercase px-2 py-1 rounded bg-red-500/20 text-red-400 inline-block">Connecting...</div>
             </div>
             <nav class="flex-1 px-4 space-y-2 mt-4 overflow-y-auto">
                 <button onclick="showSection('dashboard')" id="nav-dashboard" class="sidebar-link w-full flex items-center gap-3 p-3 rounded-xl transition active"><i class="fa-solid fa-chart-line w-5"></i> Dashboard</button>
@@ -73,11 +76,11 @@
         <main class="flex-1 overflow-y-auto p-8 relative">
             <!-- Dashboard -->
             <section id="dashboard" class="space-y-8">
-                <h2 class="text-3xl font-bold">Dashboard</h2>
+                <h2 class="text-3xl font-bold">Library Dashboard</h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="glass p-8 rounded-3xl"><p class="text-slate-500 text-xs font-bold uppercase">Total Books</p><h3 id="stat-total" class="text-5xl font-bold mt-2">0</h3></div>
-                    <div class="glass p-8 rounded-3xl"><p class="text-slate-500 text-xs font-bold uppercase">Active Loans</p><h3 id="stat-out" class="text-5xl font-bold mt-2 text-blue-400">0</h3></div>
-                    <div class="glass p-8 rounded-3xl"><p class="text-slate-500 text-xs font-bold uppercase">Server Health</p><h3 id="stat-health" class="text-xl font-bold mt-4 text-red-400">Checking...</h3></div>
+                    <div class="glass p-8 rounded-3xl"><p class="text-slate-500 text-xs font-bold uppercase">Total Inventory</p><h3 id="stat-total" class="text-5xl font-bold mt-2">0</h3></div>
+                    <div class="glass p-8 rounded-3xl"><p class="text-slate-500 text-xs font-bold uppercase">Books Out</p><h3 id="stat-out" class="text-5xl font-bold mt-2 text-blue-400">0</h3></div>
+                    <div id="connCard" class="glass p-8 rounded-3xl border-l-4 border-red-500"><p class="text-slate-500 text-xs font-bold uppercase">Server Link</p><h3 id="stat-health" class="text-xl font-bold mt-4 text-red-400">Disconnected</h3></div>
                 </div>
             </section>
 
@@ -85,7 +88,7 @@
             <section id="add" class="hidden flex flex-col items-center pt-20">
                 <div class="glass p-10 rounded-3xl w-full max-w-xl text-center space-y-6">
                     <div class="w-20 h-20 bg-blue-600/20 text-blue-400 rounded-full flex items-center justify-center mx-auto text-3xl"><i class="fa-solid fa-barcode"></i></div>
-                    <h3 class="text-2xl font-bold">Ready to Scan</h3>
+                    <h3 class="text-2xl font-bold">Catalog New Item</h3>
                     <input type="text" id="addIsbnInput" class="glass text-center text-2xl w-full p-6 rounded-2xl border-blue-500/30 border focus:border-blue-500 outline-none transition-all" placeholder="Enter ISBN #">
                     <p class="text-xs text-slate-500 uppercase font-bold tracking-widest">Labels print automatically after successful add</p>
                 </div>
@@ -94,8 +97,8 @@
             <!-- Catalog -->
             <section id="catalog" class="hidden space-y-6">
                 <div class="flex justify-between items-center">
-                    <h2 class="text-3xl font-bold">Library Catalog</h2>
-                    <input type="text" oninput="renderCatalog(this.value)" placeholder="Search books..." class="glass p-3 px-6 rounded-xl w-80">
+                    <h2 class="text-3xl font-bold">Catalog</h2>
+                    <input type="text" oninput="renderCatalog(this.value)" placeholder="Search inventory..." class="glass p-3 px-6 rounded-xl w-80 border border-white/5">
                 </div>
                 <div id="catalogGrid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6"></div>
             </section>
@@ -103,8 +106,8 @@
             <!-- Circulation -->
             <section id="circulation" class="hidden space-y-8 max-w-3xl mx-auto">
                 <div class="flex gap-4 p-2 glass rounded-2xl">
-                    <button onclick="setCircMode('out')" id="btnCircOut" class="flex-1 p-4 rounded-xl font-bold bg-blue-600">Check Out</button>
-                    <button onclick="setCircMode('in')" id="btnCircIn" class="flex-1 p-4 rounded-xl font-bold">Check In</button>
+                    <button onclick="setCircMode('out')" id="btnCircOut" class="flex-1 p-4 rounded-xl font-bold bg-blue-600">Borrow</button>
+                    <button onclick="setCircMode('in')" id="btnCircIn" class="flex-1 p-4 rounded-xl font-bold">Return</button>
                 </div>
                 <div id="patronVerification" class="glass p-12 rounded-3xl text-center space-y-6">
                     <h3 class="text-2xl font-bold">Scan Library Card</h3>
@@ -113,34 +116,34 @@
                 <div id="circActions" class="hidden space-y-6">
                     <div class="glass p-6 rounded-2xl flex justify-between items-center border-l-8 border-blue-500">
                         <h4 id="activePatronName" class="text-2xl font-bold"></h4>
-                        <button onclick="resetCirculation()" class="bg-slate-800 px-4 py-2 rounded-lg text-xs font-bold uppercase">Change Patron</button>
+                        <button onclick="resetCirculation()" class="bg-slate-800 px-4 py-2 rounded-lg text-xs font-bold uppercase">Switch Patron</button>
                     </div>
-                    <input type="text" id="circScanInput" class="glass text-center text-3xl w-full p-8 rounded-3xl border-blue-500 border focus:ring-4 ring-blue-500/20" placeholder="Scan Book Barcode">
+                    <input type="text" id="circScanInput" class="glass text-center text-3xl w-full p-8 rounded-3xl border-blue-500 border focus:ring-4 ring-blue-500/20" placeholder="Scan Item Barcode">
                     <div id="scanList" class="space-y-3"></div>
-                    <button id="finalizeBtn" onclick="finalizeCheckout()" class="hidden w-full bg-blue-600 hover:bg-blue-500 p-6 rounded-2xl font-black text-2xl shadow-xl transition-all">FINALIZE TRANSACTION</button>
+                    <button id="finalizeBtn" onclick="finalizeCheckout()" class="hidden w-full bg-blue-600 hover:bg-blue-500 p-6 rounded-2xl font-black text-2xl shadow-xl transition-all">FINALIZE</button>
                 </div>
             </section>
 
             <!-- Checked Out -->
             <section id="checkedout" class="hidden space-y-6">
-                <h2 class="text-3xl font-bold">Current Loans</h2>
+                <h2 class="text-3xl font-bold">Active Loans</h2>
                 <div id="loanedGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
             </section>
 
             <!-- Settings -->
             <section id="settings" class="hidden space-y-10">
-                <div class="glass p-8 rounded-3xl max-w-2xl space-y-6">
-                    <h3 class="text-xl font-bold text-blue-400">Server Configuration</h3>
+                <div class="glass p-8 rounded-3xl max-w-2xl space-y-6 border-l-4 border-blue-500">
+                    <h3 class="text-xl font-bold text-blue-400">Connection Settings</h3>
                     <div class="space-y-2">
-                        <label class="text-xs font-bold text-slate-500 uppercase">Ngrok Address (Must start with https://)</label>
-                        <input type="text" id="serverUrlInput" placeholder="https://random-words.ngrok-free.app" class="w-full glass p-4 rounded-xl border border-white/10">
+                        <label class="text-xs font-bold text-slate-500 uppercase">Ngrok Server Link</label>
+                        <input type="text" id="serverUrlInput" placeholder="https://xxxx.ngrok-free.app" class="w-full glass p-4 rounded-xl border border-white/10">
                     </div>
-                    <button onclick="saveServerUrl()" class="w-full bg-blue-600 py-4 rounded-xl font-bold text-lg hover:bg-blue-500">Save & Test Connection</button>
+                    <button onclick="saveServerUrl()" class="w-full bg-blue-600 py-4 rounded-xl font-bold text-lg hover:bg-blue-500">Update Address</button>
                 </div>
 
                 <div class="space-y-4">
-                    <h3 class="text-xl font-bold">Inventory Management</h3>
-                    <div id="adminBookList" class="space-y-2"></div>
+                    <h3 class="text-xl font-bold">Admin Inventory Tool</h3>
+                    <div id="adminBookList" class="space-y-2 max-w-4xl"></div>
                 </div>
             </section>
         </main>
@@ -157,32 +160,40 @@
         let circMode = 'out';
 
         window.onload = async () => {
-            if (!serverUrl) {
-                showSection('settings');
-                showLoaderError("No Server Address Found");
+            if (serverUrl) {
+                document.getElementById('serverUrlInput').value = serverUrl;
+                const success = await refreshData();
+                if (success) {
+                    hideLoader();
+                }
             } else {
-                await refreshData();
-                hideLoader();
+                document.getElementById('loaderText').innerText = "System requires configuration.";
             }
         };
 
-        function showLoaderError(msg) {
-            document.getElementById('loaderText').innerText = msg;
-            document.getElementById('loaderText').className = "text-red-400 font-bold";
-            document.getElementById('loaderAction').classList.remove('hidden');
+        function forceEntry() {
+            hideLoader();
+            showSection('settings');
+            showToast("Bypassing connection check...");
+        }
+
+        function clearServer() {
+            localStorage.removeItem('lib_v2_url');
+            location.reload();
         }
 
         function hideLoader() {
-            const loader = document.getElementById('globalLoader');
-            loader.style.opacity = '0';
-            setTimeout(() => loader.style.display = 'none', 500);
+            document.getElementById('globalLoader').style.display = 'none';
+            const app = document.getElementById('appContent');
+            app.style.opacity = '1';
+            app.style.pointerEvents = 'all';
         }
 
         function saveServerUrl() {
             let url = document.getElementById('serverUrlInput').value.trim();
             if (url.endsWith('/')) url = url.slice(0, -1);
             if (!url.startsWith('https')) {
-                showToast("Error: URL must start with https:// for GitHub compatibility.");
+                showToast("Error: GitHub requires HTTPS URLs.");
                 return;
             }
             localStorage.setItem('lib_v2_url', url);
@@ -193,19 +204,25 @@
         async function apiCall(path, method = 'GET', body = null) {
             if (!serverUrl) return null;
             try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 sec timeout
+
                 const res = await fetch(`${serverUrl}${path}`, {
                     method,
                     headers: { 'Content-Type': 'application/json' },
-                    body: body ? JSON.stringify(body) : null
+                    body: body ? JSON.stringify(body) : null,
+                    signal: controller.signal
                 });
+                clearTimeout(timeoutId);
+                
                 if (res.ok) {
-                    document.getElementById('statusIndicator').innerText = "Connected";
-                    document.getElementById('statusIndicator').className = "mt-2 text-[10px] font-bold uppercase px-2 py-1 rounded bg-emerald-500/20 text-emerald-400 inline-block";
+                    const status = document.getElementById('statusIndicator');
+                    status.innerText = "Connected";
+                    status.className = "mt-2 text-[10px] font-bold uppercase px-2 py-1 rounded bg-emerald-500/20 text-emerald-400 inline-block";
                     return res.json();
                 }
             } catch (e) {
-                console.error(e);
-                document.getElementById('statusIndicator').innerText = "Link Broken";
+                console.warn("API Error:", e);
                 return null;
             }
         }
@@ -218,17 +235,17 @@
                 renderCatalog();
                 renderCheckedOut();
                 renderAdminBooks();
+                document.getElementById('stat-health').innerText = "Online";
+                document.getElementById('stat-health').className = "text-xl font-bold mt-4 text-emerald-400";
+                document.getElementById('connCard').className = "glass p-8 rounded-3xl border-l-4 border-emerald-500";
                 return true;
             }
-            showLoaderError("Pi Not Responding. Check your Ngrok Tunnel.");
             return false;
         }
 
         function updateStats() {
             document.getElementById('stat-total').innerText = books.length;
             document.getElementById('stat-out').innerText = books.filter(b => b.checked_out).length;
-            document.getElementById('stat-health').innerText = "Excellent";
-            document.getElementById('stat-health').className = "text-xl font-bold mt-4 text-emerald-400";
         }
 
         function showSection(id) {
@@ -237,18 +254,17 @@
             document.getElementById(id).classList.remove('hidden');
             document.getElementById('nav-' + id).classList.add('active');
             
-            // Auto-focus logic
-            if(id === 'add') setTimeout(() => document.getElementById('addIsbnInput').focus(), 100);
-            if(id === 'circulation') setTimeout(() => document.getElementById('patronBarInput').focus(), 100);
+            if(id === 'add') setTimeout(() => document.getElementById('addIsbnInput').focus(), 150);
+            if(id === 'circulation') setTimeout(() => document.getElementById('patronBarInput').focus(), 150);
         }
 
-        // Add Book Logic
+        // ISBN Logic
         document.getElementById('addIsbnInput').addEventListener('keydown', async (e) => {
             if (e.key === 'Enter') {
                 const isbn = e.target.value.trim();
                 if(!isbn) return;
                 e.target.value = '';
-                showToast("Looking up ISBN...");
+                showToast("Querying OpenLibrary...");
                 try {
                     const res = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);
                     const data = await res.json();
@@ -258,21 +274,20 @@
                             isbn: isbn,
                             title: book.title,
                             author: book.authors ? book.authors[0].name : "Unknown",
-                            cover: book.cover ? book.cover.large : "",
-                            description: book.notes || ""
+                            cover: book.cover ? book.cover.large : ""
                         };
                         const saved = await apiCall('/api/add_book', 'POST', payload);
                         if (saved) {
-                            showToast("Book Saved Successfully!");
+                            showToast("Book Cataloged!");
                             await refreshData();
                             prepPrint(saved.title, saved.call_number, saved.internal_barcode);
                         }
-                    } else { showToast("Book not found in OpenLibrary database."); }
-                } catch (err) { showToast("Network error during ISBN lookup."); }
+                    } else { showToast("Book Metadata not found."); }
+                } catch (err) { showToast("Pi connection timed out."); }
             }
         });
 
-        // Circulation Logic
+        // Circulation
         function setCircMode(m) {
             circMode = m;
             document.getElementById('btnCircOut').classList.toggle('bg-blue-600', m === 'out');
@@ -291,7 +306,7 @@
         document.getElementById('patronBarInput').addEventListener('keydown', (e) => {
             if(e.key === 'Enter') {
                 const val = e.target.value.trim();
-                const p = patrons.find(x => x.barcode === val) || { name: "Guest User", barcode: val };
+                const p = patrons.find(x => x.barcode === val) || { name: "Guest", barcode: val };
                 activePatron = p;
                 document.getElementById('patronVerification').classList.add('hidden');
                 document.getElementById('circActions').classList.remove('hidden');
@@ -306,7 +321,7 @@
                 e.target.value = '';
                 if(circMode === 'in') {
                     const res = await apiCall('/api/circulation/action', 'POST', { code, mode: 'in' });
-                    if(res) { showToast("Returned: " + res.title); refreshData(); }
+                    if(res) { showToast("In: " + res.title); refreshData(); }
                 } else {
                     const b = books.find(x => x.isbn === code || x.internal_barcode === code);
                     if(b && !b.checked_out) {
@@ -314,14 +329,14 @@
                             pendingBooks.push(b);
                             renderScanList();
                         }
-                    } else { showToast("Item already out or not found."); }
+                    } else { showToast("Item unavailable."); }
                 }
             }
         });
 
         function renderScanList() {
             const list = document.getElementById('scanList');
-            list.innerHTML = pendingBooks.map(b => `<div class="glass p-4 rounded-xl border border-blue-500 font-bold">${b.title}</div>`).join('');
+            list.innerHTML = pendingBooks.map(b => `<div class="glass p-4 rounded-xl font-bold">${b.title}</div>`).join('');
             document.getElementById('finalizeBtn').classList.toggle('hidden', pendingBooks.length === 0);
         }
 
@@ -329,12 +344,12 @@
             for(let b of pendingBooks) {
                 await apiCall('/api/circulation/action', 'POST', { code: b.isbn, mode: 'out', patron: activePatron.name });
             }
-            showToast("Checkout Finalized!");
+            showToast("Success!");
             resetCirculation();
             refreshData();
         }
 
-        // Rendering Functions
+        // Rendering
         function renderCatalog(filter = "") {
             const grid = document.getElementById('catalogGrid');
             const items = books.filter(b => b.title.toLowerCase().includes(filter.toLowerCase()));
@@ -344,9 +359,6 @@
                     <div class="absolute inset-0 bg-black/80 opacity-0 group-hover:opacity-100 transition p-4 flex flex-col justify-end">
                         <p class="text-[10px] text-blue-400 font-bold uppercase">${b.call_number}</p>
                         <p class="text-xs font-bold leading-tight">${b.title}</p>
-                        <p class="text-[10px] ${b.checked_out ? 'text-red-400' : 'text-emerald-400'} font-bold mt-1">
-                            ${b.checked_out ? 'LOANED' : 'IN STOCK'}
-                        </p>
                     </div>
                 </div>
             `).join('');
@@ -359,7 +371,7 @@
                 <div class="glass p-5 rounded-2xl flex justify-between items-center border-l-4 border-blue-500">
                     <div>
                         <p class="font-bold line-clamp-1">${b.title}</p>
-                        <p class="text-[10px] text-slate-500 uppercase font-bold">Patron: ${b.patron_name}</p>
+                        <p class="text-[10px] text-slate-500 uppercase">Patron: ${b.patron_name}</p>
                     </div>
                     <button onclick="apiCall('/api/circulation/action', 'POST', {code:'${b.isbn}', mode:'in'}).then(refreshData)" class="bg-slate-800 p-2 rounded-lg text-xs font-bold">RETURN</button>
                 </div>
@@ -379,7 +391,6 @@
             `).join('');
         }
 
-        // Print Function
         function prepPrint(title, call, id) {
             document.getElementById('p-title').innerText = title;
             document.getElementById('p-call').innerText = call;
