@@ -12,129 +12,189 @@
         body { font-family: 'Outfit', sans-serif; background-color: #0f172a; color: #f8fafc; }
         .sidebar-link.active { background: #1e293b; border-left: 4px solid #3b82f6; color: #3b82f6; }
         .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
-        #printMode { display: none; width: 100%; background: white; color: black; padding: 20px; min-height: 100vh; flex-direction: column; align-items: center; }
+        
         @media print {
-            body { background: white !important; color: black !important; }
-            #appContent, .no-print { display: none !important; }
-            #printMode { display: flex !important; }
+            body { background: white !important; color: black !important; margin: 0; padding: 0; }
+            #appContent, #toast, .no-print, #bookModal, #editModal { display: none !important; }
+            #printMode { display: flex !important; visibility: visible !important; justify-content: flex-start !important; align-items: flex-start !important; padding: 0 !important; }
+            #printMode * { visibility: visible !important; }
+            .receipt-container { width: 80mm; padding: 5mm; border: none !important; }
+            .label-container { border: 2px solid black; padding: 10px; width: 70mm; margin: 0 auto; }
+            @page { size: auto; margin: 0mm; }
         }
+
+        #printMode { display: none; width: 100%; background: white; color: black; padding: 20px; min-height: 100vh; flex-direction: column; align-items: center; }
+        .loader-overlay { position: fixed; inset: 0; background: #0f172a; display: flex; align-items: center; justify-content: center; z-index: 1000; transition: opacity 0.5s; }
+        .loader { color: #ffffff; font-size: 45px; text-indent: -9999em; overflow: hidden; width: 1em; height: 1em; border-radius: 50%; position: relative; animation: mltShdSpin 1.7s infinite ease, round 1.7s infinite ease; }
+        @keyframes mltShdSpin { 0%, 5%, 95%, 100% { box-shadow: 0 -0.83em 0 -0.4em, 0 -0.83em 0 -0.42em, 0 -0.83em 0 -0.44em, 0 -0.83em 0 -0.46em, 0 -0.83em 0 -0.477em; } 10%, 59% { box-shadow: 0 -0.83em 0 -0.4em, -0.087em -0.825em 0 -0.42em, -0.173em -0.812em 0 -0.44em, -0.256em -0.789em 0 -0.46em, -0.297em -0.775em 0 -0.477em; } 20% { box-shadow: 0 -0.83em 0 -0.4em, -0.338em -0.758em 0 -0.42em, -0.555em -0.617em 0 -0.44em, -0.671em -0.488em 0 -0.46em, -0.749em -0.34em 0 -0.477em; } 38% { box-shadow: 0 -0.83em 0 -0.4em, -0.377em -0.74em 0 -0.42em, -0.645em -0.522em 0 -0.44em, -0.775em -0.297em 0 -0.46em, -0.82em -0.09em 0 -0.477em; } }
+        @keyframes round { 0% { transform: rotate(0deg) } 100% { transform: rotate(360deg) } }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden">
 
-    <!-- Connection Setup Modal (Shows if no URL is set) -->
-    <div id="setupOverlay" class="fixed inset-0 bg-slate-900 z-[100] flex items-center justify-center p-6 hidden">
-        <div class="glass max-w-md w-full p-8 rounded-3xl space-y-6 text-center">
-            <div class="w-20 h-20 bg-blue-600/20 text-blue-400 rounded-full flex items-center justify-center mx-auto text-3xl">
-                <i class="fa-solid fa-link"></i>
+    <div id="loadingOverlay" class="loader-overlay"><div class="loader">Loading...</div></div>
+
+    <!-- Print Layer -->
+    <div id="printMode">
+        <div id="printLabel" class="label-container hidden">
+            <h1 class="text-lg font-bold border-b border-black pb-1 mb-1 text-center">BELL LIBRARY</h1>
+            <p id="p-title" class="text-xs font-semibold uppercase mb-1 truncate text-center"></p>
+            <div id="p-call" class="text-4xl font-black py-2 border-y border-black my-2 text-center">A1</div>
+            <svg id="p-barcode" class="mx-auto"></svg>
+            <p id="p-id" class="text-[10px] font-mono mt-1 text-center"></p>
+        </div>
+        <div id="printReceipt" class="receipt-container hidden text-sm">
+            <div class="text-center mb-4">
+                <h1 class="text-xl font-bold">BELL LIBRARY</h1>
+                <p>Transaction Receipt</p>
+                <div id="receiptDate" class="text-xs"></div>
             </div>
-            <h2 class="text-2xl font-bold">Connect to your Pi</h2>
-            <p class="text-slate-400 text-sm">Paste your ngrok URL below to link this GitHub page to your library server.</p>
-            <input type="text" id="setupUrlInput" placeholder="https://xxxx-xxxx.ngrok-free.app" class="w-full bg-white/5 border border-white/10 p-4 rounded-xl text-center">
-            <button onclick="saveServerUrl('setupUrlInput')" class="w-full bg-blue-600 py-4 rounded-xl font-bold text-lg">Connect Now</button>
+            <div class="border-b border-black pb-2 mb-2">
+                <p><strong>Patron:</strong> <span id="r-patron-name"></span></p>
+                <p><strong>ID:</strong> <span id="r-patron-id"></span></p>
+            </div>
+            <div class="mb-4">
+                <p class="font-bold border-b border-black mb-1">BORROWED TODAY</p>
+                <div id="r-items-today" class="space-y-1"></div>
+            </div>
+            <div class="text-center text-[10px] mt-6 border-t border-black pt-2">Thank you!</div>
+        </div>
+        <div class="no-print mt-8 flex flex-col gap-4">
+            <button onclick="window.print()" class="px-12 py-4 bg-slate-800 text-white rounded-full font-bold shadow-xl">Print Again</button>
+            <button onclick="exitPrintMode()" class="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold">Done</button>
         </div>
     </div>
 
+    <!-- App UI -->
     <div id="appContent" class="flex w-full h-full">
-        <!-- Sidebar -->
         <aside class="w-64 glass flex flex-col">
             <div class="p-6">
                 <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">Bell Library</h1>
-                <div id="statusBadge" class="mt-2 text-[10px] font-bold uppercase px-2 py-1 rounded bg-red-500/20 text-red-400 inline-block">Offline</div>
+                <div id="connStatus" class="mt-2 text-[10px] font-bold uppercase px-2 py-1 rounded bg-red-500/20 text-red-400 inline-block">Disconnected</div>
             </div>
             <nav class="flex-1 px-4 space-y-2 mt-4">
-                <button onclick="showSection('dashboard')" id="nav-dashboard" class="sidebar-link w-full flex items-center gap-3 p-3 rounded-xl transition active"><i class="fa-solid fa-chart-pie w-6"></i> Dashboard</button>
-                <button onclick="showSection('catalog')" id="nav-catalog" class="sidebar-link w-full flex items-center gap-3 p-3 rounded-xl transition"><i class="fa-solid fa-book w-6"></i> Catalog</button>
-                <button onclick="showSection('circulation')" id="nav-circulation" class="sidebar-link w-full flex items-center gap-3 p-3 rounded-xl transition"><i class="fa-solid fa-repeat w-6"></i> Circulation</button>
-                <button onclick="showSection('settings')" id="nav-settings" class="sidebar-link w-full flex items-center gap-3 p-3 rounded-xl transition"><i class="fa-solid fa-gear w-6"></i> Settings</button>
+                <button onclick="showSection('dashboard')" id="nav-dashboard" class="sidebar-link w-full flex items-center gap-3 p-3 rounded-xl transition active"><i class="fa-solid fa-chart-pie"></i> Dashboard</button>
+                <button onclick="showSection('add')" id="nav-add" class="sidebar-link w-full flex items-center gap-3 p-3 rounded-xl transition"><i class="fa-solid fa-plus"></i> Add Books</button>
+                <button onclick="showSection('catalog')" id="nav-catalog" class="sidebar-link w-full flex items-center gap-3 p-3 rounded-xl transition"><i class="fa-solid fa-book"></i> Catalog</button>
+                <button onclick="showSection('circulation')" id="nav-circulation" class="sidebar-link w-full flex items-center gap-3 p-3 rounded-xl transition"><i class="fa-solid fa-repeat"></i> Circulation</button>
+                <button onclick="showSection('settings')" id="nav-settings" class="sidebar-link w-full flex items-center gap-3 p-3 rounded-xl transition"><i class="fa-solid fa-gear"></i> Settings</button>
             </nav>
         </aside>
 
-        <main class="flex-1 overflow-y-auto p-8">
-            <!-- Dashboard -->
+        <main class="flex-1 overflow-y-auto p-8 relative">
             <section id="dashboard" class="space-y-8">
                 <h2 class="text-3xl font-bold">Dashboard</h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div class="glass p-6 rounded-2xl"><p class="text-slate-400">Total Books</p><h3 id="stat-total" class="text-4xl font-bold mt-2">0</h3></div>
                     <div class="glass p-6 rounded-2xl"><p class="text-slate-400">Out on Loan</p><h3 id="stat-out" class="text-4xl font-bold mt-2 text-blue-400">0</h3></div>
-                    <div class="glass p-6 rounded-2xl"><p class="text-slate-400">Server</p><h3 id="stat-status" class="text-lg font-bold mt-2 text-red-400">Disconnected</h3></div>
+                    <div class="glass p-6 rounded-2xl"><p class="text-slate-400">Connection</p><h3 id="stat-ping" class="text-lg font-bold mt-2">No Server</h3></div>
                 </div>
             </section>
 
-            <!-- Settings -->
-            <section id="settings" class="hidden space-y-6">
-                <h2 class="text-3xl font-bold">System Settings</h2>
-                <div class="glass p-6 rounded-2xl max-w-xl space-y-4">
-                    <h3 class="font-bold">Ngrok Connection</h3>
-                    <p class="text-sm text-slate-400">Update your Pi's address whenever you restart ngrok.</p>
-                    <input type="text" id="settingsUrlInput" placeholder="https://your-url.ngrok-free.app" class="w-full bg-white/5 border border-white/10 p-3 rounded-xl">
-                    <button onclick="saveServerUrl('settingsUrlInput')" class="bg-blue-600 px-6 py-2 rounded-lg font-bold">Save & Reconnect</button>
+            <section id="add" class="hidden space-y-8 flex flex-col items-center pt-12">
+                <div class="glass p-4 rounded-2xl w-full max-w-xl text-center">
+                    <p class="text-sm text-slate-400 mb-2">Scanning adds books directly to your Raspberry Pi</p>
+                    <input type="text" id="addIsbnInput" class="glass text-center text-2xl w-full p-6 rounded-3xl" placeholder="Scan ISBN...">
                 </div>
             </section>
 
-            <!-- Catalog -->
             <section id="catalog" class="hidden space-y-6">
                 <div id="catalogGrid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6"></div>
+            </section>
+
+            <section id="circulation" class="hidden space-y-8 max-w-3xl mx-auto">
+                <div class="flex gap-4 p-1 glass rounded-2xl">
+                    <button onclick="setCircMode('out')" id="btnCircOut" class="flex-1 p-3 rounded-xl font-bold bg-blue-600">Check Out</button>
+                    <button onclick="setCircMode('in')" id="btnCircIn" class="flex-1 p-3 rounded-xl font-bold">Check In</button>
+                </div>
+                <div id="patronVerification" class="glass p-8 rounded-3xl text-center space-y-4">
+                    <input type="text" id="patronBarInput" class="glass text-center text-xl w-full p-4 rounded-2xl" placeholder="Scan Patron Card...">
+                </div>
+                <div id="circActions" class="hidden space-y-6">
+                    <div class="glass p-4 rounded-2xl flex justify-between">
+                        <h4 id="activePatronName" class="text-xl font-bold text-blue-400"></h4>
+                        <button onclick="resetCirculation()" class="text-xs text-slate-500 underline">Reset</button>
+                    </div>
+                    <input type="text" id="circScanInput" class="glass text-center text-2xl w-full p-6 rounded-3xl" placeholder="Scan Book Barcode...">
+                    <div id="scanList" class="space-y-2"></div>
+                    <button id="finalizeBtn" onclick="finalizeCheckout()" class="hidden w-full bg-emerald-600 p-5 rounded-2xl font-bold">Finalize</button>
+                </div>
+            </section>
+
+            <section id="settings" class="hidden space-y-6">
+                <h2 class="text-3xl font-bold">Remote Connection</h2>
+                <div class="glass p-6 rounded-2xl max-w-xl space-y-4">
+                    <label class="text-xs font-bold text-slate-500 uppercase">Raspberry Pi Ngrok URL</label>
+                    <input type="text" id="serverUrlInput" placeholder="https://xxxx.ngrok-free.app" class="w-full glass p-3 rounded-xl">
+                    <button onclick="saveServerUrl()" class="w-full bg-blue-600 py-3 rounded-xl font-bold">Connect to Pi</button>
+                </div>
             </section>
         </main>
     </div>
 
-    <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-full shadow-2xl opacity-0 transition-opacity pointer-events-none z-[200]"></div>
+    <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-full shadow-2xl opacity-0 transition-opacity z-[200]"></div>
 
     <script>
-        let serverUrl = localStorage.getItem('library_server_url') || '';
+        let serverUrl = localStorage.getItem('lib_server_url') || '';
         let books = [];
+        let patrons = JSON.parse(localStorage.getItem('lib_patrons') || '[]');
+        let activePatron = null;
+        let pendingBooks = [];
+        let circMode = 'out';
 
         window.onload = () => {
-            if (!serverUrl) {
-                document.getElementById('setupOverlay').classList.remove('hidden');
-            } else {
-                document.getElementById('settingsUrlInput').value = serverUrl;
+            if (serverUrl) {
+                document.getElementById('serverUrlInput').value = serverUrl;
                 refreshData();
+            } else {
+                showSection('settings');
             }
+            document.getElementById('loadingOverlay').style.opacity = '0';
+            setTimeout(() => document.getElementById('loadingOverlay').style.display = 'none', 500);
         };
 
-        function saveServerUrl(inputId) {
-            let url = document.getElementById(inputId).value.trim();
+        function saveServerUrl() {
+            let url = document.getElementById('serverUrlInput').value.trim();
             if (url.endsWith('/')) url = url.slice(0, -1);
-            if (!url.startsWith('http')) {
-                showToast("URL must start with http:// or https://");
-                return;
-            }
-            localStorage.setItem('library_server_url', url);
+            localStorage.setItem('lib_server_url', url);
             serverUrl = url;
             location.reload();
         }
 
-        async function refreshData() {
+        async function apiCall(path, method = 'GET', body = null) {
+            if (!serverUrl) return null;
             try {
-                const res = await fetch(`${serverUrl}/api/books`);
+                const options = {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: body ? JSON.stringify(body) : null
+                };
+                const res = await fetch(`${serverUrl}${path}`, options);
                 if (res.ok) {
-                    books = await res.json();
-                    updateUI();
-                    document.getElementById('statusBadge').innerText = "Online";
-                    document.getElementById('statusBadge').className = "mt-2 text-[10px] font-bold uppercase px-2 py-1 rounded bg-emerald-500/20 text-emerald-400 inline-block";
-                    document.getElementById('stat-status').innerText = "Connected";
-                    document.getElementById('stat-status').className = "text-lg font-bold mt-2 text-emerald-400";
+                    document.getElementById('connStatus').innerText = "Online";
+                    document.getElementById('connStatus').className = "mt-2 text-[10px] font-bold uppercase px-2 py-1 rounded bg-emerald-500/20 text-emerald-400 inline-block";
+                    return res.json();
                 }
             } catch (e) {
-                showToast("Could not connect to Pi. Check your ngrok URL.");
+                document.getElementById('connStatus').innerText = "Offline";
+                showToast("Connection failed to Pi!");
+            }
+            return null;
+        }
+
+        async function refreshData() {
+            const data = await apiCall('/api/books');
+            if (data) {
+                books = data;
+                updateDashboard();
+                renderCatalog();
             }
         }
 
-        function updateUI() {
+        function updateDashboard() {
             document.getElementById('stat-total').innerText = books.length;
             document.getElementById('stat-out').innerText = books.filter(b => b.checked_out).length;
-            
-            const grid = document.getElementById('catalogGrid');
-            grid.innerHTML = books.map(b => `
-                <div class="glass rounded-xl overflow-hidden aspect-[2/3] bg-slate-800 relative group">
-                    <img src="${b.cover_url || 'https://placehold.co/300x450/1e293b/white?text=No+Cover'}" class="w-full h-full object-cover">
-                    <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition p-4 flex flex-col justify-end">
-                        <p class="text-xs font-bold line-clamp-2">${b.title}</p>
-                    </div>
-                </div>
-            `).join('');
+            document.getElementById('stat-ping').innerText = "Active";
         }
 
         function showSection(id) {
@@ -142,12 +202,130 @@
             document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
             document.getElementById(id).classList.remove('hidden');
             document.getElementById('nav-' + id).classList.add('active');
+            
+            // Auto-focus logic
+            if(id === 'add') document.getElementById('addIsbnInput').focus();
+            if(id === 'circulation') document.getElementById('patronBarInput').focus();
+        }
+
+        // ISBN Scanning Logic
+        document.getElementById('addIsbnInput').addEventListener('keydown', async (e) => {
+            if (e.key === 'Enter') {
+                const isbn = e.target.value.trim();
+                e.target.value = '';
+                showToast("Fetching book info...");
+                try {
+                    const res = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);
+                    const data = await res.json();
+                    const bookData = data[`ISBN:${isbn}`];
+                    if (bookData) {
+                        const newBook = {
+                            isbn: isbn,
+                            title: bookData.title,
+                            author: bookData.authors ? bookData.authors[0].name : "Unknown",
+                            cover: bookData.cover ? bookData.cover.large : ""
+                        };
+                        const saved = await apiCall('/api/add_book', 'POST', newBook);
+                        if (saved) {
+                            showToast(`Added: ${newBook.title}`);
+                            refreshData();
+                        }
+                    } else { showToast("ISBN not found."); }
+                } catch (err) { showToast("API Error."); }
+            }
+        });
+
+        // Circulation Logic
+        document.getElementById('patronBarInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const bar = e.target.value.trim();
+                // Add default patron if not found locally for testing
+                let p = patrons.find(x => x.barcode === bar);
+                if (!p) { p = { name: "Guest Patron", barcode: bar }; }
+                activePatron = p;
+                document.getElementById('patronVerification').classList.add('hidden');
+                document.getElementById('circActions').classList.remove('hidden');
+                document.getElementById('activePatronName').innerText = p.name;
+                document.getElementById('circScanInput').focus();
+            }
+        });
+
+        document.getElementById('circScanInput').addEventListener('keydown', async (e) => {
+            if (e.key === 'Enter') {
+                const code = e.target.value.trim();
+                e.target.value = '';
+                if (circMode === 'in') {
+                    const res = await apiCall('/api/circulation/action', 'POST', { code, mode: 'in' });
+                    if (res) { showToast(`Returned: ${res.title}`); refreshData(); }
+                } else {
+                    const book = books.find(b => b.isbn === code || b.internal_barcode === code);
+                    if (book && !book.checked_out) {
+                        pendingBooks.push(book);
+                        renderScanList();
+                    } else { showToast("Book unavailable or not found."); }
+                }
+            }
+        });
+
+        function renderScanList() {
+            const list = document.getElementById('scanList');
+            list.innerHTML = pendingBooks.map(b => `<div class="glass p-2 rounded-lg text-sm">${b.title}</div>`).join('');
+            document.getElementById('finalizeBtn').classList.toggle('hidden', pendingBooks.length === 0);
+        }
+
+        async function finalizeCheckout() {
+            const dueDate = new Date();
+            dueDate.setDate(dueDate.getDate() + 14);
+            const dateStr = dueDate.toLocaleDateString();
+
+            for (let b of pendingBooks) {
+                await apiCall('/api/circulation/action', 'POST', { 
+                    code: b.isbn, mode: 'out', patron: activePatron.name, due_date: dateStr 
+                });
+            }
+            showToast("Checkout complete!");
+            resetCirculation();
+            refreshData();
+        }
+
+        function resetCirculation() {
+            activePatron = null; pendingBooks = [];
+            document.getElementById('patronVerification').classList.remove('hidden');
+            document.getElementById('circActions').classList.add('hidden');
+            document.getElementById('patronBarInput').value = '';
+            document.getElementById('patronBarInput').focus();
+        }
+
+        function setCircMode(m) {
+            circMode = m;
+            document.getElementById('btnCircOut').classList.toggle('bg-blue-600', m === 'out');
+            document.getElementById('btnCircIn').classList.toggle('bg-blue-600', m === 'in');
+            resetCirculation();
+        }
+
+        function renderCatalog() {
+            const grid = document.getElementById('catalogGrid');
+            grid.innerHTML = books.map(b => `
+                <div class="glass rounded-xl overflow-hidden aspect-[2/3] bg-slate-800 relative group">
+                    <img src="${b.cover_url || 'https://placehold.co/300x450/1e293b/white?text=No+Cover'}" class="w-full h-full object-cover">
+                    <div class="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition p-4 flex flex-col justify-end">
+                        <p class="text-[10px] text-blue-400 font-bold">${b.call_number}</p>
+                        <p class="text-xs font-bold">${b.title}</p>
+                        <p class="text-[10px] ${b.checked_out ? 'text-red-400' : 'text-emerald-400'}">${b.checked_out ? 'OUT' : 'AVAILABLE'}</p>
+                    </div>
+                </div>
+            `).join('');
         }
 
         function showToast(msg) {
             const t = document.getElementById('toast');
             t.innerText = msg; t.style.opacity = '1';
             setTimeout(() => t.style.opacity = '0', 3000);
+        }
+
+        function exitPrintMode() {
+            document.getElementById('appContent').style.display = 'flex';
+            document.getElementById('printMode').style.display = 'none';
         }
     </script>
 </body>
