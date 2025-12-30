@@ -31,11 +31,12 @@
     <!-- Global Connection Loader -->
     <div id="globalLoader">
         <div class="spinner mb-6"></div>
-        <p id="loaderText" class="text-blue-400 font-bold text-lg">Attempting to reach Raspberry Pi...</p>
+        <p id="loaderText" class="text-blue-400 font-bold text-lg">Reaching Library Pi...</p>
         <div id="connectionHints" class="mt-8 max-w-sm text-center space-y-4 px-6">
-            <p class="text-xs text-slate-500 leading-relaxed">Connecting to: https://habile-lissa-phytogenic.ngrok-free.dev/</p>
+            <p id="targetUrlText" class="text-[10px] text-slate-500 font-mono"></p>
             <div class="flex flex-col gap-2">
-                <button onclick="forceEntry()" class="bg-blue-600 hover:bg-blue-500 px-6 py-3 rounded-xl text-sm font-bold shadow-lg transition-all">Bypass & Enter Dashboard</button>
+                <button onclick="forceEntry()" class="bg-slate-800 hover:bg-slate-700 px-6 py-3 rounded-xl text-sm font-bold shadow-lg transition-all">Bypass (Offline Mode)</button>
+                <button onclick="showSection('settings'); hideLoader();" class="text-xs text-blue-400 underline">Change Server URL</button>
             </div>
         </div>
     </div>
@@ -60,7 +61,7 @@
         <aside class="w-64 glass flex flex-col border-r border-white/5">
             <div class="p-6">
                 <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">Bell Library</h1>
-                <div id="statusIndicator" class="mt-2 text-[10px] font-bold uppercase px-2 py-1 rounded bg-red-500/20 text-red-400 inline-block">Connecting...</div>
+                <div id="statusIndicator" class="mt-2 text-[10px] font-bold uppercase px-2 py-1 rounded bg-slate-500/20 text-slate-400 inline-block">Checking...</div>
             </div>
             <nav class="flex-1 px-4 space-y-2 mt-4 overflow-y-auto">
                 <button onclick="showSection('dashboard')" id="nav-dashboard" class="sidebar-link w-full flex items-center gap-3 p-3 rounded-xl transition active"><i class="fa-solid fa-chart-line w-5"></i> Dashboard</button>
@@ -80,7 +81,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div class="glass p-8 rounded-3xl"><p class="text-slate-500 text-sm font-bold uppercase">Total Inventory</p><h3 id="stat-total" class="text-5xl font-bold mt-2">0</h3></div>
                     <div class="glass p-8 rounded-3xl"><p class="text-slate-500 text-sm font-bold uppercase">Books Out</p><h3 id="stat-out" class="text-5xl font-bold mt-2 text-blue-400">0</h3></div>
-                    <div id="connCard" class="glass p-8 rounded-3xl border-l-4 border-red-500"><p class="text-slate-500 text-sm font-bold uppercase">Server Link</p><h3 id="stat-health" class="text-xl font-bold mt-4 text-red-400">Disconnected</h3></div>
+                    <div id="connCard" class="glass p-8 rounded-3xl border-l-4 border-slate-500 transition-all duration-500"><p class="text-slate-500 text-sm font-bold uppercase">Server Link</p><h3 id="stat-health" class="text-xl font-bold mt-4 text-slate-400">Unknown</h3></div>
                 </div>
             </section>
 
@@ -171,22 +172,28 @@
         let activePatron = null;
         let pendingBooks = [];
         let circMode = 'out';
+        let isConnected = false;
 
         window.onload = async () => {
             renderPatrons();
             document.getElementById('serverUrlInput').value = serverUrl;
+            document.getElementById('targetUrlText').innerText = "Target: " + serverUrl;
             
+            // Initial health check
             const success = await refreshData();
             if (success) {
-                hideLoader();
+                setTimeout(hideLoader, 800);
             } else {
-                document.getElementById('loaderText').innerText = "Pi Offline. Is the terminal script running?";
+                updateStatus(false);
+                document.getElementById('loaderText').innerText = "Pi unreachable. Bypass to use offline.";
             }
         };
 
         function forceEntry() {
+            updateStatus(false);
             hideLoader();
-            showSection('settings');
+            showSection('dashboard');
+            showToast("Running in Offline Mode");
         }
 
         function clearServer() {
@@ -211,11 +218,17 @@
         async function apiCall(path, method = 'GET', body = null) {
             if (!serverUrl) return null;
             try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+
                 const res = await fetch(`${serverUrl}${path}`, {
                     method,
                     headers: { 'Content-Type': 'application/json' },
-                    body: body ? JSON.stringify(body) : null
+                    body: body ? JSON.stringify(body) : null,
+                    signal: controller.signal
                 });
+                clearTimeout(timeoutId);
+
                 if (res.ok) {
                     updateStatus(true);
                     return res.json();
@@ -227,9 +240,10 @@
         }
 
         function updateStatus(online) {
+            isConnected = online;
             // Update Sidebar Indicator
             const status = document.getElementById('statusIndicator');
-            status.innerText = online ? "Connected" : "Offline";
+            status.innerText = online ? "Connected" : "Disconnected";
             status.className = `mt-2 text-[10px] font-bold uppercase px-2 py-1 rounded ${online ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'} inline-block`;
 
             // Update Dashboard Connection Card
@@ -257,7 +271,6 @@
         function updateStats() {
             document.getElementById('stat-total').innerText = books.length;
             document.getElementById('stat-out').innerText = books.filter(b => b.checked_out).length;
-            // updateStatus(true) is called within apiCall res.ok, but we ensure UI reflects it here too
             updateStatus(true);
         }
 
@@ -281,6 +294,11 @@
         });
 
         async function lookupBook(isbn) {
+            if (!isConnected) {
+                showToast("Cannot add books while offline!");
+                return;
+            }
+
             showToast("Searching OpenLibrary...");
             try {
                 const res = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);
@@ -290,25 +308,26 @@
                 if (info) {
                     const payload = {
                         isbn: isbn,
-                        title: info.title,
+                        title: info.title || "Untitled",
                         author: info.authors ? info.authors[0].name : "Unknown",
-                        cover: info.cover ? info.cover.large : ""
+                        cover: info.cover ? (info.cover.large || info.cover.medium || info.cover.small) : ""
                     };
-                    submitBook(payload);
+                    await submitBook(payload);
                 } else {
-                    const searchRes = await fetch(`https://openlibrary.org/search.json?q=${isbn}`);
+                    // Try General Search
+                    const searchRes = await fetch(`https://openlibrary.org/search.json?q=${isbn}&limit=1`);
                     const searchData = await searchRes.json();
                     if (searchData.docs && searchData.docs.length > 0) {
                         const doc = searchData.docs[0];
                         const payload = {
                             isbn: isbn,
-                            title: doc.title,
+                            title: doc.title || "Untitled",
                             author: doc.author_name ? doc.author_name[0] : "Unknown",
                             cover: doc.cover_i ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg` : ""
                         };
-                        submitBook(payload);
+                        await submitBook(payload);
                     } else {
-                        showToast("Book not found. Check ISBN digits.");
+                        showToast("Book not found on OpenLibrary.");
                     }
                 }
             } catch (err) {
@@ -319,9 +338,11 @@
         async function submitBook(payload) {
             const saved = await apiCall('/api/add_book', 'POST', payload);
             if (saved) {
-                showToast("Book Added!");
+                showToast("Book Saved to Pi!");
                 await refreshData();
                 prepPrint(saved.title, saved.call_number, saved.internal_barcode);
+            } else {
+                showToast("Failed to save book to Raspberry Pi.");
             }
         }
 
@@ -343,6 +364,7 @@
             }
         }
 
+        // --- Patron Logic ---
         function addNewPatron() {
             const name = prompt("Enter Patron Name:");
             if (!name) return;
@@ -374,6 +396,7 @@
             }
         }
 
+        // --- Circulation Logic ---
         function setCircMode(m) {
             circMode = m;
             document.getElementById('btnCircOut').classList.toggle('bg-blue-600', m === 'out');
