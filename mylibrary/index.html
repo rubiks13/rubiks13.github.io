@@ -33,7 +33,7 @@
         <div class="spinner mb-6"></div>
         <p id="loaderText" class="text-blue-400 font-bold text-lg">Attempting to reach Raspberry Pi...</p>
         <div id="connectionHints" class="mt-8 max-w-sm text-center space-y-4 px-6">
-            <p class="text-xs text-slate-500 leading-relaxed">If this takes more than 10 seconds, your browser is likely blocking the connection.</p>
+            <p class="text-xs text-slate-500 leading-relaxed">Connecting to: https://habile-lissa-phytogenic.ngrok-free.dev/</p>
             <div class="flex flex-col gap-2">
                 <button onclick="forceEntry()" class="bg-blue-600 hover:bg-blue-500 px-6 py-3 rounded-xl text-sm font-bold shadow-lg transition-all">Bypass & Enter Dashboard</button>
             </div>
@@ -90,7 +90,10 @@
                     <div class="w-20 h-20 bg-blue-600/20 text-blue-400 rounded-full flex items-center justify-center mx-auto text-3xl"><i class="fa-solid fa-barcode"></i></div>
                     <h3 class="text-2xl font-bold">Catalog New Item</h3>
                     <input type="text" id="addIsbnInput" class="glass text-center text-2xl w-full p-6 rounded-2xl border-blue-500/30 border focus:border-blue-500 outline-none transition-all" placeholder="Enter ISBN #">
-                    <p class="text-xs text-slate-500 uppercase font-bold tracking-widest">Searching OpenLibrary & Local Cache...</p>
+                    <div class="flex flex-col gap-2">
+                        <p class="text-xs text-slate-500 uppercase font-bold tracking-widest">Searching OpenLibrary & Local Cache...</p>
+                        <button onclick="searchFallback()" class="text-[10px] text-blue-400 underline hover:text-blue-300">ISBN not working? Try Title Search</button>
+                    </div>
                 </div>
             </section>
 
@@ -160,7 +163,10 @@
     <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-8 py-4 rounded-2xl shadow-2xl opacity-0 transition-all z-[999] pointer-events-none font-bold"></div>
 
     <script>
-        let serverUrl = localStorage.getItem('lib_v2_url') || '';
+        // HARDCODED URL AS REQUESTED
+        const DEFAULT_URL = 'https://habile-lissa-phytogenic.ngrok-free.dev';
+        let serverUrl = localStorage.getItem('lib_v2_url') || DEFAULT_URL;
+        
         let books = [];
         let patrons = JSON.parse(localStorage.getItem('lib_patrons') || '[]');
         let activePatron = null;
@@ -169,15 +175,13 @@
 
         window.onload = async () => {
             renderPatrons();
-            if (serverUrl) {
-                document.getElementById('serverUrlInput').value = serverUrl;
-                const success = await refreshData();
-                if (success) hideLoader();
-                else {
-                    document.getElementById('loaderText').innerText = "Pi Offline. Check Ngrok.";
-                }
+            document.getElementById('serverUrlInput').value = serverUrl;
+            
+            const success = await refreshData();
+            if (success) {
+                hideLoader();
             } else {
-                document.getElementById('loaderText').innerText = "System requires link.";
+                document.getElementById('loaderText').innerText = "Pi Offline. Is the terminal script running?";
             }
         };
 
@@ -244,6 +248,11 @@
         function updateStats() {
             document.getElementById('stat-total').innerText = books.length;
             document.getElementById('stat-out').innerText = books.filter(b => b.checked_out).length;
+            
+            const health = document.getElementById('stat-health');
+            health.innerText = "Connected";
+            health.className = "text-xl font-bold mt-4 text-emerald-400";
+            document.getElementById('connCard').className = "glass p-8 rounded-3xl border-l-4 border-emerald-500";
         }
 
         function showSection(id) {
@@ -262,35 +271,74 @@
                 const isbn = e.target.value.trim();
                 if(!isbn) return;
                 e.target.value = '';
-                showToast("Searching OpenLibrary...");
-                
-                try {
-                    // Try Data API first
-                    const res = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);
-                    const data = await res.json();
-                    const info = data[`ISBN:${isbn}`];
-                    
-                    if (info) {
-                        const payload = {
-                            isbn: isbn,
-                            title: info.title,
-                            author: info.authors ? info.authors[0].name : "Unknown",
-                            cover: info.cover ? info.cover.large : ""
-                        };
-                        const saved = await apiCall('/api/add_book', 'POST', payload);
-                        if (saved) {
-                            showToast("Book Added!");
-                            await refreshData();
-                            prepPrint(saved.title, saved.call_number, saved.internal_barcode);
-                        }
-                    } else {
-                        showToast("Not found on OpenLibrary. Is ISBN correct?");
-                    }
-                } catch (err) {
-                    showToast("Network Error or API Down.");
-                }
+                lookupBook(isbn);
             }
         });
+
+        async function lookupBook(isbn) {
+            showToast("Searching OpenLibrary...");
+            try {
+                // Method 1: Data API
+                const res = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);
+                const data = await res.json();
+                const info = data[`ISBN:${isbn}`];
+                
+                if (info) {
+                    const payload = {
+                        isbn: isbn,
+                        title: info.title,
+                        author: info.authors ? info.authors[0].name : "Unknown",
+                        cover: info.cover ? info.cover.large : ""
+                    };
+                    submitBook(payload);
+                } else {
+                    // Method 2: Search API (fallback)
+                    const searchRes = await fetch(`https://openlibrary.org/search.json?q=${isbn}`);
+                    const searchData = await searchRes.json();
+                    if (searchData.docs && searchData.docs.length > 0) {
+                        const doc = searchData.docs[0];
+                        const payload = {
+                            isbn: isbn,
+                            title: doc.title,
+                            author: doc.author_name ? doc.author_name[0] : "Unknown",
+                            cover: doc.cover_i ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg` : ""
+                        };
+                        submitBook(payload);
+                    } else {
+                        showToast("Book not found. Check ISBN digits.");
+                    }
+                }
+            } catch (err) {
+                showToast("Connection to OpenLibrary failed.");
+            }
+        }
+
+        async function submitBook(payload) {
+            const saved = await apiCall('/api/add_book', 'POST', payload);
+            if (saved) {
+                showToast("Book Added!");
+                await refreshData();
+                prepPrint(saved.title, saved.call_number, saved.internal_barcode);
+            }
+        }
+
+        function searchFallback() {
+            const q = prompt("Enter Book Title or Author:");
+            if(q) {
+                showToast("Searching titles...");
+                fetch(`https://openlibrary.org/search.json?title=${encodeURIComponent(q)}&limit=1`)
+                    .then(r => r.json())
+                    .then(data => {
+                        if(data.docs && data.docs.length > 0) {
+                            const b = data.docs[0];
+                            const isbn = b.isbn ? b.isbn[0] : "MANUAL-" + Date.now();
+                            lookupBook(isbn);
+                        } else {
+                            showToast("No matches found.");
+                        }
+                    });
+            }
+        }
 
         // PATRON MANAGEMENT
         function addNewPatron() {
