@@ -163,7 +163,6 @@
     <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-8 py-4 rounded-2xl shadow-2xl opacity-0 transition-all z-[999] pointer-events-none font-bold"></div>
 
     <script>
-        // HARDCODED URL AS REQUESTED
         const DEFAULT_URL = 'https://habile-lissa-phytogenic.ngrok-free.dev';
         let serverUrl = localStorage.getItem('lib_v2_url') || DEFAULT_URL;
         
@@ -228,9 +227,19 @@
         }
 
         function updateStatus(online) {
+            // Update Sidebar Indicator
             const status = document.getElementById('statusIndicator');
             status.innerText = online ? "Connected" : "Offline";
             status.className = `mt-2 text-[10px] font-bold uppercase px-2 py-1 rounded ${online ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'} inline-block`;
+
+            // Update Dashboard Connection Card
+            const health = document.getElementById('stat-health');
+            const card = document.getElementById('connCard');
+            if (health && card) {
+                health.innerText = online ? "Connected" : "Disconnected";
+                health.className = `text-xl font-bold mt-4 ${online ? 'text-emerald-400' : 'text-red-400'}`;
+                card.className = `glass p-8 rounded-3xl border-l-4 ${online ? 'border-emerald-500' : 'border-red-500'}`;
+            }
         }
 
         async function refreshData() {
@@ -248,11 +257,8 @@
         function updateStats() {
             document.getElementById('stat-total').innerText = books.length;
             document.getElementById('stat-out').innerText = books.filter(b => b.checked_out).length;
-            
-            const health = document.getElementById('stat-health');
-            health.innerText = "Connected";
-            health.className = "text-xl font-bold mt-4 text-emerald-400";
-            document.getElementById('connCard').className = "glass p-8 rounded-3xl border-l-4 border-emerald-500";
+            // updateStatus(true) is called within apiCall res.ok, but we ensure UI reflects it here too
+            updateStatus(true);
         }
 
         function showSection(id) {
@@ -265,7 +271,6 @@
             if(id === 'add') setTimeout(() => document.getElementById('addIsbnInput').focus(), 150);
         }
 
-        // IMPROVED BOOK ADDING
         document.getElementById('addIsbnInput').addEventListener('keydown', async (e) => {
             if (e.key === 'Enter') {
                 const isbn = e.target.value.trim();
@@ -278,7 +283,6 @@
         async function lookupBook(isbn) {
             showToast("Searching OpenLibrary...");
             try {
-                // Method 1: Data API
                 const res = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);
                 const data = await res.json();
                 const info = data[`ISBN:${isbn}`];
@@ -292,7 +296,6 @@
                     };
                     submitBook(payload);
                 } else {
-                    // Method 2: Search API (fallback)
                     const searchRes = await fetch(`https://openlibrary.org/search.json?q=${isbn}`);
                     const searchData = await searchRes.json();
                     if (searchData.docs && searchData.docs.length > 0) {
@@ -340,7 +343,6 @@
             }
         }
 
-        // PATRON MANAGEMENT
         function addNewPatron() {
             const name = prompt("Enter Patron Name:");
             if (!name) return;
@@ -372,7 +374,6 @@
             }
         }
 
-        // CIRCULATION
         function setCircMode(m) {
             circMode = m;
             document.getElementById('btnCircOut').classList.toggle('bg-blue-600', m === 'out');
