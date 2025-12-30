@@ -202,7 +202,7 @@
             clearTimeout(inactivityTimer);
             inactivityTimer = setTimeout(() => {
                 window.location.href = REDIRECT_URL;
-            }, 30000);
+            }, 5000);
         }
 
         ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(evt => {
