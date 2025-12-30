@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bell Library | Emergency Fix</title>
+    <title>Bell Library | Full System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
@@ -33,10 +33,9 @@
         <div class="spinner mb-6"></div>
         <p id="loaderText" class="text-blue-400 font-bold text-lg">Attempting to reach Raspberry Pi...</p>
         <div id="connectionHints" class="mt-8 max-w-sm text-center space-y-4 px-6">
-            <p class="text-xs text-slate-500 leading-relaxed">If this takes more than 10 seconds, your browser is likely blocking the connection. Ensure your ngrok URL is <span class="text-white font-mono">https://</span></p>
+            <p class="text-xs text-slate-500 leading-relaxed">If this takes more than 10 seconds, your browser is likely blocking the connection.</p>
             <div class="flex flex-col gap-2">
                 <button onclick="forceEntry()" class="bg-blue-600 hover:bg-blue-500 px-6 py-3 rounded-xl text-sm font-bold shadow-lg transition-all">Bypass & Enter Dashboard</button>
-                <button onclick="clearServer()" class="text-[10px] text-slate-500 underline uppercase tracking-widest">Reset Server URL</button>
             </div>
         </div>
     </div>
@@ -69,6 +68,7 @@
                 <button onclick="showSection('catalog')" id="nav-catalog" class="sidebar-link w-full flex items-center gap-3 p-3 rounded-xl transition"><i class="fa-solid fa-book w-5"></i> Catalog</button>
                 <button onclick="showSection('circulation')" id="nav-circulation" class="sidebar-link w-full flex items-center gap-3 p-3 rounded-xl transition"><i class="fa-solid fa-repeat w-5"></i> Circulation</button>
                 <button onclick="showSection('checkedout')" id="nav-checkedout" class="sidebar-link w-full flex items-center gap-3 p-3 rounded-xl transition"><i class="fa-solid fa-clock w-5"></i> Checked Out</button>
+                <button onclick="showSection('patrons')" id="nav-patrons" class="sidebar-link w-full flex items-center gap-3 p-3 rounded-xl transition"><i class="fa-solid fa-users w-5"></i> Patrons</button>
                 <button onclick="showSection('settings')" id="nav-settings" class="sidebar-link w-full flex items-center gap-3 p-3 rounded-xl transition"><i class="fa-solid fa-gear w-5"></i> Settings</button>
             </nav>
         </aside>
@@ -78,9 +78,9 @@
             <section id="dashboard" class="space-y-8">
                 <h2 class="text-3xl font-bold">Library Dashboard</h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="glass p-8 rounded-3xl"><p class="text-slate-500 text-xs font-bold uppercase">Total Inventory</p><h3 id="stat-total" class="text-5xl font-bold mt-2">0</h3></div>
-                    <div class="glass p-8 rounded-3xl"><p class="text-slate-500 text-xs font-bold uppercase">Books Out</p><h3 id="stat-out" class="text-5xl font-bold mt-2 text-blue-400">0</h3></div>
-                    <div id="connCard" class="glass p-8 rounded-3xl border-l-4 border-red-500"><p class="text-slate-500 text-xs font-bold uppercase">Server Link</p><h3 id="stat-health" class="text-xl font-bold mt-4 text-red-400">Disconnected</h3></div>
+                    <div class="glass p-8 rounded-3xl"><p class="text-slate-500 text-sm font-bold uppercase">Total Inventory</p><h3 id="stat-total" class="text-5xl font-bold mt-2">0</h3></div>
+                    <div class="glass p-8 rounded-3xl"><p class="text-slate-500 text-sm font-bold uppercase">Books Out</p><h3 id="stat-out" class="text-5xl font-bold mt-2 text-blue-400">0</h3></div>
+                    <div id="connCard" class="glass p-8 rounded-3xl border-l-4 border-red-500"><p class="text-slate-500 text-sm font-bold uppercase">Server Link</p><h3 id="stat-health" class="text-xl font-bold mt-4 text-red-400">Disconnected</h3></div>
                 </div>
             </section>
 
@@ -90,7 +90,7 @@
                     <div class="w-20 h-20 bg-blue-600/20 text-blue-400 rounded-full flex items-center justify-center mx-auto text-3xl"><i class="fa-solid fa-barcode"></i></div>
                     <h3 class="text-2xl font-bold">Catalog New Item</h3>
                     <input type="text" id="addIsbnInput" class="glass text-center text-2xl w-full p-6 rounded-2xl border-blue-500/30 border focus:border-blue-500 outline-none transition-all" placeholder="Enter ISBN #">
-                    <p class="text-xs text-slate-500 uppercase font-bold tracking-widest">Labels print automatically after successful add</p>
+                    <p class="text-xs text-slate-500 uppercase font-bold tracking-widest">Searching OpenLibrary & Local Cache...</p>
                 </div>
             </section>
 
@@ -98,9 +98,18 @@
             <section id="catalog" class="hidden space-y-6">
                 <div class="flex justify-between items-center">
                     <h2 class="text-3xl font-bold">Catalog</h2>
-                    <input type="text" oninput="renderCatalog(this.value)" placeholder="Search inventory..." class="glass p-3 px-6 rounded-xl w-80 border border-white/5">
+                    <input type="text" oninput="renderCatalog(this.value)" placeholder="Search titles..." class="glass p-3 px-6 rounded-xl w-80 border border-white/5">
                 </div>
                 <div id="catalogGrid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6"></div>
+            </section>
+
+            <!-- Patrons -->
+            <section id="patrons" class="hidden space-y-6">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-3xl font-bold">Patron Management</h2>
+                    <button onclick="addNewPatron()" class="bg-blue-600 px-6 py-3 rounded-xl font-bold">+ New Patron</button>
+                </div>
+                <div id="patronList" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
             </section>
 
             <!-- Circulation -->
@@ -140,10 +149,9 @@
                     </div>
                     <button onclick="saveServerUrl()" class="w-full bg-blue-600 py-4 rounded-xl font-bold text-lg hover:bg-blue-500">Update Address</button>
                 </div>
-
                 <div class="space-y-4">
-                    <h3 class="text-xl font-bold">Admin Inventory Tool</h3>
-                    <div id="adminBookList" class="space-y-2 max-w-4xl"></div>
+                    <h3 class="text-xl font-bold text-red-400">Emergency Reset</h3>
+                    <button onclick="clearServer()" class="bg-red-500/10 text-red-400 px-6 py-3 rounded-xl border border-red-500/20">Clear All Cache & URLs</button>
                 </div>
             </section>
         </main>
@@ -160,25 +168,26 @@
         let circMode = 'out';
 
         window.onload = async () => {
+            renderPatrons();
             if (serverUrl) {
                 document.getElementById('serverUrlInput').value = serverUrl;
                 const success = await refreshData();
-                if (success) {
-                    hideLoader();
+                if (success) hideLoader();
+                else {
+                    document.getElementById('loaderText').innerText = "Pi Offline. Check Ngrok.";
                 }
             } else {
-                document.getElementById('loaderText').innerText = "System requires configuration.";
+                document.getElementById('loaderText').innerText = "System requires link.";
             }
         };
 
         function forceEntry() {
             hideLoader();
             showSection('settings');
-            showToast("Bypassing connection check...");
         }
 
         function clearServer() {
-            localStorage.removeItem('lib_v2_url');
+            localStorage.clear();
             location.reload();
         }
 
@@ -192,39 +201,32 @@
         function saveServerUrl() {
             let url = document.getElementById('serverUrlInput').value.trim();
             if (url.endsWith('/')) url = url.slice(0, -1);
-            if (!url.startsWith('https')) {
-                showToast("Error: GitHub requires HTTPS URLs.");
-                return;
-            }
             localStorage.setItem('lib_v2_url', url);
-            serverUrl = url;
             location.reload();
         }
 
         async function apiCall(path, method = 'GET', body = null) {
             if (!serverUrl) return null;
             try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 sec timeout
-
                 const res = await fetch(`${serverUrl}${path}`, {
                     method,
                     headers: { 'Content-Type': 'application/json' },
-                    body: body ? JSON.stringify(body) : null,
-                    signal: controller.signal
+                    body: body ? JSON.stringify(body) : null
                 });
-                clearTimeout(timeoutId);
-                
                 if (res.ok) {
-                    const status = document.getElementById('statusIndicator');
-                    status.innerText = "Connected";
-                    status.className = "mt-2 text-[10px] font-bold uppercase px-2 py-1 rounded bg-emerald-500/20 text-emerald-400 inline-block";
+                    updateStatus(true);
                     return res.json();
                 }
             } catch (e) {
-                console.warn("API Error:", e);
+                updateStatus(false);
                 return null;
             }
+        }
+
+        function updateStatus(online) {
+            const status = document.getElementById('statusIndicator');
+            status.innerText = online ? "Connected" : "Offline";
+            status.className = `mt-2 text-[10px] font-bold uppercase px-2 py-1 rounded ${online ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'} inline-block`;
         }
 
         async function refreshData() {
@@ -234,10 +236,6 @@
                 updateStats();
                 renderCatalog();
                 renderCheckedOut();
-                renderAdminBooks();
-                document.getElementById('stat-health').innerText = "Online";
-                document.getElementById('stat-health').className = "text-xl font-bold mt-4 text-emerald-400";
-                document.getElementById('connCard').className = "glass p-8 rounded-3xl border-l-4 border-emerald-500";
                 return true;
             }
             return false;
@@ -252,42 +250,81 @@
             document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
             document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
             document.getElementById(id).classList.remove('hidden');
-            document.getElementById('nav-' + id).classList.add('active');
+            const navBtn = document.getElementById('nav-' + id);
+            if(navBtn) navBtn.classList.add('active');
             
             if(id === 'add') setTimeout(() => document.getElementById('addIsbnInput').focus(), 150);
-            if(id === 'circulation') setTimeout(() => document.getElementById('patronBarInput').focus(), 150);
         }
 
-        // ISBN Logic
+        // IMPROVED BOOK ADDING
         document.getElementById('addIsbnInput').addEventListener('keydown', async (e) => {
             if (e.key === 'Enter') {
                 const isbn = e.target.value.trim();
                 if(!isbn) return;
                 e.target.value = '';
-                showToast("Querying OpenLibrary...");
+                showToast("Searching OpenLibrary...");
+                
                 try {
+                    // Try Data API first
                     const res = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);
                     const data = await res.json();
-                    const book = data[`ISBN:${isbn}`];
-                    if (book) {
+                    const info = data[`ISBN:${isbn}`];
+                    
+                    if (info) {
                         const payload = {
                             isbn: isbn,
-                            title: book.title,
-                            author: book.authors ? book.authors[0].name : "Unknown",
-                            cover: book.cover ? book.cover.large : ""
+                            title: info.title,
+                            author: info.authors ? info.authors[0].name : "Unknown",
+                            cover: info.cover ? info.cover.large : ""
                         };
                         const saved = await apiCall('/api/add_book', 'POST', payload);
                         if (saved) {
-                            showToast("Book Cataloged!");
+                            showToast("Book Added!");
                             await refreshData();
                             prepPrint(saved.title, saved.call_number, saved.internal_barcode);
                         }
-                    } else { showToast("Book Metadata not found."); }
-                } catch (err) { showToast("Pi connection timed out."); }
+                    } else {
+                        showToast("Not found on OpenLibrary. Is ISBN correct?");
+                    }
+                } catch (err) {
+                    showToast("Network Error or API Down.");
+                }
             }
         });
 
-        // Circulation
+        // PATRON MANAGEMENT
+        function addNewPatron() {
+            const name = prompt("Enter Patron Name:");
+            if (!name) return;
+            const barcode = "P" + Math.floor(Math.random() * 89999 + 10000);
+            patrons.push({ name, barcode });
+            localStorage.setItem('lib_patrons', JSON.stringify(patrons));
+            renderPatrons();
+            showToast(`Created Patron: ${name} (${barcode})`);
+        }
+
+        function renderPatrons() {
+            const list = document.getElementById('patronList');
+            list.innerHTML = patrons.map((p, idx) => `
+                <div class="glass p-4 rounded-xl flex justify-between items-center">
+                    <div>
+                        <p class="font-bold">${p.name}</p>
+                        <p class="text-xs text-slate-500 font-mono">${p.barcode}</p>
+                    </div>
+                    <button onclick="deletePatron(${idx})" class="text-red-400 hover:text-red-300"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            `).join('');
+        }
+
+        function deletePatron(idx) {
+            if(confirm("Delete this patron?")) {
+                patrons.splice(idx, 1);
+                localStorage.setItem('lib_patrons', JSON.stringify(patrons));
+                renderPatrons();
+            }
+        }
+
+        // CIRCULATION
         function setCircMode(m) {
             circMode = m;
             document.getElementById('btnCircOut').classList.toggle('bg-blue-600', m === 'out');
@@ -301,12 +338,14 @@
             document.getElementById('circActions').classList.add('hidden');
             document.getElementById('patronBarInput').value = '';
             document.getElementById('patronBarInput').focus();
+            document.getElementById('scanList').innerHTML = '';
+            document.getElementById('finalizeBtn').classList.add('hidden');
         }
 
         document.getElementById('patronBarInput').addEventListener('keydown', (e) => {
             if(e.key === 'Enter') {
                 const val = e.target.value.trim();
-                const p = patrons.find(x => x.barcode === val) || { name: "Guest", barcode: val };
+                const p = patrons.find(x => x.barcode === val) || { name: "Guest User", barcode: val };
                 activePatron = p;
                 document.getElementById('patronVerification').classList.add('hidden');
                 document.getElementById('circActions').classList.remove('hidden');
@@ -321,7 +360,8 @@
                 e.target.value = '';
                 if(circMode === 'in') {
                     const res = await apiCall('/api/circulation/action', 'POST', { code, mode: 'in' });
-                    if(res) { showToast("In: " + res.title); refreshData(); }
+                    if(res) { showToast("Returned: " + res.title); refreshData(); }
+                    else showToast("Item not found on Pi.");
                 } else {
                     const b = books.find(x => x.isbn === code || x.internal_barcode === code);
                     if(b && !b.checked_out) {
@@ -329,14 +369,18 @@
                             pendingBooks.push(b);
                             renderScanList();
                         }
-                    } else { showToast("Item unavailable."); }
+                    } else if (b && b.checked_out) {
+                        showToast("Book is already out!");
+                    } else {
+                        showToast("Barcode not in catalog.");
+                    }
                 }
             }
         });
 
         function renderScanList() {
             const list = document.getElementById('scanList');
-            list.innerHTML = pendingBooks.map(b => `<div class="glass p-4 rounded-xl font-bold">${b.title}</div>`).join('');
+            list.innerHTML = pendingBooks.map(b => `<div class="glass p-4 rounded-xl font-bold flex justify-between"><span>${b.title}</span><span class="text-blue-400">READY</span></div>`).join('');
             document.getElementById('finalizeBtn').classList.toggle('hidden', pendingBooks.length === 0);
         }
 
@@ -344,12 +388,11 @@
             for(let b of pendingBooks) {
                 await apiCall('/api/circulation/action', 'POST', { code: b.isbn, mode: 'out', patron: activePatron.name });
             }
-            showToast("Success!");
+            showToast("Checkout Complete!");
             resetCirculation();
             refreshData();
         }
 
-        // Rendering
         function renderCatalog(filter = "") {
             const grid = document.getElementById('catalogGrid');
             const items = books.filter(b => b.title.toLowerCase().includes(filter.toLowerCase()));
@@ -359,6 +402,7 @@
                     <div class="absolute inset-0 bg-black/80 opacity-0 group-hover:opacity-100 transition p-4 flex flex-col justify-end">
                         <p class="text-[10px] text-blue-400 font-bold uppercase">${b.call_number}</p>
                         <p class="text-xs font-bold leading-tight">${b.title}</p>
+                        <button onclick="prepPrint('${b.title.replace(/'/g, "\\'")}', '${b.call_number}', '${b.internal_barcode}')" class="mt-2 bg-blue-600 text-[10px] py-1 rounded">PRINT LABEL</button>
                     </div>
                 </div>
             `).join('');
@@ -374,19 +418,6 @@
                         <p class="text-[10px] text-slate-500 uppercase">Patron: ${b.patron_name}</p>
                     </div>
                     <button onclick="apiCall('/api/circulation/action', 'POST', {code:'${b.isbn}', mode:'in'}).then(refreshData)" class="bg-slate-800 p-2 rounded-lg text-xs font-bold">RETURN</button>
-                </div>
-            `).join('');
-        }
-
-        function renderAdminBooks() {
-            const list = document.getElementById('adminBookList');
-            list.innerHTML = books.map(b => `
-                <div class="glass p-3 rounded-xl flex items-center justify-between text-sm">
-                    <div class="flex items-center gap-4">
-                        <div class="w-8 h-12 bg-slate-700 rounded overflow-hidden"><img src="${b.cover_url}" class="w-full h-full object-cover"></div>
-                        <div><p class="font-bold">${b.title}</p><p class="text-[10px] text-slate-500">${b.internal_barcode}</p></div>
-                    </div>
-                    <button onclick="prepPrint('${b.title.replace(/'/g, "\\'")}', '${b.call_number}', '${b.internal_barcode}')" class="p-2 bg-blue-600/20 text-blue-400 rounded-lg"><i class="fa-solid fa-print"></i></button>
                 </div>
             `).join('');
         }
