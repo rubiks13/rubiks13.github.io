@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dot Map Generator (Exact 2x2 Specs)</title>
+    <title>Dot Map Generator (Custom Dot Counts)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Force high quality printing */
@@ -30,7 +30,7 @@
                 margin: 0 !important;
                 border: none !important;
                 position: relative;
-                display: block !important; /* Ensure block layout for print */
+                display: block !important;
             }
         }
         
@@ -46,7 +46,6 @@
             border: 1px solid #ccc;
         }
 
-        /* Positioning the rows specifically to avoid cutoff */
         .top-set {
             position: absolute;
             top: 1.5in;
@@ -62,7 +61,7 @@
         .grid-row {
             display: flex;
             justify-content: center;
-            gap: 1.5in; /* Horizontal spacing between boxes */
+            gap: 1.5in;
             width: 100%;
         }
 
@@ -94,7 +93,6 @@
             transform: translate(-50%, -50%);
         }
 
-        /* Editor Interface */
         .editor-grid .dot {
             width: 16px;
             height: 16px;
@@ -118,7 +116,6 @@
             z-index: 5;
         }
 
-        /* Precise Label Placement */
         .label-text {
             position: absolute;
             font-size: 16pt;
@@ -131,7 +128,6 @@
             left: 0.8in;
         }
 
-        /* Moved above the bottom set for better visibility */
         .bottom-number-1 {
             bottom: 3.6in; 
             left: 0.8in;
@@ -155,14 +151,25 @@
 
     <!-- Interface Controls -->
     <div class="no-print ui-panel p-4 shadow-md">
-        <div class="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+        <div class="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
             
             <div class="space-y-4">
-                <div class="grid grid-cols-3 gap-2">
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase text-slate-500">Grid Type</label>
+                        <select id="gridType" class="w-full border rounded p-1 text-sm font-bold">
+                            <option value="5">5 Dots (Cross)</option>
+                            <option value="9">9 Dots (3x3)</option>
+                            <option value="17">17 Dots (Diamond)</option>
+                            <option value="25" selected>25 Dots (5x5)</option>
+                        </select>
+                    </div>
                     <div>
                         <label class="block text-[10px] font-bold uppercase text-slate-500">Set #</label>
                         <input type="text" id="setInput" value="11" class="w-full border rounded p-1 text-sm font-bold">
                     </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
                     <div>
                         <label class="block text-[10px] font-bold uppercase text-slate-500">Left Note</label>
                         <input type="text" id="bottomLeftInput" value="21" class="w-full border rounded p-1 text-sm font-bold">
@@ -172,10 +179,11 @@
                         <input type="text" id="probInput" value="12" class="w-full border rounded p-1 text-sm font-bold">
                     </div>
                 </div>
-                <div class="flex gap-2">
-                    <button onclick="resetLines()" class="px-4 py-2 bg-white border border-slate-300 rounded text-xs font-bold hover:bg-slate-50">Clear Drawing</button>
-                    <button onclick="window.print()" class="flex-1 py-2 bg-blue-600 text-white rounded text-xs font-bold hover:bg-blue-700 shadow-lg">Print 8.5x11 Sheet</button>
-                </div>
+            </div>
+
+            <div class="flex flex-col gap-2">
+                <button onclick="resetLines()" class="w-full py-2 bg-white border border-slate-300 rounded text-xs font-bold hover:bg-slate-50">Clear Drawing</button>
+                <button onclick="window.print()" class="w-full py-4 bg-blue-600 text-white rounded text-xs font-bold hover:bg-blue-700 shadow-lg">Print 8.5x11 Sheet</button>
             </div>
 
             <div class="flex justify-center bg-white p-4 rounded-lg shadow-inner border border-slate-200">
@@ -189,41 +197,29 @@
 
     <!-- The Actual 8.5x11 Worksheet -->
     <div id="worksheet" class="worksheet-page">
-        <!-- Labels -->
         <div id="display-set" class="label-text set-number-label">11</div>
         
-        <!-- Top Set -->
         <div class="top-set">
             <div class="grid-row">
-                <div class="box-container">
-                    <div id="grid-original" class="dot-grid"></div>
-                </div>
-                <div class="box-container">
-                    <div id="grid-blank-1" class="dot-grid"></div>
-                </div>
+                <div class="box-container"><div id="grid-original" class="dot-grid"></div></div>
+                <div class="box-container"><div id="grid-blank-1" class="dot-grid"></div></div>
             </div>
         </div>
 
-        <!-- Bottom Set -->
         <div class="bottom-set">
             <div class="grid-row">
-                <div class="box-container">
-                    <div id="grid-rotated" class="dot-grid"></div>
-                </div>
-                <div class="box-container">
-                    <div id="grid-blank-2" class="dot-grid"></div>
-                </div>
+                <div class="box-container"><div id="grid-rotated" class="dot-grid"></div></div>
+                <div class="box-container"><div id="grid-blank-2" class="dot-grid"></div></div>
             </div>
         </div>
 
-        <!-- Labels -->
         <div id="display-bottom-left" class="label-text bottom-number-1">21</div>
         <div id="display-prob" class="label-text problem-number-label">12</div>
     </div>
 
     <script>
-        const GRID_SIZE = 5; 
         const editorGrid = document.getElementById('editorGrid');
+        const gridTypeSelect = document.getElementById('gridType');
         
         const setInput = document.getElementById('setInput');
         const probInput = document.getElementById('probInput');
@@ -235,49 +231,80 @@
         
         let lines = []; 
         let selectedDot = null;
+        let currentDots = [];
+
+        function getDotLayout(type) {
+            const dots = [];
+            if (type === "5") {
+                // Cross pattern
+                dots.push({r:0, c:2}, {r:2, c:0}, {r:2, c:2}, {r:2, c:4}, {r:4, c:2});
+            } else if (type === "9") {
+                // 3x3 pattern
+                for(let r=0; r<5; r+=2) for(let c=0; c<5; c+=2) dots.push({r, c});
+            } else if (type === "17") {
+                // Diamond / Staggered
+                for(let r=0; r<5; r++) {
+                    for(let c=0; c<5; c++) {
+                        if ((r + c) % 2 === 0) dots.push({r, c});
+                    }
+                }
+            } else {
+                // 25 dots (5x5)
+                for(let r=0; r<5; r++) for(let c=0; c<5; c++) dots.push({r, c});
+            }
+            return dots;
+        }
 
         function init() {
+            refreshGrids();
+            
+            gridTypeSelect.onchange = refreshGrids;
+            setInput.oninput = (e) => displaySet.innerText = e.target.value;
+            probInput.oninput = (e) => displayProb.innerText = e.target.value;
+            bottomLeftInput.oninput = (e) => displayBottomLeft.innerText = e.target.value;
+        }
+
+        function refreshGrids() {
+            lines = [];
+            selectedDot = null;
+            currentDots = getDotLayout(gridTypeSelect.value);
+            
             createDots(editorGrid, true);
             createDots(document.getElementById('grid-original'), false);
             createDots(document.getElementById('grid-blank-1'), false);
             createDots(document.getElementById('grid-rotated'), false);
             createDots(document.getElementById('grid-blank-2'), false);
-
-            setInput.addEventListener('input', (e) => displaySet.innerText = e.target.value);
-            probInput.addEventListener('input', (e) => displayProb.innerText = e.target.value);
-            bottomLeftInput.addEventListener('input', (e) => displayBottomLeft.innerText = e.target.value);
+            renderAllLines();
         }
 
         function createDots(container, isEditable) {
             container.innerHTML = '';
-            for (let r = 0; r < GRID_SIZE; r++) {
-                for (let c = 0; c < GRID_SIZE; c++) {
-                    const dot = document.createElement('div');
-                    dot.className = 'dot';
-                    dot.style.left = `${c * 25}%`;
-                    dot.style.top = `${r * 25}%`;
+            currentDots.forEach(pos => {
+                const dot = document.createElement('div');
+                dot.className = 'dot';
+                dot.style.left = `${pos.c * 25}%`;
+                dot.style.top = `${pos.r * 25}%`;
 
-                    if (isEditable) {
-                        dot.onclick = () => {
-                            if (selectedDot) {
-                                if (selectedDot.r === r && selectedDot.c === c) {
-                                    dot.classList.remove('selected');
-                                    selectedDot = null;
-                                } else {
-                                    lines.push({ start: [selectedDot.r, selectedDot.c], end: [r, c] });
-                                    document.querySelectorAll('.dot.selected').forEach(d => d.classList.remove('selected'));
-                                    selectedDot = null;
-                                    renderAllLines();
-                                }
+                if (isEditable) {
+                    dot.onclick = () => {
+                        if (selectedDot) {
+                            if (selectedDot.r === pos.r && selectedDot.c === pos.c) {
+                                dot.classList.remove('selected');
+                                selectedDot = null;
                             } else {
-                                selectedDot = { r, c, element: dot };
-                                dot.classList.add('selected');
+                                lines.push({ start: [selectedDot.r, selectedDot.c], end: [pos.r, pos.c] });
+                                document.querySelectorAll('.dot.selected').forEach(d => d.classList.remove('selected'));
+                                selectedDot = null;
+                                renderAllLines();
                             }
-                        };
-                    }
-                    container.appendChild(dot);
+                        } else {
+                            selectedDot = { r: pos.r, c: pos.c, element: dot };
+                            dot.classList.add('selected');
+                        }
+                    };
                 }
-            }
+                container.appendChild(dot);
+            });
         }
 
         function resetLines() {
