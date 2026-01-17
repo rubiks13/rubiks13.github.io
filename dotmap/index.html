@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dot Map Generator (Exact 2x2 Specs)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Force high quality printing */
+        * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        @media print {
+            @page {
+                size: 8.5in 11in;
+                margin: 0;
+            }
+            .no-print { display: none !important; }
+            body { 
+                padding: 0; 
+                margin: 0;
+                background: white !important; 
+            }
+            .worksheet-page { 
+                width: 8.5in;
+                height: 11in;
+                box-shadow: none !important;
+                margin: 0 !important;
+                border: none !important;
+                position: relative;
+                display: block !important; /* Ensure block layout for print */
+            }
+        }
+        
+        .worksheet-page {
+            background: white;
+            width: 8.5in;
+            height: 11in;
+            margin: 40px auto;
+            position: relative;
+            font-family: "Helvetica", "Arial", sans-serif;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2); 
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+        }
+
+        /* Positioning the rows specifically to avoid cutoff */
+        .top-set {
+            position: absolute;
+            top: 1.5in;
+            width: 100%;
+        }
+
+        .bottom-set {
+            position: absolute;
+            bottom: 1.5in;
+            width: 100%;
+        }
+
+        .grid-row {
+            display: flex;
+            justify-content: center;
+            gap: 1.5in; /* Horizontal spacing between boxes */
+            width: 100%;
+        }
+
+        /* EXACT 2x2 Inch Boxes */
+        .box-container {
+            width: 2in;
+            height: 2in;
+            border: 1pt solid black !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background: white;
+        }
+
+        .dot-grid {
+            width: 1.6in;
+            height: 1.6in;
+            position: relative;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            background-color: black !important;
+            border-radius: 50%;
+            z-index: 10;
+            position: absolute;
+            transform: translate(-50%, -50%);
+        }
+
+        /* Editor Interface */
+        .editor-grid .dot {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        .dot:hover {
+            background-color: #3b82f6 !important;
+        }
+
+        .dot.selected {
+            background-color: #ef4444 !important;
+        }
+
+        .line {
+            position: absolute;
+            background-color: black !important;
+            height: 2pt;
+            transform-origin: 0 50%;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        /* Precise Label Placement */
+        .label-text {
+            position: absolute;
+            font-size: 16pt;
+            font-weight: normal;
+            color: black;
+        }
+
+        .set-number-label {
+            top: 0.6in;
+            left: 0.8in;
+        }
+
+        /* Moved above the bottom set for better visibility */
+        .bottom-number-1 {
+            bottom: 3.6in; 
+            left: 0.8in;
+        }
+
+        .problem-number-label {
+            bottom: 0.6in;
+            right: 0.8in;
+        }
+
+        .ui-panel {
+            background: #f8fafc;
+            border-bottom: 2px solid #e2e8f0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body class="bg-slate-300 min-h-screen">
+
+    <!-- Interface Controls -->
+    <div class="no-print ui-panel p-4 shadow-md">
+        <div class="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+            
+            <div class="space-y-4">
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase text-slate-500">Set #</label>
+                        <input type="text" id="setInput" value="11" class="w-full border rounded p-1 text-sm font-bold">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase text-slate-500">Left Note</label>
+                        <input type="text" id="bottomLeftInput" value="21" class="w-full border rounded p-1 text-sm font-bold">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase text-slate-500">Prob #</label>
+                        <input type="text" id="probInput" value="12" class="w-full border rounded p-1 text-sm font-bold">
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="resetLines()" class="px-4 py-2 bg-white border border-slate-300 rounded text-xs font-bold hover:bg-slate-50">Clear Drawing</button>
+                    <button onclick="window.print()" class="flex-1 py-2 bg-blue-600 text-white rounded text-xs font-bold hover:bg-blue-700 shadow-lg">Print 8.5x11 Sheet</button>
+                </div>
+            </div>
+
+            <div class="flex justify-center bg-white p-4 rounded-lg shadow-inner border border-slate-200">
+                <div class="box-container" style="border-style: dashed !important; border-color: #3b82f6 !important; width: 2.2in; height: 2.2in;">
+                    <div id="editorGrid" class="dot-grid editor-grid" style="width: 1.8in; height: 1.8in;"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- The Actual 8.5x11 Worksheet -->
+    <div id="worksheet" class="worksheet-page">
+        <!-- Labels -->
+        <div id="display-set" class="label-text set-number-label">11</div>
+        
+        <!-- Top Set -->
+        <div class="top-set">
+            <div class="grid-row">
+                <div class="box-container">
+                    <div id="grid-original" class="dot-grid"></div>
+                </div>
+                <div class="box-container">
+                    <div id="grid-blank-1" class="dot-grid"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Set -->
+        <div class="bottom-set">
+            <div class="grid-row">
+                <div class="box-container">
+                    <div id="grid-rotated" class="dot-grid"></div>
+                </div>
+                <div class="box-container">
+                    <div id="grid-blank-2" class="dot-grid"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Labels -->
+        <div id="display-bottom-left" class="label-text bottom-number-1">21</div>
+        <div id="display-prob" class="label-text problem-number-label">12</div>
+    </div>
+
+    <script>
+        const GRID_SIZE = 5; 
+        const editorGrid = document.getElementById('editorGrid');
+        
+        const setInput = document.getElementById('setInput');
+        const probInput = document.getElementById('probInput');
+        const bottomLeftInput = document.getElementById('bottomLeftInput');
+
+        const displaySet = document.getElementById('display-set');
+        const displayProb = document.getElementById('display-prob');
+        const displayBottomLeft = document.getElementById('display-bottom-left');
+        
+        let lines = []; 
+        let selectedDot = null;
+
+        function init() {
+            createDots(editorGrid, true);
+            createDots(document.getElementById('grid-original'), false);
+            createDots(document.getElementById('grid-blank-1'), false);
+            createDots(document.getElementById('grid-rotated'), false);
+            createDots(document.getElementById('grid-blank-2'), false);
+
+            setInput.addEventListener('input', (e) => displaySet.innerText = e.target.value);
+            probInput.addEventListener('input', (e) => displayProb.innerText = e.target.value);
+            bottomLeftInput.addEventListener('input', (e) => displayBottomLeft.innerText = e.target.value);
+        }
+
+        function createDots(container, isEditable) {
+            container.innerHTML = '';
+            for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    const dot = document.createElement('div');
+                    dot.className = 'dot';
+                    dot.style.left = `${c * 25}%`;
+                    dot.style.top = `${r * 25}%`;
+
+                    if (isEditable) {
+                        dot.onclick = () => {
+                            if (selectedDot) {
+                                if (selectedDot.r === r && selectedDot.c === c) {
+                                    dot.classList.remove('selected');
+                                    selectedDot = null;
+                                } else {
+                                    lines.push({ start: [selectedDot.r, selectedDot.c], end: [r, c] });
+                                    document.querySelectorAll('.dot.selected').forEach(d => d.classList.remove('selected'));
+                                    selectedDot = null;
+                                    renderAllLines();
+                                }
+                            } else {
+                                selectedDot = { r, c, element: dot };
+                                dot.classList.add('selected');
+                            }
+                        };
+                    }
+                    container.appendChild(dot);
+                }
+            }
+        }
+
+        function resetLines() {
+            lines = [];
+            renderAllLines();
+        }
+
+        function renderAllLines() {
+            document.querySelectorAll('.line').forEach(l => l.remove());
+            const targets = [
+                { id: 'editorGrid', rotation: 0 },
+                { id: 'grid-original', rotation: 0 },
+                { id: 'grid-rotated', rotation: 90 }
+            ];
+
+            targets.forEach(target => {
+                const container = document.getElementById(target.id);
+                lines.forEach(line => {
+                    container.appendChild(drawLine(line.start, line.end, target.rotation));
+                });
+            });
+        }
+
+        function drawLine(start, end, rotation) {
+            let [sR, sC] = start;
+            let [eR, eC] = end;
+
+            if (rotation === 90) {
+                let oldSR = sR; sR = sC; sC = 4 - oldSR;
+                let oldER = eR; eR = eC; eC = 4 - oldER;
+            }
+
+            const x1 = sC * 25, y1 = sR * 25;
+            const x2 = eC * 25, y2 = eR * 25;
+            const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+            const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+
+            const line = document.createElement('div');
+            line.className = 'line';
+            line.style.width = `${length}%`;
+            line.style.left = `${x1}%`;
+            line.style.top = `${y1}%`;
+            line.style.transform = `rotate(${angle}deg)`;
+            return line;
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
