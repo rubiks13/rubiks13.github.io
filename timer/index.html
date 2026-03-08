@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Elite Cube Timer</title>
+    
+    <link rel="manifest" href="data:application/manifest+json,{'name':'Cube Timer','short_name':'Timer','start_url':'.','display':'standalone','background_color':'#050505','theme_color':'#050505'}">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&family=JetBrains+Mono:wght@700&display=swap');
@@ -12,7 +17,7 @@
             --bg: #050505;
             --accent: #3b82f6;
             --success: #22c55e;
-            --oval-bg: rgba(255, 255, 255, 0.03);
+            --oval-bg: rgba(255, 255, 255, 0.05);
             --oval-border: rgba(255, 255, 255, 0.1);
         }
 
@@ -25,6 +30,7 @@
             height: 100vh;
             width: 100vw;
             margin: 0;
+            overscroll-behavior-y: contain;
         }
 
         * {
@@ -36,14 +42,7 @@
 
         .lcd { font-family: 'JetBrains Mono', monospace; }
 
-        /* Layout Architecture */
-        .game-viewport {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-            overflow: hidden;
-        }
-
+        /* Responsive Layout Overhaul */
         .player-oval {
             position: absolute;
             background: var(--oval-bg);
@@ -55,58 +54,65 @@
             z-index: 20;
         }
 
-        /* Player 1: Left Semi-Oval */
+        /* Adjusted sizes to prevent overlap on narrow screens */
         #player-0 {
-            left: -10vh;
-            top: 25vh;
-            width: 35vh;
-            height: 50vh;
+            left: -5vh;
+            top: 15vh;
+            width: 25vh;
+            height: 35vh;
             border-radius: 0 1000px 1000px 0;
         }
-        #player-0 .content-wrap { transform: rotate(90deg); }
+        #player-0 .content-wrap { transform: rotate(90deg) translateY(-10px); }
 
-        /* Player 2: Right Semi-Oval */
         #player-1 {
-            right: -10vh;
-            top: 25vh;
-            width: 35vh;
-            height: 50vh;
+            right: -5vh;
+            top: 15vh;
+            width: 25vh;
+            height: 35vh;
             border-radius: 1000px 0 0 1000px;
         }
-        #player-1 .content-wrap { transform: rotate(-90deg); }
+        #player-1 .content-wrap { transform: rotate(-90deg) translateY(-10px); }
 
-        /* Player 3: Bottom Semi-Oval */
         #player-2 {
-            bottom: -10vh;
-            left: 25vw;
-            width: 50vw;
-            height: 35vh;
+            bottom: -5vh;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60vw;
+            height: 25vh;
             border-radius: 1000px 1000px 0 0;
         }
+        #player-2 .content-wrap { transform: translateY(-10px); }
 
         .content-wrap {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            text-align: center;
             pointer-events: none;
         }
 
-        /* Interaction States */
         .player-oval.active {
-            background: rgba(34, 197, 94, 0.15);
+            background: rgba(34, 197, 94, 0.2);
             border-color: var(--success);
-            box-shadow: 0 0 50px rgba(34, 197, 94, 0.1);
+            box-shadow: 0 0 30px rgba(34, 197, 94, 0.1);
         }
 
         .player-oval.finished {
             background: rgba(59, 130, 246, 0.1);
             border-color: var(--accent);
-            opacity: 0.7;
+            opacity: 0.5;
         }
 
-        /* Modal & UI Animation */
+        /* Hide UI Elements during solve */
+        .hide-during-solve {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .solving .hide-during-solve {
+            opacity: 0 !important;
+            pointer-events: none !important;
+            transform: scale(0.95);
+        }
+
         .modal {
             transform: translateY(100%);
             transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
@@ -114,26 +120,26 @@
         .modal.open { transform: translateY(0); }
     </style>
 </head>
-<body class="flex flex-col">
+<body class="flex flex-col" id="app-body">
 
     <!-- Top Bar -->
-    <div id="top-bar" class="fixed top-0 left-0 w-full p-4 flex justify-between items-center z-[70]">
+    <div id="top-bar" class="fixed top-0 left-0 w-full p-4 flex justify-between items-center z-[70] hide-during-solve">
         <div class="text-[0.6rem] uppercase tracking-[0.4em] text-white/20 font-bold ml-4">Elite Multi-Timer</div>
         <button onclick="toggleSettings(true)" class="bg-white/5 hover:bg-white/10 border border-white/10 px-5 py-2 rounded-full font-bold text-xs tracking-widest transition active:scale-95 uppercase">
             Settings
         </button>
     </div>
 
-    <!-- Scramble Area (Center) -->
-    <div id="scramble-container" class="fixed inset-0 flex flex-col items-center justify-center p-12 text-center pointer-events-none z-10">
+    <!-- Scramble Area -->
+    <div id="scramble-container" class="fixed inset-0 flex flex-col items-center justify-center p-8 text-center pointer-events-none z-10 hide-during-solve">
         <div id="scramble-label" class="text-[0.6rem] uppercase tracking-[0.4em] text-white/30 mb-4 font-bold">Current Scramble</div>
-        <div id="scramble-display" class="text-xl md:text-2xl font-light lcd text-white max-w-lg leading-relaxed mb-8">
+        <div id="scramble-display" class="text-lg md:text-2xl font-light lcd text-white max-w-xs md:max-w-lg leading-relaxed mb-8">
             ...
         </div>
         <button id="btn-refresh" onclick="initScramble()" class="pointer-events-auto p-4 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition active:rotate-180">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
         </button>
-        <p id="tap-instruction" class="text-white/20 text-[0.6rem] font-bold tracking-[0.3em] uppercase mt-6">Tap any oval to Inspect</p>
+        <p id="tap-instruction" class="text-white/20 text-[0.5rem] font-bold tracking-[0.3em] uppercase mt-6">Tap any oval to Inspect</p>
     </div>
 
     <!-- Main Game View -->
@@ -143,38 +149,37 @@
         <!-- Player 1 -->
         <div id="player-0" class="player-oval" onmousedown="stopPlayer(0)" ontouchstart="stopPlayer(0)">
             <div class="content-wrap">
-                <div id="name-label-0" class="text-sm font-bold text-white tracking-widest uppercase mb-1">Player 1</div>
-                <div id="time-0" class="lcd text-5xl font-bold text-white">0.00</div>
+                <div id="name-label-0" class="text-[0.6rem] font-bold text-white/40 tracking-widest uppercase mb-1">Player 1</div>
+                <div id="time-0" class="lcd text-3xl font-bold text-white">0.00</div>
             </div>
         </div>
 
         <!-- Player 2 -->
         <div id="player-1" class="player-oval" onmousedown="stopPlayer(1)" ontouchstart="stopPlayer(1)">
             <div class="content-wrap">
-                <div id="name-label-1" class="text-sm font-bold text-white tracking-widest uppercase mb-1">Player 2</div>
-                <div id="time-1" class="lcd text-5xl font-bold text-white">0.00</div>
+                <div id="name-label-1" class="text-[0.6rem] font-bold text-white/40 tracking-widest uppercase mb-1">Player 2</div>
+                <div id="time-1" class="lcd text-3xl font-bold text-white">0.00</div>
             </div>
         </div>
 
         <!-- Player 3 -->
         <div id="player-2" class="player-oval" onmousedown="stopPlayer(2)" ontouchstart="stopPlayer(2)">
             <div class="content-wrap">
-                <div id="name-label-2" class="text-sm font-bold text-white tracking-widest uppercase mb-1">Player 3</div>
-                <div id="time-2" class="lcd text-5xl font-bold text-white">0.00</div>
+                <div id="name-label-2" class="text-[0.6rem] font-bold text-white/40 tracking-widest uppercase mb-1">Player 3</div>
+                <div id="time-2" class="lcd text-4xl font-bold text-white">0.00</div>
             </div>
         </div>
     </div>
 
     <!-- Inspection Layer -->
-    <div id="inspection-overlay" class="hidden fixed inset-0 bg-black/90 z-[100] flex flex-col items-center justify-center pointer-events-none">
-        <div id="inspection-countdown" class="text-[15rem] lcd leading-none font-bold text-white">15</div>
-        <div class="text-white/20 tracking-[1em] uppercase text-sm font-bold">Inspection</div>
+    <div id="inspection-overlay" class="hidden fixed inset-0 z-[100] flex flex-col items-center justify-center pointer-events-none">
+        <div id="inspection-countdown" class="text-[12rem] lcd leading-none font-bold text-white/90">15</div>
     </div>
 
     <!-- Results Overlay -->
     <div id="winner-overlay" class="hidden fixed inset-0 bg-black/98 z-[200] flex flex-col items-center justify-center p-6 text-center">
         <div class="text-blue-500 text-xs tracking-[0.5em] uppercase mb-4 font-bold">Fastest Solve</div>
-        <div id="winner-name" class="text-6xl font-bold mb-2 tracking-tighter text-white">PLAYER 1</div>
+        <div id="winner-name" class="text-5xl font-bold mb-2 tracking-tighter text-white">PLAYER 1</div>
         <div id="winner-time" class="text-4xl lcd text-white/60 mb-16">12.45</div>
         <button onclick="resetToScramble()" class="px-16 py-6 bg-white text-black text-xs font-black rounded-full tracking-[0.3em] active:scale-95 transition uppercase shadow-xl">
             Next Scramble
@@ -191,19 +196,18 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-            <!-- Player Stats in Settings -->
-            <div class="bg-white/5 p-8 rounded-[2rem] border border-white/5">
-                <input id="input-name-0" class="bg-transparent border-b border-white/20 w-full mb-6 py-2 text-xl font-bold text-white" onchange="updateNames()" placeholder="Player 1">
+            <div class="bg-white/5 p-6 rounded-[2rem] border border-white/5">
+                <input id="input-name-0" class="bg-transparent border-b border-white/20 w-full mb-4 py-2 text-lg font-bold text-white" onchange="updateNames()" placeholder="Player 1">
                 <div class="text-[0.6rem] text-blue-400 uppercase tracking-widest font-bold mb-2">Ao5: <span id="settings-avg-0">--</span></div>
                 <div id="stats-history-0" class="text-xs lcd leading-loose text-white/40">No data</div>
             </div>
-            <div class="bg-white/5 p-8 rounded-[2rem] border border-white/5">
-                <input id="input-name-1" class="bg-transparent border-b border-white/20 w-full mb-6 py-2 text-xl font-bold text-white" onchange="updateNames()" placeholder="Player 2">
+            <div class="bg-white/5 p-6 rounded-[2rem] border border-white/5">
+                <input id="input-name-1" class="bg-transparent border-b border-white/20 w-full mb-4 py-2 text-lg font-bold text-white" onchange="updateNames()" placeholder="Player 2">
                 <div class="text-[0.6rem] text-blue-400 uppercase tracking-widest font-bold mb-2">Ao5: <span id="settings-avg-1">--</span></div>
                 <div id="stats-history-1" class="text-xs lcd leading-loose text-white/40">No data</div>
             </div>
-            <div class="bg-white/5 p-8 rounded-[2rem] border border-white/5">
-                <input id="input-name-2" class="bg-transparent border-b border-white/20 w-full mb-6 py-2 text-xl font-bold text-white" onchange="updateNames()" placeholder="Player 3">
+            <div class="bg-white/5 p-6 rounded-[2rem] border border-white/5">
+                <input id="input-name-2" class="bg-transparent border-b border-white/20 w-full mb-4 py-2 text-lg font-bold text-white" onchange="updateNames()" placeholder="Player 3">
                 <div class="text-[0.6rem] text-blue-400 uppercase tracking-widest font-bold mb-2">Ao5: <span id="settings-avg-2">--</span></div>
                 <div id="stats-history-2" class="text-xs lcd leading-loose text-white/40">No data</div>
             </div>
@@ -259,7 +263,6 @@
                 document.getElementById(`stats-history-${i}`).innerHTML = bests.length ? 
                     bests.map(t => `<div class="flex justify-between"><span>Solve</span><span>${t}s</span></div>`).join('') : 
                     "No data yet";
-                // Show Average of 5 only in settings
                 document.getElementById(`settings-avg-${i}`).innerText = calculateAo5(p.history);
             });
         }
@@ -294,14 +297,13 @@
 
         function startInspection() {
             state = 'INSPECTION';
+            document.getElementById('app-body').classList.add('solving');
             document.getElementById('inspection-overlay').classList.remove('hidden');
-            document.getElementById('btn-refresh').classList.add('opacity-0', 'pointer-events-none');
-            document.getElementById('tap-instruction').classList.add('opacity-0');
             
             let time = 15;
             const el = document.getElementById('inspection-countdown');
             el.innerText = time;
-            el.style.color = "white";
+            el.style.color = "rgba(255,255,255,0.9)";
 
             inspectionInterval = setInterval(() => {
                 time--;
@@ -371,10 +373,9 @@
 
         function resetToScramble() {
             state = 'SCRAMBLE';
+            document.getElementById('app-body').classList.remove('solving');
             document.getElementById('winner-overlay').classList.add('hidden');
             document.getElementById('global-trigger').classList.remove('hidden');
-            document.getElementById('btn-refresh').classList.remove('opacity-0', 'pointer-events-none');
-            document.getElementById('tap-instruction').classList.remove('opacity-0');
             
             players.forEach(p => {
                 p.running = false;
