@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Elite Cube Timer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&family=JetBrains+Mono:wght@700&display=swap');
+
+        :root {
+            --bg: #050505;
+            --accent: #3b82f6;
+            --success: #22c55e;
+            --oval-bg: rgba(255, 255, 255, 0.03);
+            --oval-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            background-color: var(--bg);
+            color: #ffffff;
+            font-family: 'Space Grotesk', sans-serif;
+            overflow: hidden;
+            touch-action: none;
+            height: 100vh;
+            width: 100vw;
+            margin: 0;
+        }
+
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            outline: none;
+        }
+
+        .lcd { font-family: 'JetBrains Mono', monospace; }
+
+        /* Layout Architecture */
+        .game-viewport {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .player-oval {
+            position: absolute;
+            background: var(--oval-bg);
+            border: 2px solid var(--oval-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 20;
+        }
+
+        /* Player 1: Left Semi-Oval */
+        #player-0 {
+            left: -10vh;
+            top: 25vh;
+            width: 35vh;
+            height: 50vh;
+            border-radius: 0 1000px 1000px 0;
+        }
+        #player-0 .content-wrap { transform: rotate(90deg); }
+
+        /* Player 2: Right Semi-Oval */
+        #player-1 {
+            right: -10vh;
+            top: 25vh;
+            width: 35vh;
+            height: 50vh;
+            border-radius: 1000px 0 0 1000px;
+        }
+        #player-1 .content-wrap { transform: rotate(-90deg); }
+
+        /* Player 3: Bottom Semi-Oval */
+        #player-2 {
+            bottom: -10vh;
+            left: 25vw;
+            width: 50vw;
+            height: 35vh;
+            border-radius: 1000px 1000px 0 0;
+        }
+
+        .content-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            pointer-events: none;
+        }
+
+        /* Interaction States */
+        .player-oval.active {
+            background: rgba(34, 197, 94, 0.15);
+            border-color: var(--success);
+            box-shadow: 0 0 50px rgba(34, 197, 94, 0.1);
+        }
+
+        .player-oval.finished {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: var(--accent);
+            opacity: 0.7;
+        }
+
+        /* Modal & UI Animation */
+        .modal {
+            transform: translateY(100%);
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .modal.open { transform: translateY(0); }
+    </style>
+</head>
+<body class="flex flex-col">
+
+    <!-- Top Bar -->
+    <div id="top-bar" class="fixed top-0 left-0 w-full p-4 flex justify-between items-center z-[70]">
+        <div class="text-[0.6rem] uppercase tracking-[0.4em] text-white/20 font-bold ml-4">Elite Multi-Timer</div>
+        <button onclick="toggleSettings(true)" class="bg-white/5 hover:bg-white/10 border border-white/10 px-5 py-2 rounded-full font-bold text-xs tracking-widest transition active:scale-95 uppercase">
+            Settings
+        </button>
+    </div>
+
+    <!-- Scramble Area (Center) -->
+    <div id="scramble-container" class="fixed inset-0 flex flex-col items-center justify-center p-12 text-center pointer-events-none z-10">
+        <div id="scramble-label" class="text-[0.6rem] uppercase tracking-[0.4em] text-white/30 mb-4 font-bold">Current Scramble</div>
+        <div id="scramble-display" class="text-xl md:text-2xl font-light lcd text-white max-w-lg leading-relaxed mb-8">
+            ...
+        </div>
+        <button id="btn-refresh" onclick="initScramble()" class="pointer-events-auto p-4 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition active:rotate-180">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+        </button>
+        <p id="tap-instruction" class="text-white/20 text-[0.6rem] font-bold tracking-[0.3em] uppercase mt-6">Tap any oval to Inspect</p>
+    </div>
+
+    <!-- Main Game View -->
+    <div id="screen-game" class="game-viewport">
+        <div id="global-trigger" class="absolute inset-0 z-[15]" onclick="handleGlobalClick()"></div>
+        
+        <!-- Player 1 -->
+        <div id="player-0" class="player-oval" onmousedown="stopPlayer(0)" ontouchstart="stopPlayer(0)">
+            <div class="content-wrap">
+                <div id="name-label-0" class="text-sm font-bold text-white tracking-widest uppercase mb-1">Player 1</div>
+                <div id="time-0" class="lcd text-5xl font-bold text-white">0.00</div>
+            </div>
+        </div>
+
+        <!-- Player 2 -->
+        <div id="player-1" class="player-oval" onmousedown="stopPlayer(1)" ontouchstart="stopPlayer(1)">
+            <div class="content-wrap">
+                <div id="name-label-1" class="text-sm font-bold text-white tracking-widest uppercase mb-1">Player 2</div>
+                <div id="time-1" class="lcd text-5xl font-bold text-white">0.00</div>
+            </div>
+        </div>
+
+        <!-- Player 3 -->
+        <div id="player-2" class="player-oval" onmousedown="stopPlayer(2)" ontouchstart="stopPlayer(2)">
+            <div class="content-wrap">
+                <div id="name-label-2" class="text-sm font-bold text-white tracking-widest uppercase mb-1">Player 3</div>
+                <div id="time-2" class="lcd text-5xl font-bold text-white">0.00</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inspection Layer -->
+    <div id="inspection-overlay" class="hidden fixed inset-0 bg-black/90 z-[100] flex flex-col items-center justify-center pointer-events-none">
+        <div id="inspection-countdown" class="text-[15rem] lcd leading-none font-bold text-white">15</div>
+        <div class="text-white/20 tracking-[1em] uppercase text-sm font-bold">Inspection</div>
+    </div>
+
+    <!-- Results Overlay -->
+    <div id="winner-overlay" class="hidden fixed inset-0 bg-black/98 z-[200] flex flex-col items-center justify-center p-6 text-center">
+        <div class="text-blue-500 text-xs tracking-[0.5em] uppercase mb-4 font-bold">Fastest Solve</div>
+        <div id="winner-name" class="text-6xl font-bold mb-2 tracking-tighter text-white">PLAYER 1</div>
+        <div id="winner-time" class="text-4xl lcd text-white/60 mb-16">12.45</div>
+        <button onclick="resetToScramble()" class="px-16 py-6 bg-white text-black text-xs font-black rounded-full tracking-[0.3em] active:scale-95 transition uppercase shadow-xl">
+            Next Scramble
+        </button>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal fixed inset-0 bg-black z-[300] flex flex-col p-8 overflow-y-auto">
+        <div class="flex justify-between items-center mb-12">
+            <h2 class="text-2xl font-bold tracking-tighter">Session Data</h2>
+            <button onclick="toggleSettings(false)" class="p-3 bg-white/5 rounded-full">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            <!-- Player Stats in Settings -->
+            <div class="bg-white/5 p-8 rounded-[2rem] border border-white/5">
+                <input id="input-name-0" class="bg-transparent border-b border-white/20 w-full mb-6 py-2 text-xl font-bold text-white" onchange="updateNames()" placeholder="Player 1">
+                <div class="text-[0.6rem] text-blue-400 uppercase tracking-widest font-bold mb-2">Ao5: <span id="settings-avg-0">--</span></div>
+                <div id="stats-history-0" class="text-xs lcd leading-loose text-white/40">No data</div>
+            </div>
+            <div class="bg-white/5 p-8 rounded-[2rem] border border-white/5">
+                <input id="input-name-1" class="bg-transparent border-b border-white/20 w-full mb-6 py-2 text-xl font-bold text-white" onchange="updateNames()" placeholder="Player 2">
+                <div class="text-[0.6rem] text-blue-400 uppercase tracking-widest font-bold mb-2">Ao5: <span id="settings-avg-1">--</span></div>
+                <div id="stats-history-1" class="text-xs lcd leading-loose text-white/40">No data</div>
+            </div>
+            <div class="bg-white/5 p-8 rounded-[2rem] border border-white/5">
+                <input id="input-name-2" class="bg-transparent border-b border-white/20 w-full mb-6 py-2 text-xl font-bold text-white" onchange="updateNames()" placeholder="Player 3">
+                <div class="text-[0.6rem] text-blue-400 uppercase tracking-widest font-bold mb-2">Ao5: <span id="settings-avg-2">--</span></div>
+                <div id="stats-history-2" class="text-xs lcd leading-loose text-white/40">No data</div>
+            </div>
+        </div>
+
+        <button onclick="clearAllData()" class="mt-auto border border-red-500/30 text-red-500 py-6 rounded-3xl font-bold tracking-widest hover:bg-red-500/10 transition uppercase text-[0.6rem]">
+            Erase All Data
+        </button>
+    </div>
+
+    <script>
+        let state = 'SCRAMBLE';
+        let inspectionInterval;
+        let timerInterval;
+        
+        let players = [
+            { id: 0, name: 'Player 1', history: [], running: false, finished: false },
+            { id: 1, name: 'Player 2', history: [], running: false, finished: false },
+            { id: 2, name: 'Player 3', history: [], running: false, finished: false }
+        ];
+
+        function loadData() {
+            const saved = localStorage.getItem('cube_timer_v4_data');
+            if (saved) {
+                const data = JSON.parse(saved);
+                players.forEach((p, i) => {
+                    p.name = data[i].name || `Player ${i+1}`;
+                    p.history = data[i].history || [];
+                    document.getElementById(`input-name-${i}`).value = p.name;
+                    document.getElementById(`name-label-${i}`).innerText = p.name;
+                });
+                renderStats();
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('cube_timer_v4_data', JSON.stringify(players));
+            renderStats();
+        }
+
+        function updateNames() {
+            players.forEach((p, i) => {
+                const val = document.getElementById(`input-name-${i}`).value;
+                p.name = val || `Player ${i+1}`;
+                document.getElementById(`name-label-${i}`).innerText = p.name;
+            });
+            saveData();
+        }
+
+        function renderStats() {
+            players.forEach((p, i) => {
+                const bests = [...p.history].sort((a,b) => parseFloat(a)-parseFloat(b)).slice(0, 5);
+                document.getElementById(`stats-history-${i}`).innerHTML = bests.length ? 
+                    bests.map(t => `<div class="flex justify-between"><span>Solve</span><span>${t}s</span></div>`).join('') : 
+                    "No data yet";
+                // Show Average of 5 only in settings
+                document.getElementById(`settings-avg-${i}`).innerText = calculateAo5(p.history);
+            });
+        }
+
+        function generateScramble() {
+            const moves = ["U", "D", "L", "R", "F", "B"];
+            const mods = ["", "'", "2"];
+            let s = [], last = "";
+            for (let i = 0; i < 20; i++) {
+                let m = moves[Math.floor(Math.random() * moves.length)];
+                while (m === last) m = moves[Math.floor(Math.random() * moves.length)];
+                s.push(m + mods[Math.floor(Math.random() * mods.length)]);
+                last = m;
+            }
+            return s.join(" ");
+        }
+
+        function initScramble() {
+            document.getElementById('scramble-display').innerText = generateScramble();
+        }
+
+        function calculateAo5(times) {
+            if (times.length < 5) return "--";
+            let last5 = times.slice(-5).map(t => parseFloat(t)).sort((a, b) => a - b);
+            return ((last5[1] + last5[2] + last5[3]) / 3).toFixed(2);
+        }
+
+        function handleGlobalClick() {
+            if (state === 'SCRAMBLE') startInspection();
+            else if (state === 'INSPECTION') startTimers();
+        }
+
+        function startInspection() {
+            state = 'INSPECTION';
+            document.getElementById('inspection-overlay').classList.remove('hidden');
+            document.getElementById('btn-refresh').classList.add('opacity-0', 'pointer-events-none');
+            document.getElementById('tap-instruction').classList.add('opacity-0');
+            
+            let time = 15;
+            const el = document.getElementById('inspection-countdown');
+            el.innerText = time;
+            el.style.color = "white";
+
+            inspectionInterval = setInterval(() => {
+                time--;
+                el.innerText = time;
+                if (time <= 3) el.style.color = "#ef4444";
+                if (time <= 0) startTimers();
+            }, 1000);
+        }
+
+        function startTimers() {
+            if (state !== 'INSPECTION') return;
+            clearInterval(inspectionInterval);
+            state = 'RUNNING';
+            document.getElementById('inspection-overlay').classList.add('hidden');
+            document.getElementById('global-trigger').classList.add('hidden');
+            
+            const now = performance.now();
+            players.forEach(p => {
+                p.startTime = now;
+                p.running = true;
+                p.finished = false;
+                document.getElementById(`player-${p.id}`).classList.add('active');
+            });
+
+            timerInterval = setInterval(() => {
+                const now = performance.now();
+                players.forEach(p => {
+                    if (p.running) {
+                        const elapsed = (now - p.startTime) / 1000;
+                        document.getElementById(`time-${p.id}`).innerText = elapsed.toFixed(2);
+                    }
+                });
+            }, 10);
+        }
+
+        function stopPlayer(id) {
+            const p = players[id];
+            if (state === 'RUNNING' && p.running) {
+                p.running = false;
+                p.finished = true;
+                p.endTime = performance.now();
+                const solveTime = ((p.endTime - p.startTime) / 1000).toFixed(2);
+                p.history.push(solveTime);
+                
+                document.getElementById(`time-${p.id}`).innerText = solveTime;
+                document.getElementById(`player-${p.id}`).classList.replace('active', 'finished');
+                saveData();
+                checkAllFinished();
+            }
+        }
+
+        function checkAllFinished() {
+            if (players.every(p => p.finished)) {
+                clearInterval(timerInterval);
+                state = 'FINISHED';
+                const winner = [...players].sort((a,b) => {
+                    const tA = parseFloat(a.history[a.history.length-1]);
+                    const tB = parseFloat(b.history[b.history.length-1]);
+                    return tA - tB;
+                })[0];
+                
+                document.getElementById('winner-name').innerText = winner.name.toUpperCase();
+                document.getElementById('winner-time').innerText = winner.history[winner.history.length-1];
+                document.getElementById('winner-overlay').classList.remove('hidden');
+            }
+        }
+
+        function resetToScramble() {
+            state = 'SCRAMBLE';
+            document.getElementById('winner-overlay').classList.add('hidden');
+            document.getElementById('global-trigger').classList.remove('hidden');
+            document.getElementById('btn-refresh').classList.remove('opacity-0', 'pointer-events-none');
+            document.getElementById('tap-instruction').classList.remove('opacity-0');
+            
+            players.forEach(p => {
+                p.running = false;
+                p.finished = false;
+                document.getElementById(`time-${p.id}`).innerText = "0.00";
+                document.getElementById(`player-${p.id}`).classList.remove('active', 'finished');
+            });
+            initScramble();
+            renderStats();
+        }
+
+        function toggleSettings(open) {
+            document.getElementById('settings-modal').classList.toggle('open', open);
+        }
+
+        function clearAllData() {
+            if(confirm("Erase all stats?")) {
+                localStorage.removeItem('cube_timer_v4_data');
+                location.reload();
+            }
+        }
+
+        loadData();
+        initScramble();
+    </script>
+</body>
+</html>
