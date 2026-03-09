@@ -3,57 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Super Average Calculator</title>
+    <title>Super Average Tracker Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body {
-            background-color: #f8fafc;
-        }
-        .input-card {
-            transition: transform 0.2s;
-        }
-        .input-card:focus-within {
-            transform: translateY(-2px);
-        }
+        body { background-color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .modal { transition: opacity 0.25s ease; }
     </style>
 </head>
-<body class="flex items-center justify-center min-h-screen p-4">
+<body class="flex flex-col items-center min-h-screen p-4 md:p-8">
 
-    <div class="w-full max-w-md bg-white rounded-3xl shadow-xl border border-slate-100 p-8">
-        <!-- Header -->
-        <div class="text-center mb-8">
+    <!-- Main Calculator Card -->
+    <div class="w-full max-w-md bg-white rounded-3xl shadow-xl border border-slate-100 p-6 md:p-8 mb-6">
+        <div class="text-center mb-6">
             <h1 class="text-2xl font-black text-indigo-600 uppercase tracking-tight">Super Average</h1>
-            <p class="text-slate-500 text-sm">Enter your 6 "Average of 5" scores</p>
+            <p class="text-slate-500 text-sm">Enter name and 6 averages</p>
         </div>
 
-        <!-- Inputs Grid -->
-        <div id="inputContainer" class="grid grid-cols-2 gap-4 mb-8">
-            <!-- Inputs will be generated here -->
+        <div class="mb-6">
+            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 ml-1">Person's Name</label>
+            <input type="text" id="userName" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-lg font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder="Enter name...">
         </div>
 
-        <!-- Result Display -->
+        <div id="inputContainer" class="grid grid-cols-2 gap-3 mb-6"></div>
+
         <div id="resultBox" class="bg-indigo-600 rounded-2xl p-6 text-center text-white mb-6 hidden">
-            <p class="text-indigo-200 text-xs font-bold uppercase mb-1">Final Result</p>
+            <p class="text-indigo-200 text-xs font-bold uppercase mb-1">New Super Average</p>
             <div id="superAverageDisplay" class="text-4xl font-black tracking-tighter">0.00</div>
+            <button id="saveBtn" onclick="saveToHistory()" class="mt-4 bg-white/20 hover:bg-white/30 text-white text-xs font-bold py-2 px-4 rounded-lg transition-all">
+                Add to Person's Record
+            </button>
         </div>
 
-        <!-- Actions -->
         <div class="space-y-3">
             <button onclick="calculateSuperAverage()" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-4 rounded-xl shadow-lg transition-all active:scale-95">
-                Calculate Now
+                Calculate
             </button>
-            <button onclick="resetData()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold py-3 rounded-xl transition-all">
-                Clear All
+            <button onclick="resetCalculator()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold py-3 rounded-xl transition-all">
+                Clear Form
             </button>
         </div>
     </div>
 
+    <!-- History List -->
+    <div class="w-full max-w-md bg-white rounded-3xl shadow-lg border border-slate-100 p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="font-black text-slate-700 uppercase text-sm tracking-widest text-indigo-500">Profiles & Improvement</h2>
+            <button onclick="clearAllData()" class="text-rose-400 text-[10px] font-bold uppercase hover:text-rose-600">Reset App</button>
+        </div>
+        <div id="historyList" class="space-y-3 max-h-80 overflow-y-auto no-scrollbar">
+            <p id="emptyMsg" class="text-center text-slate-400 text-sm italic py-4">No records yet.</p>
+        </div>
+    </div>
+
+    <!-- Detail View Modal -->
+    <div id="detailModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none modal">
+        <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+                <div>
+                    <h3 id="modalName" class="text-xl font-black text-slate-800 uppercase tracking-tight">Name</h3>
+                    <p class="text-xs text-indigo-500 font-bold uppercase tracking-widest">Improvement Stats</p>
+                </div>
+                <button onclick="closeModal()" class="bg-slate-100 hover:bg-slate-200 p-2 rounded-full transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-500" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto no-scrollbar">
+                <!-- Chart Container -->
+                <div class="bg-slate-50 rounded-2xl p-4 mb-6 border border-slate-100">
+                    <canvas id="improvementChart"></canvas>
+                </div>
+
+                <h4 class="font-bold text-slate-400 uppercase text-[10px] mb-3 tracking-widest">Session History</h4>
+                <div id="sessionList" class="space-y-2"></div>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // Generate the 6 input fields automatically
+        let currentCalculatedAvg = null;
+        let chartInstance = null;
+
+        // Init inputs
         const container = document.getElementById('inputContainer');
         for (let i = 1; i <= 6; i++) {
             const div = document.createElement('div');
-            div.className = 'input-card bg-slate-50 p-3 rounded-xl border border-slate-200';
+            div.className = 'bg-slate-50 p-3 rounded-xl border border-slate-200';
             div.innerHTML = `
                 <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Avg #${i}</label>
                 <input type="number" step="0.01" class="avg-input w-full bg-transparent border-none text-lg font-mono font-bold text-slate-700 focus:outline-none" placeholder="0.00">
@@ -61,47 +101,153 @@
             container.appendChild(div);
         }
 
+        window.onload = renderProfiles;
+
         function calculateSuperAverage() {
             const inputs = document.querySelectorAll('.avg-input');
             const resultBox = document.getElementById('resultBox');
             const display = document.getElementById('superAverageDisplay');
             
-            let sum = 0;
-            let count = 0;
-
+            let sum = 0, count = 0;
             inputs.forEach(input => {
                 const val = parseFloat(input.value);
-                if (!isNaN(val)) {
-                    sum += val;
-                    count++;
-                }
+                if (!isNaN(val)) { sum += val; count++; }
             });
 
             if (count === 6) {
-                const finalAvg = (sum / 6).toFixed(2);
-                display.innerText = finalAvg + 's';
+                currentCalculatedAvg = (sum / 6).toFixed(2);
+                display.innerText = currentCalculatedAvg + 's';
                 resultBox.classList.remove('hidden');
             } else {
-                // Custom message box instead of alert
-                showError(`Please enter all 6 averages. (${count}/6 filled)`);
+                display.innerText = "WAIT...";
+                resultBox.classList.remove('hidden');
+                setTimeout(() => resultBox.classList.add('hidden'), 1000);
             }
         }
 
-        function resetData() {
-            const inputs = document.querySelectorAll('.avg-input');
-            inputs.forEach(input => input.value = '');
+        function saveToHistory() {
+            const name = document.getElementById('userName').value.trim() || "Guest Solver";
+            if (!currentCalculatedAvg) return;
+
+            let records = JSON.parse(localStorage.getItem('super_avg_profiles') || '{}');
+            
+            if (!records[name]) records[name] = [];
+            
+            records[name].push({
+                average: currentCalculatedAvg,
+                date: new Date().toLocaleDateString(),
+                timestamp: Date.now()
+            });
+
+            localStorage.setItem('super_avg_profiles', JSON.stringify(records));
+            document.getElementById('resultBox').classList.add('hidden');
+            renderProfiles();
+        }
+
+        function renderProfiles() {
+            const list = document.getElementById('historyList');
+            const records = JSON.parse(localStorage.getItem('super_avg_profiles') || '{}');
+            const names = Object.keys(records);
+
+            if (names.length === 0) {
+                list.innerHTML = '<p class="text-center text-slate-400 text-sm italic py-4">No records yet.</p>';
+                return;
+            }
+
+            list.innerHTML = '';
+            names.forEach(name => {
+                const sessions = records[name];
+                const latest = sessions[sessions.length - 1].average;
+                const count = sessions.length;
+
+                const div = document.createElement('div');
+                div.className = 'flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100 shadow-sm cursor-pointer hover:border-indigo-300 transition-all active:scale-95';
+                div.onclick = () => openProfile(name);
+                div.innerHTML = `
+                    <div>
+                        <div class="text-slate-800 font-bold leading-tight">${name}</div>
+                        <div class="text-[10px] text-indigo-400 font-bold uppercase">${count} session${count > 1 ? 's' : ''} saved</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-indigo-600 font-black text-xl">${latest}s</div>
+                        <div class="text-[9px] text-slate-400 font-bold uppercase">Latest</div>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function openProfile(name) {
+            const records = JSON.parse(localStorage.getItem('super_avg_profiles') || '{}');
+            const sessions = records[name];
+            
+            document.getElementById('modalName').innerText = name;
+            const modal = document.getElementById('detailModal');
+            modal.classList.remove('pointer-events-none');
+            modal.style.opacity = '1';
+
+            // Update List
+            const sessionList = document.getElementById('sessionList');
+            sessionList.innerHTML = '';
+            sessions.slice().reverse().forEach(s => {
+                const item = document.createElement('div');
+                item.className = 'flex justify-between bg-white p-3 rounded-xl border border-slate-100 text-sm';
+                item.innerHTML = `
+                    <span class="text-slate-400 font-bold">${s.date}</span>
+                    <span class="text-slate-700 font-black">${s.average}s</span>
+                `;
+                sessionList.appendChild(item);
+            });
+
+            // Update Chart
+            const ctx = document.getElementById('improvementChart').getContext('2d');
+            if (chartInstance) chartInstance.destroy();
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: sessions.map((_, i) => `#${i + 1}`),
+                    datasets: [{
+                        label: 'Average',
+                        data: sessions.map(s => s.average),
+                        borderColor: '#6366f1',
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 3,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: '#6366f1'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: false, grid: { color: '#f1f5f9' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('detailModal');
+            modal.style.opacity = '0';
+            modal.classList.add('pointer-events-none');
+        }
+
+        function resetCalculator() {
+            document.querySelectorAll('.avg-input').forEach(i => i.value = '');
+            document.getElementById('userName').value = '';
             document.getElementById('resultBox').classList.add('hidden');
         }
 
-        function showError(msg) {
-            const resultBox = document.getElementById('resultBox');
-            const display = document.getElementById('superAverageDisplay');
-            display.innerText = "!!!";
-            resultBox.classList.remove('hidden');
-            setTimeout(() => {
-                if(display.innerText === "!!!") resultBox.classList.add('hidden');
-            }, 2000);
-            console.log(msg);
+        function clearAllData() {
+            if (confirm("This will erase all names and histories. Continue?")) {
+                localStorage.clear();
+                renderProfiles();
+            }
         }
     </script>
 </body>
