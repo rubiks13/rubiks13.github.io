@@ -75,17 +75,21 @@
             justify-content: center;
             position: relative;
             background: white;
+            overflow: hidden; 
         }
 
         .dot-grid {
-            width: 1.6in;
-            height: 1.6in;
+            width: 100%;
+            height: 100%;
             position: relative;
+            box-sizing: border-box;
+            padding: 8px; 
         }
 
+        /* Increased dot size from 8px to 12px */
         .dot {
-            width: 8px;
-            height: 8px;
+            width: 12px;
+            height: 12px;
             background-color: black !important;
             border-radius: 50%;
             z-index: 10;
@@ -93,9 +97,10 @@
             transform: translate(-50%, -50%);
         }
 
+        /* Increased editor dot size from 16px to 20px */
         .editor-grid .dot {
-            width: 16px;
-            height: 16px;
+            width: 20px;
+            height: 20px;
             cursor: pointer;
         }
 
@@ -129,8 +134,9 @@
         }
 
         .bottom-number-1 {
-            bottom: 3.6in; 
+            bottom: 3.65in; 
             left: 0.8in;
+            font-weight: bold;
         }
 
         .problem-number-label {
@@ -158,7 +164,7 @@
                     <div>
                         <label class="block text-[10px] font-bold uppercase text-slate-500">Grid Type</label>
                         <select id="gridType" class="w-full border rounded p-1 text-sm font-bold">
-                            <option value="5">5 Dots (Cross)</option>
+                            <option value="5_plus">5 Dots (Plus Sign)</option>
                             <option value="9">9 Dots (3x3)</option>
                             <option value="17">17 Dots (Diamond)</option>
                             <option value="25" selected>25 Dots (5x5)</option>
@@ -188,7 +194,7 @@
 
             <div class="flex justify-center bg-white p-4 rounded-lg shadow-inner border border-slate-200">
                 <div class="box-container" style="border-style: dashed !important; border-color: #3b82f6 !important; width: 2.2in; height: 2.2in;">
-                    <div id="editorGrid" class="dot-grid editor-grid" style="width: 1.8in; height: 1.8in;"></div>
+                    <div id="editorGrid" class="dot-grid editor-grid"></div>
                 </div>
             </div>
 
@@ -235,21 +241,17 @@
 
         function getDotLayout(type) {
             const dots = [];
-            if (type === "5") {
-                // Cross pattern
+            if (type === "5_plus") {
                 dots.push({r:0, c:2}, {r:2, c:0}, {r:2, c:2}, {r:2, c:4}, {r:4, c:2});
             } else if (type === "9") {
-                // 3x3 pattern
                 for(let r=0; r<5; r+=2) for(let c=0; c<5; c+=2) dots.push({r, c});
             } else if (type === "17") {
-                // Diamond / Staggered
                 for(let r=0; r<5; r++) {
                     for(let c=0; c<5; c++) {
                         if ((r + c) % 2 === 0) dots.push({r, c});
                     }
                 }
             } else {
-                // 25 dots (5x5)
                 for(let r=0; r<5; r++) for(let c=0; c<5; c++) dots.push({r, c});
             }
             return dots;
@@ -282,8 +284,8 @@
             currentDots.forEach(pos => {
                 const dot = document.createElement('div');
                 dot.className = 'dot';
-                dot.style.left = `${pos.c * 25}%`;
-                dot.style.top = `${pos.r * 25}%`;
+                dot.style.left = `${10 + (pos.c * 20)}%`;
+                dot.style.top = `${10 + (pos.r * 20)}%`;
 
                 if (isEditable) {
                     dot.onclick = () => {
@@ -337,8 +339,8 @@
                 let oldER = eR; eR = eC; eC = 4 - oldER;
             }
 
-            const x1 = sC * 25, y1 = sR * 25;
-            const x2 = eC * 25, y2 = eR * 25;
+            const x1 = 10 + (sC * 20), y1 = 10 + (sR * 20);
+            const x2 = 10 + (eC * 20), y2 = 10 + (eR * 20);
             const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
             const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
 
