@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cubing Club Sheet Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Screen UI Styles */
+        @media screen {
+            .app-container {
+                max-width: 500px;
+                margin: 60px auto;
+                background: #1e293b;
+                padding: 2rem;
+                border-radius: 1rem;
+                border: 1px solid #334155;
+                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+            }
+            #print-area { display: none; }
+            
+            .preview-container {
+                margin-top: 1rem;
+                border: 2px dashed #334155;
+                border-radius: 0.5rem;
+                padding: 10px;
+                text-align: center;
+            }
+            .preview-container img {
+                max-height: 100px;
+                margin: 0 auto;
+                border-radius: 4px;
+            }
+        }
+
+        /* Print Layout Styles */
+        @media print {
+            .no-print { display: none !important; }
+            #print-area { display: block !important; }
+            
+            body { background: white; color: black; }
+            
+            @page {
+                size: 8.5in 11in;
+                margin: 0;
+            }
+
+            .print-page {
+                width: 8.5in;
+                height: 11in;
+                padding: 0.3in 0.5in;
+                page-break-after: always;
+                background: white;
+                box-sizing: border-box;
+                color: black;
+            }
+
+            .header-image {
+                width: 100%;
+                height: auto;
+                margin-bottom: 10px;
+                display: block;
+            }
+
+            .table-container {
+                display: flex;
+                gap: 0.4in;
+            }
+
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                table-layout: fixed;
+            }
+            
+            th, td {
+                border: 1px solid black;
+                height: 38px;
+                text-align: center;
+                vertical-align: middle;
+            }
+
+            th { background: #f0f0f0; font-size: 14px; text-transform: uppercase; }
+
+            .col-n { width: 45px; font-weight: bold; font-size: 20px; }
+            .col-time { width: 100px; }
+            .col-scramble { 
+                text-align: left; 
+                padding-left: 10px; 
+                font-family: 'JetBrains Mono', monospace; 
+                font-size: 11px;
+                line-height: 1.1;
+            }
+
+            .avg-row td {
+                background-color: #fafafa;
+                font-style: italic;
+                font-weight: bold;
+                color: #444;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container no-print">
+        <h1 class="text-2xl font-800 mb-2">Record Sheet Pro</h1>
+        <p class="text-slate-400 text-sm mb-6">Your header is saved automatically. Enter number of sheets and hit Enter.</p>
+        
+        <div class="space-y-5">
+            <!-- Image Upload -->
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">1. Header Image (Saved automatically)</label>
+                <input type="file" id="header-upload" accept="image/*" class="block w-full text-sm text-slate-400
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-full file:border-0
+                    file:text-sm file:font-semibold
+                    file:bg-blue-600 file:text-white
+                    hover:file:bg-blue-500 cursor-pointer">
+                
+                <div id="preview-box" class="preview-container hidden">
+                    <p class="text-[10px] text-slate-500 mb-2 uppercase font-bold">Current Header Preview:</p>
+                    <img id="header-preview" src="" alt="Header">
+                </div>
+            </div>
+
+            <!-- Sheet Count -->
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">2. Number of Papers</label>
+                <input type="number" id="sheet-count" value="1" min="1" max="50" 
+                    class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white text-xl font-bold focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                    onkeydown="if(event.key === 'Enter') prepareAndPrint()">
+            </div>
+            
+            <button onclick="prepareAndPrint()" id="print-btn"
+                class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-4 rounded-xl font-800 text-lg transition-all shadow-lg flex items-center justify-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                Generate & Print
+            </button>
+        </div>
+    </div>
+
+    <div id="print-area"></div>
+
+    <script>
+        const faces = ['U', 'D', 'L', 'R', 'F', 'B'];
+        const modifiers = ['', "'", '2'];
+        const scrambleLength = 12;
+        let uploadedHeaderData = localStorage.getItem('cubing_header_image') || null;
+
+        // Display preview if image exists in storage
+        if (uploadedHeaderData) {
+            updatePreview(uploadedHeaderData);
+        }
+
+        // Handle Image Upload
+        document.getElementById('header-upload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => { 
+                    uploadedHeaderData = event.target.result;
+                    // Save to local storage
+                    try {
+                        localStorage.setItem('cubing_header_image', uploadedHeaderData);
+                        updatePreview(uploadedHeaderData);
+                    } catch (e) {
+                        alert("Image file is too large to save! Please use a smaller PNG.");
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function updatePreview(data) {
+            const previewBox = document.getElementById('preview-box');
+            const previewImg = document.getElementById('header-preview');
+            previewImg.src = data;
+            previewBox.classList.remove('hidden');
+        }
+
+        function generateScramble() {
+            let scramble = [];
+            let lastFace = -1;
+            let secondToLastFace = -1;
+            while (scramble.length < scrambleLength) {
+                let faceIdx = Math.floor(Math.random() * faces.length);
+                if (faceIdx === lastFace) continue;
+                if (Math.floor(faceIdx / 2) === Math.floor(lastFace / 2) && faceIdx === secondToLastFace) continue;
+                let mod = modifiers[Math.floor(Math.random() * modifiers.length)];
+                scramble.push(faces[faceIdx] + mod);
+                secondToLastFace = lastFace;
+                lastFace = faceIdx;
+            }
+            return scramble.join(' ');
+        }
+
+        function createTableHTML() {
+            let rows = '';
+            const pattern = ['1', '2', '3', '4', '5', 'A'];
+            
+            for (let i = 0; i < 3; i++) {
+                pattern.forEach(n => {
+                    const isAvg = n === 'A';
+                    const content = isAvg ? 'average of 3 solves' : generateScramble();
+                    rows += `
+                        <tr class="${isAvg ? 'avg-row' : ''}">
+                            <td class="col-n">${n}</td>
+                            <td class="col-time"></td>
+                            <td class="col-scramble">${content}</td>
+                        </tr>
+                    `;
+                });
+            }
+            
+            return `
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="col-n">N</th>
+                            <th class="col-time">Time</th>
+                            <th class="col-scramble">Scramble</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            `;
+        }
+
+        function prepareAndPrint() {
+            if (!uploadedHeaderData) {
+                alert("Please upload your top.png header first!");
+                return;
+            }
+
+            const count = parseInt(document.getElementById('sheet-count').value) || 1;
+            const container = document.getElementById('print-area');
+            container.innerHTML = '';
+
+            for (let p = 0; p < count; p++) {
+                const page = document.createElement('div');
+                page.className = 'print-page';
+                
+                page.innerHTML = `
+                    <img src="${uploadedHeaderData}" class="header-image">
+                    <div class="table-container">
+                        <div style="flex:1">${createTableHTML()}</div>
+                        <div style="flex:1">${createTableHTML()}</div>
+                    </div>
+                `;
+                
+                container.appendChild(page);
+            }
+
+            // Small delay to ensure images are ready
+            setTimeout(() => { window.print(); }, 300);
+        }
+    </script>
+</body>
+</html>
