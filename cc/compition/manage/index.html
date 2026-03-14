@@ -3,510 +3,409 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CubeLeague Pro Tracker</title>
+    <title>CubeComp Manager</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap');
-        
-        :root {
-            --bg-main: #020617;
-            --card-bg: rgba(30, 41, 59, 0.5);
-            --accent: #38bdf8;
-            --accent-glow: rgba(56, 189, 248, 0.2);
-        }
-
-        body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: var(--bg-main);
-            background-image: 
-                radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.05) 0px, transparent 50%),
-                radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.05) 0px, transparent 50%);
-            color: #f8fafc;
-            min-height: 100 screen;
-        }
-
-        .glass {
-            background: var(--card-bg);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-        }
-
-        .btn-primary {
-            @apply bg-sky-500 hover:bg-sky-400 text-white font-bold py-2.5 px-6 rounded-xl transition-all active:scale-95 shadow-lg shadow-sky-500/20 disabled:opacity-50;
-        }
-
-        .btn-outline {
-            @apply border border-slate-700 hover:border-slate-500 text-slate-300 hover:text-white py-2 px-4 rounded-xl transition-all;
-        }
-
-        .tab-btn {
-            @apply px-6 py-3 font-semibold text-slate-500 rounded-xl transition-all flex items-center gap-2;
-        }
-        
-        .tab-btn.active {
-            @apply bg-sky-500/10 text-sky-400 border border-sky-500/20 shadow-inner;
-        }
-
-        input, select {
-            @apply bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-sky-500/50 text-white transition-all;
-        }
-
-        .view-hidden { display: none !important; }
-
-        .stat-card {
-            @apply glass p-4 rounded-2xl border-l-4 border-sky-500;
-        }
-
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+        .scramble-font { font-family: monospace; letter-spacing: 0.1em; }
     </style>
 </head>
-<body class="pb-12">
+<body class="min-h-screen pb-20">
 
-    <!-- INITIAL SCREEN: COMPETITION SELECTOR -->
-    <div id="view-setup" class="fixed inset-0 bg-slate-950/90 z-[100] backdrop-blur-xl flex items-center justify-center p-4">
-        <div class="max-w-xl w-full glass rounded-3xl p-8 space-y-8">
-            <div class="text-center space-y-2">
-                <h2 class="text-4xl font-extrabold tracking-tight bg-gradient-to-br from-white to-slate-400 bg-clip-text text-transparent">Cube Hub</h2>
-                <p class="text-slate-500">Create a new competition or pick a past event</p>
+    <!-- Navigation Bar -->
+    <nav class="bg-indigo-600 text-white p-4 shadow-lg sticky top-0 z-50">
+        <div class="max-w-4xl mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold flex items-center gap-2 cursor-pointer" onclick="navigateTo('competitions')">
+                <span>🧊</span> CubeComp
+            </h1>
+            <div id="nav-breadcrumb" class="text-sm font-medium opacity-80"></div>
+        </div>
+    </nav>
+
+    <!-- Main Content Container -->
+    <main class="max-w-4xl mx-auto p-4 mt-4">
+        
+        <!-- PAGE 1: COMPETITIONS LIST -->
+        <section id="page-competitions" class="page-section">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Competitions</h2>
+                <button onclick="showModal('modal-add-comp')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition">
+                    + New Competition
+                </button>
             </div>
+            <div id="comp-list" class="grid gap-4 sm:grid-cols-2">
+                <!-- Comps injected here -->
+            </div>
+        </section>
+
+        <!-- PAGE 2: COMPETITION DASHBOARD (Competitors & Results) -->
+        <section id="page-comp-detail" class="page-section hidden">
+            <button onclick="navigateTo('competitions')" class="text-indigo-600 mb-4 flex items-center gap-1 hover:underline">
+                ← Back to Competitions
+            </button>
             
-            <form id="comp-form" class="space-y-4">
-                <div class="flex flex-col gap-2">
-                    <div class="flex gap-3">
-                        <input type="text" id="new-comp-name" placeholder="Competition Name (e.g. Winter Open)" class="flex-grow text-lg">
-                        <button type="submit" class="btn-primary">Create Event</button>
+            <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+                <h2 id="current-comp-name" class="text-3xl font-bold text-gray-900 mb-2">Competition Name</h2>
+                <p id="current-comp-date" class="text-gray-500"></p>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-6">
+                <!-- Competitor Management -->
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-lg">Competitors</h3>
+                        <button onclick="showModal('modal-add-competitor')" class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded">Add</button>
+                    </div>
+                    <div id="competitor-list" class="space-y-2">
+                        <!-- Competitors injected here -->
                     </div>
                 </div>
-            </form>
 
-            <div class="space-y-4">
-                <div class="flex items-center gap-4 text-xs font-bold uppercase tracking-widest text-slate-500">
-                    <span class="flex-grow h-px bg-slate-800"></span>
-                    Recent History
-                    <span class="flex-grow h-px bg-slate-800"></span>
+                <!-- Leaderboard -->
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                    <h3 class="font-bold text-lg mb-4">Current Standings (Ao5)</h3>
+                    <div id="leaderboard-list" class="space-y-3">
+                        <!-- Rankings injected here -->
+                    </div>
                 </div>
-                <div id="comp-list" class="grid grid-cols-1 gap-3 max-h-72 overflow-y-auto pr-2">
-                    <!-- Comps here -->
+            </div>
+        </section>
+
+        <!-- PAGE 3: COMPETITOR PROFILE (Solves & Scrambler) -->
+        <section id="page-competitor-profile" class="page-section hidden">
+            <button onclick="navigateTo('comp-detail')" class="text-indigo-600 mb-4 flex items-center gap-1 hover:underline">
+                ← Back to Competition
+            </button>
+
+            <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+                <h2 id="profile-name" class="text-2xl font-bold">Competitor Name</h2>
+                <div class="flex gap-4 mt-2 text-sm">
+                    <span class="bg-green-100 text-green-800 px-2 py-1 rounded">PB: <span id="profile-pb">-</span></span>
+                    <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded">Best Ao5: <span id="profile-ao5">-</span></span>
+                </div>
+            </div>
+
+            <!-- Scrambler Section -->
+            <div class="bg-indigo-900 text-white rounded-xl p-6 mb-6 shadow-xl">
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-xs font-bold uppercase tracking-widest opacity-70">Official Scramble</span>
+                    <button onclick="generateNewScramble()" class="text-xs bg-white/20 hover:bg-white/30 px-2 py-1 rounded transition">New Scramble</button>
+                </div>
+                <div id="scramble-display" class="scramble-font text-xl md:text-2xl text-center font-medium mb-6 min-h-[3rem]">
+                    R2 U' B2 D L2 U' R2 D' F2 L' B' L2 F R2 B' U R2 B' U'
+                </div>
+                <div class="flex gap-2">
+                    <input type="number" id="solve-input" placeholder="Enter solve time (e.g. 15.42)" step="0.01" 
+                        class="flex-1 bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50">
+                    <button onclick="addSolve()" class="bg-white text-indigo-900 font-bold px-6 py-3 rounded-lg hover:bg-indigo-50 transition">Submit</button>
+                </div>
+            </div>
+
+            <!-- Solve History -->
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h3 class="font-bold mb-4">Recent Solves</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="text-gray-400 text-xs uppercase border-b">
+                                <th class="py-2">#</th>
+                                <th class="py-2">Time</th>
+                                <th class="py-2">Scramble</th>
+                                <th class="py-2">Date</th>
+                            </tr>
+                        </thead>
+                        <tbody id="solve-history-list">
+                            <!-- Solves injected here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modals -->
+    <div id="modal-overlay" class="fixed inset-0 bg-black/50 hidden z-[60] flex items-center justify-center p-4">
+        <!-- Add Competition Modal -->
+        <div id="modal-add-comp" class="bg-white rounded-xl p-6 w-full max-w-md hidden">
+            <h3 class="text-xl font-bold mb-4">New Competition</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Competition Name</label>
+                    <input type="text" id="input-comp-name" class="w-full border rounded-lg p-2 mt-1">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Date</label>
+                    <input type="date" id="input-comp-date" class="w-full border rounded-lg p-2 mt-1">
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button onclick="closeModals()" class="flex-1 px-4 py-2 border rounded-lg">Cancel</button>
+                    <button onclick="createCompetition()" class="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg">Create</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Competitor Modal -->
+        <div id="modal-add-competitor" class="bg-white rounded-xl p-6 w-full max-w-md hidden">
+            <h3 class="text-xl font-bold mb-4">Add Competitor</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Full Name</label>
+                    <input type="text" id="input-competitor-name" class="w-full border rounded-lg p-2 mt-1" placeholder="e.g. Feliks Zemdegs">
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button onclick="closeModals()" class="flex-1 px-4 py-2 border rounded-lg">Cancel</button>
+                    <button onclick="addCompetitor()" class="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg">Add</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- MAIN APP INTERFACE -->
-    <nav class="glass border-b-0 sticky top-0 z-50 px-6 py-4 mb-8">
-        <div class="max-w-7xl mx-auto flex justify-between items-center">
-            <div class="flex items-center gap-6">
-                <div class="h-10 w-10 bg-sky-500 rounded-xl flex items-center justify-center shadow-lg shadow-sky-500/30">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
-                </div>
-                <div>
-                    <h1 class="text-xl font-extrabold tracking-tight">CubeLeague</h1>
-                    <div class="flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-sky-500 animate-pulse"></span>
-                        <span id="active-comp-display" class="text-xs font-bold text-sky-400 uppercase tracking-tighter"></span>
-                    </div>
-                </div>
-            </div>
-            <button onclick="location.reload()" class="btn-outline text-xs">Switch Comp</button>
-        </div>
-    </nav>
-
-    <main class="max-w-7xl mx-auto px-6">
-        
-        <!-- Tab Bar -->
-        <div class="flex gap-2 p-1 bg-slate-900/50 rounded-2xl w-fit mb-10 glass overflow-x-auto">
-            <button class="tab-btn active" id="tab-btn-players" onclick="showView('players')">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                Roster
-            </button>
-            <button class="tab-btn" id="tab-btn-log" onclick="showView('log')">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                Log Scores
-            </button>
-            <button class="tab-btn" id="tab-btn-analytics" onclick="showView('analytics')">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-                Progress
-            </button>
-        </div>
-
-        <!-- VIEW 1: ROSTER -->
-        <div id="view-players" class="space-y-8">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div class="space-y-6">
-                    <section class="glass p-8 rounded-3xl space-y-6">
-                        <h2 class="text-xl font-bold">Register Competitor</h2>
-                        <div class="space-y-4">
-                            <input type="text" id="new-player-name" placeholder="Full Name" class="w-full">
-                            <button id="add-player-btn" class="btn-primary w-full">Join Roster</button>
-                        </div>
-                    </section>
-                </div>
-                <div class="lg:col-span-2">
-                    <section class="glass rounded-3xl overflow-hidden">
-                        <div class="p-6 border-b border-slate-700/50">
-                            <h2 class="text-xl font-bold">Lifetime Rankings</h2>
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left">
-                                <thead class="bg-slate-900/30">
-                                    <tr class="text-slate-500 text-[10px] uppercase font-black tracking-widest">
-                                        <th class="py-4 px-6">Competitor</th>
-                                        <th class="py-4 px-6">Personal Best</th>
-                                        <th class="py-4 px-6">Overall Avg</th>
-                                        <th class="py-4 px-6">Runs</th>
-                                        <th class="py-4 px-6"></th>
-                                    </tr>
-                                </thead>
-                                <tbody id="roster-list" class="divide-y divide-slate-800/50"></tbody>
-                            </table>
-                        </div>
-                    </section>
-                </div>
-            </div>
-        </div>
-
-        <!-- VIEW 2: LOGGING -->
-        <div id="view-log" class="view-hidden space-y-8">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div class="lg:col-span-2 space-y-8">
-                    <section class="glass p-8 rounded-3xl">
-                        <h2 class="text-2xl font-bold mb-8 flex items-center gap-3">
-                            <span class="p-2 bg-sky-500/20 rounded-lg"><svg class="w-6 h-6 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg></span>
-                            Record Results
-                        </h2>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-                            <div class="space-y-2">
-                                <label class="text-[10px] font-black uppercase text-slate-500 tracking-widest">Select Competitor</label>
-                                <select id="entry-competitor" class="w-full text-lg font-medium"></select>
-                            </div>
-                            <div class="space-y-2">
-                                <label class="text-[10px] font-black uppercase text-slate-500 tracking-widest">Time (Seconds)</label>
-                                <div class="relative">
-                                    <input type="number" id="entry-time" step="0.01" placeholder="0.00" class="w-full text-lg font-mono font-bold pr-12" onkeydown="if(event.key==='Enter') saveManualEntry()">
-                                    <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold">s</span>
-                                </div>
-                            </div>
-                        </div>
-                        <button onclick="saveManualEntry()" class="btn-primary w-full mt-8 h-14 text-lg">Save & Next</button>
-                    </section>
-
-                    <section class="glass rounded-3xl overflow-hidden">
-                        <div class="p-6 border-b border-slate-700/50">
-                            <h2 class="text-sm font-bold uppercase tracking-widest text-slate-400">Recent Comp Entries</h2>
-                        </div>
-                        <table class="w-full text-left">
-                            <tbody id="solves-history" class="divide-y divide-slate-800/50"></tbody>
-                        </table>
-                    </section>
-                </div>
-
-                <div class="space-y-6">
-                    <section class="glass p-6 rounded-3xl">
-                        <h2 class="text-sm font-black uppercase tracking-widest text-slate-400 mb-6 text-center">Event Standings</h2>
-                        <div id="leaderboard" class="space-y-2"></div>
-                    </section>
-                </div>
-            </div>
-        </div>
-
-        <!-- VIEW 3: ANALYTICS -->
-        <div id="view-analytics" class="view-hidden space-y-8">
-            <section class="glass p-8 rounded-3xl">
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
-                    <div>
-                        <h2 class="text-2xl font-bold">Improvement Tracker</h2>
-                        <p class="text-slate-500">Visualizing speed gains over time</p>
-                    </div>
-                    <select id="analytics-competitor-select" class="min-w-[240px]"></select>
-                </div>
-                
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
-                    <div class="stat-card">
-                        <p class="text-[10px] font-black uppercase text-slate-500 mb-1">Lifetime Best</p>
-                        <p id="stat-pb" class="text-3xl font-black text-sky-400 font-mono">--</p>
-                    </div>
-                    <div class="stat-card border-indigo-500">
-                        <p class="text-[10px] font-black uppercase text-slate-500 mb-1">Average Time</p>
-                        <p id="stat-avg" class="text-3xl font-black text-indigo-400 font-mono">--</p>
-                    </div>
-                    <div class="stat-card border-emerald-500">
-                        <p class="text-[10px] font-black uppercase text-slate-500 mb-1">Total Solves</p>
-                        <p id="stat-total" class="text-3xl font-black text-emerald-400 font-mono">--</p>
-                    </div>
-                </div>
-
-                <div class="h-[400px] w-full bg-slate-950/50 rounded-2xl p-6 border border-slate-800 mb-12">
-                    <canvas id="improvementChart"></canvas>
-                </div>
-
-                <div class="space-y-4">
-                    <h3 class="text-lg font-bold">Event History</h3>
-                    <div id="comp-breakdown" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
-                </div>
-            </section>
-        </div>
-    </main>
-
     <script>
-        // --- DATA ---
-        let competitions = JSON.parse(localStorage.getItem('cube_competitions') || '[]');
-        let players = JSON.parse(localStorage.getItem('cube_players') || '[]');
-        let solves = JSON.parse(localStorage.getItem('cube_solves') || '[]');
-        let activeCompId = null;
-        let chartInstance = null;
+        // State Management
+        let appData = {
+            competitions: []
+        };
+        let currentCompId = null;
+        let currentCompetitorId = null;
+        let currentScramble = "";
 
-        // --- NAVIGATION ---
-        function showView(viewId) {
-            ['players', 'log', 'analytics'].forEach(v => {
-                document.getElementById(`view-${v}`).classList.add('view-hidden');
-                document.getElementById(`tab-btn-${v}`).classList.remove('active');
-            });
-            document.getElementById(`view-${viewId}`).classList.remove('view-hidden');
-            document.getElementById(`tab-btn-${viewId}`).classList.add('active');
-            
-            if (viewId === 'analytics') updateAnalytics();
-            renderAll();
-        }
-
-        // --- COMPETITIONS ---
-        document.getElementById('comp-form').onsubmit = (e) => {
-            e.preventDefault();
-            const nameInput = document.getElementById('new-comp-name');
-            const name = nameInput.value.trim();
-            if (!name) return;
-            const newComp = { id: 'comp_' + Date.now(), name, date: Date.now() };
-            competitions.push(newComp);
-            localStorage.setItem('cube_competitions', JSON.stringify(competitions));
-            nameInput.value = '';
-            renderCompSelection();
-            selectComp(newComp.id);
+        // Initialization
+        window.onload = () => {
+            const saved = localStorage.getItem('cube_comp_data');
+            if (saved) appData = JSON.parse(saved);
+            renderCompetitions();
+            generateNewScramble();
         };
 
-        function renderCompSelection() {
-            const list = document.getElementById('comp-list');
-            list.innerHTML = '';
-            competitions.sort((a,b) => b.date - a.date).forEach(c => {
-                const btn = document.createElement('button');
-                btn.className = "w-full text-left p-5 bg-slate-900/40 hover:bg-sky-500/10 rounded-2xl border border-slate-800 hover:border-sky-500/50 transition-all flex justify-between items-center group";
-                btn.innerHTML = `
-                    <div class="flex flex-col">
-                        <span class="font-bold text-slate-200 group-hover:text-white transition-colors">${c.name}</span>
-                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">${new Date(c.date).toLocaleDateString()}</span>
-                    </div>
-                    <div class="h-8 w-8 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-sky-500 transition-all">
-                        <svg class="w-4 h-4 text-slate-500 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"></path></svg>
+        function saveData() {
+            localStorage.setItem('cube_comp_data', JSON.stringify(appData));
+        }
+
+        // Navigation
+        function navigateTo(pageId) {
+            document.querySelectorAll('.page-section').forEach(p => p.classList.add('hidden'));
+            document.getElementById(`page-${pageId}`).classList.remove('hidden');
+            
+            const breadcrumb = document.getElementById('nav-breadcrumb');
+            if (pageId === 'competitions') {
+                breadcrumb.innerText = "Home";
+                renderCompetitions();
+            } else if (pageId === 'comp-detail') {
+                const comp = appData.competitions.find(c => c.id === currentCompId);
+                breadcrumb.innerText = comp.name;
+                renderCompDetail();
+            } else if (pageId === 'competitor-profile') {
+                const comp = appData.competitions.find(c => c.id === currentCompId);
+                const user = comp.competitors.find(u => u.id === currentCompetitorId);
+                breadcrumb.innerText = `${comp.name} > ${user.name}`;
+                renderCompetitorProfile();
+            }
+            window.scrollTo(0, 0);
+        }
+
+        // --- Competition Logic ---
+        function createCompetition() {
+            const name = document.getElementById('input-comp-name').value;
+            const date = document.getElementById('input-comp-date').value;
+            if (!name) return;
+
+            const newComp = {
+                id: Date.now().toString(),
+                name,
+                date,
+                competitors: []
+            };
+
+            appData.competitions.push(newComp);
+            saveData();
+            closeModals();
+            renderCompetitions();
+        }
+
+        function renderCompetitions() {
+            const container = document.getElementById('comp-list');
+            container.innerHTML = appData.competitions.length ? '' : '<p class="text-gray-400 col-span-2">No competitions added yet.</p>';
+            
+            appData.competitions.forEach(comp => {
+                const card = document.createElement('div');
+                card.className = "bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:border-indigo-300 transition cursor-pointer group";
+                card.onclick = () => {
+                    currentCompId = comp.id;
+                    navigateTo('comp-detail');
+                };
+                card.innerHTML = `
+                    <h3 class="font-bold text-lg group-hover:text-indigo-600 transition">${comp.name}</h3>
+                    <p class="text-sm text-gray-500">${comp.date || 'No date set'}</p>
+                    <div class="mt-4 flex justify-between items-center">
+                        <span class="text-xs bg-gray-100 px-2 py-1 rounded">${comp.competitors.length} Competitors</span>
+                        <span class="text-indigo-500 text-sm font-semibold">View →</span>
                     </div>
                 `;
-                btn.onclick = () => selectComp(c.id);
-                list.appendChild(btn);
+                container.appendChild(card);
             });
         }
 
-        function selectComp(id) {
-            activeCompId = id;
-            const comp = competitions.find(c => c.id === id);
-            document.getElementById('active-comp-display').textContent = comp.name;
-            document.getElementById('view-setup').classList.add('view-hidden');
-            renderAll();
+        // --- Competition Detail Logic ---
+        function renderCompDetail() {
+            const comp = appData.competitions.find(c => c.id === currentCompId);
+            document.getElementById('current-comp-name').innerText = comp.name;
+            document.getElementById('current-comp-date').innerText = comp.date || "Ongoing";
+
+            // Render Competitor List
+            const list = document.getElementById('competitor-list');
+            list.innerHTML = comp.competitors.length ? '' : '<p class="text-xs text-gray-400">Add competitors to start.</p>';
+            
+            comp.competitors.forEach(user => {
+                const item = document.createElement('div');
+                item.className = "flex justify-between items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition";
+                item.onclick = () => {
+                    currentCompetitorId = user.id;
+                    navigateTo('competitor-profile');
+                };
+                item.innerHTML = `
+                    <span class="font-medium">${user.name}</span>
+                    <span class="text-gray-400">Best: ${calculatePB(user.solves)}</span>
+                `;
+                list.appendChild(item);
+            });
+
+            // Render Leaderboard
+            const leaderboard = document.getElementById('leaderboard-list');
+            const ranked = [...comp.competitors].sort((a, b) => {
+                const aAvg = calculateAo5(a.solves);
+                const bAvg = calculateAo5(b.solves);
+                if (aAvg === "DNF" || aAvg === "-") return 1;
+                if (bAvg === "DNF" || bAvg === "-") return -1;
+                return parseFloat(aAvg) - parseFloat(bAvg);
+            });
+
+            leaderboard.innerHTML = ranked.length ? '' : '<p class="text-xs text-gray-400">No results yet.</p>';
+            ranked.forEach((user, idx) => {
+                const avg = calculateAo5(user.solves);
+                const entry = document.createElement('div');
+                entry.className = "flex items-center gap-3";
+                entry.innerHTML = `
+                    <div class="w-6 h-6 flex items-center justify-center rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold">${idx + 1}</div>
+                    <div class="flex-1 flex justify-between items-center">
+                        <span class="text-sm font-medium">${user.name}</span>
+                        <span class="text-sm font-bold text-indigo-600">${avg}</span>
+                    </div>
+                `;
+                leaderboard.appendChild(entry);
+            });
         }
 
-        // --- LOGIC ---
-        document.getElementById('add-player-btn').onclick = () => {
-            const name = document.getElementById('new-player-name').value.trim();
+        function addCompetitor() {
+            const name = document.getElementById('input-competitor-name').value;
             if (!name) return;
-            players.push({ id: 'p_' + Date.now(), name });
-            document.getElementById('new-player-name').value = '';
+            
+            const comp = appData.competitions.find(c => c.id === currentCompId);
+            comp.competitors.push({
+                id: Date.now().toString(),
+                name,
+                solves: []
+            });
+            
             saveData();
-        };
+            closeModals();
+            renderCompDetail();
+        }
 
-        function saveManualEntry() {
-            const pId = document.getElementById('entry-competitor').value;
-            const timeVal = document.getElementById('entry-time').value;
-            if (!pId || !timeVal || !activeCompId) return;
+        // --- Competitor Profile & Timing Logic ---
+        function renderCompetitorProfile() {
+            const comp = appData.competitions.find(c => c.id === currentCompId);
+            const user = comp.competitors.find(u => u.id === currentCompetitorId);
+            
+            document.getElementById('profile-name').innerText = user.name;
+            document.getElementById('profile-pb').innerText = calculatePB(user.solves);
+            document.getElementById('profile-ao5').innerText = calculateAo5(user.solves);
 
-            solves.push({
-                id: 's_' + Date.now(),
-                compId: activeCompId,
-                playerId: pId,
-                time: parseFloat(timeVal),
+            const history = document.getElementById('solve-history-list');
+            history.innerHTML = '';
+            
+            [...user.solves].reverse().forEach((solve, i) => {
+                const row = document.createElement('tr');
+                row.className = "border-b text-sm";
+                row.innerHTML = `
+                    <td class="py-3 text-gray-400">${user.solves.length - i}</td>
+                    <td class="py-3 font-bold">${solve.time}s</td>
+                    <td class="py-3 text-gray-500 truncate max-w-[150px] md:max-w-xs" title="${solve.scramble}">${solve.scramble}</td>
+                    <td class="py-3 text-gray-400 text-xs">${new Date(solve.timestamp).toLocaleDateString()}</td>
+                `;
+                history.appendChild(row);
+            });
+        }
+
+        function addSolve() {
+            const val = document.getElementById('solve-input').value;
+            if (!val || isNaN(val)) return;
+
+            const comp = appData.competitions.find(c => c.id === currentCompId);
+            const user = comp.competitors.find(u => u.id === currentCompetitorId);
+
+            user.solves.push({
+                time: parseFloat(val).toFixed(2),
+                scramble: currentScramble,
                 timestamp: Date.now()
             });
 
-            document.getElementById('entry-time').value = '';
-            document.getElementById('entry-time').focus();
+            document.getElementById('solve-input').value = "";
             saveData();
+            generateNewScramble();
+            renderCompetitorProfile();
         }
 
-        function deletePlayer(id) {
-            if(!confirm("Erase all history for this competitor?")) return;
-            players = players.filter(p => p.id !== id);
-            solves = solves.filter(s => s.playerId !== id);
-            saveData();
-        }
+        // --- Scrambler Utility ---
+        function generateNewScramble() {
+            const moves = ["U", "D", "L", "R", "F", "B"];
+            const modifiers = ["", "'", "2"];
+            let scramble = [];
+            let lastMove = "";
 
-        function saveData() {
-            localStorage.setItem('cube_players', JSON.stringify(players));
-            localStorage.setItem('cube_solves', JSON.stringify(solves));
-            renderAll();
-        }
-
-        // --- UI ---
-        function renderAll() {
-            // Roster
-            const rosterList = document.getElementById('roster-list');
-            rosterList.innerHTML = '';
-            players.forEach(p => {
-                const pSolves = solves.filter(s => s.playerId === p.id);
-                const best = pSolves.length ? Math.min(...pSolves.map(s=>s.time)).toFixed(2) : '--';
-                const avg = pSolves.length ? (pSolves.reduce((a,b)=>a+b.time,0)/pSolves.length).toFixed(2) : '--';
-                
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td class="py-5 px-6 font-bold text-slate-200">${p.name}</td>
-                    <td class="py-5 px-6 text-sky-400 font-mono font-bold">${best}s</td>
-                    <td class="py-5 px-6 text-indigo-400 font-mono">${avg}s</td>
-                    <td class="py-5 px-6 text-slate-500 font-medium">${pSolves.length}</td>
-                    <td class="py-5 px-6 text-right">
-                        <button onclick="deletePlayer('${p.id}')" class="text-slate-600 hover:text-red-400 transition-colors">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                        </button>
-                    </td>
-                `;
-                rosterList.appendChild(tr);
-            });
-
-            // Selects
-            const logSel = document.getElementById('entry-competitor');
-            const anSel = document.getElementById('analytics-competitor-select');
-            const vL = logSel.value;
-            const vA = anSel.value;
-            logSel.innerHTML = '<option value="">Choose Competitor</option>';
-            anSel.innerHTML = '<option value="">Choose Competitor</option>';
-            players.forEach(p => {
-                const opt = new Option(p.name, p.id);
-                logSel.add(opt.cloneNode(true));
-                anSel.add(opt);
-            });
-            logSel.value = vL;
-            anSel.value = vA;
-
-            // Standings
-            const lb = document.getElementById('leaderboard');
-            lb.innerHTML = '';
-            const cSolves = solves.filter(s => s.compId === activeCompId);
-            const rankings = players.map(p => {
-                const ps = cSolves.filter(s => s.playerId === p.id);
-                const avg = ps.length ? (ps.reduce((a,b)=>a+b.time,0)/ps.length) : Infinity;
-                return { name: p.name, avg };
-            }).sort((a,b) => a.avg - b.avg);
-
-            rankings.forEach((r, i) => {
-                const div = document.createElement('div');
-                div.className = "flex justify-between items-center p-4 bg-slate-900/30 rounded-2xl border border-slate-800";
-                div.innerHTML = `
-                    <div class="flex items-center gap-4">
-                        <span class="text-xs font-black text-slate-600">#${i+1}</span>
-                        <span class="font-bold">${r.name}</span>
-                    </div>
-                    <span class="font-mono font-bold text-sky-400">${r.avg === Infinity ? '--' : r.avg.toFixed(2) + 's'}</span>
-                `;
-                lb.appendChild(div);
-            });
-
-            // History
-            const hist = document.getElementById('solves-history');
-            hist.innerHTML = '';
-            [...cSolves].sort((a,b) => b.timestamp - a.timestamp).slice(0, 8).forEach(s => {
-                const p = players.find(p => p.id === s.playerId);
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td class="py-4 px-6 font-bold text-sm">${p ? p.name : 'Unknown'}</td>
-                    <td class="py-4 px-6 text-sky-400 font-bold font-mono text-sm">${s.time}s</td>
-                    <td class="py-4 px-6 text-right">
-                        <button onclick="solves=solves.filter(x=>x.id!=='${s.id}');saveData()" class="text-slate-600 hover:text-red-400">×</button>
-                    </td>
-                `;
-                hist.appendChild(tr);
-            });
-        }
-
-        // --- CHART ---
-        document.getElementById('analytics-competitor-select').onchange = updateAnalytics;
-        function updateAnalytics() {
-            const pid = document.getElementById('analytics-competitor-select').value;
-            const container = document.getElementById('comp-breakdown');
-            container.innerHTML = '';
-            if(!pid) return;
-
-            const ps = solves.filter(s => s.playerId === pid).sort((a,b) => a.timestamp - b.timestamp);
-            document.getElementById('stat-pb').textContent = ps.length ? Math.min(...ps.map(s=>s.time)).toFixed(2) + 's' : '--';
-            document.getElementById('stat-avg').textContent = ps.length ? (ps.reduce((a,b)=>a+b.time,0)/ps.length).toFixed(2) + 's' : '--';
-            document.getElementById('stat-total').textContent = ps.length;
-
-            if(chartInstance) chartInstance.destroy();
-            const ctx = document.getElementById('improvementChart').getContext('2d');
-            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-            gradient.addColorStop(0, 'rgba(56, 189, 248, 0.4)');
-            gradient.addColorStop(1, 'rgba(56, 189, 248, 0)');
-
-            chartInstance = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: ps.map((_, i) => `Run ${i + 1}`),
-                    datasets: [{
-                        label: 'Time Progress',
-                        data: ps.map(s => s.time),
-                        borderColor: '#38bdf8',
-                        borderWidth: 4,
-                        pointBackgroundColor: '#fff',
-                        pointBorderColor: '#38bdf8',
-                        pointHoverRadius: 6,
-                        backgroundColor: gradient,
-                        fill: true,
-                        tension: 0.4
-                    }]
-                },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false, 
-                    plugins: { legend: { display: false } },
-                    scales: { 
-                        x: { display: false },
-                        y: { 
-                            grid: { color: 'rgba(255, 255, 255, 0.03)' },
-                            ticks: { color: '#64748b', font: { weight: 'bold' } } 
-                        } 
-                    } 
+            for (let i = 0; i < 20; i++) {
+                let move = moves[Math.floor(Math.random() * moves.length)];
+                while (move === lastMove) {
+                    move = moves[Math.floor(Math.random() * moves.length)];
                 }
-            });
-
-            competitions.forEach(c => {
-                const cs = ps.filter(s => s.compId === c.id);
-                if(!cs.length) return;
-                const avg = (cs.reduce((a,b)=>a+b.time,0)/cs.length).toFixed(2);
-                const best = Math.min(...cs.map(s=>s.time)).toFixed(2);
-                const div = document.createElement('div');
-                div.className = "p-5 glass rounded-2xl flex justify-between items-center border border-slate-700/50";
-                div.innerHTML = `
-                    <div>
-                        <p class="font-bold text-slate-200">${c.name}</p>
-                        <p class="text-[10px] font-black uppercase tracking-tighter text-slate-500">${cs.length} Recorded Solves</p>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-sky-400 font-black font-mono">AVG: ${avg}s</p>
-                        <p class="text-slate-500 text-[10px] font-bold">BEST: ${best}s</p>
-                    </div>
-                `;
-                container.appendChild(div);
-            });
+                lastMove = move;
+                scramble.push(move + modifiers[Math.floor(Math.random() * modifiers.length)]);
+            }
+            
+            currentScramble = scramble.join(" ");
+            document.getElementById('scramble-display').innerText = currentScramble;
         }
 
-        window.onload = renderCompSelection;
+        // --- Stats Calculations ---
+        function calculatePB(solves) {
+            if (!solves.length) return "-";
+            return Math.min(...solves.map(s => parseFloat(s.time))).toFixed(2) + "s";
+        }
+
+        function calculateAo5(solves) {
+            if (solves.length < 5) return "-";
+            const lastFive = solves.slice(-5).map(s => parseFloat(s.time));
+            lastFive.sort((a, b) => a - b);
+            // Trim fastest and slowest
+            const trimmed = lastFive.slice(1, 4);
+            const sum = trimmed.reduce((a, b) => a + b, 0);
+            return (sum / 3).toFixed(2);
+        }
+
+        // --- UI Modal Helpers ---
+        function showModal(id) {
+            document.getElementById('modal-overlay').classList.remove('hidden');
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function closeModals() {
+            document.getElementById('modal-overlay').classList.add('hidden');
+            document.querySelectorAll('#modal-overlay > div').forEach(d => d.classList.add('hidden'));
+            // Clear inputs
+            document.querySelectorAll('input').forEach(i => { if(i.id !== 'solve-input') i.value = "" });
+        }
     </script>
 </body>
 </html>
