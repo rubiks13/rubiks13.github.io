@@ -3,27 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CubeComp Manager</title>
+    <title>CubeComp Manager - Dark Mode</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chart.js for the progress graph -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
-        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
-        .scramble-font { font-family: monospace; letter-spacing: 0.1em; }
+        
+        :root {
+            --bg-main: #0f172a;
+            --bg-card: #1e293b;
+            --bg-accent: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: var(--bg-main); 
+            color: var(--text-primary);
+        }
+
+        .glass { 
+            background: rgba(30, 41, 59, 0.8); 
+            backdrop-filter: blur(12px); 
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .scramble-font { 
+            font-family: 'JetBrains Mono', monospace; 
+            letter-spacing: 0.05em; 
+        }
+
         canvas { max-height: 300px; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
     </style>
 </head>
 <body class="min-h-screen pb-20">
 
     <!-- Navigation Bar -->
-    <nav class="bg-indigo-600 text-white p-4 shadow-lg sticky top-0 z-50">
+    <nav class="bg-indigo-900/50 border-b border-white/10 text-white p-4 sticky top-0 z-50 backdrop-blur-md">
         <div class="max-w-4xl mx-auto flex justify-between items-center">
             <h1 class="text-xl font-bold flex items-center gap-2 cursor-pointer" onclick="navigateTo('competitions')">
-                <span>🧊</span> CubeComp
+                <span class="drop-shadow-[0_0_8px_rgba(129,140,248,0.8)]">🧊</span> CubeComp
             </h1>
-            <div id="nav-breadcrumb" class="text-sm font-medium opacity-80"></div>
+            <div id="nav-breadcrumb" class="text-xs font-medium text-indigo-200/70 uppercase tracking-widest"></div>
         </div>
     </nav>
 
@@ -32,10 +67,10 @@
         
         <!-- PAGE 1: COMPETITIONS LIST -->
         <section id="page-competitions" class="page-section">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold text-gray-800">Competitions</h2>
-                <button onclick="showModal('modal-add-comp')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition shadow-md">
-                    + New Competition
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-2xl font-bold text-white">Competitions</h2>
+                <button onclick="showModal('modal-add-comp')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl transition shadow-lg shadow-indigo-500/20 font-semibold">
+                    + New Event
                 </button>
             </div>
             <div id="comp-list" class="grid gap-4 sm:grid-cols-2">
@@ -43,87 +78,107 @@
             </div>
         </section>
 
-        <!-- PAGE 2: COMPETITION DASHBOARD (Competitors & Results) -->
+        <!-- PAGE 2: COMPETITION DASHBOARD -->
         <section id="page-comp-detail" class="page-section hidden">
-            <button onclick="navigateTo('competitions')" class="text-indigo-600 mb-4 flex items-center gap-1 hover:underline">
-                ← Back to Competitions
+            <button onclick="navigateTo('competitions')" class="text-indigo-400 mb-6 flex items-center gap-2 hover:text-indigo-300 transition group">
+                <span class="group-hover:-translate-x-1 transition">←</span> Back to Dashboard
             </button>
             
-            <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
-                <h2 id="current-comp-name" class="text-3xl font-bold text-gray-900 mb-2">Competition Name</h2>
-                <p id="current-comp-date" class="text-gray-500"></p>
+            <div class="bg-[#1e293b] rounded-2xl p-6 mb-8 border border-white/5 shadow-xl">
+                <h2 id="current-comp-name" class="text-3xl font-bold text-white mb-2">Competition Name</h2>
+                <p id="current-comp-date" class="text-slate-400 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span>-</span>
+                </p>
             </div>
 
-            <div class="grid md:grid-cols-2 gap-6">
+            <div class="grid md:grid-cols-2 gap-8">
                 <!-- Competitor Management -->
-                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-bold text-lg">Competitors</h3>
-                        <button onclick="showModal('modal-add-competitor')" class="text-sm bg-indigo-50 text-indigo-600 hover:bg-indigo-100 px-3 py-1 rounded font-semibold">Add</button>
+                <div class="bg-[#1e293b] rounded-2xl p-6 border border-white/5 shadow-xl">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="font-bold text-lg text-white">Competitors</h3>
+                        <button onclick="showModal('modal-add-competitor')" class="text-xs bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 px-3 py-1.5 rounded-lg font-bold transition">ADD NEW</button>
                     </div>
-                    <div id="competitor-list" class="space-y-2">
+                    <div id="competitor-list" class="space-y-3">
                         <!-- Competitors injected here -->
                     </div>
                 </div>
 
                 <!-- Leaderboard -->
-                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-                    <h3 class="font-bold text-lg mb-4">Current Standings (Ao5)</h3>
-                    <div id="leaderboard-list" class="space-y-3">
+                <div class="bg-[#1e293b] rounded-2xl p-6 border border-white/5 shadow-xl">
+                    <h3 class="font-bold text-lg mb-6 text-white flex items-center gap-2">
+                        <span class="text-yellow-500">🏆</span> Leaderboard (Ao5)
+                    </h3>
+                    <div id="leaderboard-list" class="space-y-4">
                         <!-- Rankings injected here -->
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- PAGE 3: COMPETITOR PROFILE (Solves & Scrambler) -->
+        <!-- PAGE 3: COMPETITOR PROFILE -->
         <section id="page-competitor-profile" class="page-section hidden">
-            <button onclick="navigateTo('comp-detail')" class="text-indigo-600 mb-4 flex items-center gap-1 hover:underline">
-                ← Back to Competition
+            <button onclick="navigateTo('comp-detail')" class="text-indigo-400 mb-6 flex items-center gap-2 hover:text-indigo-300 transition group">
+                <span class="group-hover:-translate-x-1 transition">←</span> Back to Event
             </button>
 
-            <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                        <h2 id="profile-name" class="text-2xl font-bold">Competitor Name</h2>
-                        <div class="flex gap-4 mt-2 text-sm">
-                            <span class="bg-green-100 text-green-800 px-2 py-1 rounded font-medium">PB: <span id="profile-pb">-</span></span>
-                            <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded font-medium">Best Ao5: <span id="profile-ao5">-</span></span>
+            <div class="bg-[#1e293b] rounded-2xl p-6 mb-8 border border-white/5 shadow-xl">
+                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
+                    <div class="space-y-4">
+                        <h2 id="profile-name" class="text-3xl font-bold text-white tracking-tight">Competitor Name</h2>
+                        <div class="flex gap-3 mt-2">
+                            <div class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-4 py-2 rounded-xl">
+                                <p class="text-[10px] uppercase font-bold opacity-70">Best Single</p>
+                                <p id="profile-pb" class="text-xl font-bold">-</p>
+                            </div>
+                            <div class="bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 px-4 py-2 rounded-xl">
+                                <p class="text-[10px] uppercase font-bold opacity-70">Best Average</p>
+                                <p id="profile-ao5" class="text-xl font-bold">-</p>
+                            </div>
                         </div>
                     </div>
-                    <div class="w-full md:w-1/2 bg-gray-50 p-2 rounded-lg border border-gray-100">
+                    <div class="w-full lg:w-2/3 bg-slate-900/50 p-4 rounded-xl border border-white/5">
                         <canvas id="progressChart"></canvas>
                     </div>
                 </div>
             </div>
 
             <!-- Scrambler Section -->
-            <div class="bg-indigo-900 text-white rounded-xl p-6 mb-6 shadow-xl">
-                <div class="flex justify-between items-center mb-4">
-                    <span class="text-xs font-bold uppercase tracking-widest opacity-70">Official Scramble</span>
-                    <button onclick="forceNewScramble()" class="text-xs bg-white/20 hover:bg-white/30 px-2 py-1 rounded transition">New Scramble</button>
-                </div>
-                <div id="scramble-display" class="scramble-font text-xl md:text-2xl text-center font-medium mb-6 min-h-[3rem]">
-                    Loading scramble...
-                </div>
-                <div class="flex gap-2">
-                    <input type="number" id="solve-input" placeholder="Enter solve time (e.g. 15.42)" step="0.01" 
-                        class="flex-1 bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50">
-                    <button onclick="addSolve()" class="bg-white text-indigo-900 font-bold px-6 py-3 rounded-lg hover:bg-indigo-50 transition">Submit</button>
+            <div class="bg-indigo-600 rounded-2xl p-8 mb-8 shadow-2xl shadow-indigo-500/20 relative overflow-hidden">
+                <!-- Decorative background elements -->
+                <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
+                
+                <div class="relative z-10">
+                    <div class="flex justify-between items-center mb-6">
+                        <span class="text-xs font-black uppercase tracking-[0.2em] text-indigo-200">Current Scramble</span>
+                        <button onclick="forceNewScramble()" class="text-xs bg-black/20 hover:bg-black/40 px-3 py-1.5 rounded-full transition font-bold">REGENERATE</button>
+                    </div>
+                    <div id="scramble-display" class="scramble-font text-xl md:text-3xl text-center font-bold text-white mb-8 leading-relaxed">
+                        ...
+                    </div>
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <input type="number" id="solve-input" placeholder="0.00" step="0.01" 
+                            class="flex-1 bg-black/20 border border-white/10 rounded-xl px-6 py-4 text-white text-2xl font-bold placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-white/30 transition text-center">
+                        <button onclick="addSolve()" class="bg-white text-indigo-600 font-black px-10 py-4 rounded-xl hover:bg-indigo-50 transition shadow-lg text-lg uppercase tracking-wider">Submit</button>
+                    </div>
                 </div>
             </div>
 
             <!-- Solve History -->
-            <div class="bg-white rounded-xl shadow-sm p-6">
-                <h3 class="font-bold mb-4">Recent Solves</h3>
+            <div class="bg-[#1e293b] rounded-2xl p-6 border border-white/5 shadow-xl">
+                <h3 class="font-bold text-lg mb-6 text-white flex items-center gap-2">
+                    <span class="text-slate-400">⏱️</span> Solve History
+                </h3>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left">
                         <thead>
-                            <tr class="text-gray-400 text-xs uppercase border-b">
-                                <th class="py-2">#</th>
-                                <th class="py-2">Time</th>
-                                <th class="py-2">Scramble</th>
-                                <th class="py-2">Date</th>
+                            <tr class="text-slate-500 text-[10px] uppercase tracking-widest border-b border-white/5">
+                                <th class="pb-4 font-bold">No.</th>
+                                <th class="pb-4 font-bold">Time</th>
+                                <th class="pb-4 font-bold">Scramble</th>
+                                <th class="pb-4 font-bold text-right">Date</th>
                             </tr>
                         </thead>
                         <tbody id="solve-history-list">
@@ -137,57 +192,66 @@
     </main>
 
     <!-- Modals -->
-    <div id="modal-overlay" class="fixed inset-0 bg-black/50 hidden z-[60] flex items-center justify-center p-4">
-        <!-- Add Competition Modal -->
-        <div id="modal-add-comp" class="bg-white rounded-xl p-6 w-full max-w-md hidden">
-            <h3 class="text-xl font-bold mb-4">New Competition</h3>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Competition Name</label>
-                    <input type="text" id="input-comp-name" class="w-full border rounded-lg p-2 mt-1 focus:ring-2 focus:ring-indigo-500 outline-none">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Date</label>
-                    <input type="date" id="input-comp-date" class="w-full border rounded-lg p-2 mt-1 focus:ring-2 focus:ring-indigo-500 outline-none">
-                </div>
-                <div class="flex gap-2 pt-2">
-                    <button onclick="closeModals()" class="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50">Cancel</button>
-                    <button onclick="createCompetition()" class="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Create</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Add Competitor Modal -->
-        <div id="modal-add-competitor" class="bg-white rounded-xl p-6 w-full max-w-md hidden">
-            <h3 class="text-xl font-bold mb-4">Add Competitor</h3>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Full Name</label>
-                    <input type="text" id="input-competitor-name" class="w-full border rounded-lg p-2 mt-1 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="e.g. Feliks Zemdegs">
-                </div>
-                <div class="flex gap-2 pt-2">
-                    <button onclick="closeModals()" class="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50">Cancel</button>
-                    <button onclick="addCompetitor()" class="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Add</button>
+    <div id="modal-overlay" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-[60] flex items-center justify-center p-4">
+        <!-- Generic Modal Container -->
+        <div id="modal-container" class="bg-[#1e293b] rounded-2xl p-8 w-full max-w-md border border-white/10 shadow-2xl relative">
+            
+            <!-- Add Competition Modal -->
+            <div id="modal-add-comp" class="hidden">
+                <h3 class="text-2xl font-bold mb-6 text-white">New Competition</h3>
+                <div class="space-y-5">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Event Name</label>
+                        <input type="text" id="input-comp-name" class="w-full bg-slate-900 border border-white/10 rounded-xl p-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Start Date</label>
+                        <input type="date" id="input-comp-date" class="w-full bg-slate-900 border border-white/10 rounded-xl p-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none">
+                    </div>
+                    <div class="flex gap-3 pt-4">
+                        <button onclick="closeModals()" class="flex-1 px-4 py-3 bg-slate-800 text-slate-300 rounded-xl hover:bg-slate-700 transition font-bold">CANCEL</button>
+                        <button onclick="createCompetition()" class="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-500 transition font-bold shadow-lg shadow-indigo-600/20">CREATE</button>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Confirm Delete Modal -->
-        <div id="modal-confirm-delete" class="bg-white rounded-xl p-6 w-full max-w-md hidden">
-            <h3 class="text-xl font-bold mb-2 text-red-600">Delete Competition?</h3>
-            <p class="text-gray-600 mb-6 text-sm">This will permanently remove this competition and all competitor solve data. This action cannot be undone.</p>
-            <div class="flex gap-2">
-                <button onclick="closeModals()" class="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50">No, Keep it</button>
-                <button id="btn-confirm-delete-final" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Yes, Delete</button>
+            <!-- Add Competitor Modal -->
+            <div id="modal-add-competitor" class="hidden">
+                <h3 class="text-2xl font-bold mb-6 text-white">Add Participant</h3>
+                <div class="space-y-5">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Full Name</label>
+                        <input type="text" id="input-competitor-name" class="w-full bg-slate-900 border border-white/10 rounded-xl p-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="e.g. Max Park">
+                    </div>
+                    <div class="flex gap-3 pt-4">
+                        <button onclick="closeModals()" class="flex-1 px-4 py-3 bg-slate-800 text-slate-300 rounded-xl hover:bg-slate-700 transition font-bold">CANCEL</button>
+                        <button onclick="addCompetitor()" class="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-500 transition font-bold shadow-lg shadow-indigo-600/20">REGISTER</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Confirm Delete Modal -->
+            <div id="modal-confirm-delete" class="hidden">
+                <div class="text-center mb-6">
+                    <div class="bg-red-500/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold text-white">Delete Competition?</h3>
+                    <p class="text-slate-400 mt-2">This will erase all participant results forever.</p>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="closeModals()" class="flex-1 px-4 py-3 bg-slate-800 text-slate-300 rounded-xl hover:bg-slate-700 transition font-bold">KEEP IT</button>
+                    <button id="btn-confirm-delete-final" class="flex-1 px-4 py-3 bg-red-600 text-white rounded-xl hover:bg-red-500 transition font-bold">DELETE</button>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
         // State Management
-        let appData = {
-            competitions: []
-        };
+        let appData = { competitions: [] };
         let currentCompId = null;
         let currentCompetitorId = null;
         let progressChart = null;
@@ -210,7 +274,7 @@
             
             const breadcrumb = document.getElementById('nav-breadcrumb');
             if (pageId === 'competitions') {
-                breadcrumb.innerText = "Home";
+                breadcrumb.innerText = "Directory";
                 renderCompetitions();
             } else if (pageId === 'comp-detail') {
                 const comp = appData.competitions.find(c => c.id === currentCompId);
@@ -220,7 +284,7 @@
             } else if (pageId === 'competitor-profile') {
                 const comp = appData.competitions.find(c => c.id === currentCompId);
                 const user = comp.competitors.find(u => u.id === currentCompetitorId);
-                breadcrumb.innerText = `${comp.name} > ${user.name}`;
+                breadcrumb.innerText = user ? `Competitor / ${user.name}` : "";
                 renderCompetitorProfile();
             }
             window.scrollTo(0, 0);
@@ -232,59 +296,59 @@
             const date = document.getElementById('input-comp-date').value;
             if (!name) return;
 
-            const newComp = {
+            appData.competitions.push({
                 id: Date.now().toString(),
                 name,
                 date,
                 competitors: []
-            };
+            });
 
-            appData.competitions.push(newComp);
             saveData();
             closeModals();
             renderCompetitions();
         }
 
         function initiateDelete(compId, event) {
-            event.stopPropagation(); // Don't trigger the card click navigation
+            event.stopPropagation();
             const btn = document.getElementById('btn-confirm-delete-final');
             btn.onclick = () => {
-                deleteCompetition(compId);
+                appData.competitions = appData.competitions.filter(c => c.id !== compId);
+                saveData();
                 closeModals();
+                renderCompetitions();
             };
             showModal('modal-confirm-delete');
         }
 
-        function deleteCompetition(id) {
-            appData.competitions = appData.competitions.filter(c => c.id !== id);
-            saveData();
-            renderCompetitions();
-        }
-
         function renderCompetitions() {
             const container = document.getElementById('comp-list');
-            container.innerHTML = appData.competitions.length ? '' : '<p class="text-gray-400 col-span-2 text-center py-10">No competitions added yet. Click "+ New Competition" to start.</p>';
+            container.innerHTML = appData.competitions.length ? '' : `
+                <div class="col-span-full py-20 text-center bg-slate-900/50 rounded-3xl border border-white/5">
+                    <p class="text-slate-500 mb-2">The arena is empty.</p>
+                    <p class="text-slate-600 text-sm">Create a competition to start recording times.</p>
+                </div>
+            `;
             
             appData.competitions.forEach(comp => {
                 const card = document.createElement('div');
-                card.className = "bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:border-indigo-300 transition cursor-pointer group relative";
+                card.className = "bg-[#1e293b] p-6 rounded-2xl border border-white/5 hover:border-indigo-500/50 transition-all duration-300 cursor-pointer group relative shadow-lg hover:shadow-indigo-500/10";
                 card.onclick = () => {
                     currentCompId = comp.id;
                     navigateTo('comp-detail');
                 };
                 card.innerHTML = `
-                    <div class="flex justify-between items-start mb-2">
-                        <h3 class="font-bold text-lg group-hover:text-indigo-600 transition truncate pr-8">${comp.name}</h3>
-                        <button onclick="initiateDelete('${comp.id}', event)" class="absolute top-4 right-4 text-gray-300 hover:text-red-500 transition p-2 rounded-lg hover:bg-red-50">
+                    <div class="flex justify-between items-start mb-3">
+                        <h3 class="font-bold text-xl group-hover:text-indigo-400 transition truncate pr-8">${comp.name}</h3>
+                        <button onclick="initiateDelete('${comp.id}', event)" class="absolute top-4 right-4 text-slate-600 hover:text-red-400 transition p-2 rounded-xl hover:bg-red-400/10">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
                         </button>
                     </div>
-                    <p class="text-sm text-gray-500">${comp.date || 'No date set'}</p>
-                    <div class="mt-4 flex justify-between items-center">
-                        <span class="text-xs bg-gray-100 px-2 py-1 rounded font-medium text-gray-600">${comp.competitors.length} Competitors</span>
-                        <span class="text-indigo-500 text-sm font-semibold">View Results →</span>
+                    <p class="text-sm text-slate-500 font-medium">${comp.date ? new Date(comp.date).toLocaleDateString(undefined, {month:'long', day:'numeric', year:'numeric'}) : 'No date set'}</p>
+                    <div class="mt-8 flex justify-between items-center border-t border-white/5 pt-4">
+                        <span class="text-[10px] bg-slate-800 text-slate-400 px-2 py-1 rounded font-black uppercase tracking-widest">${comp.competitors.length} Registered</span>
+                        <span class="text-indigo-400 text-xs font-bold uppercase tracking-widest group-hover:translate-x-1 transition">ENTER →</span>
                     </div>
                 `;
                 container.appendChild(card);
@@ -297,21 +361,24 @@
             if (!comp) return;
 
             document.getElementById('current-comp-name').innerText = comp.name;
-            document.getElementById('current-comp-date').innerText = comp.date || "Ongoing";
+            document.getElementById('current-comp-date').querySelector('span').innerText = comp.date || "Ongoing";
 
             const list = document.getElementById('competitor-list');
-            list.innerHTML = comp.competitors.length ? '' : '<p class="text-xs text-gray-400 italic">No competitors yet.</p>';
+            list.innerHTML = comp.competitors.length ? '' : '<p class="text-sm text-slate-500 text-center py-4 bg-slate-900/50 rounded-xl">No participants added.</p>';
             
             comp.competitors.forEach(user => {
                 const item = document.createElement('div');
-                item.className = "flex justify-between items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition border border-transparent hover:border-indigo-100";
+                item.className = "flex justify-between items-center p-4 bg-slate-800/50 rounded-xl hover:bg-slate-800 cursor-pointer transition border border-white/5 hover:border-indigo-500/30 group";
                 item.onclick = () => {
                     currentCompetitorId = user.id;
                     navigateTo('competitor-profile');
                 };
                 item.innerHTML = `
-                    <span class="font-medium text-gray-700">${user.name}</span>
-                    <span class="text-gray-400 text-sm">Best: <span class="text-gray-600 font-semibold">${calculatePB(user.solves)}</span></span>
+                    <span class="font-bold text-slate-200 group-hover:text-white transition">${user.name}</span>
+                    <div class="text-right">
+                        <span class="text-slate-500 text-[10px] uppercase font-bold block leading-none mb-1">BEST</span>
+                        <span class="text-emerald-400 font-bold">${calculatePB(user.solves)}</span>
+                    </div>
                 `;
                 list.appendChild(item);
             });
@@ -320,21 +387,29 @@
             const ranked = [...comp.competitors].sort((a, b) => {
                 const aAvg = calculateAo5(a.solves);
                 const bAvg = calculateAo5(b.solves);
-                if (aAvg === "DNF" || aAvg === "-") return 1;
-                if (bAvg === "DNF" || bAvg === "-") return -1;
+                if (aAvg === "-" || aAvg === "DNF") return 1;
+                if (bAvg === "-" || bAvg === "DNF") return -1;
                 return parseFloat(aAvg) - parseFloat(bAvg);
             });
 
-            leaderboard.innerHTML = ranked.length ? '' : '<p class="text-xs text-gray-400 italic">Complete at least 5 solves to see averages.</p>';
+            leaderboard.innerHTML = ranked.length ? '' : '<p class="text-sm text-slate-500 text-center py-4 bg-slate-900/50 rounded-xl">Leaderboard empty.</p>';
             ranked.forEach((user, idx) => {
                 const avg = calculateAo5(user.solves);
                 const entry = document.createElement('div');
-                entry.className = "flex items-center gap-3 bg-white p-2 rounded-lg";
+                entry.className = "flex items-center gap-4 bg-slate-900/30 p-3 rounded-xl border border-white/5";
+                
+                let medal = idx + 1;
+                if(idx === 0) medal = '🥇';
+                else if(idx === 1) medal = '🥈';
+                else if(idx === 2) medal = '🥉';
+
                 entry.innerHTML = `
-                    <div class="w-6 h-6 flex items-center justify-center rounded-full ${idx < 3 ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-500'} text-xs font-bold">${idx + 1}</div>
+                    <div class="w-8 h-8 flex items-center justify-center rounded-lg ${idx < 3 ? 'bg-indigo-500/20 text-indigo-300' : 'bg-slate-800 text-slate-500'} text-sm font-black">${medal}</div>
                     <div class="flex-1 flex justify-between items-center">
-                        <span class="text-sm font-medium text-gray-800">${user.name}</span>
-                        <span class="text-sm font-bold text-indigo-600">${avg}${avg !== '-' ? 's' : ''}</span>
+                        <span class="text-sm font-bold text-slate-300">${user.name}</span>
+                        <div class="text-right">
+                            <span class="text-xs font-black text-indigo-400">${avg}${avg !== '-' ? 's' : ''}</span>
+                        </div>
                     </div>
                 `;
                 leaderboard.appendChild(entry);
@@ -377,16 +452,16 @@
             history.innerHTML = '';
             
             if (user.solves.length === 0) {
-                history.innerHTML = '<tr><td colspan="4" class="py-10 text-center text-gray-400 italic text-sm">No solves recorded yet. Enter a time above to start!</td></tr>';
+                history.innerHTML = '<tr><td colspan="4" class="py-12 text-center text-slate-500 italic text-sm bg-slate-900/20 rounded-xl">No recorded sessions. Ready to scramble?</td></tr>';
             } else {
                 [...user.solves].reverse().forEach((solve, i) => {
                     const row = document.createElement('tr');
-                    row.className = "border-b text-sm hover:bg-gray-50 transition";
+                    row.className = "border-b border-white/5 text-sm hover:bg-white/5 transition";
                     row.innerHTML = `
-                        <td class="py-3 text-gray-400">${user.solves.length - i}</td>
-                        <td class="py-3 font-bold text-gray-800">${solve.time}s</td>
-                        <td class="py-3 text-gray-500 truncate max-w-[150px] md:max-w-xs" title="${solve.scramble}">${solve.scramble}</td>
-                        <td class="py-3 text-gray-400 text-xs">${new Date(solve.timestamp).toLocaleDateString()}</td>
+                        <td class="py-4 text-slate-600 font-mono text-xs">${user.solves.length - i}</td>
+                        <td class="py-4 font-black text-slate-100">${solve.time}s</td>
+                        <td class="py-4 text-slate-500 truncate max-w-[150px] md:max-w-xs font-mono text-xs" title="${solve.scramble}">${solve.scramble}</td>
+                        <td class="py-4 text-slate-600 text-[10px] font-bold text-right">${new Date(solve.timestamp).toLocaleDateString()}</td>
                     `;
                     history.appendChild(row);
                 });
@@ -400,40 +475,48 @@
             const data = solves.map(s => parseFloat(s.time));
             const labels = solves.map((_, i) => i + 1);
 
-            if (progressChart) {
-                progressChart.destroy();
-            }
+            if (progressChart) progressChart.destroy();
 
             progressChart = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: 'Solve Time (s)',
+                        label: 'Solve Time',
                         data: data,
-                        borderColor: '#4f46e5',
-                        backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                        borderColor: '#818cf8',
+                        backgroundColor: (context) => {
+                            const chart = context.chart;
+                            const {ctx, chartArea} = chart;
+                            if (!chartArea) return null;
+                            const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                            gradient.addColorStop(0, 'rgba(129, 140, 248, 0)');
+                            gradient.addColorStop(1, 'rgba(129, 140, 248, 0.2)');
+                            return gradient;
+                        },
                         fill: true,
-                        tension: 0.3,
-                        pointRadius: 4,
-                        pointBackgroundColor: '#4f46e5'
+                        tension: 0.4,
+                        pointRadius: 5,
+                        pointHoverRadius: 8,
+                        pointBackgroundColor: '#818cf8',
+                        pointBorderColor: '#1e293b',
+                        pointBorderWidth: 2
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false }
-                    },
+                    interaction: { intersect: false, mode: 'index' },
+                    plugins: { legend: { display: false } },
                     scales: {
                         y: {
                             beginAtZero: false,
-                            grid: { color: '#f1f5f9' },
-                            title: { display: true, text: 'Seconds', font: { size: 10 } }
+                            grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false },
+                            ticks: { color: '#64748b', font: { size: 10, weight: 'bold' } }
                         },
                         x: {
                             grid: { display: false },
-                            title: { display: true, text: 'Solve #', font: { size: 10 } }
+                            ticks: { color: '#64748b', font: { size: 10, weight: 'bold' } }
                         }
                     }
                 }
@@ -454,7 +537,6 @@
             });
 
             user.pendingScramble = generateScrambleString();
-            
             document.getElementById('solve-input').value = "";
             saveData();
             renderCompetitorProfile();
@@ -509,7 +591,7 @@
 
         function closeModals() {
             document.getElementById('modal-overlay').classList.add('hidden');
-            document.querySelectorAll('#modal-overlay > div').forEach(d => d.classList.add('hidden'));
+            document.querySelectorAll('#modal-container > div').forEach(d => d.classList.add('hidden'));
             document.querySelectorAll('input').forEach(i => { if(i.id !== 'solve-input') i.value = "" });
         }
     </script>
