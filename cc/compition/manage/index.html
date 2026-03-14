@@ -3,239 +3,340 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CubeComp GitHub Cloud</title>
+    <title>Speedcube Competition Tracker (Local Edition)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=JetBrains+Mono:wght@700&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f1f5f9; }
-        .timer-font { font-family: 'JetBrains Mono', monospace; }
-        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@500&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f1f5f9;
+        }
+
+        .scramble-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .timer-display {
+            font-size: 6rem;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .btn-primary { @apply bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-all active:scale-95; }
+        .btn-secondary { @apply bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg transition-all; }
+        .card { @apply bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl; }
+        
+        .timer-running { color: #ef4444; }
+        .timer-ready { color: #22c55e; }
+        
+        @media (max-width: 640px) {
+            .timer-display { font-size: 4rem; }
+        }
     </style>
 </head>
-<body class="min-h-screen pb-10">
+<body class="min-h-screen pb-12">
 
-    <nav class="glass sticky top-0 z-50 px-6 py-4 mb-6 flex justify-between items-center">
-        <h1 class="text-xl font-black text-blue-500">CUBE<span class="text-white">GIST</span></h1>
-        <div id="syncIndicator" class="text-[10px] font-bold px-3 py-1 rounded-full flex items-center bg-slate-800">
-            <span id="dot" class="status-dot bg-yellow-500"></span>
-            <span id="statusText">CONNECTING...</span>
+    <!-- Navigation -->
+    <nav class="bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
+                CubeComp Local
+            </h1>
+            <div class="text-xs text-slate-400 font-mono">Offline Mode Enabled</div>
         </div>
     </nav>
 
-    <main class="max-w-5xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <main class="max-w-7xl mx-auto px-4 mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        <div class="lg:col-span-2 space-y-6">
-            <!-- Scramble Display -->
-            <div class="glass rounded-3xl p-6 text-center">
-                <p class="text-slate-500 text-xs uppercase font-bold mb-2 tracking-widest">Scramble</p>
-                <p id="scramble" class="timer-font text-lg text-blue-200 mb-4 select-none">Generating...</p>
-                <button onclick="generateScramble()" class="text-xs text-blue-500 hover:text-blue-400 transition">Get New Scramble</button>
-            </div>
-
-            <!-- Timer Area -->
-            <div id="timerBox" class="glass rounded-3xl p-10 flex flex-col items-center justify-center min-h-[350px] transition-all">
-                <div class="w-full max-w-xs mb-6">
-                    <label class="block text-[10px] uppercase text-slate-500 font-bold mb-1 ml-1">Select Competitor</label>
-                    <select id="userSelect" class="w-full bg-slate-800 border border-slate-700 p-3 rounded-xl text-white outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">Choose a cousin...</option>
+        <!-- Left Column -->
+        <div class="lg:col-span-8 space-y-8">
+            
+            <!-- Scramble Section -->
+            <section class="card">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold">Active Scramble</h2>
+                    <select id="cube-type" class="bg-slate-700 border-none rounded p-1 text-sm">
+                        <option value="3x3">3x3x3</option>
+                        <option value="2x2">2x2x2</option>
+                        <option value="4x4">4x4x4</option>
                     </select>
                 </div>
-                
-                <div id="display" class="timer-font text-8xl md:text-9xl font-bold mb-8 select-none transition-colors">0.00</div>
-                
-                <div class="text-center">
-                    <p class="text-slate-400 text-sm">Hold <kbd class="bg-slate-700 px-2 py-1 rounded text-white font-mono">SPACE</kbd> to start</p>
-                    <p class="text-slate-600 text-[10px] mt-2 italic">Data automatically syncs to your GitHub Gist</p>
+                <div id="scramble-box" class="scramble-font text-xl text-center p-6 bg-slate-900 rounded-lg border border-slate-700 min-h-[80px] flex items-center justify-center leading-relaxed">
+                    Generating...
                 </div>
-            </div>
+                <button id="new-scramble-btn" class="mt-4 w-full btn-secondary text-sm">New Scramble</button>
+            </section>
+
+            <!-- Timer Section -->
+            <section class="card text-center">
+                <div id="timer" class="timer-display font-bold my-4 select-none">0.00</div>
+                <div class="text-slate-500 text-sm mb-6">[ Spacebar or Tap to Start/Stop ]</div>
+                
+                <div class="flex flex-wrap justify-center gap-4">
+                    <div class="flex flex-col text-left">
+                        <label class="text-xs text-slate-400 mb-1">Select Competitor</label>
+                        <select id="active-competitor" class="bg-slate-700 border-none rounded p-2 text-white min-w-[150px]">
+                            <option value="">Choose...</option>
+                        </select>
+                    </div>
+                    <div class="flex items-end">
+                        <button id="save-solve-btn" class="btn-primary opacity-50 cursor-not-allowed" disabled>Log Time</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Solves History -->
+            <section class="card">
+                <h2 class="text-xl font-semibold mb-4">Recent Solves</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="text-slate-400 border-b border-slate-700">
+                                <th class="pb-3 px-2">Name</th>
+                                <th class="pb-3 px-2">Time</th>
+                                <th class="pb-3 px-2">Cube</th>
+                                <th class="pb-3 px-2 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="solves-history" class="divide-y divide-slate-700"></tbody>
+                    </table>
+                </div>
+            </section>
         </div>
 
-        <!-- Sidebar -->
-        <div class="space-y-6">
-            <div class="glass rounded-3xl overflow-hidden border border-blue-500/20">
-                <div class="bg-blue-600 p-4 font-bold flex justify-between items-center">
-                    <span>Cloud Leaderboard</span>
-                    <button onclick="pullData()" class="text-[10px] bg-blue-700 px-2 py-1 rounded">Refresh</button>
+        <!-- Right Column -->
+        <div class="lg:col-span-4 space-y-8">
+            
+            <!-- Competitors -->
+            <section class="card">
+                <h2 class="text-xl font-semibold mb-4">Add Competitor</h2>
+                <div class="flex gap-2 mb-6">
+                    <input type="text" id="new-player-name" placeholder="Name..." class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 flex-grow focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button id="add-player-btn" class="btn-primary">Add</button>
                 </div>
-                <div id="leaderboard" class="p-4 space-y-3 min-h-[100px]">
-                    <p class="text-center text-slate-500 text-xs py-4">Loading stats...</p>
-                </div>
-            </div>
+                <ul id="players-list" class="space-y-3"></ul>
+            </section>
 
-            <div class="glass rounded-3xl p-6">
-                <h3 class="font-bold mb-4 text-sm">Add Competitor</h3>
-                <div class="flex gap-2">
-                    <input type="text" id="nameIn" placeholder="Enter name" class="flex-1 bg-slate-800 border border-slate-700 p-3 rounded-xl outline-none text-sm focus:ring-2 focus:ring-blue-500">
-                    <button onclick="addUser()" class="bg-blue-600 hover:bg-blue-500 px-5 rounded-xl font-bold transition">+</button>
-                </div>
-            </div>
+            <!-- Leaderboard -->
+            <section class="card">
+                <h2 class="text-xl font-semibold mb-4">Leaderboard (AVG)</h2>
+                <div id="leaderboard" class="space-y-3"></div>
+            </section>
+
         </div>
     </main>
 
     <script>
-        /**
-         * SETUP INSTRUCTIONS:
-         * 1. Create a Personal Access Token (classic) on GitHub with 'gist' scope.
-         * 2. Create a Gist and copy the ID from the URL.
-         */
-        const GITHUB_TOKEN = "PASTE_YOUR_GITHUB_TOKEN_HERE"; 
-        const GIST_ID = "PASTE_YOUR_GIST_ID_HERE";
+        // --- State ---
+        let players = JSON.parse(localStorage.getItem('cube_players') || '[]');
+        let solves = JSON.parse(localStorage.getItem('cube_solves') || '[]');
 
-        let state = { users: [], solves: [] };
-        let timer, start, running = false, holding = false, holdStart = 0;
+        const scrambleBox = document.getElementById('scramble-box');
+        const timerDisplay = document.getElementById('timer');
+        const cubeTypeSelect = document.getElementById('cube-type');
+        const activeCompSelect = document.getElementById('active-competitor');
+        const solvesHistory = document.getElementById('solves-history');
+        const playersList = document.getElementById('players-list');
+        const leaderboard = document.getElementById('leaderboard');
+        const saveSolveBtn = document.getElementById('save-solve-btn');
+        const addPlayerBtn = document.getElementById('add-player-btn');
+        const newPlayerInput = document.getElementById('new-player-name');
 
-        // --- GITHUB SYNC LOGIC ---
-        async function pullData() {
-            setSyncStatus('loading');
-            try {
-                const res = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
-                    headers: { 'Authorization': `token ${GITHUB_TOKEN}` }
-                });
-                const data = await res.json();
-                const content = data.files['cube-data.json'].content;
-                state = JSON.parse(content || '{"users":[],"solves":[]}');
-                if (!state.users) state = { users: [], solves: [] };
-                render();
-                setSyncStatus('ready');
-            } catch (e) {
-                console.error(e);
-                setSyncStatus('error');
-            }
+        // --- Timer Engine ---
+        let timerInterval;
+        let startTime;
+        let running = false;
+        let lastTime = 0;
+        let readyToStart = false;
+
+        function updateTimer() {
+            const now = Date.now();
+            const diff = now - startTime;
+            lastTime = (diff / 1000).toFixed(2);
+            timerDisplay.textContent = lastTime;
         }
-
-        async function pushData() {
-            setSyncStatus('saving');
-            try {
-                await fetch(`https://api.github.com/gists/${GIST_ID}`, {
-                    method: 'PATCH',
-                    headers: { 
-                        'Authorization': `token ${GITHUB_TOKEN}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        files: { 'cube-data.json': { content: JSON.stringify(state) } }
-                    })
-                });
-                setSyncStatus('ready');
-            } catch (e) {
-                console.error(e);
-                setSyncStatus('error');
-            }
-        }
-
-        function setSyncStatus(status) {
-            const dot = document.getElementById('dot');
-            const txt = document.getElementById('statusText');
-            if (status === 'ready') {
-                dot.className = 'status-dot bg-green-500';
-                txt.innerText = 'CLOUD SYNCED';
-            } else if (status === 'loading' || status === 'saving') {
-                dot.className = 'status-dot bg-yellow-500 animate-pulse';
-                txt.innerText = status.toUpperCase() + '...';
-            } else {
-                dot.className = 'status-dot bg-red-500';
-                txt.innerText = 'SYNC ERROR';
-            }
-        }
-
-        // --- APP LOGIC ---
-        function addUser() {
-            const name = document.getElementById('nameIn').value.trim();
-            if(!name) return;
-            state.users.push({ id: Date.now(), name });
-            document.getElementById('nameIn').value = '';
-            pushData();
-            render();
-        }
-
-        function render() {
-            const sel = document.getElementById('userSelect');
-            const current = sel.value;
-            sel.innerHTML = '<option value="">Choose a cousin...</option>' + 
-                state.users.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
-            sel.value = current;
-
-            const board = state.users.map(u => {
-                const uSolves = state.solves.filter(s => s.uid == u.id).map(s => s.t);
-                return { 
-                    name: u.name, 
-                    best: uSolves.length ? Math.min(...uSolves) : 999,
-                    count: uSolves.length
-                };
-            }).sort((a,b) => a.best - b.best);
-
-            document.getElementById('leaderboard').innerHTML = board.map((b, i) => `
-                <div class="flex justify-between items-center bg-slate-800/40 p-3 rounded-xl border border-white/5">
-                    <div class="flex flex-col">
-                        <span class="text-xs font-bold text-white">${i+1}. ${b.name}</span>
-                        <span class="text-[9px] text-slate-500">${b.count} solves</span>
-                    </div>
-                    <span class="timer-font text-blue-400 font-bold">${b.best === 999 ? '--' : b.best.toFixed(2)}</span>
-                </div>
-            `).join('') || '<p class="text-center text-slate-500 text-[10px] py-4">Add your first competitor to start!</p>';
-        }
-
-        // --- TIMER LOGIC ---
-        function generateScramble() {
-            const m = ["R","L","U","D","F","B"];
-            const t = ["","'","2"];
-            let s = "";
-            for(let i=0; i<20; i++) s += m[Math.floor(Math.random()*6)] + t[Math.floor(Math.random()*3)] + " ";
-            document.getElementById('scramble').innerText = s;
-        }
-
-        window.onkeydown = (e) => {
-            if(e.code === 'Space') {
-                if(e.target.tagName === 'INPUT') return;
-                e.preventDefault();
-                if(running) {
-                    stopTimer();
-                } else if(!holding) {
-                    holding = true; holdStart = Date.now();
-                    document.getElementById('display').classList.add('text-red-500');
-                }
-            }
-        };
-
-        window.onkeyup = (e) => {
-            if(e.code === 'Space' && holding) {
-                holding = false;
-                if(Date.now() - holdStart > 500) startTimer();
-                else document.getElementById('display').classList.remove('text-red-500');
-            }
-        };
 
         function startTimer() {
-            running = true; start = Date.now();
-            document.getElementById('display').classList.remove('text-red-500');
-            document.getElementById('display').classList.add('text-blue-500');
-            timer = setInterval(() => {
-                document.getElementById('display').innerText = ((Date.now()-start)/1000).toFixed(2);
-            }, 10);
+            running = true;
+            startTime = Date.now();
+            timerDisplay.classList.add('timer-running');
+            timerDisplay.classList.remove('timer-ready');
+            timerInterval = setInterval(updateTimer, 10);
+            saveSolveBtn.disabled = true;
+            saveSolveBtn.classList.add('opacity-50');
         }
 
         function stopTimer() {
-            running = false; clearInterval(timer);
-            const time = parseFloat(document.getElementById('display').innerText);
-            const uid = document.getElementById('userSelect').value;
-            if(uid) { 
-                state.solves.push({ uid, t: time }); 
-                pushData(); 
-                generateScramble(); 
+            running = false;
+            clearInterval(timerInterval);
+            timerDisplay.classList.remove('timer-running');
+            if (activeCompSelect.value) {
+                saveSolveBtn.disabled = false;
+                saveSolveBtn.classList.remove('opacity-50');
             }
-            document.getElementById('display').classList.remove('text-blue-500');
+        }
+
+        // Spacebar logic
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && !e.repeat) {
+                e.preventDefault();
+                if (running) stopTimer();
+                else {
+                    timerDisplay.classList.add('timer-ready');
+                    readyToStart = true;
+                }
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'Space' && readyToStart) {
+                readyToStart = false;
+                startTimer();
+            }
+        });
+
+        // Touch logic for timer
+        timerDisplay.onpointerdown = (e) => {
+            if (running) stopTimer();
+            else {
+                timerDisplay.classList.add('timer-ready');
+                readyToStart = true;
+            }
+        };
+
+        timerDisplay.onpointerup = () => {
+            if (readyToStart) {
+                readyToStart = false;
+                startTimer();
+            }
+        };
+
+        // --- Scramble Generator ---
+        function generateScramble() {
+            const type = cubeTypeSelect.value;
+            const moves = ["U", "D", "L", "R", "F", "B"];
+            const modifiers = ["", "'", "2"];
+            let length = type === "2x2" ? 9 : (type === "4x4" ? 40 : 20);
+
+            let scramble = [];
+            let lastMove = "";
+            for (let i = 0; i < length; i++) {
+                let move;
+                do { move = moves[Math.floor(Math.random() * moves.length)]; } while (move === lastMove);
+                lastMove = move;
+                scramble.push(move + modifiers[Math.floor(Math.random() * modifiers.length)]);
+            }
+            scrambleBox.textContent = scramble.join(" ");
+        }
+
+        // --- Persistence ---
+        function saveData() {
+            localStorage.setItem('cube_players', JSON.stringify(players));
+            localStorage.setItem('cube_solves', JSON.stringify(solves));
+            renderAll();
+        }
+
+        // --- Actions ---
+        addPlayerBtn.onclick = () => {
+            const name = newPlayerInput.value.trim();
+            if (!name) return;
+            players.push({ id: Date.now().toString(), name: name });
+            newPlayerInput.value = '';
+            saveData();
+        };
+
+        saveSolveBtn.onclick = () => {
+            const playerId = activeCompSelect.value;
+            if (!playerId) return;
+            const player = players.find(p => p.id === playerId);
+            solves.push({
+                id: Date.now().toString(),
+                playerId,
+                playerName: player.name,
+                time: parseFloat(lastTime),
+                type: cubeTypeSelect.value,
+                timestamp: Date.now()
+            });
+            saveSolveBtn.disabled = true;
+            saveSolveBtn.classList.add('opacity-50');
+            generateScramble();
+            saveData();
+        };
+
+        function deleteSolve(id) {
+            solves = solves.filter(s => s.id !== id);
+            saveData();
+        }
+
+        function deletePlayer(id) {
+            players = players.filter(p => p.id !== id);
+            solves = solves.filter(s => s.playerId !== id);
+            saveData();
+        }
+
+        // --- UI Rendering ---
+        function renderAll() {
+            // Render Competitor List
+            playersList.innerHTML = '';
+            activeCompSelect.innerHTML = '<option value="">Choose...</option>';
+            players.forEach(p => {
+                const li = document.createElement('li');
+                li.className = "flex justify-between items-center p-3 bg-slate-900 rounded-lg border border-slate-700";
+                li.innerHTML = `<span>${p.name}</span><button onclick="deletePlayer('${p.id}')" class="text-red-400 text-xs">Remove</button>`;
+                playersList.appendChild(li);
+
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = p.name;
+                activeCompSelect.appendChild(opt);
+            });
+
+            // Render Recent Solves
+            solvesHistory.innerHTML = '';
+            [...solves].sort((a,b) => b.timestamp - a.timestamp).slice(0, 10).forEach(s => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="py-3 px-2 font-medium">${s.playerName}</td>
+                    <td class="py-3 px-2 font-mono text-blue-400 font-bold">${s.time}s</td>
+                    <td class="py-3 px-2 text-xs text-slate-500">${s.type}</td>
+                    <td class="py-3 px-2 text-right">
+                        <button onclick="deleteSolve('${s.id}')" class="text-slate-500 hover:text-red-400">×</button>
+                    </td>
+                `;
+                solvesHistory.appendChild(tr);
+            });
+
+            // Render Leaderboard
+            leaderboard.innerHTML = '';
+            const stats = players.map(p => {
+                const pSolves = solves.filter(s => s.playerId === p.id);
+                const avg = pSolves.length ? (pSolves.reduce((a,b)=>a+b.time,0)/pSolves.length).toFixed(2) : Infinity;
+                const pb = pSolves.length ? Math.min(...pSolves.map(s=>s.time)).toFixed(2) : '---';
+                return { name: p.name, avg, pb, count: pSolves.length };
+            }).sort((a,b) => a.avg - b.avg);
+
+            stats.forEach((s, idx) => {
+                const div = document.createElement('div');
+                div.className = "flex justify-between p-3 bg-slate-900/50 rounded-lg";
+                div.innerHTML = `
+                    <div><span class="font-bold text-slate-500 mr-2">#${idx+1}</span>${s.name}</div>
+                    <div class="text-right">
+                        <div class="text-blue-400 font-bold">${s.avg === Infinity ? '---' : s.avg+'s'}</div>
+                        <div class="text-[10px] text-slate-500">PB: ${s.pb}s</div>
+                    </div>
+                `;
+                leaderboard.appendChild(div);
+            });
         }
 
         // Initialize
-        generateScramble();
-        if(GIST_ID !== "PASTE_YOUR_GIST_ID_HERE") {
-            pullData();
-            setInterval(pullData, 15000); // Auto-refresh leaderboard every 15 seconds
-        } else {
-            setSyncStatus('error');
-            document.getElementById('statusText').innerText = "SETUP REQUIRED";
-        }
+        window.onload = () => {
+            generateScramble();
+            renderAll();
+        };
+        cubeTypeSelect.onchange = generateScramble;
+        document.getElementById('new-scramble-btn').onclick = generateScramble;
     </script>
 </body>
 </html>
