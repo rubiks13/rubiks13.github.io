@@ -216,7 +216,7 @@
                 <div class="field-row mt-1">
                     <div class="label-group w-16">
                         <span class="label">ID</span>
-                        <div class="field-box justify-center" id="displayId">230</div>
+                        <div class="field-box justify-center" id="displayCompId">230</div>
                     </div>
                     <div class="label-group flex-grow">
                         <span class="label">Name</span>
@@ -256,11 +256,23 @@
     </div>
 
     <script>
-        const inputs = ['compName', 'event', 'round', 'group', 'compId', 'name', 'timeLimit'];
+        // List of all input IDs
+        const inputIds = ['compName', 'event', 'round', 'group', 'compId', 'name', 'timeLimit'];
         
+        // Map of input IDs to their corresponding display element IDs
+        const displayMap = {
+            'compName': 'displayCompName',
+            'event': 'displayEvent',
+            'round': 'displayRound',
+            'group': 'displayGroup',
+            'compId': 'displayCompId',
+            'name': 'displayName',
+            'timeLimit': 'displayLimit'
+        };
+
         function updatePreview() {
-            inputs.forEach(id => {
-                const displayId = 'display' + id.charAt(0).toUpperCase() + id.slice(1);
+            inputIds.forEach(id => {
+                const displayId = displayMap[id];
                 const el = document.getElementById(displayId);
                 const inputVal = document.getElementById(id).value;
                 if(el) {
@@ -273,7 +285,7 @@
         }
 
         function clearAll() {
-            inputs.forEach(id => {
+            inputIds.forEach(id => {
                 document.getElementById(id).value = "";
             });
             updatePreview();
@@ -298,10 +310,12 @@
             }
         }
 
-        inputs.forEach(id => {
+        // Initialize event listeners
+        inputIds.forEach(id => {
             document.getElementById(id).addEventListener('input', updatePreview);
         });
 
+        // Initialize display
         setupRows();
         updatePreview();
     </script>
