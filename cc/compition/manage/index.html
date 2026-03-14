@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Speedcube Competition Tracker (Local Edition)</title>
+    <title>Pro Cube League Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@500&display=swap');
         
@@ -14,15 +15,8 @@
             color: #f1f5f9;
         }
 
-        .scramble-font {
-            font-family: 'JetBrains Mono', monospace;
-        }
-
-        .timer-display {
-            font-size: 6rem;
-            font-variant-numeric: tabular-nums;
-        }
-
+        .scramble-font { font-family: 'JetBrains Mono', monospace; }
+        .timer-display { font-size: 6rem; font-variant-numeric: tabular-nums; transition: color 0.2s; }
         .btn-primary { @apply bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-all active:scale-95; }
         .btn-secondary { @apply bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg transition-all; }
         .card { @apply bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl; }
@@ -30,6 +24,9 @@
         .timer-running { color: #ef4444; }
         .timer-ready { color: #22c55e; }
         
+        .tab-btn { @apply px-4 py-2 font-semibold text-slate-400 border-b-2 border-transparent transition-all; }
+        .tab-btn.active { @apply text-blue-400 border-blue-400; }
+
         @media (max-width: 640px) {
             .timer-display { font-size: 4rem; }
         }
@@ -37,80 +34,142 @@
 </head>
 <body class="min-h-screen pb-12">
 
-    <!-- Navigation -->
+    <!-- Competition Selection Overlay -->
+    <div id="comp-overlay" class="fixed inset-0 bg-slate-900 z-[100] flex items-center justify-center p-4">
+        <div class="max-w-md w-full card space-y-6">
+            <h2 class="text-2xl font-bold text-center">Select Competition</h2>
+            <div class="space-y-4">
+                <div class="flex gap-2">
+                    <input type="text" id="new-comp-name" placeholder="New Comp Name..." class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 flex-grow focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button id="create-comp-btn" class="btn-primary">Create</button>
+                </div>
+                <div class="border-t border-slate-700 pt-4">
+                    <p class="text-xs text-slate-500 mb-2 uppercase tracking-widest font-bold">Existing Competitions</p>
+                    <div id="comp-list" class="space-y-2 max-h-60 overflow-y-auto pr-2">
+                        <!-- Comps here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Navigation -->
     <nav class="bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-50">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
-            <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
-                CubeComp Local
-            </h1>
-            <div class="text-xs text-slate-400 font-mono">Offline Mode Enabled</div>
+            <div class="flex items-center gap-4">
+                <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
+                    CubeLeague
+                </h1>
+                <span id="active-comp-display" class="bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full text-xs font-bold border border-blue-500/30">No Comp</span>
+            </div>
+            <button onclick="location.reload()" class="text-xs text-slate-400 hover:text-white transition-colors">Change Comp</button>
         </div>
     </nav>
 
     <main class="max-w-7xl mx-auto px-4 mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        <!-- Left Column -->
+        <!-- Left Side: Timer & History -->
         <div class="lg:col-span-8 space-y-8">
             
-            <!-- Scramble Section -->
-            <section class="card">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-semibold">Active Scramble</h2>
-                    <select id="cube-type" class="bg-slate-700 border-none rounded p-1 text-sm">
-                        <option value="3x3">3x3x3</option>
-                        <option value="2x2">2x2x2</option>
-                        <option value="4x4">4x4x4</option>
-                    </select>
-                </div>
-                <div id="scramble-box" class="scramble-font text-xl text-center p-6 bg-slate-900 rounded-lg border border-slate-700 min-h-[80px] flex items-center justify-center leading-relaxed">
-                    Generating...
-                </div>
-                <button id="new-scramble-btn" class="mt-4 w-full btn-secondary text-sm">New Scramble</button>
-            </section>
+            <div class="flex gap-4 border-b border-slate-700 mb-4">
+                <button class="tab-btn active" onclick="switchTab('solve')">Solve</button>
+                <button class="tab-btn" onclick="switchTab('analytics')">Competitor Stats</button>
+            </div>
 
-            <!-- Timer Section -->
-            <section class="card text-center">
-                <div id="timer" class="timer-display font-bold my-4 select-none">0.00</div>
-                <div class="text-slate-500 text-sm mb-6">[ Spacebar or Tap to Start/Stop ]</div>
-                
-                <div class="flex flex-wrap justify-center gap-4">
-                    <div class="flex flex-col text-left">
-                        <label class="text-xs text-slate-400 mb-1">Select Competitor</label>
-                        <select id="active-competitor" class="bg-slate-700 border-none rounded p-2 text-white min-w-[150px]">
-                            <option value="">Choose...</option>
+            <!-- Solve Tab -->
+            <div id="tab-solve" class="space-y-8">
+                <section class="card">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-semibold">Scramble</h2>
+                        <select id="cube-type" class="bg-slate-700 border-none rounded p-1 text-sm">
+                            <option value="3x3">3x3x3</option>
+                            <option value="2x2">2x2x2</option>
+                            <option value="4x4">4x4x4</option>
                         </select>
                     </div>
-                    <div class="flex items-end">
-                        <button id="save-solve-btn" class="btn-primary opacity-50 cursor-not-allowed" disabled>Log Time</button>
+                    <div id="scramble-box" class="scramble-font text-xl text-center p-6 bg-slate-900 rounded-lg border border-slate-700 min-h-[80px] flex items-center justify-center leading-relaxed">
+                        Generating...
                     </div>
-                </div>
-            </section>
+                </section>
 
-            <!-- Solves History -->
-            <section class="card">
-                <h2 class="text-xl font-semibold mb-4">Recent Solves</h2>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left">
-                        <thead>
-                            <tr class="text-slate-400 border-b border-slate-700">
-                                <th class="pb-3 px-2">Name</th>
-                                <th class="pb-3 px-2">Time</th>
-                                <th class="pb-3 px-2">Cube</th>
-                                <th class="pb-3 px-2 text-right">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="solves-history" class="divide-y divide-slate-700"></tbody>
-                    </table>
-                </div>
-            </section>
+                <section class="card text-center">
+                    <div id="timer" class="timer-display font-bold my-4 select-none cursor-pointer">0.00</div>
+                    <div class="text-slate-500 text-sm mb-6">[ Spacebar or Tap to Start/Stop ]</div>
+                    
+                    <div class="flex flex-wrap justify-center gap-4">
+                        <div class="flex flex-col text-left">
+                            <label class="text-xs text-slate-400 mb-1">Competitor</label>
+                            <select id="active-competitor" class="bg-slate-700 border-none rounded p-2 text-white min-w-[150px]">
+                                <option value="">Choose...</option>
+                            </select>
+                        </div>
+                        <div class="flex items-end">
+                            <button id="save-solve-btn" class="btn-primary opacity-50 cursor-not-allowed" disabled>Log to Comp</button>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="card">
+                    <h2 class="text-xl font-semibold mb-4">Competition History</h2>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead>
+                                <tr class="text-slate-400 border-b border-slate-700 text-xs uppercase">
+                                    <th class="pb-3 px-2">Competitor</th>
+                                    <th class="pb-3 px-2">Time</th>
+                                    <th class="pb-3 px-2">Cube</th>
+                                    <th class="pb-3 px-2 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="solves-history" class="divide-y divide-slate-700"></tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Analytics Tab -->
+            <div id="tab-analytics" class="hidden space-y-8">
+                <section class="card">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-semibold">Competitor Progress</h2>
+                        <select id="analytics-competitor-select" class="bg-slate-700 border-none rounded p-2 text-sm">
+                            <option value="">Select Competitor...</option>
+                        </select>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div class="bg-slate-900 p-4 rounded-lg border border-slate-700">
+                            <p class="text-xs text-slate-500 uppercase">Lifetime PB</p>
+                            <p id="stat-pb" class="text-2xl font-bold text-emerald-400">--</p>
+                        </div>
+                        <div class="bg-slate-900 p-4 rounded-lg border border-slate-700">
+                            <p class="text-xs text-slate-500 uppercase">Current AVG</p>
+                            <p id="stat-avg" class="text-2xl font-bold text-blue-400">--</p>
+                        </div>
+                        <div class="bg-slate-900 p-4 rounded-lg border border-slate-700">
+                            <p class="text-xs text-slate-500 uppercase">Total Solves</p>
+                            <p id="stat-total" class="text-2xl font-bold text-slate-300">--</p>
+                        </div>
+                    </div>
+
+                    <div class="h-[300px] w-full">
+                        <canvas id="improvementChart"></canvas>
+                    </div>
+
+                    <div class="mt-8">
+                        <h3 class="text-sm font-bold text-slate-400 uppercase mb-4">Performance by Competition</h3>
+                        <div id="comp-breakdown" class="space-y-2">
+                            <!-- Injected breakdown -->
+                        </div>
+                    </div>
+                </section>
+            </div>
         </div>
 
-        <!-- Right Column -->
+        <!-- Right Side: Rankings -->
         <div class="lg:col-span-4 space-y-8">
-            
-            <!-- Competitors -->
             <section class="card">
-                <h2 class="text-xl font-semibold mb-4">Add Competitor</h2>
+                <h2 class="text-xl font-semibold mb-4">Manage Competitors</h2>
                 <div class="flex gap-2 mb-6">
                     <input type="text" id="new-player-name" placeholder="Name..." class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 flex-grow focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <button id="add-player-btn" class="btn-primary">Add</button>
@@ -118,41 +177,64 @@
                 <ul id="players-list" class="space-y-3"></ul>
             </section>
 
-            <!-- Leaderboard -->
             <section class="card">
-                <h2 class="text-xl font-semibold mb-4">Leaderboard (AVG)</h2>
+                <h2 class="text-xl font-semibold mb-4">Current Standings</h2>
                 <div id="leaderboard" class="space-y-3"></div>
             </section>
-
         </div>
     </main>
 
     <script>
         // --- State ---
+        let competitions = JSON.parse(localStorage.getItem('cube_competitions') || '[]');
+        let activeCompId = null;
         let players = JSON.parse(localStorage.getItem('cube_players') || '[]');
         let solves = JSON.parse(localStorage.getItem('cube_solves') || '[]');
+        let chartInstance = null;
 
-        const scrambleBox = document.getElementById('scramble-box');
+        // --- DOM ---
+        const compOverlay = document.getElementById('comp-overlay');
+        const activeCompDisplay = document.getElementById('active-comp-display');
+        const compList = document.getElementById('comp-list');
         const timerDisplay = document.getElementById('timer');
-        const cubeTypeSelect = document.getElementById('cube-type');
-        const activeCompSelect = document.getElementById('active-competitor');
-        const solvesHistory = document.getElementById('solves-history');
-        const playersList = document.getElementById('players-list');
-        const leaderboard = document.getElementById('leaderboard');
-        const saveSolveBtn = document.getElementById('save-solve-btn');
-        const addPlayerBtn = document.getElementById('add-player-btn');
-        const newPlayerInput = document.getElementById('new-player-name');
+        const analyticsSelect = document.getElementById('analytics-competitor-select');
+
+        // --- Competition Logic ---
+        function renderCompSelection() {
+            compList.innerHTML = '';
+            competitions.forEach(c => {
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left p-3 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition-all flex justify-between items-center";
+                btn.innerHTML = `<span>${c.name}</span><span class="text-[10px] text-slate-500">${new Date(c.date).toLocaleDateString()}</span>`;
+                btn.onclick = () => selectComp(c.id);
+                compList.appendChild(btn);
+            });
+        }
+
+        document.getElementById('create-comp-btn').onclick = () => {
+            const name = document.getElementById('new-comp-name').value.trim();
+            if (!name) return;
+            const newComp = { id: 'comp_' + Date.now(), name, date: Date.now() };
+            competitions.push(newComp);
+            localStorage.setItem('cube_competitions', JSON.stringify(competitions));
+            document.getElementById('new-comp-name').value = '';
+            renderCompSelection();
+            selectComp(newComp.id);
+        };
+
+        function selectComp(id) {
+            activeCompId = id;
+            const comp = competitions.find(c => c.id === id);
+            activeCompDisplay.textContent = comp.name;
+            compOverlay.style.display = 'none';
+            renderAll();
+        }
 
         // --- Timer Engine ---
-        let timerInterval;
-        let startTime;
-        let running = false;
-        let lastTime = 0;
-        let readyToStart = false;
+        let timerInterval, startTime, running = false, lastTime = 0, readyToStart = false;
 
         function updateTimer() {
-            const now = Date.now();
-            const diff = now - startTime;
+            const diff = Date.now() - startTime;
             lastTime = (diff / 1000).toFixed(2);
             timerDisplay.textContent = lastTime;
         }
@@ -163,29 +245,24 @@
             timerDisplay.classList.add('timer-running');
             timerDisplay.classList.remove('timer-ready');
             timerInterval = setInterval(updateTimer, 10);
-            saveSolveBtn.disabled = true;
-            saveSolveBtn.classList.add('opacity-50');
+            document.getElementById('save-solve-btn').disabled = true;
         }
 
         function stopTimer() {
             running = false;
             clearInterval(timerInterval);
             timerDisplay.classList.remove('timer-running');
-            if (activeCompSelect.value) {
-                saveSolveBtn.disabled = false;
-                saveSolveBtn.classList.remove('opacity-50');
+            if (document.getElementById('active-competitor').value) {
+                document.getElementById('save-solve-btn').disabled = false;
+                document.getElementById('save-solve-btn').classList.remove('opacity-50');
             }
         }
 
-        // Spacebar logic
         window.addEventListener('keydown', (e) => {
-            if (e.code === 'Space' && !e.repeat) {
+            if (e.code === 'Space') {
                 e.preventDefault();
                 if (running) stopTimer();
-                else {
-                    timerDisplay.classList.add('timer-ready');
-                    readyToStart = true;
-                }
+                else { timerDisplay.classList.add('timer-ready'); readyToStart = true; }
             }
         });
 
@@ -196,29 +273,18 @@
             }
         });
 
-        // Touch logic for timer
         timerDisplay.onpointerdown = (e) => {
             if (running) stopTimer();
-            else {
-                timerDisplay.classList.add('timer-ready');
-                readyToStart = true;
-            }
+            else { timerDisplay.classList.add('timer-ready'); readyToStart = true; }
         };
+        timerDisplay.onpointerup = () => { if (readyToStart) { readyToStart = false; startTimer(); } };
 
-        timerDisplay.onpointerup = () => {
-            if (readyToStart) {
-                readyToStart = false;
-                startTimer();
-            }
-        };
-
-        // --- Scramble Generator ---
+        // --- Scramble ---
         function generateScramble() {
-            const type = cubeTypeSelect.value;
+            const type = document.getElementById('cube-type').value;
             const moves = ["U", "D", "L", "R", "F", "B"];
             const modifiers = ["", "'", "2"];
             let length = type === "2x2" ? 9 : (type === "4x4" ? 40 : 20);
-
             let scramble = [];
             let lastMove = "";
             for (let i = 0; i < length; i++) {
@@ -227,47 +293,33 @@
                 lastMove = move;
                 scramble.push(move + modifiers[Math.floor(Math.random() * modifiers.length)]);
             }
-            scrambleBox.textContent = scramble.join(" ");
-        }
-
-        // --- Persistence ---
-        function saveData() {
-            localStorage.setItem('cube_players', JSON.stringify(players));
-            localStorage.setItem('cube_solves', JSON.stringify(solves));
-            renderAll();
+            document.getElementById('scramble-box').textContent = scramble.join(" ");
         }
 
         // --- Actions ---
-        addPlayerBtn.onclick = () => {
-            const name = newPlayerInput.value.trim();
+        document.getElementById('add-player-btn').onclick = () => {
+            const name = document.getElementById('new-player-name').value.trim();
             if (!name) return;
-            players.push({ id: Date.now().toString(), name: name });
-            newPlayerInput.value = '';
+            players.push({ id: 'p_' + Date.now(), name });
+            document.getElementById('new-player-name').value = '';
             saveData();
         };
 
-        saveSolveBtn.onclick = () => {
-            const playerId = activeCompSelect.value;
-            if (!playerId) return;
-            const player = players.find(p => p.id === playerId);
+        document.getElementById('save-solve-btn').onclick = () => {
+            const playerId = document.getElementById('active-competitor').value;
+            if (!playerId || !activeCompId) return;
             solves.push({
                 id: Date.now().toString(),
+                compId: activeCompId,
                 playerId,
-                playerName: player.name,
                 time: parseFloat(lastTime),
-                type: cubeTypeSelect.value,
+                type: document.getElementById('cube-type').value,
                 timestamp: Date.now()
             });
-            saveSolveBtn.disabled = true;
-            saveSolveBtn.classList.add('opacity-50');
+            document.getElementById('save-solve-btn').disabled = true;
             generateScramble();
             saveData();
         };
-
-        function deleteSolve(id) {
-            solves = solves.filter(s => s.id !== id);
-            saveData();
-        }
 
         function deletePlayer(id) {
             players = players.filter(p => p.id !== id);
@@ -275,68 +327,128 @@
             saveData();
         }
 
-        // --- UI Rendering ---
+        function saveData() {
+            localStorage.setItem('cube_players', JSON.stringify(players));
+            localStorage.setItem('cube_solves', JSON.stringify(solves));
+            renderAll();
+        }
+
+        // --- UI & Analytics ---
+        function switchTab(tab) {
+            document.getElementById('tab-solve').classList.toggle('hidden', tab !== 'solve');
+            document.getElementById('tab-analytics').classList.toggle('hidden', tab !== 'analytics');
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.textContent.toLowerCase().includes(tab)));
+            if (tab === 'analytics') updateAnalytics();
+        }
+
+        analyticsSelect.onchange = updateAnalytics;
+
+        function updateAnalytics() {
+            const pId = analyticsSelect.value;
+            if (!pId) return;
+
+            const pSolves = solves.filter(s => s.playerId === pId).sort((a,b) => a.timestamp - b.timestamp);
+            
+            // Stats
+            document.getElementById('stat-pb').textContent = pSolves.length ? Math.min(...pSolves.map(s=>s.time)).toFixed(2) + 's' : '--';
+            document.getElementById('stat-avg').textContent = pSolves.length ? (pSolves.reduce((a,b)=>a+b.time,0)/pSolves.length).toFixed(2) + 's' : '--';
+            document.getElementById('stat-total').textContent = pSolves.length;
+
+            // Chart
+            const ctx = document.getElementById('improvementChart').getContext('2d');
+            if (chartInstance) chartInstance.destroy();
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: pSolves.map((_, i) => i + 1),
+                    datasets: [{
+                        label: 'Time (seconds)',
+                        data: pSolves.map(s => s.time),
+                        borderColor: '#60a5fa',
+                        tension: 0.3,
+                        fill: true,
+                        backgroundColor: 'rgba(96, 165, 250, 0.1)'
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: false, grid: { color: '#1e293b' } }, x: { grid: { display: false } } } }
+            });
+
+            // Comp Breakdown
+            const breakdownDiv = document.getElementById('comp-breakdown');
+            breakdownDiv.innerHTML = '';
+            competitions.forEach(c => {
+                const cSolves = pSolves.filter(s => s.compId === c.id);
+                if (cSolves.length === 0) return;
+                const avg = (cSolves.reduce((a,b)=>a+b.time,0)/cSolves.length).toFixed(2);
+                const pb = Math.min(...cSolves.map(s=>s.time)).toFixed(2);
+                
+                const item = document.createElement('div');
+                item.className = "flex justify-between p-3 bg-slate-900 rounded border border-slate-700";
+                item.innerHTML = `
+                    <div class="font-bold text-slate-300">${c.name}</div>
+                    <div class="text-right text-xs">
+                        <span class="text-blue-400 font-bold">AVG: ${avg}s</span>
+                        <span class="text-slate-500 ml-2">PB: ${pb}s</span>
+                    </div>
+                `;
+                breakdownDiv.appendChild(item);
+            });
+        }
+
         function renderAll() {
-            // Render Competitor List
-            playersList.innerHTML = '';
-            activeCompSelect.innerHTML = '<option value="">Choose...</option>';
+            // Dropdowns
+            const pSel = document.getElementById('active-competitor');
+            pSel.innerHTML = '<option value="">Choose...</option>';
+            analyticsSelect.innerHTML = '<option value="">Select Competitor...</option>';
+            players.forEach(p => {
+                const opt = new Option(p.name, p.id);
+                pSel.add(opt.cloneNode(true));
+                analyticsSelect.add(opt);
+            });
+
+            // Competitors List
+            const pList = document.getElementById('players-list');
+            pList.innerHTML = '';
             players.forEach(p => {
                 const li = document.createElement('li');
                 li.className = "flex justify-between items-center p-3 bg-slate-900 rounded-lg border border-slate-700";
                 li.innerHTML = `<span>${p.name}</span><button onclick="deletePlayer('${p.id}')" class="text-red-400 text-xs">Remove</button>`;
-                playersList.appendChild(li);
-
-                const opt = document.createElement('option');
-                opt.value = p.id;
-                opt.textContent = p.name;
-                activeCompSelect.appendChild(opt);
+                pList.appendChild(li);
             });
 
-            // Render Recent Solves
-            solvesHistory.innerHTML = '';
-            [...solves].sort((a,b) => b.timestamp - a.timestamp).slice(0, 10).forEach(s => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td class="py-3 px-2 font-medium">${s.playerName}</td>
-                    <td class="py-3 px-2 font-mono text-blue-400 font-bold">${s.time}s</td>
-                    <td class="py-3 px-2 text-xs text-slate-500">${s.type}</td>
-                    <td class="py-3 px-2 text-right">
-                        <button onclick="deleteSolve('${s.id}')" class="text-slate-500 hover:text-red-400">×</button>
-                    </td>
-                `;
-                solvesHistory.appendChild(tr);
-            });
-
-            // Render Leaderboard
-            leaderboard.innerHTML = '';
-            const stats = players.map(p => {
-                const pSolves = solves.filter(s => s.playerId === p.id);
+            // Leaderboard (Only for ACTIVE comp)
+            const lb = document.getElementById('leaderboard');
+            lb.innerHTML = '';
+            const compSolves = solves.filter(s => s.compId === activeCompId);
+            const rankings = players.map(p => {
+                const pSolves = compSolves.filter(s => s.playerId === p.id);
                 const avg = pSolves.length ? (pSolves.reduce((a,b)=>a+b.time,0)/pSolves.length).toFixed(2) : Infinity;
-                const pb = pSolves.length ? Math.min(...pSolves.map(s=>s.time)).toFixed(2) : '---';
-                return { name: p.name, avg, pb, count: pSolves.length };
+                return { name: p.name, avg, count: pSolves.length };
             }).sort((a,b) => a.avg - b.avg);
 
-            stats.forEach((s, idx) => {
-                const div = document.createElement('div');
-                div.className = "flex justify-between p-3 bg-slate-900/50 rounded-lg";
-                div.innerHTML = `
-                    <div><span class="font-bold text-slate-500 mr-2">#${idx+1}</span>${s.name}</div>
-                    <div class="text-right">
-                        <div class="text-blue-400 font-bold">${s.avg === Infinity ? '---' : s.avg+'s'}</div>
-                        <div class="text-[10px] text-slate-500">PB: ${s.pb}s</div>
-                    </div>
-                `;
-                leaderboard.appendChild(div);
+            rankings.forEach((r, i) => {
+                const d = document.createElement('div');
+                d.className = "flex justify-between p-3 bg-slate-900/50 rounded-lg";
+                d.innerHTML = `<div><span class="font-bold text-slate-500 mr-2">#${i+1}</span>${r.name}</div><div class="text-blue-400 font-bold">${r.avg === Infinity ? '---' : r.avg+'s'}</div>`;
+                lb.appendChild(d);
+            });
+
+            // History (Only for ACTIVE comp)
+            const hist = document.getElementById('solves-history');
+            hist.innerHTML = '';
+            [...compSolves].sort((a,b) => b.timestamp - a.timestamp).forEach(s => {
+                const p = players.find(p => p.id === s.playerId);
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td class="py-3 px-2">${p ? p.name : 'Unknown'}</td><td class="py-3 px-2 font-bold text-blue-400">${s.time}s</td><td class="py-3 px-2 text-xs text-slate-500">${s.type}</td><td class="py-3 px-2 text-right"><button onclick="solves=solves.filter(x=>x.id!=='${s.id}');saveData()" class="text-slate-500 hover:text-red-400">×</button></td>`;
+                hist.appendChild(tr);
             });
         }
 
-        // Initialize
         window.onload = () => {
+            renderCompSelection();
             generateScramble();
-            renderAll();
+            document.getElementById('cube-type').onchange = generateScramble;
         };
-        cubeTypeSelect.onchange = generateScramble;
-        document.getElementById('new-scramble-btn').onclick = generateScramble;
     </script>
 </body>
 </html>
