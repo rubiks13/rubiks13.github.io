@@ -3,171 +3,257 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro Cube League Tracker</title>
+    <title>CubeLeague Pro Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap');
         
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #0f172a;
-            color: #f1f5f9;
+        :root {
+            --bg-main: #020617;
+            --card-bg: rgba(30, 41, 59, 0.5);
+            --accent: #38bdf8;
+            --accent-glow: rgba(56, 189, 248, 0.2);
         }
 
-        .btn-primary { @apply bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed; }
-        .btn-ghost { @apply text-slate-400 hover:text-white transition-colors text-sm; }
-        .card { @apply bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl; }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-main);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.05) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.05) 0px, transparent 50%);
+            color: #f8fafc;
+            min-height: 100 screen;
+        }
+
+        .glass {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-primary {
+            @apply bg-sky-500 hover:bg-sky-400 text-white font-bold py-2.5 px-6 rounded-xl transition-all active:scale-95 shadow-lg shadow-sky-500/20 disabled:opacity-50;
+        }
+
+        .btn-outline {
+            @apply border border-slate-700 hover:border-slate-500 text-slate-300 hover:text-white py-2 px-4 rounded-xl transition-all;
+        }
+
+        .tab-btn {
+            @apply px-6 py-3 font-semibold text-slate-500 rounded-xl transition-all flex items-center gap-2;
+        }
         
-        .tab-btn { @apply px-4 py-2 font-semibold text-slate-400 border-b-2 border-transparent transition-all; }
-        .tab-btn.active { @apply text-blue-400 border-blue-400; }
+        .tab-btn.active {
+            @apply bg-sky-500/10 text-sky-400 border border-sky-500/20 shadow-inner;
+        }
+
+        input, select {
+            @apply bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-sky-500/50 text-white transition-all;
+        }
 
         .view-hidden { display: none !important; }
 
-        input, select {
-            @apply bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-white;
+        .stat-card {
+            @apply glass p-4 rounded-2xl border-l-4 border-sky-500;
         }
 
-        @media (max-width: 640px) {
-            .stats-grid { grid-template-columns: 1fr; }
-        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
     </style>
 </head>
-<body class="min-h-screen pb-12">
+<body class="pb-12">
 
-    <!-- 1. COMPETITION SELECTION VIEW -->
-    <div id="view-setup" class="fixed inset-0 bg-slate-900 z-[100] flex items-center justify-center p-4">
-        <div class="max-w-md w-full card space-y-6">
-            <h2 class="text-2xl font-bold text-center">Competition Hub</h2>
+    <!-- INITIAL SCREEN: COMPETITION SELECTOR -->
+    <div id="view-setup" class="fixed inset-0 bg-slate-950/90 z-[100] backdrop-blur-xl flex items-center justify-center p-4">
+        <div class="max-w-xl w-full glass rounded-3xl p-8 space-y-8">
+            <div class="text-center space-y-2">
+                <h2 class="text-4xl font-extrabold tracking-tight bg-gradient-to-br from-white to-slate-400 bg-clip-text text-transparent">Cube Hub</h2>
+                <p class="text-slate-500">Create a new competition or pick a past event</p>
+            </div>
+            
+            <form id="comp-form" class="space-y-4">
+                <div class="flex flex-col gap-2">
+                    <div class="flex gap-3">
+                        <input type="text" id="new-comp-name" placeholder="Competition Name (e.g. Winter Open)" class="flex-grow text-lg">
+                        <button type="submit" class="btn-primary">Create Event</button>
+                    </div>
+                </div>
+            </form>
+
             <div class="space-y-4">
-                <form id="comp-form" class="flex flex-col gap-2">
-                    <label class="text-xs text-slate-400 font-bold uppercase">Create New Event</label>
-                    <div class="flex gap-2">
-                        <input type="text" id="new-comp-name" placeholder="e.g. Summer Cup 2024" class="flex-grow">
-                        <button type="submit" class="btn-primary">Create</button>
-                    </div>
-                </form>
-                <div class="border-t border-slate-700 pt-4">
-                    <p class="text-xs text-slate-400 mb-2 uppercase tracking-widest font-bold">Past Events</p>
-                    <div id="comp-list" class="space-y-2 max-h-60 overflow-y-auto pr-2">
-                        <!-- Comps here -->
-                    </div>
+                <div class="flex items-center gap-4 text-xs font-bold uppercase tracking-widest text-slate-500">
+                    <span class="flex-grow h-px bg-slate-800"></span>
+                    Recent History
+                    <span class="flex-grow h-px bg-slate-800"></span>
+                </div>
+                <div id="comp-list" class="grid grid-cols-1 gap-3 max-h-72 overflow-y-auto pr-2">
+                    <!-- Comps here -->
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- MAIN APP STRUCTURE -->
-    <nav class="bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-50">
+    <!-- MAIN APP INTERFACE -->
+    <nav class="glass border-b-0 sticky top-0 z-50 px-6 py-4 mb-8">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
-            <div class="flex items-center gap-4">
-                <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">CubeLeague</h1>
-                <span id="active-comp-display" class="bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full text-xs font-bold border border-blue-500/30"></span>
+            <div class="flex items-center gap-6">
+                <div class="h-10 w-10 bg-sky-500 rounded-xl flex items-center justify-center shadow-lg shadow-sky-500/30">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                </div>
+                <div>
+                    <h1 class="text-xl font-extrabold tracking-tight">CubeLeague</h1>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-sky-500 animate-pulse"></span>
+                        <span id="active-comp-display" class="text-xs font-bold text-sky-400 uppercase tracking-tighter"></span>
+                    </div>
+                </div>
             </div>
-            <button onclick="location.reload()" class="btn-ghost">Exit Competition</button>
+            <button onclick="location.reload()" class="btn-outline text-xs">Switch Comp</button>
         </div>
     </nav>
 
-    <main class="max-w-7xl mx-auto px-4 mt-8">
+    <main class="max-w-7xl mx-auto px-6">
         
-        <!-- Navigation Tabs -->
-        <div class="flex gap-4 border-b border-slate-700 mb-8 overflow-x-auto">
-            <button class="tab-btn active" id="tab-btn-players" onclick="showView('players')">Roster & Stats</button>
-            <button class="tab-btn" id="tab-btn-log" onclick="showView('log')">Enter Times</button>
-            <button class="tab-btn" id="tab-btn-analytics" onclick="showView('analytics')">Improvement Graphs</button>
+        <!-- Tab Bar -->
+        <div class="flex gap-2 p-1 bg-slate-900/50 rounded-2xl w-fit mb-10 glass overflow-x-auto">
+            <button class="tab-btn active" id="tab-btn-players" onclick="showView('players')">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                Roster
+            </button>
+            <button class="tab-btn" id="tab-btn-log" onclick="showView('log')">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                Log Scores
+            </button>
+            <button class="tab-btn" id="tab-btn-analytics" onclick="showView('analytics')">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                Progress
+            </button>
         </div>
 
-        <!-- 2. PLAYERS & ROSTER VIEW -->
-        <div id="view-players" class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <div class="lg:col-span-4 space-y-6">
-                <section class="card">
-                    <h2 class="text-xl font-semibold mb-4">Add Competitor</h2>
-                    <div class="flex gap-2 mb-6">
-                        <input type="text" id="new-player-name" placeholder="Enter name..." class="flex-grow">
-                        <button id="add-player-btn" class="btn-primary">Add</button>
-                    </div>
-                </section>
-            </div>
-            <div class="lg:col-span-8">
-                <section class="card h-full">
-                    <h2 class="text-xl font-semibold mb-4">Competitor Stats (Lifetime)</h2>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left">
-                            <thead>
-                                <tr class="text-slate-400 border-b border-slate-700 text-xs uppercase">
-                                    <th class="pb-3 px-2">Name</th>
-                                    <th class="pb-3 px-2">Best (PB)</th>
-                                    <th class="pb-3 px-2">Average</th>
-                                    <th class="pb-3 px-2">Solves</th>
-                                    <th class="pb-3 px-2 text-right">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="roster-list" class="divide-y divide-slate-700">
-                                <!-- Roster injected here -->
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
-            </div>
-        </div>
-
-        <!-- 3. MANUAL ENTRY VIEW -->
-        <div id="view-log" class="view-hidden grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <div class="lg:col-span-8 space-y-8">
-                <section class="card">
-                    <h2 class="text-xl font-semibold mb-6">Enter Results</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                        <div class="flex flex-col gap-2">
-                            <label class="text-xs text-slate-400 font-bold uppercase">Competitor</label>
-                            <select id="entry-competitor">
-                                <option value="">Select...</option>
-                            </select>
+        <!-- VIEW 1: ROSTER -->
+        <div id="view-players" class="space-y-8">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="space-y-6">
+                    <section class="glass p-8 rounded-3xl space-y-6">
+                        <h2 class="text-xl font-bold">Register Competitor</h2>
+                        <div class="space-y-4">
+                            <input type="text" id="new-player-name" placeholder="Full Name" class="w-full">
+                            <button id="add-player-btn" class="btn-primary w-full">Join Roster</button>
                         </div>
-                        <div class="flex flex-col gap-2">
-                            <label class="text-xs text-slate-400 font-bold uppercase">Time (Seconds)</label>
-                            <input type="number" id="entry-time" step="0.01" placeholder="0.00" onkeydown="if(event.key==='Enter') saveManualEntry()">
-                        </div>
-                        <button onclick="saveManualEntry()" class="btn-primary w-full">Save Result</button>
-                    </div>
-                </section>
-
-                <section class="card">
-                    <h2 class="text-xl font-semibold mb-4">Recent Entries (This Comp)</h2>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-sm">
-                            <tbody id="solves-history" class="divide-y divide-slate-700"></tbody>
-                        </table>
-                    </div>
-                </section>
-            </div>
-
-            <div class="lg:col-span-4">
-                <section class="card">
-                    <h2 class="text-xl font-semibold mb-4">Comp Standings</h2>
-                    <div id="leaderboard" class="space-y-3"></div>
-                </section>
-            </div>
-        </div>
-
-        <!-- 4. ANALYTICS VIEW -->
-        <div id="view-analytics" class="view-hidden space-y-8">
-            <section class="card">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-xl font-semibold">Improvement Data</h2>
-                    <select id="analytics-competitor-select">
-                        <option value="">Select Competitor...</option>
-                    </select>
+                    </section>
                 </div>
-                <div class="h-[350px] w-full bg-slate-900/50 rounded-lg p-4 mb-8">
+                <div class="lg:col-span-2">
+                    <section class="glass rounded-3xl overflow-hidden">
+                        <div class="p-6 border-b border-slate-700/50">
+                            <h2 class="text-xl font-bold">Lifetime Rankings</h2>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead class="bg-slate-900/30">
+                                    <tr class="text-slate-500 text-[10px] uppercase font-black tracking-widest">
+                                        <th class="py-4 px-6">Competitor</th>
+                                        <th class="py-4 px-6">Personal Best</th>
+                                        <th class="py-4 px-6">Overall Avg</th>
+                                        <th class="py-4 px-6">Runs</th>
+                                        <th class="py-4 px-6"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="roster-list" class="divide-y divide-slate-800/50"></tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 2: LOGGING -->
+        <div id="view-log" class="view-hidden space-y-8">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-2 space-y-8">
+                    <section class="glass p-8 rounded-3xl">
+                        <h2 class="text-2xl font-bold mb-8 flex items-center gap-3">
+                            <span class="p-2 bg-sky-500/20 rounded-lg"><svg class="w-6 h-6 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg></span>
+                            Record Results
+                        </h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black uppercase text-slate-500 tracking-widest">Select Competitor</label>
+                                <select id="entry-competitor" class="w-full text-lg font-medium"></select>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black uppercase text-slate-500 tracking-widest">Time (Seconds)</label>
+                                <div class="relative">
+                                    <input type="number" id="entry-time" step="0.01" placeholder="0.00" class="w-full text-lg font-mono font-bold pr-12" onkeydown="if(event.key==='Enter') saveManualEntry()">
+                                    <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold">s</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="saveManualEntry()" class="btn-primary w-full mt-8 h-14 text-lg">Save & Next</button>
+                    </section>
+
+                    <section class="glass rounded-3xl overflow-hidden">
+                        <div class="p-6 border-b border-slate-700/50">
+                            <h2 class="text-sm font-bold uppercase tracking-widest text-slate-400">Recent Comp Entries</h2>
+                        </div>
+                        <table class="w-full text-left">
+                            <tbody id="solves-history" class="divide-y divide-slate-800/50"></tbody>
+                        </table>
+                    </section>
+                </div>
+
+                <div class="space-y-6">
+                    <section class="glass p-6 rounded-3xl">
+                        <h2 class="text-sm font-black uppercase tracking-widest text-slate-400 mb-6 text-center">Event Standings</h2>
+                        <div id="leaderboard" class="space-y-2"></div>
+                    </section>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 3: ANALYTICS -->
+        <div id="view-analytics" class="view-hidden space-y-8">
+            <section class="glass p-8 rounded-3xl">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
+                    <div>
+                        <h2 class="text-2xl font-bold">Improvement Tracker</h2>
+                        <p class="text-slate-500">Visualizing speed gains over time</p>
+                    </div>
+                    <select id="analytics-competitor-select" class="min-w-[240px]"></select>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
+                    <div class="stat-card">
+                        <p class="text-[10px] font-black uppercase text-slate-500 mb-1">Lifetime Best</p>
+                        <p id="stat-pb" class="text-3xl font-black text-sky-400 font-mono">--</p>
+                    </div>
+                    <div class="stat-card border-indigo-500">
+                        <p class="text-[10px] font-black uppercase text-slate-500 mb-1">Average Time</p>
+                        <p id="stat-avg" class="text-3xl font-black text-indigo-400 font-mono">--</p>
+                    </div>
+                    <div class="stat-card border-emerald-500">
+                        <p class="text-[10px] font-black uppercase text-slate-500 mb-1">Total Solves</p>
+                        <p id="stat-total" class="text-3xl font-black text-emerald-400 font-mono">--</p>
+                    </div>
+                </div>
+
+                <div class="h-[400px] w-full bg-slate-950/50 rounded-2xl p-6 border border-slate-800 mb-12">
                     <canvas id="improvementChart"></canvas>
                 </div>
-                <div id="comp-breakdown" class="space-y-3"></div>
+
+                <div class="space-y-4">
+                    <h3 class="text-lg font-bold">Event History</h3>
+                    <div id="comp-breakdown" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                </div>
             </section>
         </div>
     </main>
 
     <script>
-        // --- DATA STORE ---
+        // --- DATA ---
         let competitions = JSON.parse(localStorage.getItem('cube_competitions') || '[]');
         let players = JSON.parse(localStorage.getItem('cube_players') || '[]');
         let solves = JSON.parse(localStorage.getItem('cube_solves') || '[]');
@@ -187,15 +273,16 @@
             renderAll();
         }
 
-        // --- COMPETITION HUB ---
+        // --- COMPETITIONS ---
         document.getElementById('comp-form').onsubmit = (e) => {
             e.preventDefault();
-            const name = document.getElementById('new-comp-name').value.trim();
+            const nameInput = document.getElementById('new-comp-name');
+            const name = nameInput.value.trim();
             if (!name) return;
             const newComp = { id: 'comp_' + Date.now(), name, date: Date.now() };
             competitions.push(newComp);
             localStorage.setItem('cube_competitions', JSON.stringify(competitions));
-            document.getElementById('new-comp-name').value = '';
+            nameInput.value = '';
             renderCompSelection();
             selectComp(newComp.id);
         };
@@ -205,11 +292,14 @@
             list.innerHTML = '';
             competitions.sort((a,b) => b.date - a.date).forEach(c => {
                 const btn = document.createElement('button');
-                btn.className = "w-full text-left p-4 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition-all flex justify-between items-center group";
+                btn.className = "w-full text-left p-5 bg-slate-900/40 hover:bg-sky-500/10 rounded-2xl border border-slate-800 hover:border-sky-500/50 transition-all flex justify-between items-center group";
                 btn.innerHTML = `
                     <div class="flex flex-col">
-                        <span class="font-bold group-hover:text-blue-400">${c.name}</span>
-                        <span class="text-[10px] text-slate-500">${new Date(c.date).toLocaleDateString()}</span>
+                        <span class="font-bold text-slate-200 group-hover:text-white transition-colors">${c.name}</span>
+                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">${new Date(c.date).toLocaleDateString()}</span>
+                    </div>
+                    <div class="h-8 w-8 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-sky-500 transition-all">
+                        <svg class="w-4 h-4 text-slate-500 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"></path></svg>
                     </div>
                 `;
                 btn.onclick = () => selectComp(c.id);
@@ -225,7 +315,7 @@
             renderAll();
         }
 
-        // --- ACTIONS ---
+        // --- LOGIC ---
         document.getElementById('add-player-btn').onclick = () => {
             const name = document.getElementById('new-player-name').value.trim();
             if (!name) return;
@@ -253,7 +343,7 @@
         }
 
         function deletePlayer(id) {
-            if(!confirm("Remove this competitor and all their times?")) return;
+            if(!confirm("Erase all history for this competitor?")) return;
             players = players.filter(p => p.id !== id);
             solves = solves.filter(s => s.playerId !== id);
             saveData();
@@ -265,9 +355,9 @@
             renderAll();
         }
 
-        // --- UI RENDERING ---
+        // --- UI ---
         function renderAll() {
-            // Roster Table
+            // Roster
             const rosterList = document.getElementById('roster-list');
             rosterList.innerHTML = '';
             players.forEach(p => {
@@ -277,34 +367,35 @@
                 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td class="py-4 px-2 font-bold">${p.name}</td>
-                    <td class="py-4 px-2 text-emerald-400 font-mono">${best}s</td>
-                    <td class="py-4 px-2 text-blue-400 font-mono">${avg}s</td>
-                    <td class="py-4 px-2 text-slate-500">${pSolves.length}</td>
-                    <td class="py-4 px-2 text-right">
-                        <button onclick="deletePlayer('${p.id}')" class="text-red-500 hover:underline text-xs">Delete</button>
+                    <td class="py-5 px-6 font-bold text-slate-200">${p.name}</td>
+                    <td class="py-5 px-6 text-sky-400 font-mono font-bold">${best}s</td>
+                    <td class="py-5 px-6 text-indigo-400 font-mono">${avg}s</td>
+                    <td class="py-5 px-6 text-slate-500 font-medium">${pSolves.length}</td>
+                    <td class="py-5 px-6 text-right">
+                        <button onclick="deletePlayer('${p.id}')" class="text-slate-600 hover:text-red-400 transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
                     </td>
                 `;
                 rosterList.appendChild(tr);
             });
 
-            // Dropdowns
-            const logSelect = document.getElementById('entry-competitor');
-            const analSelect = document.getElementById('analytics-competitor-select');
-            const curLogVal = logSelect.value;
-            const curAnalVal = analSelect.value;
-            
-            logSelect.innerHTML = '<option value="">Select...</option>';
-            analSelect.innerHTML = '<option value="">Select Competitor...</option>';
+            // Selects
+            const logSel = document.getElementById('entry-competitor');
+            const anSel = document.getElementById('analytics-competitor-select');
+            const vL = logSel.value;
+            const vA = anSel.value;
+            logSel.innerHTML = '<option value="">Choose Competitor</option>';
+            anSel.innerHTML = '<option value="">Choose Competitor</option>';
             players.forEach(p => {
                 const opt = new Option(p.name, p.id);
-                logSelect.add(opt.cloneNode(true));
-                analSelect.add(opt);
+                logSel.add(opt.cloneNode(true));
+                anSel.add(opt);
             });
-            logSelect.value = curLogVal;
-            analSelect.value = curAnalVal;
+            logSel.value = vL;
+            anSel.value = vA;
 
-            // Standings (Current Comp Only)
+            // Standings
             const lb = document.getElementById('leaderboard');
             lb.innerHTML = '';
             const cSolves = solves.filter(s => s.compId === activeCompId);
@@ -316,37 +407,36 @@
 
             rankings.forEach((r, i) => {
                 const div = document.createElement('div');
-                div.className = "flex justify-between p-3 bg-slate-900/50 rounded-lg border border-slate-700/50";
+                div.className = "flex justify-between items-center p-4 bg-slate-900/30 rounded-2xl border border-slate-800";
                 div.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <span class="text-slate-500 font-bold">#${i+1}</span>
-                        <span>${r.name}</span>
+                    <div class="flex items-center gap-4">
+                        <span class="text-xs font-black text-slate-600">#${i+1}</span>
+                        <span class="font-bold">${r.name}</span>
                     </div>
-                    <span class="text-blue-400 font-bold font-mono">${r.avg === Infinity ? '--' : r.avg.toFixed(2) + 's'}</span>
+                    <span class="font-mono font-bold text-sky-400">${r.avg === Infinity ? '--' : r.avg.toFixed(2) + 's'}</span>
                 `;
                 lb.appendChild(div);
             });
 
-            // Log History
+            // History
             const hist = document.getElementById('solves-history');
             hist.innerHTML = '';
-            [...cSolves].sort((a,b) => b.timestamp - a.timestamp).slice(0, 10).forEach(s => {
+            [...cSolves].sort((a,b) => b.timestamp - a.timestamp).slice(0, 8).forEach(s => {
                 const p = players.find(p => p.id === s.playerId);
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td class="py-2 font-bold">${p ? p.name : '??'}</td>
-                    <td class="py-2 text-blue-400 font-bold">${s.time}s</td>
-                    <td class="py-2 text-right">
-                        <button onclick="solves=solves.filter(x=>x.id!=='${s.id}');saveData()" class="text-slate-600 hover:text-red-500">×</button>
+                    <td class="py-4 px-6 font-bold text-sm">${p ? p.name : 'Unknown'}</td>
+                    <td class="py-4 px-6 text-sky-400 font-bold font-mono text-sm">${s.time}s</td>
+                    <td class="py-4 px-6 text-right">
+                        <button onclick="solves=solves.filter(x=>x.id!=='${s.id}');saveData()" class="text-slate-600 hover:text-red-400">×</button>
                     </td>
                 `;
                 hist.appendChild(tr);
             });
         }
 
-        // --- ANALYTICS ---
+        // --- CHART ---
         document.getElementById('analytics-competitor-select').onchange = updateAnalytics;
-
         function updateAnalytics() {
             const pid = document.getElementById('analytics-competitor-select').value;
             const container = document.getElementById('comp-breakdown');
@@ -354,22 +444,45 @@
             if(!pid) return;
 
             const ps = solves.filter(s => s.playerId === pid).sort((a,b) => a.timestamp - b.timestamp);
+            document.getElementById('stat-pb').textContent = ps.length ? Math.min(...ps.map(s=>s.time)).toFixed(2) + 's' : '--';
+            document.getElementById('stat-avg').textContent = ps.length ? (ps.reduce((a,b)=>a+b.time,0)/ps.length).toFixed(2) + 's' : '--';
+            document.getElementById('stat-total').textContent = ps.length;
 
             if(chartInstance) chartInstance.destroy();
-            chartInstance = new Chart(document.getElementById('improvementChart'), {
+            const ctx = document.getElementById('improvementChart').getContext('2d');
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(56, 189, 248, 0.4)');
+            gradient.addColorStop(1, 'rgba(56, 189, 248, 0)');
+
+            chartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: ps.map((_, i) => i + 1),
+                    labels: ps.map((_, i) => `Run ${i + 1}`),
                     datasets: [{
-                        label: 'Time Progress (Lower is better)',
+                        label: 'Time Progress',
                         data: ps.map(s => s.time),
-                        borderColor: '#60a5fa',
-                        backgroundColor: 'rgba(96, 165, 250, 0.2)',
+                        borderColor: '#38bdf8',
+                        borderWidth: 4,
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: '#38bdf8',
+                        pointHoverRadius: 6,
+                        backgroundColor: gradient,
                         fill: true,
-                        tension: 0.3
+                        tension: 0.4
                     }]
                 },
-                options: { responsive: true, maintainAspectRatio: false, scales: { y: { grid: { color: '#1e293b' } } } }
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { legend: { display: false } },
+                    scales: { 
+                        x: { display: false },
+                        y: { 
+                            grid: { color: 'rgba(255, 255, 255, 0.03)' },
+                            ticks: { color: '#64748b', font: { weight: 'bold' } } 
+                        } 
+                    } 
+                }
             });
 
             competitions.forEach(c => {
@@ -378,15 +491,15 @@
                 const avg = (cs.reduce((a,b)=>a+b.time,0)/cs.length).toFixed(2);
                 const best = Math.min(...cs.map(s=>s.time)).toFixed(2);
                 const div = document.createElement('div');
-                div.className = "p-4 bg-slate-900 rounded-lg border border-slate-700 flex justify-between items-center";
+                div.className = "p-5 glass rounded-2xl flex justify-between items-center border border-slate-700/50";
                 div.innerHTML = `
                     <div>
-                        <p class="font-bold text-slate-300">${c.name}</p>
-                        <p class="text-[10px] text-slate-500">${cs.length} solves</p>
+                        <p class="font-bold text-slate-200">${c.name}</p>
+                        <p class="text-[10px] font-black uppercase tracking-tighter text-slate-500">${cs.length} Recorded Solves</p>
                     </div>
                     <div class="text-right">
-                        <p class="text-blue-400 font-bold">AVG: ${avg}s</p>
-                        <p class="text-emerald-500 text-xs">Best: ${best}s</p>
+                        <p class="text-sky-400 font-black font-mono">AVG: ${avg}s</p>
+                        <p class="text-slate-500 text-[10px] font-bold">BEST: ${best}s</p>
                     </div>
                 `;
                 container.appendChild(div);
