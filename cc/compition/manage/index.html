@@ -15,23 +15,21 @@
             color: #f1f5f9;
         }
 
-        .scramble-font { font-family: 'JetBrains Mono', monospace; }
-        .timer-display { font-size: 6rem; font-variant-numeric: tabular-nums; transition: color 0.2s; }
         .btn-primary { @apply bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed; }
-        .btn-secondary { @apply bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg transition-all; }
         .btn-ghost { @apply text-slate-400 hover:text-white transition-colors text-sm; }
         .card { @apply bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl; }
-        
-        .timer-running { color: #ef4444; }
-        .timer-ready { color: #22c55e; }
         
         .tab-btn { @apply px-4 py-2 font-semibold text-slate-400 border-b-2 border-transparent transition-all; }
         .tab-btn.active { @apply text-blue-400 border-blue-400; }
 
         .view-hidden { display: none !important; }
 
+        input, select {
+            @apply bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-white;
+        }
+
         @media (max-width: 640px) {
-            .timer-display { font-size: 4rem; }
+            .stats-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -42,13 +40,13 @@
         <div class="max-w-md w-full card space-y-6">
             <h2 class="text-2xl font-bold text-center">Competition Hub</h2>
             <div class="space-y-4">
-                <div class="flex flex-col gap-2">
+                <form id="comp-form" class="flex flex-col gap-2">
                     <label class="text-xs text-slate-400 font-bold uppercase">Create New Event</label>
                     <div class="flex gap-2">
-                        <input type="text" id="new-comp-name" placeholder="e.g. Saturday Finals 2024" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 flex-grow focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <button id="create-comp-btn" class="btn-primary">Create</button>
+                        <input type="text" id="new-comp-name" placeholder="e.g. Summer Cup 2024" class="flex-grow">
+                        <button type="submit" class="btn-primary">Create</button>
                     </div>
-                </div>
+                </form>
                 <div class="border-t border-slate-700 pt-4">
                     <p class="text-xs text-slate-400 mb-2 uppercase tracking-widest font-bold">Past Events</p>
                     <div id="comp-list" class="space-y-2 max-h-60 overflow-y-auto pr-2">
@@ -73,10 +71,10 @@
     <main class="max-w-7xl mx-auto px-4 mt-8">
         
         <!-- Navigation Tabs -->
-        <div class="flex gap-4 border-b border-slate-700 mb-8">
+        <div class="flex gap-4 border-b border-slate-700 mb-8 overflow-x-auto">
             <button class="tab-btn active" id="tab-btn-players" onclick="showView('players')">Roster & Stats</button>
-            <button class="tab-btn" id="tab-btn-timer" onclick="showView('timer')">Live Timer</button>
-            <button class="tab-btn" id="tab-btn-analytics" onclick="showView('analytics')">Insights</button>
+            <button class="tab-btn" id="tab-btn-log" onclick="showView('log')">Enter Times</button>
+            <button class="tab-btn" id="tab-btn-analytics" onclick="showView('analytics')">Improvement Graphs</button>
         </div>
 
         <!-- 2. PLAYERS & ROSTER VIEW -->
@@ -85,17 +83,14 @@
                 <section class="card">
                     <h2 class="text-xl font-semibold mb-4">Add Competitor</h2>
                     <div class="flex gap-2 mb-6">
-                        <input type="text" id="new-player-name" placeholder="Enter name..." class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 flex-grow focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <input type="text" id="new-player-name" placeholder="Enter name..." class="flex-grow">
                         <button id="add-player-btn" class="btn-primary">Add</button>
                     </div>
                 </section>
-                <div class="card bg-blue-900/10 border-blue-500/30">
-                    <p class="text-sm text-blue-300">Tip: After adding your competitors, switch to the <strong>Live Timer</strong> tab to start recording their solves!</p>
-                </div>
             </div>
             <div class="lg:col-span-8">
                 <section class="card h-full">
-                    <h2 class="text-xl font-semibold mb-4">Competitor Roster & Current Stats</h2>
+                    <h2 class="text-xl font-semibold mb-4">Competitor Stats (Lifetime)</h2>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left">
                             <thead>
@@ -104,7 +99,7 @@
                                     <th class="pb-3 px-2">Best (PB)</th>
                                     <th class="pb-3 px-2">Average</th>
                                     <th class="pb-3 px-2">Solves</th>
-                                    <th class="pb-3 px-2 text-right">Manage</th>
+                                    <th class="pb-3 px-2 text-right">Action</th>
                                 </tr>
                             </thead>
                             <tbody id="roster-list" class="divide-y divide-slate-700">
@@ -116,42 +111,28 @@
             </div>
         </div>
 
-        <!-- 3. TIMER VIEW -->
-        <div id="view-timer" class="view-hidden grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <!-- 3. MANUAL ENTRY VIEW -->
+        <div id="view-log" class="view-hidden grid grid-cols-1 lg:grid-cols-12 gap-8">
             <div class="lg:col-span-8 space-y-8">
                 <section class="card">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-semibold">Active Scramble</h2>
-                        <select id="cube-type" class="bg-slate-700 border-none rounded p-1 text-sm">
-                            <option value="3x3">3x3x3</option>
-                            <option value="2x2">2x2x2</option>
-                            <option value="4x4">4x4x4</option>
-                        </select>
-                    </div>
-                    <div id="scramble-box" class="scramble-font text-xl text-center p-6 bg-slate-900 rounded-lg border border-slate-700 min-h-[80px] flex items-center justify-center leading-relaxed">
-                        Generating...
-                    </div>
-                </section>
-
-                <section class="card text-center">
-                    <div id="timer" class="timer-display font-bold my-4 select-none cursor-pointer">0.00</div>
-                    <p class="text-slate-500 text-sm mb-6">[ Spacebar or Tap to Start/Stop ]</p>
-                    
-                    <div class="flex flex-wrap justify-center gap-4">
-                        <div class="flex flex-col text-left">
-                            <label class="text-xs text-slate-400 mb-1">Assign Time To:</label>
-                            <select id="active-competitor" class="bg-slate-700 border-none rounded p-2 text-white min-w-[200px]">
-                                <option value="">Select a Competitor...</option>
+                    <h2 class="text-xl font-semibold mb-6">Enter Results</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                        <div class="flex flex-col gap-2">
+                            <label class="text-xs text-slate-400 font-bold uppercase">Competitor</label>
+                            <select id="entry-competitor">
+                                <option value="">Select...</option>
                             </select>
                         </div>
-                        <div class="flex items-end">
-                            <button id="save-solve-btn" class="btn-primary" disabled>Log Result</button>
+                        <div class="flex flex-col gap-2">
+                            <label class="text-xs text-slate-400 font-bold uppercase">Time (Seconds)</label>
+                            <input type="number" id="entry-time" step="0.01" placeholder="0.00" onkeydown="if(event.key==='Enter') saveManualEntry()">
                         </div>
+                        <button onclick="saveManualEntry()" class="btn-primary w-full">Save Result</button>
                     </div>
                 </section>
 
                 <section class="card">
-                    <h2 class="text-xl font-semibold mb-4">Recent Solves in This Comp</h2>
+                    <h2 class="text-xl font-semibold mb-4">Recent Entries (This Comp)</h2>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-sm">
                             <tbody id="solves-history" class="divide-y divide-slate-700"></tbody>
@@ -172,24 +153,10 @@
         <div id="view-analytics" class="view-hidden space-y-8">
             <section class="card">
                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-xl font-semibold">Competitor Performance</h2>
-                    <select id="analytics-competitor-select" class="bg-slate-700 border-none rounded p-2 text-sm">
+                    <h2 class="text-xl font-semibold">Improvement Data</h2>
+                    <select id="analytics-competitor-select">
                         <option value="">Select Competitor...</option>
                     </select>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6" id="stats-summary">
-                    <div class="bg-slate-900 p-4 rounded-lg border border-slate-700">
-                        <p class="text-xs text-slate-500 uppercase">Lifetime Best</p>
-                        <p id="stat-pb" class="text-2xl font-bold text-emerald-400">--</p>
-                    </div>
-                    <div class="bg-slate-900 p-4 rounded-lg border border-slate-700">
-                        <p class="text-xs text-slate-500 uppercase">Average</p>
-                        <p id="stat-avg" class="text-2xl font-bold text-blue-400">--</p>
-                    </div>
-                    <div class="bg-slate-900 p-4 rounded-lg border border-slate-700">
-                        <p class="text-xs text-slate-500 uppercase">Solves Count</p>
-                        <p id="stat-total" class="text-2xl font-bold text-slate-300">--</p>
-                    </div>
                 </div>
                 <div class="h-[350px] w-full bg-slate-900/50 rounded-lg p-4 mb-8">
                     <canvas id="improvementChart"></canvas>
@@ -209,7 +176,7 @@
 
         // --- NAVIGATION ---
         function showView(viewId) {
-            ['players', 'timer', 'analytics'].forEach(v => {
+            ['players', 'log', 'analytics'].forEach(v => {
                 document.getElementById(`view-${v}`).classList.add('view-hidden');
                 document.getElementById(`tab-btn-${v}`).classList.remove('active');
             });
@@ -221,25 +188,8 @@
         }
 
         // --- COMPETITION HUB ---
-        function renderCompSelection() {
-            const list = document.getElementById('comp-list');
-            list.innerHTML = '';
-            competitions.sort((a,b) => b.date - a.date).forEach(c => {
-                const btn = document.createElement('button');
-                btn.className = "w-full text-left p-4 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition-all flex justify-between items-center group";
-                btn.innerHTML = `
-                    <div class="flex flex-col">
-                        <span class="font-bold group-hover:text-blue-400">${c.name}</span>
-                        <span class="text-[10px] text-slate-500">${new Date(c.date).toLocaleString()}</span>
-                    </div>
-                    <span class="text-xs text-slate-600">Select →</span>
-                `;
-                btn.onclick = () => selectComp(c.id);
-                list.appendChild(btn);
-            });
-        }
-
-        document.getElementById('create-comp-btn').onclick = () => {
+        document.getElementById('comp-form').onsubmit = (e) => {
+            e.preventDefault();
             const name = document.getElementById('new-comp-name').value.trim();
             if (!name) return;
             const newComp = { id: 'comp_' + Date.now(), name, date: Date.now() };
@@ -250,6 +200,23 @@
             selectComp(newComp.id);
         };
 
+        function renderCompSelection() {
+            const list = document.getElementById('comp-list');
+            list.innerHTML = '';
+            competitions.sort((a,b) => b.date - a.date).forEach(c => {
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left p-4 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition-all flex justify-between items-center group";
+                btn.innerHTML = `
+                    <div class="flex flex-col">
+                        <span class="font-bold group-hover:text-blue-400">${c.name}</span>
+                        <span class="text-[10px] text-slate-500">${new Date(c.date).toLocaleDateString()}</span>
+                    </div>
+                `;
+                btn.onclick = () => selectComp(c.id);
+                list.appendChild(btn);
+            });
+        }
+
         function selectComp(id) {
             activeCompId = id;
             const comp = competitions.find(c => c.id === id);
@@ -258,74 +225,7 @@
             renderAll();
         }
 
-        // --- TIMER ENGINE ---
-        let timerInterval, startTime, running = false, lastTime = 0, readyToStart = false;
-
-        function updateTimer() {
-            const diff = Date.now() - startTime;
-            lastTime = (diff / 1000).toFixed(2);
-            timerDisplay.textContent = lastTime;
-        }
-
-        const timerDisplay = document.getElementById('timer');
-        
-        function startTimer() {
-            running = true;
-            startTime = Date.now();
-            timerDisplay.classList.add('timer-running');
-            timerDisplay.classList.remove('timer-ready');
-            timerInterval = setInterval(updateTimer, 10);
-            document.getElementById('save-solve-btn').disabled = true;
-        }
-
-        function stopTimer() {
-            running = false;
-            clearInterval(timerInterval);
-            timerDisplay.classList.remove('timer-running');
-            const pId = document.getElementById('active-competitor').value;
-            if (pId && lastTime > 0) {
-                document.getElementById('save-solve-btn').disabled = false;
-            }
-        }
-
-        window.addEventListener('keydown', (e) => {
-            if (e.code === 'Space') {
-                e.preventDefault();
-                if (running) stopTimer();
-                else { timerDisplay.classList.add('timer-ready'); readyToStart = true; }
-            }
-        });
-
-        window.addEventListener('keyup', (e) => {
-            if (e.code === 'Space' && readyToStart) {
-                readyToStart = false;
-                startTimer();
-            }
-        });
-
-        timerDisplay.onpointerdown = (e) => {
-            if (running) stopTimer();
-            else { timerDisplay.classList.add('timer-ready'); readyToStart = true; }
-        };
-        timerDisplay.onpointerup = () => { if (readyToStart) { readyToStart = false; startTimer(); } };
-
-        // --- SCRAMBLER ---
-        function generateScramble() {
-            const type = document.getElementById('cube-type').value;
-            const moves = ["U", "D", "L", "R", "F", "B"];
-            const modifiers = ["", "'", "2"];
-            let length = type === "2x2" ? 9 : (type === "4x4" ? 40 : 20);
-            let sc = [];
-            let last = "";
-            for(let i=0; i<length; i++) {
-                let m; do { m = moves[Math.floor(Math.random()*6)]; } while(m===last);
-                last = m;
-                sc.push(m + modifiers[Math.floor(Math.random()*3)]);
-            }
-            document.getElementById('scramble-box').textContent = sc.join(" ");
-        }
-
-        // --- PLAYER & SOLVE ACTIONS ---
+        // --- ACTIONS ---
         document.getElementById('add-player-btn').onclick = () => {
             const name = document.getElementById('new-player-name').value.trim();
             if (!name) return;
@@ -334,24 +234,26 @@
             saveData();
         };
 
-        document.getElementById('save-solve-btn').onclick = () => {
-            const playerId = document.getElementById('active-competitor').value;
-            if (!playerId || !activeCompId) return;
+        function saveManualEntry() {
+            const pId = document.getElementById('entry-competitor').value;
+            const timeVal = document.getElementById('entry-time').value;
+            if (!pId || !timeVal || !activeCompId) return;
+
             solves.push({
                 id: 's_' + Date.now(),
                 compId: activeCompId,
-                playerId,
-                time: parseFloat(lastTime),
-                type: document.getElementById('cube-type').value,
+                playerId: pId,
+                time: parseFloat(timeVal),
                 timestamp: Date.now()
             });
-            document.getElementById('save-solve-btn').disabled = true;
-            generateScramble();
+
+            document.getElementById('entry-time').value = '';
+            document.getElementById('entry-time').focus();
             saveData();
-        };
+        }
 
         function deletePlayer(id) {
-            if(!confirm("Are you sure? This deletes ALL their solve history!")) return;
+            if(!confirm("Remove this competitor and all their times?")) return;
             players = players.filter(p => p.id !== id);
             solves = solves.filter(s => s.playerId !== id);
             saveData();
@@ -374,42 +276,41 @@
                 const avg = pSolves.length ? (pSolves.reduce((a,b)=>a+b.time,0)/pSolves.length).toFixed(2) : '--';
                 
                 const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-700/30 transition-colors";
                 tr.innerHTML = `
                     <td class="py-4 px-2 font-bold">${p.name}</td>
                     <td class="py-4 px-2 text-emerald-400 font-mono">${best}s</td>
                     <td class="py-4 px-2 text-blue-400 font-mono">${avg}s</td>
                     <td class="py-4 px-2 text-slate-500">${pSolves.length}</td>
                     <td class="py-4 px-2 text-right">
-                        <button onclick="deletePlayer('${p.id}')" class="text-red-500 hover:text-red-400 text-xs font-bold px-2">Delete</button>
+                        <button onclick="deletePlayer('${p.id}')" class="text-red-500 hover:underline text-xs">Delete</button>
                     </td>
                 `;
                 rosterList.appendChild(tr);
             });
 
             // Dropdowns
-            const timerSelect = document.getElementById('active-competitor');
+            const logSelect = document.getElementById('entry-competitor');
             const analSelect = document.getElementById('analytics-competitor-select');
-            const curTimerVal = timerSelect.value;
+            const curLogVal = logSelect.value;
             const curAnalVal = analSelect.value;
             
-            timerSelect.innerHTML = '<option value="">Select a Competitor...</option>';
+            logSelect.innerHTML = '<option value="">Select...</option>';
             analSelect.innerHTML = '<option value="">Select Competitor...</option>';
             players.forEach(p => {
                 const opt = new Option(p.name, p.id);
-                timerSelect.add(opt.cloneNode(true));
+                logSelect.add(opt.cloneNode(true));
                 analSelect.add(opt);
             });
-            timerSelect.value = curTimerVal;
+            logSelect.value = curLogVal;
             analSelect.value = curAnalVal;
 
-            // Standings (Current Comp)
+            // Standings (Current Comp Only)
             const lb = document.getElementById('leaderboard');
             lb.innerHTML = '';
             const cSolves = solves.filter(s => s.compId === activeCompId);
             const rankings = players.map(p => {
                 const ps = cSolves.filter(s => s.playerId === p.id);
-                const avg = ps.length ? (ps.reduce((a,b)=>a+b.time,0)/ps.length).toFixed(2) : Infinity;
+                const avg = ps.length ? (ps.reduce((a,b)=>a+b.time,0)/ps.length) : Infinity;
                 return { name: p.name, avg };
             }).sort((a,b) => a.avg - b.avg);
 
@@ -418,18 +319,18 @@
                 div.className = "flex justify-between p-3 bg-slate-900/50 rounded-lg border border-slate-700/50";
                 div.innerHTML = `
                     <div class="flex items-center gap-3">
-                        <span class="text-slate-500 font-bold w-4">#${i+1}</span>
-                        <span class="font-medium">${r.name}</span>
+                        <span class="text-slate-500 font-bold">#${i+1}</span>
+                        <span>${r.name}</span>
                     </div>
-                    <span class="text-blue-400 font-bold font-mono">${r.avg === Infinity ? '--' : r.avg + 's'}</span>
+                    <span class="text-blue-400 font-bold font-mono">${r.avg === Infinity ? '--' : r.avg.toFixed(2) + 's'}</span>
                 `;
                 lb.appendChild(div);
             });
 
-            // Timer History
+            // Log History
             const hist = document.getElementById('solves-history');
             hist.innerHTML = '';
-            [...cSolves].sort((a,b) => b.timestamp - a.timestamp).forEach(s => {
+            [...cSolves].sort((a,b) => b.timestamp - a.timestamp).slice(0, 10).forEach(s => {
                 const p = players.find(p => p.id === s.playerId);
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
@@ -443,7 +344,7 @@
             });
         }
 
-        // --- ANALYTICS ENGINE ---
+        // --- ANALYTICS ---
         document.getElementById('analytics-competitor-select').onchange = updateAnalytics;
 
         function updateAnalytics() {
@@ -453,9 +354,6 @@
             if(!pid) return;
 
             const ps = solves.filter(s => s.playerId === pid).sort((a,b) => a.timestamp - b.timestamp);
-            document.getElementById('stat-pb').textContent = ps.length ? Math.min(...ps.map(s=>s.time)).toFixed(2) + 's' : '--';
-            document.getElementById('stat-avg').textContent = ps.length ? (ps.reduce((a,b)=>a+b.time,0)/ps.length).toFixed(2) + 's' : '--';
-            document.getElementById('stat-total').textContent = ps.length;
 
             if(chartInstance) chartInstance.destroy();
             chartInstance = new Chart(document.getElementById('improvementChart'), {
@@ -463,7 +361,7 @@
                 data: {
                     labels: ps.map((_, i) => i + 1),
                     datasets: [{
-                        label: 'Time Progress',
+                        label: 'Time Progress (Lower is better)',
                         data: ps.map(s => s.time),
                         borderColor: '#60a5fa',
                         backgroundColor: 'rgba(96, 165, 250, 0.2)',
@@ -471,7 +369,7 @@
                         tension: 0.3
                     }]
                 },
-                options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false }, y: { grid: { color: '#1e293b' } } } }
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { grid: { color: '#1e293b' } } } }
             });
 
             competitions.forEach(c => {
@@ -484,7 +382,7 @@
                 div.innerHTML = `
                     <div>
                         <p class="font-bold text-slate-300">${c.name}</p>
-                        <p class="text-[10px] text-slate-500">${cs.length} solves recorded</p>
+                        <p class="text-[10px] text-slate-500">${cs.length} solves</p>
                     </div>
                     <div class="text-right">
                         <p class="text-blue-400 font-bold">AVG: ${avg}s</p>
@@ -495,11 +393,7 @@
             });
         }
 
-        window.onload = () => {
-            renderCompSelection();
-            generateScramble();
-            document.getElementById('cube-type').onchange = generateScramble;
-        };
+        window.onload = renderCompSelection;
     </script>
 </body>
 </html>
