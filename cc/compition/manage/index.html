@@ -31,7 +31,7 @@
         <section id="page-competitions" class="page-section">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-2xl font-bold text-gray-800">Competitions</h2>
-                <button onclick="showModal('modal-add-comp')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition">
+                <button onclick="showModal('modal-add-comp')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition shadow-md">
                     + New Competition
                 </button>
             </div>
@@ -56,7 +56,7 @@
                 <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="font-bold text-lg">Competitors</h3>
-                        <button onclick="showModal('modal-add-competitor')" class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded">Add</button>
+                        <button onclick="showModal('modal-add-competitor')" class="text-sm bg-indigo-50 text-indigo-600 hover:bg-indigo-100 px-3 py-1 rounded font-semibold">Add</button>
                     </div>
                     <div id="competitor-list" class="space-y-2">
                         <!-- Competitors injected here -->
@@ -82,8 +82,8 @@
             <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
                 <h2 id="profile-name" class="text-2xl font-bold">Competitor Name</h2>
                 <div class="flex gap-4 mt-2 text-sm">
-                    <span class="bg-green-100 text-green-800 px-2 py-1 rounded">PB: <span id="profile-pb">-</span></span>
-                    <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded">Best Ao5: <span id="profile-ao5">-</span></span>
+                    <span class="bg-green-100 text-green-800 px-2 py-1 rounded font-medium">PB: <span id="profile-pb">-</span></span>
+                    <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded font-medium">Best Ao5: <span id="profile-ao5">-</span></span>
                 </div>
             </div>
 
@@ -91,10 +91,10 @@
             <div class="bg-indigo-900 text-white rounded-xl p-6 mb-6 shadow-xl">
                 <div class="flex justify-between items-center mb-4">
                     <span class="text-xs font-bold uppercase tracking-widest opacity-70">Official Scramble</span>
-                    <button onclick="generateNewScramble()" class="text-xs bg-white/20 hover:bg-white/30 px-2 py-1 rounded transition">New Scramble</button>
+                    <button onclick="forceNewScramble()" class="text-xs bg-white/20 hover:bg-white/30 px-2 py-1 rounded transition">New Scramble</button>
                 </div>
                 <div id="scramble-display" class="scramble-font text-xl md:text-2xl text-center font-medium mb-6 min-h-[3rem]">
-                    R2 U' B2 D L2 U' R2 D' F2 L' B' L2 F R2 B' U R2 B' U'
+                    Loading scramble...
                 </div>
                 <div class="flex gap-2">
                     <input type="number" id="solve-input" placeholder="Enter solve time (e.g. 15.42)" step="0.01" 
@@ -134,15 +134,15 @@
             <div class="space-y-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Competition Name</label>
-                    <input type="text" id="input-comp-name" class="w-full border rounded-lg p-2 mt-1">
+                    <input type="text" id="input-comp-name" class="w-full border rounded-lg p-2 mt-1 focus:ring-2 focus:ring-indigo-500 outline-none">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Date</label>
-                    <input type="date" id="input-comp-date" class="w-full border rounded-lg p-2 mt-1">
+                    <input type="date" id="input-comp-date" class="w-full border rounded-lg p-2 mt-1 focus:ring-2 focus:ring-indigo-500 outline-none">
                 </div>
                 <div class="flex gap-2 pt-2">
-                    <button onclick="closeModals()" class="flex-1 px-4 py-2 border rounded-lg">Cancel</button>
-                    <button onclick="createCompetition()" class="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg">Create</button>
+                    <button onclick="closeModals()" class="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50">Cancel</button>
+                    <button onclick="createCompetition()" class="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Create</button>
                 </div>
             </div>
         </div>
@@ -153,12 +153,22 @@
             <div class="space-y-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Full Name</label>
-                    <input type="text" id="input-competitor-name" class="w-full border rounded-lg p-2 mt-1" placeholder="e.g. Feliks Zemdegs">
+                    <input type="text" id="input-competitor-name" class="w-full border rounded-lg p-2 mt-1 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="e.g. Feliks Zemdegs">
                 </div>
                 <div class="flex gap-2 pt-2">
-                    <button onclick="closeModals()" class="flex-1 px-4 py-2 border rounded-lg">Cancel</button>
-                    <button onclick="addCompetitor()" class="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg">Add</button>
+                    <button onclick="closeModals()" class="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50">Cancel</button>
+                    <button onclick="addCompetitor()" class="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Add</button>
                 </div>
+            </div>
+        </div>
+
+        <!-- Confirm Delete Modal -->
+        <div id="modal-confirm-delete" class="bg-white rounded-xl p-6 w-full max-w-md hidden">
+            <h3 class="text-xl font-bold mb-2 text-red-600">Delete Competition?</h3>
+            <p class="text-gray-600 mb-6 text-sm">This will permanently remove this competition and all competitor solve data. This action cannot be undone.</p>
+            <div class="flex gap-2">
+                <button onclick="closeModals()" class="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50">No, Keep it</button>
+                <button id="btn-confirm-delete-final" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Yes, Delete</button>
             </div>
         </div>
     </div>
@@ -170,14 +180,12 @@
         };
         let currentCompId = null;
         let currentCompetitorId = null;
-        let currentScramble = "";
 
         // Initialization
         window.onload = () => {
             const saved = localStorage.getItem('cube_comp_data');
             if (saved) appData = JSON.parse(saved);
             renderCompetitions();
-            generateNewScramble();
         };
 
         function saveData() {
@@ -195,8 +203,9 @@
                 renderCompetitions();
             } else if (pageId === 'comp-detail') {
                 const comp = appData.competitions.find(c => c.id === currentCompId);
-                breadcrumb.innerText = comp.name;
-                renderCompDetail();
+                breadcrumb.innerText = comp ? comp.name : "";
+                if (comp) renderCompDetail();
+                else navigateTo('competitions');
             } else if (pageId === 'competitor-profile') {
                 const comp = appData.competitions.find(c => c.id === currentCompId);
                 const user = comp.competitors.find(u => u.id === currentCompetitorId);
@@ -225,23 +234,46 @@
             renderCompetitions();
         }
 
+        function initiateDelete(compId, event) {
+            event.stopPropagation(); // Don't trigger the card click navigation
+            const btn = document.getElementById('btn-confirm-delete-final');
+            btn.onclick = () => {
+                deleteCompetition(compId);
+                closeModals();
+            };
+            showModal('modal-confirm-delete');
+        }
+
+        function deleteCompetition(id) {
+            appData.competitions = appData.competitions.filter(c => c.id !== id);
+            saveData();
+            renderCompetitions();
+        }
+
         function renderCompetitions() {
             const container = document.getElementById('comp-list');
-            container.innerHTML = appData.competitions.length ? '' : '<p class="text-gray-400 col-span-2">No competitions added yet.</p>';
+            container.innerHTML = appData.competitions.length ? '' : '<p class="text-gray-400 col-span-2 text-center py-10">No competitions added yet. Click "+ New Competition" to start.</p>';
             
             appData.competitions.forEach(comp => {
                 const card = document.createElement('div');
-                card.className = "bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:border-indigo-300 transition cursor-pointer group";
+                card.className = "bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:border-indigo-300 transition cursor-pointer group relative";
                 card.onclick = () => {
                     currentCompId = comp.id;
                     navigateTo('comp-detail');
                 };
                 card.innerHTML = `
-                    <h3 class="font-bold text-lg group-hover:text-indigo-600 transition">${comp.name}</h3>
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="font-bold text-lg group-hover:text-indigo-600 transition truncate pr-8">${comp.name}</h3>
+                        <button onclick="initiateDelete('${comp.id}', event)" class="absolute top-4 right-4 text-gray-300 hover:text-red-500 transition p-2 rounded-lg hover:bg-red-50">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+                    </div>
                     <p class="text-sm text-gray-500">${comp.date || 'No date set'}</p>
                     <div class="mt-4 flex justify-between items-center">
-                        <span class="text-xs bg-gray-100 px-2 py-1 rounded">${comp.competitors.length} Competitors</span>
-                        <span class="text-indigo-500 text-sm font-semibold">View →</span>
+                        <span class="text-xs bg-gray-100 px-2 py-1 rounded font-medium text-gray-600">${comp.competitors.length} Competitors</span>
+                        <span class="text-indigo-500 text-sm font-semibold">View Results →</span>
                     </div>
                 `;
                 container.appendChild(card);
@@ -251,28 +283,28 @@
         // --- Competition Detail Logic ---
         function renderCompDetail() {
             const comp = appData.competitions.find(c => c.id === currentCompId);
+            if (!comp) return;
+
             document.getElementById('current-comp-name').innerText = comp.name;
             document.getElementById('current-comp-date').innerText = comp.date || "Ongoing";
 
-            // Render Competitor List
             const list = document.getElementById('competitor-list');
-            list.innerHTML = comp.competitors.length ? '' : '<p class="text-xs text-gray-400">Add competitors to start.</p>';
+            list.innerHTML = comp.competitors.length ? '' : '<p class="text-xs text-gray-400 italic">No competitors yet.</p>';
             
             comp.competitors.forEach(user => {
                 const item = document.createElement('div');
-                item.className = "flex justify-between items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition";
+                item.className = "flex justify-between items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition border border-transparent hover:border-indigo-100";
                 item.onclick = () => {
                     currentCompetitorId = user.id;
                     navigateTo('competitor-profile');
                 };
                 item.innerHTML = `
-                    <span class="font-medium">${user.name}</span>
-                    <span class="text-gray-400">Best: ${calculatePB(user.solves)}</span>
+                    <span class="font-medium text-gray-700">${user.name}</span>
+                    <span class="text-gray-400 text-sm">Best: <span class="text-gray-600 font-semibold">${calculatePB(user.solves)}</span></span>
                 `;
                 list.appendChild(item);
             });
 
-            // Render Leaderboard
             const leaderboard = document.getElementById('leaderboard-list');
             const ranked = [...comp.competitors].sort((a, b) => {
                 const aAvg = calculateAo5(a.solves);
@@ -282,16 +314,16 @@
                 return parseFloat(aAvg) - parseFloat(bAvg);
             });
 
-            leaderboard.innerHTML = ranked.length ? '' : '<p class="text-xs text-gray-400">No results yet.</p>';
+            leaderboard.innerHTML = ranked.length ? '' : '<p class="text-xs text-gray-400 italic">Complete at least 5 solves to see averages.</p>';
             ranked.forEach((user, idx) => {
                 const avg = calculateAo5(user.solves);
                 const entry = document.createElement('div');
-                entry.className = "flex items-center gap-3";
+                entry.className = "flex items-center gap-3 bg-white p-2 rounded-lg";
                 entry.innerHTML = `
-                    <div class="w-6 h-6 flex items-center justify-center rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold">${idx + 1}</div>
+                    <div class="w-6 h-6 flex items-center justify-center rounded-full ${idx < 3 ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-500'} text-xs font-bold">${idx + 1}</div>
                     <div class="flex-1 flex justify-between items-center">
-                        <span class="text-sm font-medium">${user.name}</span>
-                        <span class="text-sm font-bold text-indigo-600">${avg}</span>
+                        <span class="text-sm font-medium text-gray-800">${user.name}</span>
+                        <span class="text-sm font-bold text-indigo-600">${avg}${avg !== '-' ? 's' : ''}</span>
                     </div>
                 `;
                 leaderboard.appendChild(entry);
@@ -306,7 +338,8 @@
             comp.competitors.push({
                 id: Date.now().toString(),
                 name,
-                solves: []
+                solves: [],
+                pendingScramble: generateScrambleString() 
             });
             
             saveData();
@@ -319,47 +352,66 @@
             const comp = appData.competitions.find(c => c.id === currentCompId);
             const user = comp.competitors.find(u => u.id === currentCompetitorId);
             
+            if (!user.pendingScramble) {
+                user.pendingScramble = generateScrambleString();
+                saveData();
+            }
+
             document.getElementById('profile-name').innerText = user.name;
             document.getElementById('profile-pb').innerText = calculatePB(user.solves);
             document.getElementById('profile-ao5').innerText = calculateAo5(user.solves);
+            document.getElementById('scramble-display').innerText = user.pendingScramble;
 
             const history = document.getElementById('solve-history-list');
             history.innerHTML = '';
             
-            [...user.solves].reverse().forEach((solve, i) => {
-                const row = document.createElement('tr');
-                row.className = "border-b text-sm";
-                row.innerHTML = `
-                    <td class="py-3 text-gray-400">${user.solves.length - i}</td>
-                    <td class="py-3 font-bold">${solve.time}s</td>
-                    <td class="py-3 text-gray-500 truncate max-w-[150px] md:max-w-xs" title="${solve.scramble}">${solve.scramble}</td>
-                    <td class="py-3 text-gray-400 text-xs">${new Date(solve.timestamp).toLocaleDateString()}</td>
-                `;
-                history.appendChild(row);
-            });
+            if (user.solves.length === 0) {
+                history.innerHTML = '<tr><td colspan="4" class="py-10 text-center text-gray-400 italic text-sm">No solves recorded yet. Enter a time above to start!</td></tr>';
+            } else {
+                [...user.solves].reverse().forEach((solve, i) => {
+                    const row = document.createElement('tr');
+                    row.className = "border-b text-sm hover:bg-gray-50 transition";
+                    row.innerHTML = `
+                        <td class="py-3 text-gray-400">${user.solves.length - i}</td>
+                        <td class="py-3 font-bold text-gray-800">${solve.time}s</td>
+                        <td class="py-3 text-gray-500 truncate max-w-[150px] md:max-w-xs" title="${solve.scramble}">${solve.scramble}</td>
+                        <td class="py-3 text-gray-400 text-xs">${new Date(solve.timestamp).toLocaleDateString()}</td>
+                    `;
+                    history.appendChild(row);
+                });
+            }
         }
 
         function addSolve() {
             const val = document.getElementById('solve-input').value;
-            if (!val || isNaN(val)) return;
+            if (!val || isNaN(val) || val <= 0) return;
 
             const comp = appData.competitions.find(c => c.id === currentCompId);
             const user = comp.competitors.find(u => u.id === currentCompetitorId);
 
             user.solves.push({
                 time: parseFloat(val).toFixed(2),
-                scramble: currentScramble,
+                scramble: user.pendingScramble,
                 timestamp: Date.now()
             });
 
+            user.pendingScramble = generateScrambleString();
+            
             document.getElementById('solve-input').value = "";
             saveData();
-            generateNewScramble();
+            renderCompetitorProfile();
+        }
+
+        function forceNewScramble() {
+            const comp = appData.competitions.find(c => c.id === currentCompId);
+            const user = comp.competitors.find(u => u.id === currentCompetitorId);
+            user.pendingScramble = generateScrambleString();
+            saveData();
             renderCompetitorProfile();
         }
 
         // --- Scrambler Utility ---
-        function generateNewScramble() {
+        function generateScrambleString() {
             const moves = ["U", "D", "L", "R", "F", "B"];
             const modifiers = ["", "'", "2"];
             let scramble = [];
@@ -373,22 +425,19 @@
                 lastMove = move;
                 scramble.push(move + modifiers[Math.floor(Math.random() * modifiers.length)]);
             }
-            
-            currentScramble = scramble.join(" ");
-            document.getElementById('scramble-display').innerText = currentScramble;
+            return scramble.join(" ");
         }
 
         // --- Stats Calculations ---
         function calculatePB(solves) {
-            if (!solves.length) return "-";
+            if (!solves || !solves.length) return "-";
             return Math.min(...solves.map(s => parseFloat(s.time))).toFixed(2) + "s";
         }
 
         function calculateAo5(solves) {
-            if (solves.length < 5) return "-";
+            if (!solves || solves.length < 5) return "-";
             const lastFive = solves.slice(-5).map(s => parseFloat(s.time));
             lastFive.sort((a, b) => a - b);
-            // Trim fastest and slowest
             const trimmed = lastFive.slice(1, 4);
             const sum = trimmed.reduce((a, b) => a + b, 0);
             return (sum / 3).toFixed(2);
@@ -403,7 +452,6 @@
         function closeModals() {
             document.getElementById('modal-overlay').classList.add('hidden');
             document.querySelectorAll('#modal-overlay > div').forEach(d => d.classList.add('hidden'));
-            // Clear inputs
             document.querySelectorAll('input').forEach(i => { if(i.id !== 'solve-input') i.value = "" });
         }
     </script>
