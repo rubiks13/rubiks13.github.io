@@ -3,614 +3,239 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CubeComp - Pro Tournament Tracker</title>
+    <title>CubeComp GitHub Cloud</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
-        
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #0f172a;
-            color: #f1f5f9;
-        }
-
-        .timer-font {
-            font-family: 'JetBrains+Mono', monospace;
-        }
-
-        .glass-card {
-            background: rgba(30, 41, 59, 0.7);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .active-tab {
-            border-bottom: 2px solid #3b82f6;
-            color: #3b82f6;
-        }
-
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #1e293b; }
-        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=JetBrains+Mono:wght@700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f1f5f9; }
+        .timer-font { font-family: 'JetBrains Mono', monospace; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
     </style>
 </head>
-<body class="min-h-screen pb-12">
+<body class="min-h-screen pb-10">
 
-    <!-- Auth / Loading Overlay -->
-    <div id="loadingOverlay" class="fixed inset-0 bg-slate-900 z-50 flex flex-col items-center justify-center space-y-4">
-        <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-        <p class="text-slate-400 font-medium">Syncing with Cloud Database...</p>
-    </div>
-
-    <!-- Navigation -->
-    <nav class="sticky top-0 z-40 glass-card border-b border-slate-700 px-4 py-3 mb-6">
-        <div class="max-w-6xl mx-auto flex justify-between items-center">
-            <div class="flex items-center space-x-2">
-                <div class="w-8 h-8 bg-blue-600 rounded flex items-center justify-center font-bold">C</div>
-                <h1 class="text-xl font-extrabold tracking-tight">CUBE<span class="text-blue-500">COMP</span></h1>
-            </div>
-            <div id="userInfo" class="text-xs text-slate-400 font-mono hidden md:block"></div>
+    <nav class="glass sticky top-0 z-50 px-6 py-4 mb-6 flex justify-between items-center">
+        <h1 class="text-xl font-black text-blue-500">CUBE<span class="text-white">GIST</span></h1>
+        <div id="syncIndicator" class="text-[10px] font-bold px-3 py-1 rounded-full flex items-center bg-slate-800">
+            <span id="dot" class="status-dot bg-yellow-500"></span>
+            <span id="statusText">CONNECTING...</span>
         </div>
     </nav>
 
-    <main class="max-w-6xl mx-auto px-4">
+    <main class="max-w-5xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        <!-- Dashboard / Comp Selection -->
-        <section id="setupView" class="space-y-6">
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <h2 class="text-2xl font-bold">Your Competitions</h2>
-                <button onclick="toggleModal('newCompModal', true)" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold transition flex items-center justify-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                    </svg>
-                    New Competition
-                </button>
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Scramble Display -->
+            <div class="glass rounded-3xl p-6 text-center">
+                <p class="text-slate-500 text-xs uppercase font-bold mb-2 tracking-widest">Scramble</p>
+                <p id="scramble" class="timer-font text-lg text-blue-200 mb-4 select-none">Generating...</p>
+                <button onclick="generateScramble()" class="text-xs text-blue-500 hover:text-blue-400 transition">Get New Scramble</button>
             </div>
 
-            <div id="compList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <!-- Comps injected here -->
-            </div>
-        </section>
-
-        <!-- Active Competition View -->
-        <section id="activeCompView" class="hidden space-y-6">
-            <div class="flex items-center gap-4 mb-2">
-                <button onclick="showSetup()" class="text-slate-400 hover:text-white flex items-center gap-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                    </svg>
-                    Back
-                </button>
-                <h2 id="activeCompTitle" class="text-2xl font-bold text-blue-400">Competition Name</h2>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
-                <!-- Left Column: Timer & Scramble -->
-                <div class="lg:col-span-2 space-y-6">
-                    <!-- Scramble Box -->
-                    <div class="glass-card rounded-2xl p-6 relative overflow-hidden">
-                        <div class="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
-                        <div class="flex justify-between items-start mb-4">
-                            <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Current Scramble</span>
-                            <button onclick="generateScramble()" class="text-blue-400 hover:text-blue-300 text-sm flex items-center gap-1">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                </svg>
-                                New Scramble
-                            </button>
-                        </div>
-                        <p id="scrambleDisplay" class="text-xl md:text-2xl font-bold timer-font tracking-widest text-center py-4 text-slate-200">Generating...</p>
-                    </div>
-
-                    <!-- Timer Box -->
-                    <div id="timerContainer" class="glass-card rounded-2xl p-8 flex flex-col items-center justify-center min-h-[300px] transition-all duration-200">
-                        <div class="mb-4">
-                            <select id="competitorSelect" class="bg-slate-800 border border-slate-700 text-white rounded px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
-                                <option value="">Select Competitor...</option>
-                            </select>
-                        </div>
-                        <div id="timerDisplay" class="timer-font text-7xl md:text-9xl font-bold mb-8 transition-colors">0.00</div>
-                        <div class="flex flex-col items-center gap-2">
-                            <p class="text-slate-500 text-sm">Hold <span class="bg-slate-700 px-2 py-0.5 rounded text-slate-300">Space</span> to start</p>
-                            <p class="text-slate-600 text-xs italic">Mobile: Tap and hold the timer</p>
-                        </div>
-                    </div>
-
-                    <!-- Solves History -->
-                    <div class="glass-card rounded-2xl overflow-hidden">
-                        <div class="bg-slate-800/50 px-6 py-4 border-b border-slate-700 flex justify-between items-center">
-                            <h3 class="font-bold">Recent Solves</h3>
-                            <button onclick="clearRecentSolves()" class="text-xs text-red-400 hover:text-red-300">Clear All</button>
-                        </div>
-                        <div id="recentSolvesList" class="divide-y divide-slate-800 max-h-[300px] overflow-y-auto">
-                            <!-- Solves injected here -->
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Right Column: Rankings & Competitors -->
-                <div class="space-y-6">
-                    <!-- Leaderboard -->
-                    <div class="glass-card rounded-2xl overflow-hidden">
-                        <div class="bg-blue-600 px-6 py-4">
-                            <h3 class="font-bold text-white flex items-center gap-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                                </svg>
-                                Live Rankings
-                            </h3>
-                        </div>
-                        <div class="p-4 space-y-4">
-                            <div class="flex text-xs font-bold text-slate-500 px-2">
-                                <div class="w-8">#</div>
-                                <div class="flex-1">Name</div>
-                                <div class="w-16 text-right">Best</div>
-                                <div class="w-16 text-right">Ao5</div>
-                            </div>
-                            <div id="leaderboardList" class="space-y-2">
-                                <!-- Rankings injected here -->
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Competitor Management -->
-                    <div class="glass-card rounded-2xl p-6">
-                        <h3 class="font-bold mb-4">Add Competitors</h3>
-                        <div class="flex gap-2">
-                            <input type="text" id="newCompetitorName" placeholder="Cousin's name..." class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                            <button onclick="addCompetitor()" class="bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded-lg">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                                </svg>
-                            </button>
-                        </div>
-                        <div id="competitorTagList" class="flex flex-wrap gap-2 mt-4">
-                            <!-- Tags here -->
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </section>
-    </main>
-
-    <!-- Modal: New Competition -->
-    <div id="newCompModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 hidden">
-        <div class="glass-card w-full max-w-md rounded-2xl p-6 scale-95 transition-transform">
-            <h3 class="text-xl font-bold mb-4">Start New Competition</h3>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-slate-400 mb-1">Competition Name</label>
-                    <input type="text" id="compNameInput" placeholder="e.g. Family Brawl 2024" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-400 mb-1">Event Type</label>
-                    <select id="compEventInput" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none">
-                        <option value="3x3">3x3 Cube</option>
-                        <option value="2x2">2x2 Cube</option>
-                        <option value="4x4">4x4 Cube</option>
-                        <option value="OH">3x3 One-Handed</option>
+            <!-- Timer Area -->
+            <div id="timerBox" class="glass rounded-3xl p-10 flex flex-col items-center justify-center min-h-[350px] transition-all">
+                <div class="w-full max-w-xs mb-6">
+                    <label class="block text-[10px] uppercase text-slate-500 font-bold mb-1 ml-1">Select Competitor</label>
+                    <select id="userSelect" class="w-full bg-slate-800 border border-slate-700 p-3 rounded-xl text-white outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Choose a cousin...</option>
                     </select>
                 </div>
-                <div class="flex gap-3 pt-2">
-                    <button onclick="toggleModal('newCompModal', false)" class="flex-1 px-4 py-3 rounded-lg border border-slate-700 hover:bg-slate-800 transition">Cancel</button>
-                    <button onclick="createNewCompetition()" class="flex-1 px-4 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 font-bold transition">Create</button>
+                
+                <div id="display" class="timer-font text-8xl md:text-9xl font-bold mb-8 select-none transition-colors">0.00</div>
+                
+                <div class="text-center">
+                    <p class="text-slate-400 text-sm">Hold <kbd class="bg-slate-700 px-2 py-1 rounded text-white font-mono">SPACE</kbd> to start</p>
+                    <p class="text-slate-600 text-[10px] mt-2 italic">Data automatically syncs to your GitHub Gist</p>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Toast Container -->
-    <div id="toastContainer" class="fixed bottom-6 right-6 z-50 space-y-2 pointer-events-none"></div>
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <div class="glass rounded-3xl overflow-hidden border border-blue-500/20">
+                <div class="bg-blue-600 p-4 font-bold flex justify-between items-center">
+                    <span>Cloud Leaderboard</span>
+                    <button onclick="pullData()" class="text-[10px] bg-blue-700 px-2 py-1 rounded">Refresh</button>
+                </div>
+                <div id="leaderboard" class="p-4 space-y-3 min-h-[100px]">
+                    <p class="text-center text-slate-500 text-xs py-4">Loading stats...</p>
+                </div>
+            </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, addDoc, getDoc, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+            <div class="glass rounded-3xl p-6">
+                <h3 class="font-bold mb-4 text-sm">Add Competitor</h3>
+                <div class="flex gap-2">
+                    <input type="text" id="nameIn" placeholder="Enter name" class="flex-1 bg-slate-800 border border-slate-700 p-3 rounded-xl outline-none text-sm focus:ring-2 focus:ring-blue-500">
+                    <button onclick="addUser()" class="bg-blue-600 hover:bg-blue-500 px-5 rounded-xl font-bold transition">+</button>
+                </div>
+            </div>
+        </div>
+    </main>
 
-        // --- Firebase Config & Initialization ---
-        const firebaseConfig = JSON.parse(__firebase_config);
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'cube-comp-v1';
+    <script>
+        /**
+         * SETUP INSTRUCTIONS:
+         * 1. Create a Personal Access Token (classic) on GitHub with 'gist' scope.
+         * 2. Create a Gist and copy the ID from the URL.
+         */
+        const GITHUB_TOKEN = "PASTE_YOUR_GITHUB_TOKEN_HERE"; 
+        const GIST_ID = "PASTE_YOUR_GIST_ID_HERE";
 
-        // --- App State ---
-        let user = null;
-        let activeCompId = null;
-        let competitions = [];
-        let competitors = [];
-        let solves = [];
-        let timerInterval = null;
-        let startTime = 0;
-        let isRunning = false;
-        let isHolding = false;
-        let holdStartTime = 0;
-        const HOLD_REQUIRED = 500; // ms
+        let state = { users: [], solves: [] };
+        let timer, start, running = false, holding = false, holdStart = 0;
 
-        // --- Utility: Firebase Auth ---
-        const initAuth = async () => {
+        // --- GITHUB SYNC LOGIC ---
+        async function pullData() {
+            setSyncStatus('loading');
             try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            } catch (err) {
-                console.error("Auth Error:", err);
-            }
-        };
-
-        // --- Lifecycle ---
-        onAuthStateChanged(auth, (u) => {
-            user = u;
-            if (user) {
-                document.getElementById('loadingOverlay').classList.add('hidden');
-                document.getElementById('userInfo').innerText = `Sync: ${user.uid}`;
-                subscribeToCompetitions();
-            }
-        });
-
-        // --- Firestore Subscriptions ---
-        function subscribeToCompetitions() {
-            const compRef = collection(db, 'artifacts', appId, 'public', 'data', 'competitions');
-            onSnapshot(compRef, (snapshot) => {
-                competitions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderCompList();
-            }, (err) => showToast('Error syncing competitions', 'error'));
-        }
-
-        function subscribeToActiveComp(id) {
-            // Competitors
-            const competitorsRef = collection(db, 'artifacts', appId, 'public', 'data', `comp_${id}_competitors`);
-            onSnapshot(competitorsRef, (snapshot) => {
-                competitors = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                updateCompetitorSelect();
-                updateLeaderboard();
-            });
-
-            // Solves
-            const solvesRef = collection(db, 'artifacts', appId, 'public', 'data', `comp_${id}_solves`);
-            onSnapshot(solvesRef, (snapshot) => {
-                solves = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                // Sort in memory (Rule 2)
-                solves.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
-                renderRecentSolves();
-                updateLeaderboard();
-            });
-        }
-
-        // --- Core UI Logic ---
-        window.toggleModal = (id, show) => {
-            const el = document.getElementById(id);
-            if (show) {
-                el.classList.remove('hidden');
-                setTimeout(() => el.querySelector('.glass-card').style.transform = 'scale(1)', 10);
-            } else {
-                el.querySelector('.glass-card').style.transform = 'scale(0.95)';
-                setTimeout(() => el.classList.add('hidden'), 200);
-            }
-        };
-
-        window.createNewCompetition = async () => {
-            const name = document.getElementById('compNameInput').value.trim();
-            const event = document.getElementById('compEventInput').value;
-            if (!name) return;
-
-            try {
-                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'competitions'), {
-                    name,
-                    event,
-                    createdAt: serverTimestamp(),
-                    createdBy: user.uid
+                const res = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+                    headers: { 'Authorization': `token ${GITHUB_TOKEN}` }
                 });
-                toggleModal('newCompModal', false);
-                document.getElementById('compNameInput').value = '';
-                showToast('Competition created!');
-            } catch (err) {
-                showToast('Failed to create', 'error');
-            }
-        };
-
-        window.deleteCompetition = async (id, e) => {
-            e.stopPropagation();
-            if (!confirm('Delete this competition?')) return;
-            try {
-                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'competitions', id));
-                showToast('Deleted');
-            } catch (e) {}
-        };
-
-        window.openCompetition = (id) => {
-            activeCompId = id;
-            const comp = competitions.find(c => c.id === id);
-            document.getElementById('activeCompTitle').innerText = comp.name;
-            document.getElementById('setupView').classList.add('hidden');
-            document.getElementById('activeCompView').classList.remove('hidden');
-            generateScramble();
-            subscribeToActiveComp(id);
-        };
-
-        window.showSetup = () => {
-            activeCompId = null;
-            document.getElementById('setupView').classList.remove('hidden');
-            document.getElementById('activeCompView').classList.add('hidden');
-        };
-
-        // --- Rendering ---
-        function renderCompList() {
-            const container = document.getElementById('compList');
-            container.innerHTML = competitions.map(c => `
-                <div onclick="openCompetition('${c.id}')" class="glass-card rounded-xl p-5 hover:border-blue-500/50 cursor-pointer transition group">
-                    <div class="flex justify-between items-start mb-2">
-                        <span class="bg-blue-600/20 text-blue-400 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">${c.event}</span>
-                        <button onclick="deleteCompetition('${c.id}', event)" class="text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition">
-                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                        </button>
-                    </div>
-                    <h3 class="text-lg font-bold mb-1">${c.name}</h3>
-                    <p class="text-xs text-slate-500">Created ${c.createdAt ? new Date(c.createdAt.seconds * 1000).toLocaleDateString() : 'Just now'}</p>
-                </div>
-            `).join('') || `
-                <div class="col-span-full py-12 text-center text-slate-500 border-2 border-dashed border-slate-800 rounded-2xl">
-                    No competitions yet. Click "New Competition" to start.
-                </div>
-            `;
-        }
-
-        function updateCompetitorSelect() {
-            const select = document.getElementById('competitorSelect');
-            const tags = document.getElementById('competitorTagList');
-            
-            const currentVal = select.value;
-            select.innerHTML = '<option value="">Select Competitor...</option>' + 
-                competitors.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-            select.value = currentVal;
-
-            tags.innerHTML = competitors.map(c => `
-                <div class="bg-slate-800 text-slate-300 text-xs px-2 py-1 rounded flex items-center gap-2">
-                    ${c.name}
-                    <button onclick="removeCompetitor('${c.id}')" class="hover:text-red-400">×</button>
-                </div>
-            `).join('');
-        }
-
-        function renderRecentSolves() {
-            const container = document.getElementById('recentSolvesList');
-            container.innerHTML = solves.slice(0, 10).map(s => {
-                const compName = competitors.find(c => c.id === s.competitorId)?.name || 'Unknown';
-                return `
-                    <div class="px-6 py-3 flex justify-between items-center group">
-                        <div>
-                            <div class="text-sm font-bold">${s.time.toFixed(2)}s</div>
-                            <div class="text-[10px] text-slate-500 uppercase tracking-tight">${compName}</div>
-                        </div>
-                        <button onclick="deleteSolve('${s.id}')" class="text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition">
-                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function updateLeaderboard() {
-            const container = document.getElementById('leaderboardList');
-            
-            const stats = competitors.map(c => {
-                const cSolves = solves.filter(s => s.competitorId === c.id).map(s => s.time);
-                return {
-                    name: c.name,
-                    best: cSolves.length ? Math.min(...cSolves) : Infinity,
-                    ao5: calculateAverage(cSolves, 5),
-                    count: cSolves.length
-                };
-            });
-
-            // Sort by Best
-            stats.sort((a, b) => a.best - b.best);
-
-            container.innerHTML = stats.map((s, i) => `
-                <div class="flex items-center px-2 py-2 rounded-lg ${i === 0 && s.count > 0 ? 'bg-blue-600/10 border border-blue-500/20' : 'hover:bg-slate-800/50'}">
-                    <div class="w-8 font-bold text-xs ${i === 0 ? 'text-yellow-400' : 'text-slate-500'}">${i+1}</div>
-                    <div class="flex-1 font-semibold text-sm truncate">${s.name}</div>
-                    <div class="w-16 text-right font-mono text-xs text-blue-400">${s.best === Infinity ? '-' : s.best.toFixed(2)}</div>
-                    <div class="w-16 text-right font-mono text-xs text-slate-400">${s.ao5 || '-'}</div>
-                </div>
-            `).join('') || '<p class="text-center text-xs text-slate-600 py-4">Add competitors to see rankings</p>';
-        }
-
-        // --- Math & Scramble ---
-        function calculateAverage(times, n) {
-            if (times.length < n) return null;
-            const recent = times.slice(0, n);
-            const sorted = [...recent].sort((a, b) => a - b);
-            // Trim best and worst (WCA style for Ao5)
-            sorted.pop();
-            sorted.shift();
-            const sum = sorted.reduce((acc, t) => acc + t, 0);
-            return (sum / (n - 2)).toFixed(2);
-        }
-
-        window.generateScramble = () => {
-            const moves = ["R", "L", "U", "D", "F", "B"];
-            const modifiers = ["", "'", "2"];
-            let scramble = [];
-            let lastMove = "";
-
-            for (let i = 0; i < 20; i++) {
-                let move;
-                do {
-                    move = moves[Math.floor(Math.random() * moves.length)];
-                } while (move === lastMove);
-                lastMove = move;
-                scramble.push(move + modifiers[Math.floor(Math.random() * modifiers.length)]);
-            }
-            document.getElementById('scrambleDisplay').innerText = scramble.join(" ");
-        };
-
-        // --- Competitor Management ---
-        window.addCompetitor = async () => {
-            if (!activeCompId) return;
-            const input = document.getElementById('newCompetitorName');
-            const name = input.value.trim();
-            if (!name) return;
-
-            try {
-                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', `comp_${activeCompId}_competitors`), {
-                    name,
-                    addedAt: serverTimestamp()
-                });
-                input.value = '';
-            } catch (e) {}
-        };
-
-        window.removeCompetitor = async (id) => {
-            if (!confirm('Remove competitor? Solves will remain.')) return;
-            try {
-                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', `comp_${activeCompId}_competitors`, id));
-            } catch (e) {}
-        };
-
-        window.deleteSolve = async (id) => {
-            try {
-                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', `comp_${activeCompId}_solves`, id));
-            } catch (e) {}
-        };
-
-        // --- Timer Logic ---
-        const timerDisplay = document.getElementById('timerDisplay');
-        const timerContainer = document.getElementById('timerContainer');
-
-        function updateTimer() {
-            const now = Date.now();
-            const diff = (now - startTime) / 1000;
-            timerDisplay.innerText = diff.toFixed(2);
-        }
-
-        async function saveSolve(time) {
-            const compId = document.getElementById('competitorSelect').value;
-            if (!compId) {
-                showToast("Solve finished! Select a competitor to save.", "info");
-                return;
-            }
-            
-            try {
-                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', `comp_${activeCompId}_solves`), {
-                    competitorId: compId,
-                    time: parseFloat(time),
-                    scramble: document.getElementById('scrambleDisplay').innerText,
-                    timestamp: serverTimestamp()
-                });
-                generateScramble();
+                const data = await res.json();
+                const content = data.files['cube-data.json'].content;
+                state = JSON.parse(content || '{"users":[],"solves":[]}');
+                if (!state.users) state = { users: [], solves: [] };
+                render();
+                setSyncStatus('ready');
             } catch (e) {
-                showToast("Error saving solve", "error");
+                console.error(e);
+                setSyncStatus('error');
             }
         }
 
-        function handleStart() {
-            if (isRunning) {
-                // STOP
-                isRunning = false;
-                clearInterval(timerInterval);
-                const finalTime = timerDisplay.innerText;
-                timerDisplay.classList.remove('text-blue-500');
-                saveSolve(finalTime);
+        async function pushData() {
+            setSyncStatus('saving');
+            try {
+                await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+                    method: 'PATCH',
+                    headers: { 
+                        'Authorization': `token ${GITHUB_TOKEN}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        files: { 'cube-data.json': { content: JSON.stringify(state) } }
+                    })
+                });
+                setSyncStatus('ready');
+            } catch (e) {
+                console.error(e);
+                setSyncStatus('error');
+            }
+        }
+
+        function setSyncStatus(status) {
+            const dot = document.getElementById('dot');
+            const txt = document.getElementById('statusText');
+            if (status === 'ready') {
+                dot.className = 'status-dot bg-green-500';
+                txt.innerText = 'CLOUD SYNCED';
+            } else if (status === 'loading' || status === 'saving') {
+                dot.className = 'status-dot bg-yellow-500 animate-pulse';
+                txt.innerText = status.toUpperCase() + '...';
             } else {
-                // Pre-start holding
-                isHolding = true;
-                holdStartTime = Date.now();
-                timerDisplay.classList.add('text-red-500');
-                
-                const checkHold = setInterval(() => {
-                    if (!isHolding) {
-                        clearInterval(checkHold);
-                        return;
-                    }
-                    if (Date.now() - holdStartTime >= HOLD_REQUIRED) {
-                        timerDisplay.classList.remove('text-red-500');
-                        timerDisplay.classList.add('text-green-500');
-                        clearInterval(checkHold);
-                    }
-                }, 10);
+                dot.className = 'status-dot bg-red-500';
+                txt.innerText = 'SYNC ERROR';
             }
         }
 
-        function handleRelease() {
-            if (isHolding) {
-                isHolding = false;
-                if (Date.now() - holdStartTime >= HOLD_REQUIRED) {
-                    // START
-                    isRunning = true;
-                    startTime = Date.now();
-                    timerDisplay.classList.remove('text-green-500');
-                    timerDisplay.classList.add('text-blue-500');
-                    timerInterval = setInterval(updateTimer, 10);
-                } else {
-                    timerDisplay.classList.remove('text-red-500');
+        // --- APP LOGIC ---
+        function addUser() {
+            const name = document.getElementById('nameIn').value.trim();
+            if(!name) return;
+            state.users.push({ id: Date.now(), name });
+            document.getElementById('nameIn').value = '';
+            pushData();
+            render();
+        }
+
+        function render() {
+            const sel = document.getElementById('userSelect');
+            const current = sel.value;
+            sel.innerHTML = '<option value="">Choose a cousin...</option>' + 
+                state.users.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
+            sel.value = current;
+
+            const board = state.users.map(u => {
+                const uSolves = state.solves.filter(s => s.uid == u.id).map(s => s.t);
+                return { 
+                    name: u.name, 
+                    best: uSolves.length ? Math.min(...uSolves) : 999,
+                    count: uSolves.length
+                };
+            }).sort((a,b) => a.best - b.best);
+
+            document.getElementById('leaderboard').innerHTML = board.map((b, i) => `
+                <div class="flex justify-between items-center bg-slate-800/40 p-3 rounded-xl border border-white/5">
+                    <div class="flex flex-col">
+                        <span class="text-xs font-bold text-white">${i+1}. ${b.name}</span>
+                        <span class="text-[9px] text-slate-500">${b.count} solves</span>
+                    </div>
+                    <span class="timer-font text-blue-400 font-bold">${b.best === 999 ? '--' : b.best.toFixed(2)}</span>
+                </div>
+            `).join('') || '<p class="text-center text-slate-500 text-[10px] py-4">Add your first competitor to start!</p>';
+        }
+
+        // --- TIMER LOGIC ---
+        function generateScramble() {
+            const m = ["R","L","U","D","F","B"];
+            const t = ["","'","2"];
+            let s = "";
+            for(let i=0; i<20; i++) s += m[Math.floor(Math.random()*6)] + t[Math.floor(Math.random()*3)] + " ";
+            document.getElementById('scramble').innerText = s;
+        }
+
+        window.onkeydown = (e) => {
+            if(e.code === 'Space') {
+                if(e.target.tagName === 'INPUT') return;
+                e.preventDefault();
+                if(running) {
+                    stopTimer();
+                } else if(!holding) {
+                    holding = true; holdStart = Date.now();
+                    document.getElementById('display').classList.add('text-red-500');
                 }
             }
-        }
+        };
 
-        // --- Event Listeners ---
-        window.addEventListener('keydown', (e) => {
-            if (e.code === 'Space' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') {
-                e.preventDefault();
-                if (!isHolding) handleStart();
+        window.onkeyup = (e) => {
+            if(e.code === 'Space' && holding) {
+                holding = false;
+                if(Date.now() - holdStart > 500) startTimer();
+                else document.getElementById('display').classList.remove('text-red-500');
             }
-        });
+        };
 
-        window.addEventListener('keyup', (e) => {
-            if (e.code === 'Space') {
-                handleRelease();
-            }
-        });
-
-        // Touch support for mobile
-        timerContainer.addEventListener('touchstart', (e) => {
-            if (e.target.tagName !== 'SELECT') {
-                e.preventDefault();
-                handleStart();
-            }
-        }, { passive: false });
-
-        timerContainer.addEventListener('touchend', (e) => {
-            handleRelease();
-        });
-
-        // --- Toast Helpers ---
-        function showToast(msg, type = 'success') {
-            const toast = document.createElement('div');
-            const colors = {
-                success: 'bg-green-600',
-                error: 'bg-red-600',
-                info: 'bg-blue-600'
-            };
-            toast.className = `${colors[type]} text-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium transform transition-all translate-y-10 opacity-0`;
-            toast.innerText = msg;
-            document.getElementById('toastContainer').appendChild(toast);
-            
-            setTimeout(() => {
-                toast.classList.remove('translate-y-10', 'opacity-0');
+        function startTimer() {
+            running = true; start = Date.now();
+            document.getElementById('display').classList.remove('text-red-500');
+            document.getElementById('display').classList.add('text-blue-500');
+            timer = setInterval(() => {
+                document.getElementById('display').innerText = ((Date.now()-start)/1000).toFixed(2);
             }, 10);
-
-            setTimeout(() => {
-                toast.classList.add('translate-y-10', 'opacity-0');
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
         }
 
-        // Init App
-        initAuth();
+        function stopTimer() {
+            running = false; clearInterval(timer);
+            const time = parseFloat(document.getElementById('display').innerText);
+            const uid = document.getElementById('userSelect').value;
+            if(uid) { 
+                state.solves.push({ uid, t: time }); 
+                pushData(); 
+                generateScramble(); 
+            }
+            document.getElementById('display').classList.remove('text-blue-500');
+        }
 
+        // Initialize
+        generateScramble();
+        if(GIST_ID !== "PASTE_YOUR_GIST_ID_HERE") {
+            pullData();
+            setInterval(pullData, 15000); // Auto-refresh leaderboard every 15 seconds
+        } else {
+            setSyncStatus('error');
+            document.getElementById('statusText').innerText = "SETUP REQUIRED";
+        }
     </script>
 </body>
 </html>
