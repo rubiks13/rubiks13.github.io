@@ -20,26 +20,26 @@
         @media screen {
             .app-container {
                 max-width: 500px;
-                margin: 60px auto;
+                margin: 100px auto;
                 background: #1e293b;
-                padding: 2rem;
-                border-radius: 1rem;
+                padding: 2.5rem;
+                border-radius: 1.5rem;
                 border: 1px solid #334155;
-                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+                text-align: center;
             }
             #print-area { display: none; }
             
-            .preview-container {
-                margin-top: 1rem;
-                border: 2px dashed #334155;
-                border-radius: 0.5rem;
-                padding: 10px;
-                text-align: center;
-            }
-            .preview-container img {
-                max-height: 100px;
-                margin: 0 auto;
-                border-radius: 4px;
+            .status-badge {
+                display: inline-block;
+                padding: 4px 12px;
+                background: #065f46;
+                color: #34d399;
+                border-radius: 20px;
+                font-size: 11px;
+                font-weight: 700;
+                text-transform: uppercase;
+                margin-bottom: 1rem;
             }
         }
 
@@ -114,39 +114,27 @@
 <body>
 
     <div class="app-container no-print">
-        <h1 class="text-2xl font-800 mb-2">Record Sheet Pro</h1>
-        <p class="text-slate-400 text-sm mb-6">Your header is saved automatically. Enter number of sheets and hit Enter.</p>
+        <div class="status-badge">Ready to Print</div>
+        <h1 class="text-3xl font-800 mb-2 text-white">Record Sheet Pro</h1>
+        <p class="text-slate-400 text-sm mb-8">Using <b>top.png</b> from files. Enter quantity and hit Enter.</p>
         
-        <div class="space-y-5">
-            <!-- Image Upload -->
-            <div>
-                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">1. Header Image (Saved automatically)</label>
-                <input type="file" id="header-upload" accept="image/*" class="block w-full text-sm text-slate-400
-                    file:mr-4 file:py-2 file:px-4
-                    file:rounded-full file:border-0
-                    file:text-sm file:font-semibold
-                    file:bg-blue-600 file:text-white
-                    hover:file:bg-blue-500 cursor-pointer">
-                
-                <div id="preview-box" class="preview-container hidden">
-                    <p class="text-[10px] text-slate-500 mb-2 uppercase font-bold">Current Header Preview:</p>
-                    <img id="header-preview" src="" alt="Header">
-                </div>
-            </div>
-
+        <div class="space-y-6">
             <!-- Sheet Count -->
-            <div>
-                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">2. Number of Papers</label>
-                <input type="number" id="sheet-count" value="1" min="1" max="50" 
-                    class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white text-xl font-bold focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
-                    onkeydown="if(event.key === 'Enter') prepareAndPrint()">
+            <div class="text-left">
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-2 ml-1">Number of Papers</label>
+                <input type="number" id="sheet-count" value="1" min="1" max="100" 
+                    class="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-white text-3xl font-bold focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                    onkeydown="if(event.key === 'Enter') prepareAndPrint()"
+                    autofocus>
             </div>
             
             <button onclick="prepareAndPrint()" id="print-btn"
-                class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-4 rounded-xl font-800 text-lg transition-all shadow-lg flex items-center justify-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                class="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white py-4 rounded-xl font-800 text-lg transition-all shadow-xl flex items-center justify-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
                 Generate & Print
             </button>
+            
+            <p class="text-[10px] text-slate-600 italic">Ensure 'top.png' is uploaded to the project folder.</p>
         </div>
     </div>
 
@@ -156,38 +144,9 @@
         const faces = ['U', 'D', 'L', 'R', 'F', 'B'];
         const modifiers = ['', "'", '2'];
         const scrambleLength = 12;
-        let uploadedHeaderData = localStorage.getItem('cubing_header_image') || null;
-
-        // Display preview if image exists in storage
-        if (uploadedHeaderData) {
-            updatePreview(uploadedHeaderData);
-        }
-
-        // Handle Image Upload
-        document.getElementById('header-upload').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (event) => { 
-                    uploadedHeaderData = event.target.result;
-                    // Save to local storage
-                    try {
-                        localStorage.setItem('cubing_header_image', uploadedHeaderData);
-                        updatePreview(uploadedHeaderData);
-                    } catch (e) {
-                        alert("Image file is too large to save! Please use a smaller PNG.");
-                    }
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-
-        function updatePreview(data) {
-            const previewBox = document.getElementById('preview-box');
-            const previewImg = document.getElementById('header-preview');
-            previewImg.src = data;
-            previewBox.classList.remove('hidden');
-        }
+        
+        // Path to the image you uploaded to the project
+        const headerImagePath = 'top.png';
 
         function generateScramble() {
             let scramble = [];
@@ -238,11 +197,6 @@
         }
 
         function prepareAndPrint() {
-            if (!uploadedHeaderData) {
-                alert("Please upload your top.png header first!");
-                return;
-            }
-
             const count = parseInt(document.getElementById('sheet-count').value) || 1;
             const container = document.getElementById('print-area');
             container.innerHTML = '';
@@ -252,7 +206,7 @@
                 page.className = 'print-page';
                 
                 page.innerHTML = `
-                    <img src="${uploadedHeaderData}" class="header-image">
+                    <img src="${headerImagePath}" class="header-image" onerror="alert('Error: top.png not found. Please ensure it is uploaded to your files.')">
                     <div class="table-container">
                         <div style="flex:1">${createTableHTML()}</div>
                         <div style="flex:1">${createTableHTML()}</div>
@@ -262,8 +216,10 @@
                 container.appendChild(page);
             }
 
-            // Small delay to ensure images are ready
-            setTimeout(() => { window.print(); }, 300);
+            // Wait a moment to ensure the image is loaded before opening print dialog
+            setTimeout(() => { 
+                window.print(); 
+            }, 500);
         }
     </script>
 </body>
