@@ -14,7 +14,7 @@
 
         body {
             background-color: #f3f4f6;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: Arial, sans-serif;
         }
 
         /* Print Styles */
@@ -30,8 +30,8 @@
                 margin: 0;
                 box-shadow: none;
             }
-            .page-break {
-                page-break-after: always;
+            .scorecard {
+                border: none !important;
             }
         }
 
@@ -39,162 +39,203 @@
             width: 105mm;
             height: 148mm;
             background: white;
-            padding: 10mm;
+            padding: 8mm 10mm;
             box-sizing: border-box;
-            border: 1px solid #e5e7eb;
+            border: 1px solid #ddd;
             display: flex;
             flex-direction: column;
             color: black;
-            position: relative;
         }
 
+        .header-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .field-row {
+            display: flex;
+            gap: 0;
+        }
+
+        .field-box {
+            border: 1.5px solid black;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            font-size: 18px;
+            min-width: 20px;
+        }
+
+        .label-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .label {
+            font-size: 12px;
+            margin-bottom: 2px;
+        }
+
+        /* Table Design */
         .score-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 4px;
         }
 
-        .score-table th, .score-table td {
-            border: 1px solid black;
-            height: 28px;
-            padding: 0 4px;
-        }
-
-        .row-num {
-            width: 20px;
-            border: none !important;
+        .score-table th {
+            font-weight: normal;
+            font-size: 13px;
+            padding-bottom: 4px;
             text-align: center;
+        }
+
+        /* Ensuring every cell has a visible border for separation */
+        .score-table td {
+            border: 1.5px solid black;
+            height: 40px;
+        }
+
+        .attempt-num {
+            border: none !important;
+            font-size: 28px;
             font-weight: bold;
-            font-size: 20px;
+            width: 30px;
+            text-align: left;
+            padding-right: 10px;
         }
 
-        .header-box {
-            border: 1px solid black;
-            padding: 2px 5px;
+        .col-scr { width: 45px; }
+        .col-result { width: auto; }
+        .col-judge { width: 45px; }
+        .col-comp { width: 45px; }
+
+        .extra-label {
             font-size: 14px;
-        }
-
-        .label-text {
-            font-size: 10px;
-            margin-bottom: 1px;
+            margin-top: 15px;
+            margin-bottom: 5px;
         }
     </style>
 </head>
-<body class="p-4 md:p-8">
+<body class="p-4">
 
     <!-- UI Input Section -->
-    <div class="no-print max-w-xl mx-auto bg-white rounded-xl shadow-lg p-6 mb-8">
-        <h1 class="text-2xl font-bold mb-6 text-gray-800">WCA Scorecard Generator</h1>
+    <div class="no-print max-w-lg mx-auto bg-white rounded-xl shadow-lg p-6 mb-8">
+        <div class="flex justify-between items-center mb-4">
+            <h1 class="text-xl font-bold">Scorecard Details</h1>
+            <button onclick="clearAll()" class="text-sm bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1 rounded transition-colors border border-red-200">
+                Clear All
+            </button>
+        </div>
         
-        <div class="grid grid-cols-1 gap-4">
+        <div class="space-y-3">
             <div>
-                <label class="block text-sm font-medium text-gray-700">Competition Name</label>
-                <input type="text" id="compName" value="Yopen 2022" class="mt-1 block w-full border border-gray-300 rounded-md p-2 shadow-sm">
+                <span class="text-xs text-gray-500 ml-1">Competition Name</span>
+                <input type="text" id="compName" value="Yopen 2022" placeholder="Competition Name" class="w-full border rounded p-2">
             </div>
             
-            <div class="grid grid-cols-3 gap-4">
-                <div class="col-span-1">
-                    <label class="block text-sm font-medium text-gray-700">Event</label>
-                    <input type="text" id="event" value="3x3x3 Cube" class="mt-1 block w-full border border-gray-300 rounded-md p-2 shadow-sm">
+            <div class="flex gap-2">
+                <div class="flex-grow">
+                    <span class="text-xs text-gray-500 ml-1">Event</span>
+                    <input type="text" id="event" value="3x3x3 Cube" placeholder="Event" class="w-full border rounded p-2">
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Round</label>
-                    <input type="text" id="round" value="1" class="mt-1 block w-full border border-gray-300 rounded-md p-2 shadow-sm">
+                <div class="w-16">
+                    <span class="text-xs text-gray-500 ml-1">Round</span>
+                    <input type="text" id="round" value="1" placeholder="Round" class="w-full border rounded p-2 text-center">
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Group</label>
-                    <input type="text" id="group" value="2" class="mt-1 block w-full border border-gray-300 rounded-md p-2 shadow-sm">
+                <div class="w-16">
+                    <span class="text-xs text-gray-500 ml-1">Group</span>
+                    <input type="text" id="group" value="2" placeholder="Group" class="w-full border rounded p-2 text-center">
                 </div>
             </div>
 
-            <div class="grid grid-cols-4 gap-4">
-                <div class="col-span-1">
-                    <label class="block text-sm font-medium text-gray-700">ID</label>
-                    <input type="text" id="compId" value="230" class="mt-1 block w-full border border-gray-300 rounded-md p-2 shadow-sm">
+            <div class="flex gap-2">
+                <div class="w-20">
+                    <span class="text-xs text-gray-500 ml-1">ID</span>
+                    <input type="text" id="compId" value="230" placeholder="ID" class="w-full border rounded p-2 text-center">
                 </div>
-                <div class="col-span-3">
-                    <label class="block text-sm font-medium text-gray-700">Competitor Name</label>
-                    <input type="text" id="name" value="Phil Yo" class="mt-1 block w-full border border-gray-300 rounded-md p-2 shadow-sm">
+                <div class="flex-grow">
+                    <span class="text-xs text-gray-500 ml-1">Competitor Name</span>
+                    <input type="text" id="name" value="Phil Yo" placeholder="Competitor Name" class="w-full border rounded p-2">
                 </div>
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700">Time Limit</label>
-                <input type="text" id="timeLimit" value="5:00.00" class="mt-1 block w-full border border-gray-300 rounded-md p-2 shadow-sm">
+                <span class="text-xs text-gray-500 ml-1">Time Limit</span>
+                <input type="text" id="timeLimit" value="5:00.00" placeholder="Time Limit" class="w-full border rounded p-2">
             </div>
 
-            <button onclick="window.print()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors duration-200 mt-4 flex items-center justify-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-                Print A6 Scorecard
+            <button onclick="window.print()" class="w-full bg-black hover:bg-gray-800 text-white font-bold py-3 rounded-lg mt-2 transition-colors">
+                Print Scorecard
             </button>
         </div>
     </div>
 
-    <!-- The Scorecard (Live Preview & Print Target) -->
+    <!-- The Scorecard -->
     <div class="scorecard-container flex justify-center">
-        <div id="printArea" class="scorecard shadow-2xl">
-            <!-- Competition Header -->
-            <div class="text-center text-2xl font-bold mb-4" id="displayCompName">Yopen 2022</div>
+        <div id="printArea" class="scorecard">
+            <div class="text-center text-3xl font-bold mb-6 h-9 overflow-hidden" id="displayCompName">Yopen 2022</div>
 
-            <!-- Event Details -->
-            <div class="flex gap-0 mb-2">
-                <div class="flex-grow">
-                    <div class="label-text">Event</div>
-                    <div class="header-box" id="displayEvent">3x3x3 Cube</div>
+            <div class="header-section">
+                <!-- Event Row -->
+                <div class="field-row">
+                    <div class="label-group flex-grow">
+                        <span class="label">Event</span>
+                        <div class="field-box" id="displayEvent">3x3x3 Cube</div>
+                    </div>
+                    <div class="label-group w-14">
+                        <span class="label text-center">Round</span>
+                        <div class="field-box justify-center border-l-0" id="displayRound">1</div>
+                    </div>
+                    <div class="label-group w-14">
+                        <span class="label text-center">Group</span>
+                        <div class="field-box justify-center border-l-0" id="displayGroup">2</div>
+                    </div>
                 </div>
-                <div style="width: 40px;">
-                    <div class="label-text text-center">Round</div>
-                    <div class="header-box text-center border-l-0" id="displayRound">1</div>
-                </div>
-                <div style="width: 40px;">
-                    <div class="label-text text-center">Group</div>
-                    <div class="header-box text-center border-l-0" id="displayGroup">2</div>
+
+                <!-- Competitor Row -->
+                <div class="field-row mt-2">
+                    <div class="label-group w-20">
+                        <span class="label">ID</span>
+                        <div class="field-box justify-center" id="displayId">230</div>
+                    </div>
+                    <div class="label-group flex-grow">
+                        <span class="label">Name</span>
+                        <div class="field-box border-l-0" id="displayName">Phil Yo</div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Competitor Details -->
-            <div class="flex gap-0 mb-6">
-                <div style="width: 50px;">
-                    <div class="label-text">ID</div>
-                    <div class="header-box" id="displayId">230</div>
-                </div>
-                <div class="flex-grow">
-                    <div class="label-text">Name</div>
-                    <div class="header-box border-l-0" id="displayName">Phil Yo</div>
-                </div>
-            </div>
-
-            <!-- Table Header Labels -->
-            <div class="flex text-[10px] pl-[20px] mb-[-4px]">
-                <div style="width: 35px; text-align: center;">Scr</div>
-                <div style="flex-grow: 1; text-align: center;">Result</div>
-                <div style="width: 40px; text-align: center;">Judge</div>
-                <div style="width: 40px; text-align: center;">Comp</div>
-            </div>
-
-            <!-- Score Rows 1-5 -->
+            <!-- Table -->
             <table class="score-table">
+                <thead>
+                    <tr>
+                        <th class="attempt-num"></th>
+                        <th class="col-scr">Scr</th>
+                        <th class="col-result">Result</th>
+                        <th class="col-judge">Judge</th>
+                        <th class="col-comp">Comp</th>
+                    </tr>
+                </thead>
                 <tbody id="scoreRows">
-                    <!-- Rows generated by JS -->
+                    <!-- Rows 1-5 generated by JS -->
                 </tbody>
             </table>
 
-            <!-- Extra Attempt Section -->
-            <div class="mt-4">
-                <div class="text-[12px] font-medium mb-1">Extra attempt</div>
-                <table class="score-table">
-                    <tr>
-                        <td class="row-num">—</td>
-                        <td style="width: 35px;"></td>
-                        <td></td>
-                        <td style="width: 40px;"></td>
-                        <td style="width: 40px;"></td>
-                    </tr>
-                </table>
-            </div>
+            <div class="extra-label">Extra attempt</div>
+            <table class="score-table">
+                <tr>
+                    <td class="attempt-num" style="font-size: 24px; vertical-align: middle;">—</td>
+                    <td class="col-scr"></td>
+                    <td class="col-result"></td>
+                    <td class="col-judge"></td>
+                    <td class="col-comp"></td>
+                </tr>
+            </table>
 
-            <!-- Footer -->
-            <div class="mt-auto text-right text-[12px]">
+            <div class="mt-auto text-right text-sm">
                 Time limit: <span id="displayLimit">5:00.00</span>
             </div>
         </div>
@@ -203,39 +244,48 @@
     <script>
         const inputs = ['compName', 'event', 'round', 'group', 'compId', 'name', 'timeLimit'];
         
-        // Sync inputs with scorecard preview
         function updatePreview() {
-            document.getElementById('displayCompName').textContent = document.getElementById('compName').value;
-            document.getElementById('displayEvent').textContent = document.getElementById('event').value;
-            document.getElementById('displayRound').textContent = document.getElementById('round').value;
-            document.getElementById('displayGroup').textContent = document.getElementById('group').value;
-            document.getElementById('displayId').textContent = document.getElementById('compId').value;
-            document.getElementById('displayName').textContent = document.getElementById('name').value;
-            document.getElementById('displayLimit').textContent = document.getElementById('timeLimit').value;
+            inputs.forEach(id => {
+                const displayId = 'display' + id.charAt(0).toUpperCase() + id.slice(1);
+                const el = document.getElementById(displayId);
+                const inputVal = document.getElementById(id).value;
+                if(el) {
+                    el.textContent = inputVal;
+                    // Keep boxes from collapsing if empty
+                    if (inputVal === "" && id !== 'compName') {
+                        el.innerHTML = "&nbsp;"; 
+                    }
+                }
+            });
         }
 
-        // Generate the 5 result rows
+        function clearAll() {
+            inputs.forEach(id => {
+                document.getElementById(id).value = "";
+            });
+            updatePreview();
+        }
+
         function setupRows() {
             const tbody = document.getElementById('scoreRows');
+            tbody.innerHTML = ""; // Clear existing
             for (let i = 1; i <= 5; i++) {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td class="row-num">${i}</td>
-                    <td style="width: 35px;"></td>
-                    <td></td>
-                    <td style="width: 40px;"></td>
-                    <td style="width: 40px;"></td>
+                    <td class="attempt-num">${i}</td>
+                    <td class="col-scr"></td>
+                    <td class="col-result"></td>
+                    <td class="col-judge"></td>
+                    <td class="col-comp"></td>
                 `;
                 tbody.appendChild(tr);
             }
         }
 
-        // Add event listeners to all inputs
         inputs.forEach(id => {
             document.getElementById(id).addEventListener('input', updatePreview);
         });
 
-        // Initialize
         setupRows();
         updatePreview();
     </script>
