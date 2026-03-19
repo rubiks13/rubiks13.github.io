@@ -22,7 +22,7 @@
         <div class="flex justify-between items-start">
             <div class="bg-black/50 p-4 rounded-xl backdrop-blur-md border border-white/10">
                 <h1 class="text-white font-bold text-lg">3x3 Diagram Creator</h1>
-                <p class="text-gray-400 text-xs">Standard colors + Black for highlighting</p>
+                <p class="text-gray-400 text-xs">Fixed View: Tap to color faces</p>
                 <div class="mt-3 flex gap-2">
                     <button onclick="resetToStandard()" class="text-[10px] bg-blue-600/40 hover:bg-blue-600/60 text-white px-3 py-1.5 rounded border border-blue-400/30 transition-colors">Reset to Standard</button>
                     <button onclick="resetToBlack()" class="text-[10px] bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded border border-white/10 transition-colors">Clear to Black</button>
@@ -44,8 +44,6 @@
     <script>
         let scene, camera, renderer, cubeGroup;
         let selectedColor = '#ffffff';
-        let isDragging = false;
-        let previousMousePosition = { x: 0, y: 0 };
         
         // Standard Rubik's Colors (Boy's Scheme)
         const paletteColors = [
@@ -64,8 +62,9 @@
 
         function init() {
             scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(6, 5, 9);
+            // Using a slightly higher zoom/angle for a clear diagrammatic view
+            camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(7, 6, 10);
             camera.lookAt(0, 0, 0);
 
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
@@ -97,7 +96,6 @@
                         const materials = [];
                         
                         for(let i=0; i<6; i++) {
-                            // Start with a standard color if it's on the outside, otherwise black
                             let color = 0x000000;
                             if (i === 0 && x === 1) color = standardFaceColors[0];
                             if (i === 1 && x === -1) color = standardFaceColors[1];
@@ -116,12 +114,10 @@
                         const cubie = new THREE.Mesh(geometry, materials);
                         cubie.position.set(x * spacing, y * spacing, z * spacing);
                         
-                        // Internal frame
                         const edges = new THREE.EdgesGeometry(geometry);
                         const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x111111 }));
                         cubie.add(line);
                         
-                        // Store initial position for reset logic
                         cubie.userData = { gridX: x, gridY: y, gridZ: z };
                         cubeGroup.add(cubie);
                     }
@@ -131,9 +127,10 @@
 
         function setupUI() {
             const palette = document.getElementById('palette');
+            palette.innerHTML = '';
             paletteColors.forEach((colorObj, index) => {
                 const dot = document.createElement('div');
-                dot.className = `color-dot ${index === 0 ? 'active' : ''}`;
+                dot.className = `color-dot ${colorObj.hex === selectedColor ? 'active' : ''}`;
                 dot.style.backgroundColor = colorObj.hex;
                 if(colorObj.hex === '#000000') dot.style.border = '1px solid #444';
                 
@@ -149,54 +146,20 @@
                 };
                 palette.appendChild(dot);
             });
-            selectedColor = paletteColors[0].hex;
         }
 
         function setupEventListeners() {
             const canvas = renderer.domElement;
 
-            const handleStart = (x, y) => {
-                isDragging = false;
-                previousMousePosition = { x, y };
-            };
-
-            const handleMove = (x, y) => {
-                const deltaX = x - previousMousePosition.x;
-                const deltaY = y - previousMousePosition.y;
-                if(Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2) isDragging = true;
-
-                if (isDragging) {
-                    cubeGroup.rotation.y += deltaX * 0.01;
-                    cubeGroup.rotation.x += deltaY * 0.01;
-                }
-                previousMousePosition = { x, y };
-            };
-
-            canvas.addEventListener('mousedown', (e) => {
-                handleStart(e.clientX, e.clientY);
-                const onMouseMove = (me) => handleMove(me.clientX, me.clientY);
-                const onMouseUp = (ue) => {
-                    window.removeEventListener('mousemove', onMouseMove);
-                    window.removeEventListener('mouseup', onMouseUp);
-                    if (!isDragging) handlePointerClick(ue.clientX, ue.clientY);
-                };
-                window.addEventListener('mousemove', onMouseMove);
-                window.addEventListener('mouseup', onMouseUp);
+            // Simplified to ONLY handle clicks, no rotation dragging
+            canvas.addEventListener('click', (e) => {
+                handlePointerClick(e.clientX, e.clientY);
             });
 
-            canvas.addEventListener('touchstart', (e) => {
-                handleStart(e.touches[0].clientX, e.touches[0].clientY);
-            }, {passive: false});
-
-            canvas.addEventListener('touchmove', (e) => {
-                handleMove(e.touches[0].clientX, e.touches[0].clientY);
-            }, {passive: false});
-
+            // Touch support for mobile clicks
             canvas.addEventListener('touchend', (e) => {
-                if (!isDragging) {
-                    const touch = e.changedTouches[0];
-                    handlePointerClick(touch.clientX, touch.clientY);
-                }
+                const touch = e.changedTouches[0];
+                handlePointerClick(touch.clientX, touch.clientY);
             });
 
             window.addEventListener('resize', () => {
@@ -250,7 +213,7 @@
             try {
                 const dataURL = renderer.domElement.toDataURL('image/png');
                 const link = document.createElement('a');
-                link.download = `cube-illustration-${Date.now()}.png`;
+                link.download = `cube-diagram-${Date.now()}.png`;
                 link.href = dataURL;
                 link.click();
             } catch (err) {
