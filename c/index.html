@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3x3 Cube Illustrator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #121212; font-family: sans-serif; }
+        canvas { display: block; }
+        .ui-layer { pointer-events: none; position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; padding: 20px; }
+        .ui-layer * { pointer-events: auto; }
+        .color-dot { width: 40px; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid rgba(255,255,255,0.1); transition: all 0.2s; position: relative; }
+        .color-dot.active { border-color: white; transform: translateY(-4px); box-shadow: 0 4px 12px rgba(255,255,255,0.3); }
+        .color-label { position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%); font-size: 10px; color: #999; text-transform: uppercase; white-space: nowrap; }
+    </style>
+</head>
+<body>
+
+    <div class="ui-layer">
+        <div class="flex justify-between items-start">
+            <div class="bg-black/50 p-4 rounded-xl backdrop-blur-md border border-white/10">
+                <h1 class="text-white font-bold text-lg">3x3 Diagram Creator</h1>
+                <p class="text-gray-400 text-xs">Standard colors + Black for highlighting</p>
+                <div class="mt-3 flex gap-2">
+                    <button onclick="resetToStandard()" class="text-[10px] bg-blue-600/40 hover:bg-blue-600/60 text-white px-3 py-1.5 rounded border border-blue-400/30 transition-colors">Reset to Standard</button>
+                    <button onclick="resetToBlack()" class="text-[10px] bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded border border-white/10 transition-colors">Clear to Black</button>
+                </div>
+            </div>
+            <button onclick="handleDownload()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-full font-bold shadow-lg transition-all flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Export PNG
+            </button>
+        </div>
+
+        <div class="flex justify-center mb-8">
+            <div class="bg-black/80 p-4 rounded-2xl backdrop-blur-xl border border-white/10 flex gap-4" id="palette">
+                <!-- Colors injected by JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let scene, camera, renderer, cubeGroup;
+        let selectedColor = '#ffffff';
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        
+        // Standard Rubik's Colors (Boy's Scheme)
+        const paletteColors = [
+            { hex: '#ffffff', name: 'White' },
+            { hex: '#ffff00', name: 'Yellow' },
+            { hex: '#00ff00', name: 'Green' },
+            { hex: '#0000ff', name: 'Blue' },
+            { hex: '#ff0000', name: 'Red' },
+            { hex: '#ff8800', name: 'Orange' },
+            { hex: '#000000', name: 'Black' }
+        ];
+
+        // Three.js face index mapping: 
+        // 0: Right (Red), 1: Left (Orange), 2: Top (White), 3: Bottom (Yellow), 4: Front (Green), 5: Back (Blue)
+        const standardFaceColors = [0xff0000, 0xff8800, 0xffffff, 0xffff00, 0x00ff00, 0x0000ff];
+
+        function init() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(6, 5, 9);
+            camera.lookAt(0, 0, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            document.body.appendChild(renderer.domElement);
+
+            cubeGroup = new THREE.Group();
+            createRubiksCube();
+            scene.add(cubeGroup);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+            scene.add(ambientLight);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.4);
+            dirLight.position.set(10, 10, 10);
+            scene.add(dirLight);
+
+            setupUI();
+            setupEventListeners();
+            animate();
+        }
+
+        function createRubiksCube() {
+            const spacing = 1.02; 
+            for (let x = -1; x <= 1; x++) {
+                for (let y = -1; y <= 1; y++) {
+                    for (let z = -1; z <= 1; z++) {
+                        const geometry = new THREE.BoxGeometry(1, 1, 1);
+                        const materials = [];
+                        
+                        for(let i=0; i<6; i++) {
+                            // Start with a standard color if it's on the outside, otherwise black
+                            let color = 0x000000;
+                            if (i === 0 && x === 1) color = standardFaceColors[0];
+                            if (i === 1 && x === -1) color = standardFaceColors[1];
+                            if (i === 2 && y === 1) color = standardFaceColors[2];
+                            if (i === 3 && y === -1) color = standardFaceColors[3];
+                            if (i === 4 && z === 1) color = standardFaceColors[4];
+                            if (i === 5 && z === -1) color = standardFaceColors[5];
+
+                            materials.push(new THREE.MeshPhongMaterial({ 
+                                color: color,
+                                shininess: 20,
+                                specular: 0x222222
+                            }));
+                        }
+                        
+                        const cubie = new THREE.Mesh(geometry, materials);
+                        cubie.position.set(x * spacing, y * spacing, z * spacing);
+                        
+                        // Internal frame
+                        const edges = new THREE.EdgesGeometry(geometry);
+                        const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x111111 }));
+                        cubie.add(line);
+                        
+                        // Store initial position for reset logic
+                        cubie.userData = { gridX: x, gridY: y, gridZ: z };
+                        cubeGroup.add(cubie);
+                    }
+                }
+            }
+        }
+
+        function setupUI() {
+            const palette = document.getElementById('palette');
+            paletteColors.forEach((colorObj, index) => {
+                const dot = document.createElement('div');
+                dot.className = `color-dot ${index === 0 ? 'active' : ''}`;
+                dot.style.backgroundColor = colorObj.hex;
+                if(colorObj.hex === '#000000') dot.style.border = '1px solid #444';
+                
+                const label = document.createElement('span');
+                label.className = 'color-label';
+                label.innerText = colorObj.name;
+                dot.appendChild(label);
+
+                dot.onclick = () => {
+                    document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+                    dot.classList.add('active');
+                    selectedColor = colorObj.hex;
+                };
+                palette.appendChild(dot);
+            });
+            selectedColor = paletteColors[0].hex;
+        }
+
+        function setupEventListeners() {
+            const canvas = renderer.domElement;
+
+            const handleStart = (x, y) => {
+                isDragging = false;
+                previousMousePosition = { x, y };
+            };
+
+            const handleMove = (x, y) => {
+                const deltaX = x - previousMousePosition.x;
+                const deltaY = y - previousMousePosition.y;
+                if(Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2) isDragging = true;
+
+                if (isDragging) {
+                    cubeGroup.rotation.y += deltaX * 0.01;
+                    cubeGroup.rotation.x += deltaY * 0.01;
+                }
+                previousMousePosition = { x, y };
+            };
+
+            canvas.addEventListener('mousedown', (e) => {
+                handleStart(e.clientX, e.clientY);
+                const onMouseMove = (me) => handleMove(me.clientX, me.clientY);
+                const onMouseUp = (ue) => {
+                    window.removeEventListener('mousemove', onMouseMove);
+                    window.removeEventListener('mouseup', onMouseUp);
+                    if (!isDragging) handlePointerClick(ue.clientX, ue.clientY);
+                };
+                window.addEventListener('mousemove', onMouseMove);
+                window.addEventListener('mouseup', onMouseUp);
+            });
+
+            canvas.addEventListener('touchstart', (e) => {
+                handleStart(e.touches[0].clientX, e.touches[0].clientY);
+            }, {passive: false});
+
+            canvas.addEventListener('touchmove', (e) => {
+                handleMove(e.touches[0].clientX, e.touches[0].clientY);
+            }, {passive: false});
+
+            canvas.addEventListener('touchend', (e) => {
+                if (!isDragging) {
+                    const touch = e.changedTouches[0];
+                    handlePointerClick(touch.clientX, touch.clientY);
+                }
+            });
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+
+        function handlePointerClick(x, y) {
+            const mouse = new THREE.Vector2();
+            mouse.x = (x / window.innerWidth) * 2 - 1;
+            mouse.y = -(y / window.innerHeight) * 2 + 1;
+
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(mouse, camera);
+
+            const intersects = raycaster.intersectObjects(cubeGroup.children);
+            if (intersects.length > 0) {
+                const hit = intersects[0];
+                const cubie = hit.object;
+                const faceIndex = hit.face.materialIndex;
+                cubie.material[faceIndex].color.set(selectedColor);
+            }
+        }
+
+        function resetToBlack() {
+            cubeGroup.children.forEach(cubie => {
+                cubie.material.forEach(mat => mat.color.set(0x000000));
+            });
+        }
+
+        function resetToStandard() {
+            cubeGroup.children.forEach(cubie => {
+                const { gridX, gridY, gridZ } = cubie.userData;
+                cubie.material.forEach((mat, i) => {
+                    let color = 0x000000;
+                    if (i === 0 && gridX === 1) color = standardFaceColors[0];
+                    if (i === 1 && gridX === -1) color = standardFaceColors[1];
+                    if (i === 2 && gridY === 1) color = standardFaceColors[2];
+                    if (i === 3 && gridY === -1) color = standardFaceColors[3];
+                    if (i === 4 && gridZ === 1) color = standardFaceColors[4];
+                    if (i === 5 && gridZ === -1) color = standardFaceColors[5];
+                    mat.color.set(color);
+                });
+            });
+        }
+
+        function handleDownload() {
+            renderer.render(scene, camera);
+            try {
+                const dataURL = renderer.domElement.toDataURL('image/png');
+                const link = document.createElement('a');
+                link.download = `cube-illustration-${Date.now()}.png`;
+                link.href = dataURL;
+                link.click();
+            } catch (err) {
+                console.error("Export failed", err);
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
