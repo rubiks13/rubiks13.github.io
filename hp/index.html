@@ -6,13 +6,6 @@
     <title>Hot Potato Cube Timer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-        .pulse-animation {
-            animation: pulse 0.5s infinite;
-        }
         body {
             transition: background-color 0.5s ease;
         }
@@ -22,23 +15,23 @@
 
     <div class="max-w-md w-full bg-slate-800 rounded-3xl p-8 shadow-2xl text-center border border-slate-700">
         <h1 class="text-4xl font-bold mb-2 text-yellow-400">Hot Potato</h1>
-        <p class="text-slate-400 mb-8">Solve the cube and pass it before the music stops!</p>
+        <p class="text-slate-400 mb-8">Solve the cube and pass it! No one knows when the music will stop...</p>
 
         <!-- Status Display -->
-        <div id="status-container" class="mb-10 h-32 flex flex-center items-center justify-center">
-            <div id="timer-display" class="text-6xl font-black tracking-widest text-white">
-                READY?
+        <div id="status-container" class="mb-10 h-32 flex items-center justify-center">
+            <div id="timer-display" class="text-3xl font-bold tracking-tight text-slate-300">
+                READY TO START?
             </div>
         </div>
 
         <!-- Controls -->
         <div class="space-y-4">
-            <button id="start-btn" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-8 rounded-2xl text-2xl transition-all active:scale-95 shadow-lg">
+            <button id="start-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-2xl text-2xl transition-all active:scale-95 shadow-lg">
                 START GAME
             </button>
             
-            <button id="stop-btn" class="hidden w-full bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-8 rounded-2xl text-2xl transition-all active:scale-95 shadow-lg">
-                STOP
+            <button id="stop-btn" class="hidden w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-4 px-8 rounded-2xl text-2xl transition-all active:scale-95 shadow-lg">
+                CANCEL ROUND
             </button>
         </div>
 
@@ -46,13 +39,19 @@
         <div class="mt-8 pt-6 border-t border-slate-700 text-left">
             <label class="block text-sm font-medium text-slate-400 mb-2">Random Range (Seconds)</label>
             <div class="flex gap-4">
-                <input type="number" id="min-time" value="15" class="w-1/2 bg-slate-700 border border-slate-600 rounded-lg p-2 text-center" placeholder="Min">
-                <input type="number" id="max-time" value="45" class="w-1/2 bg-slate-700 border border-slate-600 rounded-lg p-2 text-center" placeholder="Max">
+                <div class="flex-1">
+                    <span class="text-xs text-slate-500">Min (Default 5m)</span>
+                    <input type="number" id="min-time" value="300" class="w-full bg-slate-700 border border-slate-600 rounded-lg p-2 text-center" placeholder="Min">
+                </div>
+                <div class="flex-1">
+                    <span class="text-xs text-slate-500">Max (Default 10m)</span>
+                    <input type="number" id="max-time" value="600" class="w-full bg-slate-700 border border-slate-600 rounded-lg p-2 text-center" placeholder="Max">
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Hidden Audio Element -->
+    <!-- Hidden Audio Element with specific filename -->
     <audio id="game-music" src="MjQyMDU4NDQyNDIwNzk_jwz_2beVpZ1b4.mp3" preload="auto"></audio>
 
     <script>
@@ -65,47 +64,34 @@
         const body = document.body;
 
         let gameTimeout;
-        let colorInterval;
         let isPlaying = false;
 
         function getRandomTime(min, max) {
+            // Converts seconds to milliseconds
             return Math.floor(Math.random() * (max - min + 1) + min) * 1000;
         }
 
         function startGame() {
             if (isPlaying) return;
             
-            const min = parseInt(minInput.value) || 10;
-            const max = parseInt(maxInput.value) || 60;
+            const min = parseInt(minInput.value) || 300;
+            const max = parseInt(maxInput.value) || 600;
             const duration = getRandomTime(min, max);
 
-            // UI State
+            // UI State - Keeping it neutral so they don't know the end is near
             isPlaying = true;
             startBtn.classList.add('hidden');
             stopBtn.classList.remove('hidden');
-            timerDisplay.innerText = "PASS IT!";
-            timerDisplay.classList.add('pulse-animation');
-            body.classList.replace('bg-slate-900', 'bg-green-900');
+            timerDisplay.innerText = "GAME IN PROGRESS...";
+            timerDisplay.classList.add('text-blue-400');
+            body.className = 'bg-slate-900 text-white min-h-screen flex flex-col items-center justify-center p-4 font-sans';
 
             // Audio Logic
             music.currentTime = 0;
             music.play().catch(e => {
-                console.error("Audio playback failed. Ensure MjQyMDU4NDQyNDIwNzk_jwz_2beVpZ1b4.mp3 is in the same folder.");
-                timerDisplay.innerText = "ERROR: NO AUDIO";
+                console.error("Audio playback failed. Ensure the MP3 file name is exactly correct and in the same folder.");
+                timerDisplay.innerText = "ERROR: MUSIC FILE NOT FOUND";
             });
-
-            // Color Warning Logic (Turns redder as time passes)
-            const startTime = Date.now();
-            colorInterval = setInterval(() => {
-                const elapsed = Date.now() - startTime;
-                const ratio = elapsed / duration;
-                
-                if (ratio > 0.8) {
-                    body.style.backgroundColor = '#991b1b'; // Dark Red
-                } else if (ratio > 0.5) {
-                    body.style.backgroundColor = '#92400e'; // Dark Orange
-                }
-            }, 100);
 
             // End Game Logic
             gameTimeout = setTimeout(() => {
@@ -116,28 +102,38 @@
         function endGame(wasExplosion) {
             isPlaying = false;
             clearTimeout(gameTimeout);
-            clearInterval(colorInterval);
             
             music.pause();
             music.currentTime = 0;
 
             startBtn.classList.remove('hidden');
             stopBtn.classList.add('hidden');
-            timerDisplay.classList.remove('pulse-animation');
             
             if (wasExplosion) {
-                timerDisplay.innerText = "BOOM!";
-                body.style.backgroundColor = '#ef4444'; // Bright Red
+                timerDisplay.innerText = "STOP! ROUND OVER";
+                timerDisplay.classList.replace('text-blue-400', 'text-red-500');
+                body.style.backgroundColor = '#450a0a'; // Very dark subtle red
                 
-                // Play a simple beep if the main music stops
+                // Play a simple alert sound
                 const context = new (window.AudioContext || window.webkitAudioContext)();
                 const osc = context.createOscillator();
-                osc.type = 'sawtooth';
-                osc.connect(context.destination);
+                const gain = context.createGain();
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(440, context.currentTime); 
+                osc.frequency.exponentialRampToValueAtTime(110, context.currentTime + 0.5);
+                
+                gain.gain.setValueAtTime(0.5, context.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.5);
+                
+                osc.connect(gain);
+                gain.connect(context.destination);
+                
                 osc.start();
-                osc.stop(context.currentTime + 1);
+                osc.stop(context.currentTime + 0.5);
             } else {
-                timerDisplay.innerText = "READY?";
+                timerDisplay.innerText = "READY TO START?";
+                timerDisplay.classList.remove('text-blue-400');
                 body.style.backgroundColor = '';
                 body.className = 'bg-slate-900 text-white min-h-screen flex flex-col items-center justify-center p-4 font-sans';
             }
@@ -146,10 +142,9 @@
         startBtn.addEventListener('click', startGame);
         stopBtn.addEventListener('click', () => endGame(false));
 
-        // Handle music ended event
+        // Ensure music loops if the round is longer than the song
         music.onended = () => {
             if (isPlaying) {
-                // If music is shorter than the random timer, loop it or end game
                 music.play();
             }
         };
