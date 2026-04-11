@@ -22,10 +22,11 @@
     <div id="app" class="min-h-screen flex flex-col items-center">
         <!-- Loader Overlay -->
         <div id="loader" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-xl">
-            <div class="flex flex-col items-center">
+            <div class="flex flex-col items-center text-center px-6">
                 <div class="w-20 h-20 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full loader-spin"></div>
                 <p id="loader-text" class="mt-6 font-bold text-xl tracking-wide">Syncing to Pi Server</p>
                 <p id="loader-subtext" class="text-indigo-400 text-sm mt-1">FFMPEG Encoding Active</p>
+                <div id="error-display" class="hidden mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs max-w-xs"></div>
             </div>
         </div>
 
@@ -57,6 +58,10 @@
             <header class="mb-10">
                 <h1 class="text-4xl font-black italic tracking-tighter text-white">MONERED</h1>
                 <p class="text-slate-500 font-medium">Production Voice Studio</p>
+                <div class="mt-4 flex items-center gap-2 bg-indigo-500/10 p-2 px-3 rounded-full border border-indigo-500/20 w-fit">
+                    <div id="connection-dot" class="w-2 h-2 rounded-full bg-slate-500"></div>
+                    <span id="connection-status" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Checking Connection...</span>
+                </div>
             </header>
             <div id="book-list" class="space-y-4 mb-8"></div>
             <button onclick="openNewBookModal()" class="w-full border-2 border-dashed border-white/10 rounded-3xl p-10 flex flex-col items-center justify-center gap-4 hover:border-indigo-500/50 hover:bg-indigo-500/5 transition-all group">
@@ -136,7 +141,8 @@
     </div>
 
     <script>
-        // CONFIG: Replace with your ngrok URL or Local IP
+        // CONFIG: Replace with your actual ngrok URL
+        // Example: https://abc-123.ngrok-free.app (No trailing slash)
         const BACKEND_URL = "https://habile-lissa-phytogenic.ngrok-free.dev/"; 
         
         let state = {
@@ -149,6 +155,29 @@
             chunks: [],
             isExpanded: false
         };
+
+        // Check server connection on load
+        async function checkConnection() {
+            const statusText = document.getElementById('connection-status');
+            const statusDot = document.getElementById('connection-dot');
+            try {
+                const res = await fetch(BACKEND_URL + "/", {
+                    headers: { 'ngrok-skip-browser-warning': 'true' }
+                });
+                if (res.ok) {
+                    statusText.innerText = "Server Online";
+                    statusText.classList.replace('text-slate-400', 'text-emerald-400');
+                    statusDot.classList.replace('bg-slate-500', 'bg-emerald-500');
+                } else {
+                    throw new Error();
+                }
+            } catch (err) {
+                statusText.innerText = "Server Offline";
+                statusText.classList.replace('text-slate-400', 'text-red-400');
+                statusDot.classList.replace('bg-slate-500', 'bg-red-500');
+            }
+        }
+        checkConnection();
 
         function showView(viewId) {
             ['home', 'dashboard', 'studio', 'complete'].forEach(v => {
@@ -170,14 +199,8 @@
         async function processNewBook() {
             const title = document.getElementById('input-book-title').value.trim();
             const text = document.getElementById('input-script-text').value.trim();
-
-            if (!title || !text) {
-                return; 
-            }
-
+            if (!title || !text) return; 
             setLoader(true, "Building Studio", "Parsing Script Data...");
-            
-            // Artificial delay for UI feel
             setTimeout(() => {
                 const book = parseScript(text, title);
                 state.books.push(book);
@@ -192,21 +215,18 @@
             let book = { title, chapters: [], characters: new Set() };
             let currentChap = null;
             let currentScene = "1.1";
-
             lines.forEach(line => {
                 const t = line.trim();
                 if (!t) return;
-                
                 if (t.toUpperCase().startsWith('CHAPTER')) {
                     currentChap = { title: t, parts: [] };
                     book.chapters.push(currentChap);
                 } else if (t.toUpperCase().startsWith('SCENE')) {
                     currentScene = t.split(':')[0].trim();
-                } else if (t.includes(':') && !t.toUpperCase().startsWith('SOUND') && !t.toUpperCase().startsWith('SFX')) {
+                } else if (t.includes(':')) {
                     const charPart = t.split(':')[0];
                     const char = charPart.replace(/\(.*\)/, '').trim().toUpperCase();
                     const dialogue = t.split(':').slice(1).join(':').trim();
-                    
                     if (char && currentChap && dialogue) {
                         book.characters.add(char);
                         currentChap.parts.push({ character: char, scene: currentScene, text: dialogue });
@@ -221,9 +241,7 @@
             const list = document.getElementById('book-list');
             list.innerHTML = state.books.map((b, i) => `
                 <div onclick="openBook(${i})" class="w-full bg-[#16161a] p-5 rounded-3xl flex items-center gap-5 cursor-pointer hover:bg-[#1c1c22] transition-all">
-                    <div class="w-12 h-12 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-400">
-                        <i class="fas fa-book"></i>
-                    </div>
+                    <div class="w-12 h-12 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-400"><i class="fas fa-book"></i></div>
                     <div class="flex-1">
                         <h3 class="font-bold">${b.title}</h3>
                         <p class="text-[10px] text-slate-500 uppercase tracking-widest">${b.chapters.length} Chapters • ${b.characters.length} Cast</p>
@@ -239,14 +257,12 @@
             state.selectedChar = null;
             state.selectedChap = null;
             checkStudioBtn();
-            
             const cast = document.getElementById('cast-list');
             cast.innerHTML = state.activeBook.characters.map(c => `
                 <button onclick="selectChar('${c}')" id="char-${c}" class="p-4 rounded-2xl bg-[#16161a] border border-white/5 text-slate-400 text-sm font-bold text-left transition-all">
                     <i class="fas fa-user mb-2 block"></i> ${c}
                 </button>
             `).join('');
-
             const chaps = document.getElementById('chapter-list');
             chaps.innerHTML = state.activeBook.chapters.map((c, i) => `
                 <button onclick="selectChap(${i})" id="chap-${i}" class="w-full p-4 rounded-2xl bg-[#16161a] border border-white/5 text-left flex justify-between transition-all">
@@ -254,7 +270,6 @@
                     <i class="fas fa-chevron-right text-slate-700"></i>
                 </button>
             `).join('');
-
             showView('dashboard');
         }
 
@@ -272,9 +287,7 @@
             checkStudioBtn();
         }
 
-        function checkStudioBtn() {
-            document.getElementById('studio-btn').disabled = !state.selectedChar || !state.selectedChap;
-        }
+        function checkStudioBtn() { document.getElementById('studio-btn').disabled = !state.selectedChar || !state.selectedChap; }
 
         function enterStudio() {
             state.currentIndex = 0;
@@ -287,15 +300,10 @@
             state.isExpanded = !state.isExpanded;
             const card = document.getElementById('script-card');
             const btn = document.getElementById('show-more-btn');
-            
             if (state.isExpanded) {
-                card.classList.remove('h-72');
-                card.classList.add('max-h-[60vh]', 'overflow-y-auto');
-                btn.innerText = "Collapse";
+                card.classList.remove('h-72'); card.classList.add('max-h-[60vh]', 'overflow-y-auto'); btn.innerText = "Collapse";
             } else {
-                card.classList.add('h-72');
-                card.classList.remove('max-h-[60vh]', 'overflow-y-auto');
-                btn.innerText = "Show More";
+                card.classList.add('h-72'); card.classList.remove('max-h-[60vh]', 'overflow-y-auto'); btn.innerText = "Show More";
             }
         }
 
@@ -303,24 +311,16 @@
             const filtered = state.selectedChap.parts.filter(p => p.character === state.selectedChar);
             const part = filtered[state.currentIndex];
             if (!part) { showView('complete'); return; }
-
             document.getElementById('st-char').innerText = part.character;
             document.getElementById('st-chap').innerText = state.selectedChap.title;
             document.getElementById('st-scene').innerText = part.scene;
             document.getElementById('st-text').innerText = part.text;
-            
             const card = document.getElementById('script-card');
             const btn = document.getElementById('show-more-btn');
-            
             state.isExpanded = false;
             card.className = "w-full bg-[#111114] rounded-[2.5rem] border border-white/10 p-10 flex flex-col items-center justify-center text-center h-72 overflow-hidden transition-all";
             btn.innerText = "Show More";
-
-            if (part.text.length > 150) {
-                btn.classList.remove('hidden');
-            } else {
-                btn.classList.add('hidden');
-            }
+            if (part.text.length > 150) btn.classList.remove('hidden'); else btn.classList.add('hidden');
         }
 
         async function startRecording() {
@@ -331,21 +331,14 @@
                 state.mediaRecorder.ondataavailable = e => state.chunks.push(e.data);
                 state.mediaRecorder.onstop = saveToBackend;
                 state.mediaRecorder.start();
-
                 document.getElementById('rec-status').innerText = "Capture Active";
                 document.getElementById('start-btn').classList.add('recording-pulse');
-                document.getElementById('record-controls').innerHTML = `
-                    <button onclick="stopRecording()" class="w-20 h-20 border-2 border-white/20 rounded-full flex items-center justify-center shadow-indigo-500/50 shadow-2xl transition-all"><i class="fas fa-stop text-white"></i></button>
-                `;
-            } catch (err) {
-                alert("Please allow microphone access to record.");
-            }
+                document.getElementById('record-controls').innerHTML = `<button onclick="stopRecording()" class="w-20 h-20 border-2 border-white/20 rounded-full flex items-center justify-center shadow-indigo-500/50 shadow-2xl transition-all"><i class="fas fa-stop text-white"></i></button>`;
+            } catch (err) { alert("Please allow microphone access."); }
         }
 
         function stopRecording() {
-            if (state.mediaRecorder && state.mediaRecorder.state === "recording") {
-                state.mediaRecorder.stop();
-            }
+            if (state.mediaRecorder && state.mediaRecorder.state === "recording") state.mediaRecorder.stop();
             document.getElementById('record-controls').innerHTML = `<button id="start-btn" onclick="startRecording()" class="w-24 h-24 bg-red-600 rounded-full flex items-center justify-center shadow-xl"><div class="w-8 h-8 bg-white rounded-full"></div></button>`;
             setLoader(true, "Syncing to Pi Server", "FFMPEG Encoding Active");
         }
@@ -355,28 +348,31 @@
             const formData = new FormData();
             formData.append('audio', blob);
             formData.append('book_title', state.activeBook.title);
-            
             const filtered = state.selectedChap.parts.filter(p => p.character === state.selectedChar);
             const part = filtered[state.currentIndex];
-            const name = `${state.selectedChap.title}-${state.currentIndex + 1}-${part.character}.webm`;
+            const name = `${state.selectedChap.title.replace(/\s+/g, '_')}-${state.currentIndex + 1}-${part.character}.webm`;
             formData.append('filename', name);
 
             try {
-                await fetch(BACKEND_URL + "/upload_audio", { method: 'POST', body: formData });
+                const response = await fetch(BACKEND_URL + "/upload_audio", { 
+                    method: 'POST', 
+                    body: formData,
+                    headers: { 'ngrok-skip-browser-warning': 'true' } // SKIP NGROK WARNING PAGE
+                });
+                if (!response.ok) throw new Error();
+                setLoader(false);
+                nextPart();
             } catch (err) {
-                console.error("Backend Error", err);
+                setLoader(true, "Connection Failed", "Check ngrok URL or open it in a new tab first.");
+                setTimeout(() => setLoader(false), 3000);
             }
-            
-            setLoader(false);
-            nextPart();
         }
 
         function setLoader(show, main = "Syncing...", sub = "Processing") {
             const l = document.getElementById('loader');
             document.getElementById('loader-text').innerText = main;
             document.getElementById('loader-subtext').innerText = sub;
-            if (show) l.classList.remove('hidden');
-            else l.classList.add('hidden');
+            if (show) l.classList.remove('hidden'); else l.classList.add('hidden');
         }
 
         function nextPart() { state.currentIndex++; renderPart(); }
@@ -386,9 +382,7 @@
             const viz = document.getElementById('viz');
             if (state.mediaRecorder && state.mediaRecorder.state === "recording") {
                 viz.innerHTML = Array(12).fill(0).map(() => `<div class="bg-indigo-500 w-1 rounded-full transition-all duration-75" style="height: ${Math.random()*40 + 10}px"></div>`).join('');
-            } else {
-                viz.innerHTML = "";
-            }
+            } else viz.innerHTML = "";
         }, 100);
     </script>
 </body>
