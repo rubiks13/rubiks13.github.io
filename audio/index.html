@@ -3,15 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Studio Pro | Production</title>
+    <title>Voice Studio Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #020617; color: #f8fafc; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #020617; color: #f8fafc; margin:0; padding:0; }
         .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); }
         .studio-gradient { background: radial-gradient(circle at 50% 0%, #1e293b 0%, #020617 100%); }
-        
         .record-btn {
             width: 120px; height: 120px; border-radius: 50%;
             background: #dc2626; border: 8px solid rgba(220, 38, 38, 0.2);
@@ -20,7 +19,6 @@
         }
         .record-btn.active { animation: pulse 1.5s infinite; transform: scale(0.9); border-radius: 30%; }
         @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); } 70% { box-shadow: 0 0 0 30px rgba(220, 38, 38, 0); } 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); } }
-
         .wave-bar { width: 4px; background: #3b82f6; border-radius: 2px; transition: height 0.1s ease; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
     </style>
@@ -30,9 +28,12 @@
     <!-- VIEW: DASHBOARD -->
     <div id="view-dashboard" class="h-full flex flex-col p-6 md:p-12 space-y-8 overflow-y-auto">
         <header class="flex justify-between items-center">
-            <div>
-                <h2 class="text-blue-500 font-extrabold text-xs uppercase tracking-[0.3em] mb-1">Production House</h2>
-                <h1 class="text-5xl font-black tracking-tighter">Studio</h1>
+            <div class="flex items-center gap-4">
+                <div id="status-light" class="w-3 h-3 bg-red-500 rounded-full"></div>
+                <div>
+                    <h2 class="text-blue-500 font-extrabold text-[10px] uppercase tracking-[0.3em]">System Connected</h2>
+                    <h1 class="text-5xl font-black tracking-tighter">Projects</h1>
+                </div>
             </div>
             <div class="flex gap-4">
                 <button onclick="refreshData()" class="w-14 h-14 glass rounded-2xl flex items-center justify-center active:scale-90 transition-all">
@@ -44,101 +45,68 @@
             </div>
         </header>
 
-        <div id="project-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <!-- Projects injected here -->
-        </div>
+        <div id="project-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
 
-        <div id="empty-ui" class="hidden flex-1 flex flex-col items-center justify-center opacity-30">
+        <div id="empty-ui" class="hidden flex-1 flex flex-col items-center justify-center opacity-30 py-20">
             <i data-lucide="layers" class="w-20 h-20 mb-4"></i>
-            <p class="font-bold uppercase tracking-widest text-sm">No Projects Found on Pi</p>
+            <p class="font-bold uppercase tracking-widest text-sm text-center">No projects found.<br>Tap the + to import Heidi.</p>
         </div>
     </div>
 
     <!-- VIEW: PROJECT DETAIL -->
     <div id="view-project" class="hidden h-full flex flex-col p-6 md:p-12 space-y-10 overflow-y-auto">
         <div class="flex items-center gap-6">
-            <button onclick="showView('dashboard')" class="w-12 h-12 glass rounded-xl flex items-center justify-center">
-                <i data-lucide="chevron-left"></i>
-            </button>
-            <h2 id="det-title" class="text-4xl font-black tracking-tight">Project Name</h2>
+            <button onclick="showView('dashboard')" class="w-12 h-12 glass rounded-xl flex items-center justify-center"><i data-lucide="chevron-left"></i></button>
+            <h2 id="det-title" class="text-4xl font-black tracking-tight">Project</h2>
         </div>
-
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl">
             <div class="glass p-8 rounded-[32px] space-y-4">
-                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Step 1: Chapter</label>
+                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Chapter</label>
                 <select id="sel-chapter" onchange="updateDetailUI()" class="w-full bg-slate-900/50 p-4 rounded-xl border border-white/10 outline-none text-xl font-bold"></select>
             </div>
             <div class="glass p-8 rounded-[32px] space-y-4">
-                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Step 2: Character</label>
+                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Character</label>
                 <select id="sel-character" onchange="updateDetailUI()" class="w-full bg-slate-900/50 p-4 rounded-xl border border-white/10 outline-none text-xl font-bold"></select>
             </div>
         </div>
-
         <div id="proj-progress-card" class="hidden max-w-4xl glass p-8 rounded-[32px] space-y-6">
             <div class="flex justify-between items-end">
-                <div>
-                    <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Role Progress</p>
-                    <h3 id="det-progress-text" class="text-3xl font-black">0% Complete</h3>
-                </div>
+                <div><h3 id="det-progress-text" class="text-3xl font-black">0% Done</h3></div>
                 <p id="det-line-count" class="text-slate-500 font-bold uppercase text-xs">0 / 0 Lines</p>
             </div>
             <div class="w-full h-4 bg-slate-950 rounded-full overflow-hidden border border-white/5">
                 <div id="det-progress-bar" class="h-full bg-blue-600 transition-all duration-1000" style="width: 0%"></div>
             </div>
-            <button onclick="enterStudio()" class="w-full py-8 bg-blue-600 rounded-[24px] font-black text-xl shadow-xl shadow-blue-900/40 active:scale-95 transition-all">
-                START RECORDING SESSION
-            </button>
+            <button onclick="enterStudio()" class="w-full py-8 bg-blue-600 rounded-[24px] font-black text-xl active:scale-95 transition-all">ENTER STUDIO</button>
         </div>
     </div>
 
-    <!-- VIEW: RECORDING STUDIO -->
+    <!-- VIEW: STUDIO -->
     <div id="view-studio" class="hidden fixed inset-0 z-50 studio-gradient p-8 flex flex-col">
         <header class="flex justify-between items-center max-w-5xl mx-auto w-full mb-12">
-            <button onclick="exitStudio()" class="w-14 h-14 glass rounded-2xl flex items-center justify-center">
-                <i data-lucide="x" class="text-slate-400"></i>
-            </button>
+            <button onclick="exitStudio()" class="w-14 h-14 glass rounded-2xl flex items-center justify-center"><i data-lucide="x"></i></button>
             <div class="text-center">
-                <h4 id="st-character" class="text-blue-500 font-black text-2xl uppercase tracking-tighter">CHARACTER</h4>
-                <p id="st-chapter" class="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em]">CHAPTER 1</p>
+                <h4 id="st-character" class="text-blue-500 font-black text-2xl uppercase tracking-tighter">VOICE</h4>
+                <p id="st-chapter" class="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em]">CHAP 1</p>
             </div>
             <div class="w-14"></div>
         </header>
-
         <div class="flex-1 flex flex-col items-center justify-center max-w-4xl mx-auto w-full">
             <div class="w-full glass p-12 rounded-[48px] min-h-[400px] flex flex-col justify-center relative">
-                <div id="rec-indicator" class="hidden absolute top-8 left-8 flex items-center gap-2">
-                    <div class="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                    <span class="text-red-500 font-black text-[10px] tracking-widest">RECORDING</span>
-                </div>
-                <p id="st-text" class="text-4xl md:text-6xl text-center font-extrabold leading-tight tracking-tight"></p>
-                <div id="st-dots" class="flex justify-center gap-2 mt-12"></div>
+                <p id="st-text" class="text-4xl md:text-6xl text-center font-extrabold leading-tight tracking-tight px-4"></p>
+                <div id="st-dots" class="flex justify-center gap-2 mt-12 flex-wrap max-w-lg mx-auto"></div>
             </div>
         </div>
-
         <div class="max-w-xl mx-auto w-full pb-12 flex flex-col items-center gap-10">
-            <div id="visualizer" class="h-20 w-full flex items-center justify-center gap-1 opacity-0 transition-opacity">
-                <!-- Bars injected by JS -->
-            </div>
-
+            <div id="visualizer" class="h-10 w-full flex items-center justify-center gap-1 opacity-0 transition-opacity"></div>
             <div class="flex items-center gap-8">
-                <button onclick="navStudio(-1)" class="w-16 h-16 glass rounded-full flex items-center justify-center active:scale-90">
-                    <i data-lucide="chevron-left"></i>
-                </button>
-                
-                <div class="relative">
-                    <button id="btn-record" onclick="toggleRecording()" class="record-btn">
-                        <i id="rec-icon" data-lucide="mic" class="w-10 h-10 text-white"></i>
-                    </button>
-                </div>
-
-                <button onclick="navStudio(1)" class="w-16 h-16 glass rounded-full flex items-center justify-center active:scale-90">
-                    <i data-lucide="chevron-right"></i>
-                </button>
+                <button onclick="navStudio(-1)" class="w-16 h-16 glass rounded-full flex items-center justify-center active:scale-90"><i data-lucide="chevron-left"></i></button>
+                <button id="btn-record" onclick="toggleRecording()" class="record-btn"><i id="rec-icon" data-lucide="mic" class="w-10 h-10 text-white"></i></button>
+                <button onclick="navStudio(1)" class="w-16 h-16 glass rounded-full flex items-center justify-center active:scale-90"><i data-lucide="chevron-right"></i></button>
             </div>
-            
             <div id="st-playback-tools" class="hidden flex gap-4">
-                <button onclick="playLast()" class="px-6 py-3 glass rounded-xl font-black text-xs uppercase tracking-widest text-blue-400">Play Back</button>
-                <button onclick="saveAndNext()" class="px-6 py-3 bg-green-600 rounded-xl font-black text-xs uppercase tracking-widest text-white">Save & Next</button>
+                <button onclick="playLast()" class="px-6 py-3 glass rounded-xl font-black text-xs uppercase tracking-widest text-blue-400">Preview</button>
+                <button onclick="saveAndNext()" class="px-6 py-3 bg-green-600 rounded-xl font-black text-xs uppercase tracking-widest text-white">Save Take</button>
             </div>
         </div>
     </div>
@@ -146,52 +114,55 @@
     <!-- MODAL: IMPORT -->
     <div id="modal-import" class="hidden fixed inset-0 z-[60] bg-slate-950/90 backdrop-blur-xl flex flex-col items-center justify-center p-6">
         <div class="w-full max-w-2xl bg-slate-900 rounded-[48px] p-10 border border-white/10 space-y-8">
-            <div class="text-center">
-                <h2 class="text-4xl font-black mb-2">Import Script</h2>
-                <p class="text-slate-500">The Raspberry Pi will parse your text into lines.</p>
-            </div>
-            <input id="imp-title" type="text" placeholder="Project Name (e.g. Heidi)" class="w-full bg-slate-800 p-6 rounded-2xl outline-none font-bold text-xl border border-transparent focus:border-blue-500">
-            <textarea id="imp-text" placeholder="CHARACTER: Dialogue line..." class="w-full h-64 bg-slate-800 p-6 rounded-2xl outline-none font-mono text-sm border border-transparent focus:border-blue-500"></textarea>
+            <div class="text-center"><h2 class="text-4xl font-black">Import Script</h2></div>
+            <input id="imp-title" type="text" placeholder="Project Name" class="w-full bg-slate-800 p-6 rounded-2xl outline-none font-bold text-xl">
+            <textarea id="imp-text" placeholder="CHARACTER: Dialogue..." class="w-full h-64 bg-slate-800 p-6 rounded-2xl outline-none font-mono text-sm"></textarea>
             <div class="flex gap-4">
                 <button onclick="closeModal('import')" class="flex-1 py-5 font-black text-slate-500">Cancel</button>
-                <button onclick="doImport()" class="flex-1 py-5 bg-blue-600 rounded-2xl font-black text-xl shadow-xl shadow-blue-900/40">IMPORT TO PI</button>
+                <button onclick="doImport()" class="flex-1 py-5 bg-blue-600 rounded-2xl font-black text-xl">IMPORT</button>
             </div>
         </div>
     </div>
 
-    <!-- UI: OVERLAY LOADER -->
+    <!-- OVERLAY LOADER -->
     <div id="overlay-loader" class="hidden fixed inset-0 z-[100] bg-slate-950 flex flex-col items-center justify-center">
         <div class="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-8"></div>
-        <h3 class="text-2xl font-black mb-2">Synchronizing</h3>
-        <p id="loader-msg" class="text-slate-500">Talking to Pi...</p>
+        <h3 class="text-2xl font-black mb-2">Processing</h3>
+        <p id="loader-msg" class="text-slate-500">Communicating with Raspberry Pi...</p>
     </div>
 
     <script>
-        // CONFIG - SET YOUR NGROK HERE
+        // --- 1. SET YOUR NGROK HERE ---
         const NGROK_URL = "https://habile-lissa-phytogenic.ngrok-free.dev/"; 
         
         let db = { projects: {} };
-        let activeProject = null;
-        let studioLines = [];
-        let studioIdx = 0;
-        let mediaRecorder, chunks = [], audioStream;
-        let isRecording = false;
-        let audioCtx, analyser, dataArray;
+        let activeProject = null, studioLines = [], studioIdx = 0;
+        let mediaRecorder, chunks = [], audioStream, isRecording = false;
 
         async function init() {
             lucide.createIcons();
             await refreshData();
+            // Start heartbeat
+            setInterval(checkConnection, 3000);
+        }
+
+        async function checkConnection() {
+            const light = document.getElementById('status-light');
+            try {
+                const res = await fetch(`${NGROK_URL}/health`);
+                light.className = res.ok ? 'w-3 h-3 bg-green-500 rounded-full shadow-[0_0_10px_#22c55e]' : 'w-3 h-3 bg-red-500 rounded-full';
+            } catch(e) { light.className = 'w-3 h-3 bg-red-500 rounded-full'; }
         }
 
         async function refreshData() {
-            setLoading(true, "Connecting to Pi...");
+            setLoading(true, "Refreshing Projects...");
             try {
                 const res = await fetch(`${NGROK_URL}/api/projects?t=${Date.now()}`);
                 if (res.ok) {
                     db = await res.json();
                     renderDashboard();
                 }
-            } catch (e) { console.error("Pi Connection Error"); }
+            } catch (e) { console.error("Sync Failed"); }
             setLoading(false);
         }
 
@@ -199,33 +170,17 @@
             const list = document.getElementById('project-list');
             const empty = document.getElementById('empty-ui');
             list.innerHTML = '';
-            
-            const projs = Object.values(db.projects);
-            if (projs.length === 0) {
-                empty.classList.remove('hidden');
-            } else {
+            const projs = Object.values(db.projects || {});
+            if (projs.length === 0) empty.classList.remove('hidden');
+            else {
                 empty.classList.add('hidden');
                 projs.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
                 projs.forEach(p => {
                     const done = p.parts.filter(x => x.recorded).length;
-                    const total = p.parts.length;
-                    const pct = Math.round((done/total)*100) || 0;
-                    
                     const el = document.createElement('div');
-                    el.className = "glass p-10 rounded-[40px] space-y-6 active:scale-95 transition-all cursor-pointer";
+                    el.className = "glass p-10 rounded-[40px] active:scale-95 transition-all cursor-pointer";
                     el.onclick = () => openProject(p.id);
-                    el.innerHTML = `
-                        <div class="flex justify-between items-start">
-                            <div class="w-14 h-14 bg-blue-600/10 rounded-2xl flex items-center justify-center">
-                                <i data-lucide="music" class="text-blue-500"></i>
-                            </div>
-                            <span class="px-3 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[10px] font-black">${pct}%</span>
-                        </div>
-                        <div>
-                            <h3 class="text-2xl font-black tracking-tight">${p.title}</h3>
-                            <p class="text-slate-500 font-bold text-[10px] uppercase tracking-widest">${total} Lines</p>
-                        </div>
-                    `;
+                    el.innerHTML = `<h3 class="text-2xl font-black mb-1">${p.title}</h3><p class="text-blue-500 text-xs font-bold uppercase tracking-widest">${p.parts.length} Lines • ${done} Done</p>`;
                     list.appendChild(el);
                 });
             }
@@ -236,8 +191,7 @@
             const title = document.getElementById('imp-title').value.trim();
             const text = document.getElementById('imp-text').value.trim();
             if (!title || !text) return;
-
-            setLoading(true, "Uploading Script...");
+            setLoading(true, "Heidi is being processed...");
             try {
                 const res = await fetch(`${NGROK_URL}/api/import`, {
                     method: 'POST',
@@ -246,25 +200,22 @@
                 });
                 if (res.ok) {
                     closeModal('import');
-                    // Wait 2 seconds for Pi to finalize file IO
-                    setTimeout(refreshData, 2000);
+                    setTimeout(refreshData, 1500);
+                } else {
+                    const err = await res.json();
+                    alert("Pi Error: " + err.message);
                 }
-            } catch (e) { alert("Import Failed"); setLoading(false); }
+            } catch (e) { alert("Server connection lost during import."); }
+            setLoading(false);
         }
 
         function openProject(id) {
             activeProject = db.projects[id];
             document.getElementById('det-title').innerText = activeProject.title;
-            
             const chaps = [...new Set(activeProject.parts.map(p => p.chapter))];
             const chars = activeProject.characters;
-            
-            const selChap = document.getElementById('sel-chapter');
-            const selChar = document.getElementById('sel-character');
-            
-            selChap.innerHTML = chaps.map(c => `<option value="${c}">${c}</option>`).join('');
-            selChar.innerHTML = chars.map(c => `<option value="${c}">${c}</option>`).join('');
-            
+            document.getElementById('sel-chapter').innerHTML = chaps.map(c => `<option value="${c}">${c}</option>`).join('');
+            document.getElementById('sel-character').innerHTML = chars.map(c => `<option value="${c}">${c}</option>`).join('');
             updateDetailUI();
             showView('project');
         }
@@ -272,11 +223,9 @@
         function updateDetailUI() {
             const chap = document.getElementById('sel-chapter').value;
             const char = document.getElementById('sel-character').value;
-            
             const filtered = activeProject.parts.filter(p => p.chapter === chap && p.character === char);
             const done = filtered.filter(p => p.recorded).length;
             const pct = Math.round((done/filtered.length)*100) || 0;
-            
             document.getElementById('proj-progress-card').classList.remove('hidden');
             document.getElementById('det-progress-text').innerText = `${pct}% Complete`;
             document.getElementById('det-line-count').innerText = `${done} / ${filtered.length} Lines`;
@@ -297,15 +246,13 @@
             document.getElementById('st-character').innerText = line.character;
             document.getElementById('st-chapter').innerText = line.chapter;
             document.getElementById('st-text').innerText = line.text;
-            
             const dots = document.getElementById('st-dots');
             dots.innerHTML = '';
-            studioLines.forEach((_, i) => {
+            studioLines.forEach((p, i) => {
                 const d = document.createElement('div');
-                d.className = `h-1.5 rounded-full transition-all ${i === studioIdx ? 'w-8 bg-blue-500' : 'w-2 bg-slate-800'}`;
+                d.className = `h-1.5 rounded-full transition-all ${i === studioIdx ? 'w-8 bg-blue-500' : 'w-2 bg-slate-800'} ${p.recorded ? 'bg-green-500' : ''}`;
                 dots.appendChild(d);
             });
-
             document.getElementById('st-playback-tools').classList.add('hidden');
             document.getElementById('btn-record').classList.remove('hidden');
             lucide.createIcons();
@@ -316,112 +263,49 @@
                 audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 mediaRecorder = new MediaRecorder(audioStream);
                 chunks = [];
-                
                 mediaRecorder.ondataavailable = e => chunks.push(e.data);
                 mediaRecorder.start();
-                
-                startVisualizer(audioStream);
-                
                 isRecording = true;
                 document.getElementById('btn-record').classList.add('active');
-                document.getElementById('rec-indicator').classList.remove('hidden');
-                document.getElementById('visualizer').classList.replace('opacity-0', 'opacity-100');
             } else {
-                stopRecording();
+                isRecording = false;
+                mediaRecorder.stop();
+                audioStream.getTracks().forEach(t => t.stop());
+                document.getElementById('btn-record').classList.remove('active');
+                mediaRecorder.onstop = () => {
+                    document.getElementById('st-playback-tools').classList.remove('hidden');
+                    document.getElementById('btn-record').classList.add('hidden');
+                };
             }
-        }
-
-        function stopRecording() {
-            isRecording = false;
-            mediaRecorder.stop();
-            audioStream.getTracks().forEach(t => t.stop());
-            document.getElementById('btn-record').classList.remove('active');
-            document.getElementById('rec-indicator').classList.add('hidden');
-            document.getElementById('visualizer').classList.replace('opacity-100', 'opacity-0');
-            
-            mediaRecorder.onstop = () => {
-                document.getElementById('st-playback-tools').classList.remove('hidden');
-                document.getElementById('btn-record').classList.add('hidden');
-            };
         }
 
         async function saveAndNext() {
-            setLoading(true, "Saving Take...");
+            setLoading(true, "Syncing Voice to Pi...");
             const blob = new Blob(chunks, { type: 'audio/webm' });
             const line = studioLines[studioIdx];
-            
             const fd = new FormData();
-            fd.append('audio', blob);
-            fd.append('projectId', activeProject.id);
-            fd.append('lineId', line.id);
-            
+            fd.append('audio', blob); fd.append('projectId', activeProject.id); fd.append('lineId', line.id);
             try {
                 const res = await fetch(`${NGROK_URL}/api/upload`, { method: 'POST', body: fd });
                 if (res.ok) {
-                    if (studioIdx < studioLines.length - 1) {
-                        studioIdx++;
-                        renderStudio();
-                    } else {
-                        exitStudio();
-                    }
+                    line.recorded = true;
+                    if (studioIdx < studioLines.length - 1) { studioIdx++; renderStudio(); }
+                    else { exitStudio(); }
                 }
-            } catch (e) { alert("Save Error"); }
+            } catch (e) { alert("Audio sync failed"); }
             setLoading(false);
         }
 
-        function startVisualizer(stream) {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            analyser = audioCtx.createAnalyser();
-            const source = audioCtx.createMediaStreamSource(stream);
-            source.connect(analyser);
-            analyser.fftSize = 64;
-            const bufferLength = analyser.frequencyBinCount;
-            dataArray = new Uint8Array(bufferLength);
-            
-            const vis = document.getElementById('visualizer');
-            vis.innerHTML = '';
-            for(let i=0; i<bufferLength; i++) {
-                const bar = document.createElement('div');
-                bar.className = 'wave-bar';
-                vis.appendChild(bar);
-            }
-            
-            function update() {
-                if (!isRecording) return;
-                analyser.getByteFrequencyData(dataArray);
-                const bars = vis.children;
-                for(let i=0; i<bufferLength; i++) {
-                    const h = (dataArray[i] / 255) * 80;
-                    bars[i].style.height = `${Math.max(4, h)}px`;
-                }
-                requestAnimationFrame(update);
-            }
-            update();
-        }
-
-        function playLast() {
-            const blob = new Blob(chunks, { type: 'audio/webm' });
-            const url = URL.createObjectURL(blob);
-            const a = new Audio(url);
-            a.play();
-        }
-
-        // VIEW UTILS
         function showView(id) {
             ['dashboard', 'project', 'studio'].forEach(v => document.getElementById(`view-${v}`).classList.add('hidden'));
             document.getElementById(`view-${id}`).classList.remove('hidden');
         }
         function openModal(id) { document.getElementById(`modal-${id}`).classList.remove('hidden'); }
         function closeModal(id) { document.getElementById(`modal-${id}`).classList.add('hidden'); }
-        function setLoading(s, m) {
-            document.getElementById('loader-msg').innerText = m;
-            document.getElementById('overlay-loader').classList.toggle('hidden', !s);
-        }
-        function navStudio(dir) {
-            const n = studioIdx + dir;
-            if (n >= 0 && n < studioLines.length) { studioIdx = n; renderStudio(); }
-        }
+        function setLoading(s, m) { document.getElementById('loader-msg').innerText = m; document.getElementById('overlay-loader').classList.toggle('hidden', !s); }
+        function navStudio(dir) { const n = studioIdx + dir; if (n >= 0 && n < studioLines.length) { studioIdx = n; renderStudio(); } }
         function exitStudio() { showView('project'); updateDetailUI(); refreshData(); }
+        function playLast() { const b = new Blob(chunks, { type: 'audio/webm' }); new Audio(URL.createObjectURL(b)).play(); }
 
         window.onload = init;
     </script>
