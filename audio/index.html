@@ -255,7 +255,7 @@
 
     <script>
         // --- CONFIGURATION ---
-        // REPLACE WITH YOUR NGROK URL
+        // REPLACE WITH YOUR ACTUAL NGROK URL
         const API = "https://habile-lissa-phytogenic.ngrok-free.dev/"; 
         
         let db = { books: {} };
@@ -266,18 +266,23 @@
         let isRec = false, actx, analyser, dataArr, animId;
         let isTextExpanded = false;
 
+        // FETCH PROJECTS FROM PI
         async function init() {
             lucide.createIcons();
-            setLoading(true, "Connecting to Studio", "Waking up your Raspberry Pi...");
+            setLoading(true, "Connecting to Studio", "Fetching projects from Raspberry Pi...");
             try {
-                const res = await fetch(`${API}/db`);
+                // Force a clean fetch from the backend
+                const res = await fetch(`${API}/db?t=${Date.now()}`); 
                 if(res.ok) {
                     db = await res.json();
+                    console.log("DB Updated:", db);
+                    renderDashboard();
+                } else {
+                    console.error("Server error when fetching DB");
                 }
             } catch(e) { 
-                console.error("Connection failed.");
+                console.error("Connection failed. Check your ngrok status.");
             }
-            renderDashboard();
             setLoading(false);
         }
 
@@ -297,11 +302,14 @@
             list.innerHTML = '';
             
             const books = Object.values(db.books || {});
+            console.log("Rendering Books:", books.length);
             
             if (books.length === 0) {
                 empty.classList.remove('hidden');
             } else {
                 empty.classList.add('hidden');
+                books.sort((a,b) => new Date(b.updated_at || 0) - new Date(a.updated_at || 0));
+                
                 books.forEach(book => {
                     const recordedCount = (book.parts || []).filter(p => p.recorded).length;
                     const totalCount = (book.parts || []).length;
@@ -329,12 +337,13 @@
             showView('dashboard');
         }
 
+        // SEND NEW SCRIPT TO PI AND WAIT FOR SUCCESS
         async function processScript() {
             const title = document.getElementById('inp-title').value.trim();
             const text = document.getElementById('inp-script').value.trim();
             if(!title || !text) return;
 
-            setLoading(true, "Parsing Script", "The Pi is breaking down your dialogue...");
+            setLoading(true, "Creating Project", "The Pi is processing the script...");
             try {
                 const res = await fetch(`${API}/import_script`, {
                     method: 'POST',
@@ -343,15 +352,25 @@
                 });
                 
                 if(res.ok) {
+                    const result = await res.json();
+                    console.log("Success from Pi:", result);
+                    
+                    // Reset inputs
+                    document.getElementById('inp-title').value = '';
+                    document.getElementById('inp-script').value = '';
+                    
                     hideModals();
+                    
+                    // CRITICAL: Immediately ask the backend for the new list
                     await init(); 
                 } else {
-                    alert("Pi returned an error.");
+                    alert("Pi failed to process the script.");
+                    setLoading(false);
                 }
             } catch(e) { 
-                alert("Could not reach Pi."); 
+                alert("Connection lost. Is ngrok running?"); 
+                setLoading(false);
             }
-            setLoading(false);
         }
 
         function openBook(id) {
@@ -556,6 +575,7 @@
             new Audio(`${API}/files/${p.filename}`).play();
         }
 
+        // Start the app
         window.onload = init;
     </script>
 </body>
