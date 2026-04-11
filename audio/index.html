@@ -21,14 +21,12 @@
             background: radial-gradient(circle at top right, #1e293b, #0f172a);
         }
 
-        /* High-End Glassmorphism */
         .glass {
             background: rgba(30, 41, 59, 0.7);
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        /* Studio Controls */
         .arrow-btn { 
             width: 80px; 
             height: 80px; 
@@ -66,7 +64,6 @@
             100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
         }
 
-        /* Script Appearance */
         .script-card {
             background: #1e293b;
             border-radius: 40px;
@@ -88,7 +85,6 @@
             letter-spacing: 0.05em;
         }
 
-        /* Transitions */
         .page-transition {
             animation: fadeIn 0.4s ease-out;
         }
@@ -114,9 +110,7 @@
             </button>
         </header>
 
-        <div id="book-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <!-- Books injected here -->
-        </div>
+        <div id="book-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
 
         <div id="empty-state" class="hidden flex flex-col items-center justify-center pt-20 text-slate-500">
             <i data-lucide="folder-open" class="w-16 h-16 mb-4 opacity-20"></i>
@@ -124,15 +118,12 @@
         </div>
     </div>
 
-    <!-- VIEW: BOOK DETAIL (Configuration) -->
+    <!-- VIEW: BOOK DETAIL -->
     <div id="view-book" class="hidden flex-1 p-8 overflow-y-auto flex flex-col page-transition">
         <div class="flex items-center justify-between mb-10">
             <button onclick="showView('dashboard')" class="w-12 h-12 glass rounded-2xl flex items-center justify-center">
                 <i data-lucide="chevron-left" class="text-slate-400"></i>
             </button>
-            <div class="flex gap-2">
-                <button onclick="exportBook()" class="px-4 py-2 bg-slate-800 rounded-xl text-xs font-bold uppercase tracking-widest">Export All</button>
-            </div>
         </div>
 
         <div class="mb-10">
@@ -171,10 +162,8 @@
         </div>
     </div>
 
-    <!-- VIEW: STUDIO (Recording) -->
+    <!-- VIEW: STUDIO -->
     <div id="view-studio" class="hidden fixed inset-0 z-40 studio-bg flex flex-col justify-between p-8 overflow-hidden">
-        
-        <!-- Header -->
         <div class="flex justify-between items-center w-full max-w-5xl mx-auto">
             <button onclick="changePart(-1)" class="arrow-btn">
                 <i data-lucide="chevron-left" class="w-8 h-8"></i>
@@ -188,28 +177,21 @@
             </button>
         </div>
 
-        <!-- Progress Indicator -->
-        <div class="w-full max-w-md mx-auto flex justify-center gap-1.5 mt-4" id="st-dots">
-            <!-- Dots injected here -->
-        </div>
+        <div class="w-full max-w-md mx-auto flex justify-center gap-1.5 mt-4" id="st-dots"></div>
 
-        <!-- Script Area -->
         <div class="w-full max-w-4xl mx-auto flex-1 flex flex-col justify-center py-10">
             <div id="script-container" class="script-card relative">
                 <div id="st-rec-indicator" class="hidden absolute top-8 left-8 flex items-center gap-2">
                     <div class="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
                     <span class="text-red-500 font-black text-[10px] tracking-widest">RECORDING LIVE</span>
                 </div>
-                
                 <p id="st-text" class="text-3xl md:text-5xl text-center font-bold leading-[1.3] tracking-tight"></p>
-                
                 <button id="btn-show-more" onclick="toggleText()" class="hidden mx-auto mt-8 px-6 py-2 glass rounded-full text-xs font-bold uppercase tracking-widest text-slate-400">
                     Show Remaining Text
                 </button>
             </div>
         </div>
 
-        <!-- Controls Area -->
         <div class="w-full max-w-xl mx-auto pb-12">
             <div id="studio-controls-initial" class="flex flex-col items-center">
                 <button id="ctrl-start" onclick="startRecording()" class="record-btn">
@@ -234,7 +216,6 @@
             </div>
         </div>
 
-        <!-- Top Right Actions -->
         <div class="absolute top-8 right-8 flex gap-4">
             <div id="st-playback" class="hidden flex items-center gap-2 glass p-2 rounded-2xl">
                 <button onclick="playCurrentRec()" class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
@@ -248,8 +229,8 @@
     </div>
 
     <!-- MODAL: LOADER -->
-    <div id="loader" class="hidden blur-overlay flex flex-col items-center justify-center text-center p-10">
-        <div class="spinner mb-8"></div>
+    <div id="loader" class="hidden fixed inset-0 z-[100] bg-slate-950/80 backdrop-blur-md flex flex-col items-center justify-center text-center p-10">
+        <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-8"></div>
         <h3 id="loader-title" class="text-2xl font-black mb-2">Syncing with Pi</h3>
         <p id="loader-msg" class="text-slate-400 font-medium">Please keep this window open...</p>
     </div>
@@ -259,15 +240,12 @@
         <div class="w-full max-w-2xl bg-slate-900 border border-white/10 p-10 rounded-[48px] shadow-2xl space-y-8">
             <div class="text-center">
                 <h2 class="text-4xl font-black mb-2">Import Script</h2>
-                <p class="text-slate-500 font-medium">Paste your full script text below to begin.</p>
+                <p class="text-slate-500 font-medium">Paste your script below.</p>
             </div>
-            
             <div class="space-y-4">
-                <input id="inp-title" type="text" placeholder="Project Name (e.g. Heidi: Chapter 1)" class="w-full bg-slate-800 p-6 rounded-3xl font-bold text-lg outline-none border border-transparent focus:border-blue-500 transition-colors">
-                <textarea id="inp-script" placeholder="DETE: (Stops, panting) Oh... Merciful heavens.
-HEIDI: But Dete, the path goes up!" class="w-full h-64 bg-slate-800 p-6 rounded-3xl font-mono text-sm outline-none hide-scroll border border-transparent focus:border-blue-500 transition-colors"></textarea>
+                <input id="inp-title" type="text" placeholder="Project Name" class="w-full bg-slate-800 p-6 rounded-3xl font-bold text-lg outline-none border border-transparent focus:border-blue-500 transition-colors">
+                <textarea id="inp-script" placeholder="CHARACTER: Line of dialogue..." class="w-full h-64 bg-slate-800 p-6 rounded-3xl font-mono text-sm outline-none hide-scroll border border-transparent focus:border-blue-500 transition-colors"></textarea>
             </div>
-
             <div class="flex gap-4">
                 <button onclick="hideModals()" class="flex-1 py-5 text-slate-500 font-bold uppercase tracking-widest text-xs">Cancel</button>
                 <button onclick="processScript()" class="flex-1 py-5 bg-blue-600 rounded-3xl font-black text-lg shadow-xl shadow-blue-900/40">INITIALIZE PROJECT</button>
@@ -277,131 +255,117 @@ HEIDI: But Dete, the path goes up!" class="w-full h-64 bg-slate-800 p-6 rounded-
 
     <script>
         // --- CONFIGURATION ---
-        // REPLACE WITH YOUR PI'S ACTUAL IP
-const API = "https://habile-lissa-phytogenic.ngrok-free.dev/";
+        // REPLACE WITH YOUR NGROK URL
+        const API = "https://habile-lissa-phytogenic.ngrok-free.dev/"; 
         
         let db = { books: {} };
         let activeBook = null;
         let activeParts = [];
         let currIdx = 0;
-        
-        // Recording State
         let mediaRec, stream, chunks = [];
         let isRec = false, actx, analyser, dataArr, animId;
         let isTextExpanded = false;
 
-        // --- INITIALIZATION ---
-
         async function init() {
             lucide.createIcons();
-            setLoading(true, "Connecting to Studio Server", "Verifying connection to Raspberry Pi...");
+            setLoading(true, "Connecting to Studio", "Waking up your Raspberry Pi...");
             try {
                 const res = await fetch(`${API}/db`);
-                if(res.ok) db = await res.json();
-                console.log("Database loaded from Pi");
+                if(res.ok) {
+                    db = await res.json();
+                }
             } catch(e) { 
-                console.error("Pi server offline or IP incorrect.");
-                // Fallback to local storage for demo if Pi is unreachable
-                const local = localStorage.getItem('audiobook_studio_db');
-                if(local) db = JSON.parse(local);
+                console.error("Connection failed.");
             }
             renderDashboard();
             setLoading(false);
         }
 
-        // --- DATABASE SYNC ---
-
         async function saveDB() {
-            localStorage.setItem('audiobook_studio_db', JSON.stringify(db));
             try {
                 await fetch(`${API}/db`, { 
                     method: 'POST', 
                     headers: {'Content-Type': 'application/json'}, 
                     body: JSON.stringify(db) 
                 });
-            } catch(e) { console.warn("Remote sync failed. Project saved locally."); }
+            } catch(e) { console.warn("Remote sync failed."); }
         }
-
-        // --- UI RENDERING ---
 
         function renderDashboard() {
             const list = document.getElementById('book-list');
             const empty = document.getElementById('empty-state');
             list.innerHTML = '';
             
-            const books = Object.values(db.books);
-            empty.classList.toggle('hidden', books.length > 0);
-
-            books.forEach(book => {
-                const recordedCount = book.parts.filter(p => p.recorded).length;
-                const percent = Math.round((recordedCount / book.parts.length) * 100) || 0;
-                
-                const div = document.createElement('div');
-                div.className = "glass p-6 rounded-[32px] flex justify-between items-center group active:scale-[0.98] transition-all cursor-pointer";
-                div.innerHTML = `
-                    <div onclick="openBook('${book.id}')" class="flex-1">
-                        <div class="flex items-center gap-3 mb-2">
-                            <span class="status-pill ${percent === 100 ? 'bg-green-500/20 text-green-500' : 'bg-blue-500/20 text-blue-500'}">
-                                ${percent}% COMPLETE
-                            </span>
+            const books = Object.values(db.books || {});
+            
+            if (books.length === 0) {
+                empty.classList.remove('hidden');
+            } else {
+                empty.classList.add('hidden');
+                books.forEach(book => {
+                    const recordedCount = (book.parts || []).filter(p => p.recorded).length;
+                    const totalCount = (book.parts || []).length;
+                    const percent = Math.round((recordedCount / totalCount) * 100) || 0;
+                    
+                    const div = document.createElement('div');
+                    div.className = "glass p-6 rounded-[32px] flex justify-between items-center group active:scale-[0.98] transition-all cursor-pointer";
+                    div.innerHTML = `
+                        <div onclick="openBook('${book.id}')" class="flex-1">
+                            <div class="flex items-center gap-3 mb-2">
+                                <span class="status-pill ${percent === 100 ? 'bg-green-500/20 text-green-500' : 'bg-blue-500/20 text-blue-500'}">
+                                    ${percent}% COMPLETE
+                                </span>
+                            </div>
+                            <h3 class="font-black text-2xl tracking-tight">${book.title}</h3>
                         </div>
-                        <h3 class="font-black text-2xl tracking-tight">${book.title}</h3>
-                        <p class="text-[10px] font-black text-slate-500 uppercase mt-1 tracking-widest">${book.parts.length} LINES TOTAL</p>
-                    </div>
-                    <button onclick="deleteBook('${book.id}')" class="w-10 h-10 rounded-xl hover:bg-red-500/10 flex items-center justify-center group-hover:opacity-100 transition-opacity">
-                        <i data-lucide="trash-2" class="text-red-500/40 w-5 h-5"></i>
-                    </button>
-                `;
-                list.appendChild(div);
-            });
+                        <button onclick="deleteBook('${book.id}')" class="w-10 h-10 rounded-xl hover:bg-red-500/10 flex items-center justify-center">
+                            <i data-lucide="trash-2" class="text-red-500/40 w-5 h-5"></i>
+                        </button>
+                    `;
+                    list.appendChild(div);
+                });
+            }
             lucide.createIcons();
             showView('dashboard');
         }
-
-        // --- SCRIPT PROCESSING ---
 
         async function processScript() {
             const title = document.getElementById('inp-title').value.trim();
             const text = document.getElementById('inp-script').value.trim();
             if(!title || !text) return;
 
-            setLoading(true, "Analyzing Script", "Identifying characters and scenes...");
-            
+            setLoading(true, "Parsing Script", "The Pi is breaking down your dialogue...");
             try {
-                // Use the new advanced server-side parser
                 const res = await fetch(`${API}/import_script`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ title, text })
                 });
-                const data = await res.json();
                 
-                if(data.status === "success") {
+                if(res.ok) {
                     hideModals();
-                    init();
+                    await init(); 
                 } else {
-                    alert("Import Error: " + data.message);
+                    alert("Pi returned an error.");
                 }
-            } catch(e) {
-                alert("Server Error: Could not reach the Pi to parse the script.");
+            } catch(e) { 
+                alert("Could not reach Pi."); 
             }
             setLoading(false);
         }
 
-        // --- NAVIGATION ---
-
         function openBook(id) {
             activeBook = db.books[id];
+            if (!activeBook) return;
+
             document.getElementById('book-title').innerText = activeBook.title;
             document.getElementById('book-stats').innerText = `${activeBook.parts.length} LINES TOTAL`;
             
             const chapters = [...new Set(activeBook.parts.map(p => p.chapter))];
-            const selChap = document.getElementById('sel-chapter');
-            selChap.innerHTML = '<option value="">Choose a chapter...</option>' + 
+            document.getElementById('sel-chapter').innerHTML = '<option value="">Choose a chapter...</option>' + 
                                chapters.map(c => `<option value="${c}">${c}</option>`).join('');
             
-            const selChar = document.getElementById('sel-character');
-            selChar.innerHTML = '<option value="">Choose a character...</option>' + 
+            document.getElementById('sel-character').innerHTML = '<option value="">Choose a character...</option>' + 
                                activeBook.characters.map(c => `<option value="${c}">${c}</option>`).join('');
             
             validateStudio();
@@ -412,68 +376,48 @@ const API = "https://habile-lissa-phytogenic.ngrok-free.dev/";
             const chap = document.getElementById('sel-chapter').value;
             const char = document.getElementById('sel-character').value;
             const btn = document.getElementById('btn-enter');
-            const prog = document.getElementById('character-progress');
-            
             if(chap && char) {
                 btn.disabled = false;
-                prog.classList.remove('hidden');
-                
-                // Calculate role progress
                 const roleLines = activeBook.parts.filter(p => p.chapter === chap && p.character === char);
                 const roleDone = roleLines.filter(p => p.recorded).length;
                 const p = Math.round((roleDone / roleLines.length) * 100);
-                
+                document.getElementById('character-progress').classList.remove('hidden');
                 document.getElementById('char-prog-percent').innerText = p + '%';
                 document.getElementById('char-prog-bar').style.width = p + '%';
             } else {
                 btn.disabled = true;
-                prog.classList.add('hidden');
+                document.getElementById('character-progress').classList.add('hidden');
             }
         }
 
         function openStudio() {
             const chap = document.getElementById('sel-chapter').value;
             const char = document.getElementById('sel-character').value;
-            
             activeParts = activeBook.parts.filter(p => p.chapter === chap && p.character === char);
-            
-            if(activeParts.length === 0) {
-                alert("No lines found for this selection.");
-                return;
-            }
-            
             currIdx = 0;
             renderStudioPart();
             showView('studio');
         }
-
-        // --- STUDIO LOGIC ---
 
         function renderStudioPart() {
             const p = activeParts[currIdx];
             document.getElementById('st-char').innerText = p.character;
             document.getElementById('st-chap').innerText = `${p.chapter} • Scene ${p.scene}`;
             
-            // Progress dots
             const dots = document.getElementById('st-dots');
             dots.innerHTML = '';
             activeParts.forEach((part, idx) => {
                 const d = document.createElement('div');
-                d.className = `h-1 rounded-full transition-all duration-300 ${idx === currIdx ? 'w-8 bg-blue-500' : 'w-2 bg-slate-700'} ${part.recorded ? 'bg-green-500/40' : ''}`;
+                d.className = `h-1 rounded-full ${idx === currIdx ? 'w-8 bg-blue-500' : 'w-2 bg-slate-700'} ${part.recorded ? 'bg-green-500/40' : ''}`;
                 dots.appendChild(d);
             });
-
+            
             isTextExpanded = false;
             updateStudioText();
-
-            // Reset controls
             document.getElementById('studio-controls-initial').classList.remove('hidden');
             document.getElementById('studio-controls-active').classList.add('hidden');
             document.getElementById('st-rec-indicator').classList.add('hidden');
-            
-            // Show playback if exists
             document.getElementById('st-playback').classList.toggle('hidden', !p.recorded);
-            
             lucide.createIcons();
         }
 
@@ -481,7 +425,6 @@ const API = "https://habile-lissa-phytogenic.ngrok-free.dev/";
             const p = activeParts[currIdx];
             const textEl = document.getElementById('st-text');
             const btnMore = document.getElementById('btn-show-more');
-            
             if (p.text.length > 180 && !isTextExpanded) {
                 textEl.innerText = p.text.substring(0, 180) + "...";
                 btnMore.classList.remove('hidden');
@@ -491,69 +434,44 @@ const API = "https://habile-lissa-phytogenic.ngrok-free.dev/";
             }
         }
 
-        function toggleText() { 
-            isTextExpanded = true; 
-            updateStudioText(); 
-        }
-
-        // --- AUDIO ENGINE ---
+        function toggleText() { isTextExpanded = true; updateStudioText(); }
 
         async function startRecording() {
             try {
                 stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                actx = new (window.AudioContext || window.webkitAudioContext)();
+                actx = new AudioContext();
                 analyser = actx.createAnalyser();
-                analyser.fftSize = 256;
-                
                 const source = actx.createMediaStreamSource(stream);
                 source.connect(analyser);
-                
                 dataArr = new Uint8Array(analyser.frequencyBinCount);
-                
                 mediaRec = new MediaRecorder(stream);
                 chunks = [];
-                
                 mediaRec.ondataavailable = e => chunks.push(e.data);
                 mediaRec.start();
-                
                 isRec = true;
                 document.getElementById('studio-controls-initial').classList.add('hidden');
                 document.getElementById('studio-controls-active').classList.remove('hidden');
                 document.getElementById('st-rec-indicator').classList.remove('hidden');
-                
                 drawVisualizer();
-            } catch(e) { 
-                alert("Microphone access is required for the recording studio."); 
-                console.error(e);
-            }
+            } catch(e) { alert("Mic required."); }
         }
 
         function drawVisualizer() {
             if(!isRec) return;
             const cvs = document.getElementById('freq-canvas');
             const ctx = cvs.getContext('2d');
-            
             cvs.width = cvs.offsetWidth;
             cvs.height = cvs.offsetHeight;
-            
             analyser.getByteFrequencyData(dataArr);
-            
             ctx.clearRect(0,0, cvs.width, cvs.height);
-            
             const barWidth = (cvs.width / dataArr.length) * 2.5;
             let x = 0;
-            
             for(let i=0; i < dataArr.length; i++) {
                 const barHeight = (dataArr[i]/255) * cvs.height;
-                const r = 59;
-                const g = 130;
-                const b = 246;
-                
-                ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${dataArr[i]/255})`;
+                ctx.fillStyle = `rgba(59, 130, 246, ${dataArr[i]/255})`;
                 ctx.fillRect(x, cvs.height - barHeight, barWidth, barHeight);
                 x += barWidth + 2;
             }
-            
             animId = requestAnimationFrame(drawVisualizer);
         }
 
@@ -569,8 +487,34 @@ const API = "https://habile-lissa-phytogenic.ngrok-free.dev/";
             lucide.createIcons();
         }
 
+        async function stopAndSave() {
+            setLoading(true, "Encoding", "Saving audio to Pi...");
+            isRec = false;
+            cancelAnimationFrame(animId);
+            mediaRec.stop();
+            stream.getTracks().forEach(t => t.stop());
+            mediaRec.onstop = async () => {
+                const blob = new Blob(chunks, { type: 'audio/webm' });
+                const p = activeParts[currIdx];
+                const formData = new FormData();
+                formData.append('audio', blob, 'take.webm');
+                formData.append('metadata', JSON.stringify({ bookId: activeBook.id, partId: p.id }));
+                try {
+                    const res = await fetch(`${API}/upload_part`, { method: 'POST', body: formData });
+                    if(res.ok) {
+                        const data = await res.json();
+                        const dbPart = activeBook.parts.find(dp => dp.id === p.id);
+                        if(dbPart) { dbPart.recorded = true; dbPart.filename = data.filename; }
+                        await saveDB();
+                        if(currIdx < activeParts.length - 1) { currIdx++; renderStudioPart(); } else { exitStudio(); }
+                    }
+                } catch(e) { alert("Upload failed."); }
+                setLoading(false);
+            };
+        }
+
         function cancelRecording() {
-            if(!confirm("Discard this take?")) return;
+            if(!confirm("Discard?")) return;
             isRec = false;
             cancelAnimationFrame(animId);
             mediaRec.stop();
@@ -578,77 +522,14 @@ const API = "https://habile-lissa-phytogenic.ngrok-free.dev/";
             renderStudioPart();
         }
 
-        async function stopAndSave() {
-            setLoading(true, "Finalizing Master", "Encoding audio and uploading to Raspberry Pi...");
-            
-            isRec = false;
-            cancelAnimationFrame(animId);
-            mediaRec.stop();
-            stream.getTracks().forEach(t => t.stop());
-
-            mediaRec.onstop = async () => {
-                const blob = new Blob(chunks, { type: 'audio/webm' });
-                const p = activeParts[currIdx];
-                
-                const formData = new FormData();
-                formData.append('audio', blob, 'take.webm');
-                formData.append('metadata', JSON.stringify({
-                    chapter: p.chapter,
-                    scene: p.scene,
-                    character: p.character,
-                    bookId: activeBook.id,
-                    partId: p.id
-                }));
-
-                try {
-                    const res = await fetch(`${API}/upload_part`, {
-                        method: 'POST',
-                        body: formData
-                    });
-                    
-                    if(res.ok) {
-                        const data = await res.json();
-                        // Update local DB
-                        const dbPart = activeBook.parts.find(dp => dp.id === p.id);
-                        if(dbPart) {
-                            dbPart.recorded = true;
-                            dbPart.filename = data.filename;
-                        }
-                        await saveDB();
-                        
-                        // Move to next line automatically
-                        if(currIdx < activeParts.length - 1) {
-                            currIdx++;
-                            renderStudioPart();
-                        } else {
-                            alert("Congratulations! You've finished all lines for this role in this chapter.");
-                            exitStudio();
-                        }
-                    } else {
-                        throw new Error("Server rejected the upload");
-                    }
-                } catch(e) {
-                    alert("Sync Error: The recording was made but could not be saved to the Pi. Check your connection.");
-                }
-                setLoading(false);
-            };
-        }
-
-        // --- UTILS ---
-
         function showView(id) {
             document.querySelectorAll('[id^="view-"]').forEach(v => v.classList.add('hidden'));
             document.getElementById('view-' + id).classList.remove('hidden');
         }
 
-        function showModal(id) {
-            document.getElementById('modal-' + id).classList.remove('hidden');
-        }
-
-        function hideModals() {
-            document.querySelectorAll('[id^="modal-"]').forEach(m => m.classList.add('hidden'));
-        }
-
+        function showModal(id) { document.getElementById('modal-' + id).classList.remove('hidden'); }
+        function hideModals() { document.querySelectorAll('[id^="modal-"]').forEach(m => m.classList.add('hidden')); }
+        
         function setLoading(show, title = "Working", msg = "Please wait...") {
             document.getElementById('loader-title').innerText = title;
             document.getElementById('loader-msg').innerText = msg;
@@ -657,19 +538,13 @@ const API = "https://habile-lissa-phytogenic.ngrok-free.dev/";
 
         function changePart(dir) {
             const newIdx = currIdx + dir;
-            if(newIdx >= 0 && newIdx < activeParts.length) {
-                currIdx = newIdx;
-                renderStudioPart();
-            }
+            if(newIdx >= 0 && newIdx < activeParts.length) { currIdx = newIdx; renderStudioPart(); }
         }
 
-        function exitStudio() {
-            showView('book');
-            validateStudio();
-        }
-
+        function exitStudio() { showView('book'); validateStudio(); }
+        
         async function deleteBook(id) {
-            if(!confirm("Permanently delete this project? This cannot be undone.")) return;
+            if(!confirm("Delete project?")) return;
             delete db.books[id];
             await saveDB();
             renderDashboard();
@@ -678,11 +553,9 @@ const API = "https://habile-lissa-phytogenic.ngrok-free.dev/";
         function playCurrentRec() {
             const p = activeParts[currIdx];
             if(!p.filename) return;
-            const audio = new Audio(`${API}/files/${p.filename}`);
-            audio.play();
+            new Audio(`${API}/files/${p.filename}`).play();
         }
 
-        // Run on start
         window.onload = init;
     </script>
 </body>
