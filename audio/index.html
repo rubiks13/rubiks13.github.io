@@ -2,147 +2,237 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Monered Voice Studio</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #0a0a0c; color: white; overflow-x: hidden; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+        
+        :root {
+            --bg-dark: #0a0a0c;
+            --card-bg: #141417;
+            --indigo-primary: #6366f1;
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: var(--bg-dark); 
+            color: white; 
+            overflow: hidden; 
+            height: 100vh;
+        }
+
         .scrollbar-hide::-webkit-scrollbar { display: none; }
-        .recording-pulse { animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); } 70% { box-shadow: 0 0 0 20px rgba(220, 38, 38, 0); } 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); } }
-        .loader-spin { animation: spin 1s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .modal-enter { animation: modalIn 0.3s ease-out; }
-        @keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        
+        .studio-card {
+            background: linear-gradient(145deg, #1a1a1e, #141417);
+            border: 1px solid rgba(255,255,255,0.03);
+            border-radius: 48px;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.05);
+        }
+
+        .hardware-btn {
+            background: #1a1a1e;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .hardware-btn:active {
+            transform: scale(0.92);
+            background: #141417;
+        }
+
+        .progress-track {
+            height: 4px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 10px;
+            width: 100%;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--indigo-primary);
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .record-outer {
+            width: 96px;
+            height: 96px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .record-inner {
+            width: 72px;
+            height: 72px;
+            background: #ef4444;
+            border-radius: 50%;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .recording .record-inner {
+            border-radius: 14px;
+            transform: scale(0.5);
+            background: #ff0000;
+        }
+
+        .recording .record-outer {
+            border-color: #ef4444;
+            box-shadow: 0 0 40px rgba(239, 68, 68, 0.2);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .view-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 440px;
+            margin: 0 auto;
+        }
+
+        .modal-blur {
+            backdrop-filter: blur(20px);
+            background: rgba(0,0,0,0.8);
+        }
     </style>
 </head>
 <body>
-    <div id="app" class="min-h-screen flex flex-col items-center">
-        <!-- Loader Overlay -->
-        <div id="loader" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-xl">
-            <div class="flex flex-col items-center text-center px-6">
-                <div class="w-20 h-20 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full loader-spin"></div>
-                <p id="loader-text" class="mt-6 font-bold text-xl tracking-wide">Syncing to Pi Server</p>
-                <p id="loader-subtext" class="text-indigo-400 text-sm mt-1">FFMPEG Encoding Active</p>
-                <div id="error-display" class="hidden mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs max-w-xs"></div>
-            </div>
-        </div>
-
-        <!-- New Book Modal -->
-        <div id="modal-new-book" class="hidden fixed inset-0 z-[90] flex items-center justify-center bg-black/90 p-6">
-            <div class="bg-[#16161a] w-full max-w-lg rounded-[2.5rem] border border-white/10 p-8 modal-enter">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-2xl font-black italic tracking-tighter">NEW PROJECT</h3>
-                    <button onclick="closeNewBookModal()" class="text-slate-500 hover:text-white"><i class="fas fa-times"></i></button>
-                </div>
-                <div class="space-y-6">
-                    <div>
-                        <label class="text-[10px] font-black text-slate-500 tracking-widest uppercase block mb-2">Book Title</label>
-                        <input type="text" id="input-book-title" placeholder="e.g. Heidi" class="w-full bg-black border border-white/10 rounded-2xl p-4 text-white focus:border-indigo-500 outline-none transition-all">
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-black text-slate-500 tracking-widest uppercase block mb-2">Paste Script Text</label>
-                        <textarea id="input-script-text" placeholder="CHAPTER I: ...&#10;HEIDI: Hello!&#10;PETER: Hi there!" class="w-full h-64 bg-black border border-white/10 rounded-2xl p-4 text-white focus:border-indigo-500 outline-none transition-all resize-none text-sm leading-relaxed scrollbar-hide"></textarea>
-                    </div>
-                    <div class="flex gap-3 pt-2">
-                        <button onclick="processNewBook()" class="w-full py-5 rounded-3xl bg-indigo-600 font-black italic tracking-tighter text-lg active:scale-95 transition-all">CREATE PROJECT</button>
-                    </div>
-                </div>
+    <div id="app" class="relative">
+        <!-- Global Loader -->
+        <div id="loader" class="hidden fixed inset-0 z-[100] flex items-center justify-center modal-blur">
+            <div class="text-center">
+                <div class="w-10 h-10 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p id="loader-text" class="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400">Syncing</p>
             </div>
         </div>
 
         <!-- Home View -->
-        <div id="view-home" class="w-full max-w-md p-6 pt-12">
-            <header class="mb-10">
-                <h1 class="text-4xl font-black italic tracking-tighter text-white">MONERED</h1>
-                <p class="text-slate-500 font-medium">Production Voice Studio</p>
-                <div class="mt-4 flex items-center gap-2 bg-indigo-500/10 p-2 px-3 rounded-full border border-indigo-500/20 w-fit">
-                    <div id="connection-dot" class="w-2 h-2 rounded-full bg-slate-500"></div>
-                    <span id="connection-status" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Checking Connection...</span>
+        <div id="view-home" class="view-container p-6 pt-12">
+            <header class="mb-10 flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-black italic tracking-tighter">MONERED</h1>
+                    <div id="connection-status" class="flex items-center gap-2 mt-1">
+                        <div id="connection-dot" class="w-1.5 h-1.5 rounded-full bg-slate-700"></div>
+                        <span class="text-[9px] font-black uppercase tracking-widest text-slate-500">Checking Server...</span>
+                    </div>
                 </div>
-            </header>
-            <div id="book-list" class="space-y-4 mb-8"></div>
-            <button onclick="openNewBookModal()" class="w-full border-2 border-dashed border-white/10 rounded-3xl p-10 flex flex-col items-center justify-center gap-4 hover:border-indigo-500/50 hover:bg-indigo-500/5 transition-all group">
-                <div class="bg-[#16161a] p-4 rounded-full group-hover:scale-110 transition-transform">
+                <button onclick="openNewBookModal()" class="w-12 h-12 hardware-btn rounded-full flex items-center justify-center border border-white/5">
                     <i class="fas fa-plus text-indigo-400"></i>
-                </div>
-                <div class="text-center">
-                    <span class="block font-bold text-slate-300">New Audio Book</span>
-                    <span class="text-xs text-slate-500 uppercase tracking-widest mt-1">Paste Your Script</span>
-                </div>
-            </button>
+                </button>
+            </header>
+            
+            <div id="book-list" class="flex-1 overflow-y-auto scrollbar-hide space-y-4"></div>
         </div>
 
         <!-- Dashboard View -->
-        <div id="view-dashboard" class="hidden w-full max-w-md p-6 h-screen flex flex-col">
-            <div class="flex items-center justify-between mb-8">
-                <button onclick="showView('home')" class="text-slate-400"><i class="fas fa-arrow-left"></i></button>
-                <h2 id="dash-title" class="text-lg font-black italic uppercase tracking-tighter">BOOK TITLE</h2>
-                <div class="w-6"></div> <!-- Spacer -->
+        <div id="view-dashboard" class="hidden view-container p-6">
+            <header class="flex items-center justify-between py-4 mb-8">
+                <button onclick="showView('home')" class="w-10 h-10 hardware-btn rounded-full flex items-center justify-center"><i class="fas fa-chevron-left text-xs"></i></button>
+                <h2 id="dash-title" class="text-xs font-black italic uppercase tracking-widest text-slate-400">PROJECT</h2>
+                <button onclick="openExportModal()" class="w-10 h-10 hardware-btn rounded-full flex items-center justify-center"><i class="fas fa-download text-indigo-400 text-xs"></i></button>
+            </header>
+
+            <div class="flex-1 overflow-y-auto scrollbar-hide space-y-8">
+                <section>
+                    <label class="text-[9px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 block">SELECT CHARACTER</label>
+                    <div id="cast-list" class="grid grid-cols-2 gap-3"></div>
+                </section>
+                <section>
+                    <label class="text-[9px] font-black text-slate-500 uppercase tracking-[0.25em] mb-4 block">SELECT CHAPTER</label>
+                    <div id="chapter-list" class="space-y-3"></div>
+                </section>
             </div>
-            <div class="flex-1 overflow-y-auto scrollbar-hide">
-                <h3 class="text-[10px] font-black tracking-[0.3em] text-slate-500 uppercase mb-4">Cast</h3>
-                <div id="cast-list" class="grid grid-cols-2 gap-3 mb-8"></div>
-                <h3 class="text-[10px] font-black tracking-[0.3em] text-slate-500 uppercase mb-4">Chapters</h3>
-                <div id="chapter-list" class="space-y-3"></div>
+
+            <div class="py-6">
+                <button id="studio-btn" disabled onclick="enterStudio()" class="w-full py-6 rounded-[2.5rem] bg-indigo-600 font-black italic tracking-tighter text-xl disabled:opacity-20 transition-all active:scale-95 shadow-2xl shadow-indigo-900/30">
+                    ENTER STUDIO
+                </button>
             </div>
-            <button onclick="enterStudio()" id="studio-btn" disabled class="mt-6 w-full bg-indigo-600 disabled:opacity-30 py-5 rounded-3xl font-black italic tracking-tighter text-xl active:scale-95 transition-transform">
-                ENTER STUDIO
-            </button>
         </div>
 
         <!-- Studio View -->
-        <div id="view-studio" class="hidden w-full max-w-md flex flex-col h-screen bg-black relative">
-            <div class="px-6 py-8 flex items-center justify-between text-center">
-                <div class="w-1/3 flex flex-col items-start">
-                    <span class="text-[9px] font-black text-indigo-500">CHARACTER</span>
-                    <span id="st-char" class="text-[11px] font-bold truncate w-full text-left">--</span>
+        <div id="view-studio" class="hidden view-container bg-black p-6">
+            <header class="flex items-center justify-between py-6">
+                <button onclick="showView('dashboard')" class="text-slate-700 hover:text-white transition-colors"><i class="fas fa-times fa-lg"></i></button>
+                <div class="text-center">
+                    <p id="st-chap" class="text-[9px] font-black text-indigo-500 uppercase tracking-[0.3em] mb-0.5">CHAPTER I</p>
+                    <p id="st-scene" class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">SCENE 1.1</p>
                 </div>
-                <div class="w-1/3 flex flex-col items-center">
-                    <span class="text-[9px] font-black text-indigo-500">CHAPTER</span>
-                    <span id="st-chap" class="text-[11px] font-bold truncate w-full">--</span>
+                <div class="w-6"></div>
+            </header>
+
+            <div class="flex-1 flex flex-col items-center justify-center">
+                <p id="st-char" class="text-[10px] font-black text-indigo-500 uppercase tracking-[0.4em] mb-10">CHARACTER NAME</p>
+                
+                <div class="studio-card w-full min-h-[320px] p-8 flex items-center justify-center text-center relative overflow-hidden">
+                    <p id="st-text" class="text-2xl font-bold leading-snug text-white/95 tracking-tight"></p>
                 </div>
-                <div class="w-1/3 flex flex-col items-end">
-                    <span class="text-[9px] font-black text-indigo-500">SCENE</span>
-                    <span id="st-scene" class="text-[11px] font-bold truncate w-full text-right">--</span>
+
+                <div class="w-full px-10 mt-12 mb-12">
+                    <div class="progress-track">
+                        <div id="st-progress" class="progress-bar"></div>
+                    </div>
                 </div>
-            </div>
-            <button onclick="showView('dashboard')" class="absolute top-10 right-6 text-slate-500"><i class="fas fa-times"></i></button>
-            
-            <div class="flex-1 flex flex-col items-center justify-center px-8 relative">
-                <div id="script-card" class="w-full bg-[#111114] rounded-[2.5rem] border border-white/10 p-10 flex flex-col items-center justify-center text-center h-72 overflow-hidden transition-all">
-                    <p id="st-text" class="text-2xl font-semibold leading-relaxed"></p>
-                    <button id="show-more-btn" onclick="toggleTextExpansion()" class="hidden mt-4 text-indigo-400 text-[10px] font-black uppercase tracking-widest">Show More</button>
+
+                <div class="flex flex-col items-center gap-6">
+                    <div id="record-trigger" onclick="toggleRecording()" class="record-outer cursor-pointer active:scale-95 transition-transform">
+                        <div class="record-inner"></div>
+                    </div>
+                    <p id="rec-status" class="text-[9px] font-black tracking-[0.5em] text-slate-600 uppercase">STANDBY</p>
                 </div>
-                <button onclick="prevPart()" class="absolute left-2 top-1/2 -translate-y-1/2 p-4 text-slate-700 hover:text-white"><i class="fas fa-arrow-left fa-2x"></i></button>
-                <button onclick="nextPart()" class="absolute right-2 top-1/2 -translate-y-1/2 p-4 text-slate-700 hover:text-white"><i class="fas fa-arrow-right fa-2x"></i></button>
             </div>
 
-            <div class="p-10 pb-16 flex flex-col items-center gap-10">
-                <div id="viz" class="flex items-end gap-1 h-12"></div>
-                <div class="flex items-center gap-10" id="record-controls">
-                    <button id="start-btn" onclick="startRecording()" class="w-24 h-24 bg-red-600 rounded-full flex items-center justify-center shadow-xl"><div class="w-8 h-8 bg-white rounded-full"></div></button>
+            <footer class="flex justify-between items-center py-8">
+                <button onclick="prevPart()" class="w-16 h-16 hardware-btn rounded-full flex items-center justify-center border border-white/5">
+                    <i class="fas fa-chevron-left text-slate-400"></i>
+                </button>
+                <button onclick="nextPart()" class="w-16 h-16 hardware-btn rounded-full flex items-center justify-center border border-white/5">
+                    <i class="fas fa-chevron-right text-slate-400"></i>
+                </button>
+            </footer>
+        </div>
+
+        <!-- Modals -->
+        <div id="modal-new" class="hidden fixed inset-0 z-[90] modal-blur flex items-center justify-center p-6">
+            <div class="bg-[#151518] w-full max-w-sm rounded-[3rem] p-8 border border-white/5">
+                <h3 class="text-xl font-black italic tracking-tighter mb-6">NEW PROJECT</h3>
+                <input type="text" id="in-title" placeholder="Project Name" class="w-full bg-black/60 border border-white/5 rounded-2xl p-4 mb-4 outline-none focus:border-indigo-500 font-bold text-sm">
+                <textarea id="in-text" placeholder="Paste script here..." class="w-full h-40 bg-black/60 border border-white/5 rounded-2xl p-4 mb-6 outline-none focus:border-indigo-500 resize-none text-xs font-medium leading-relaxed"></textarea>
+                <div class="flex gap-2">
+                    <button onclick="closeModals()" class="flex-1 py-4 bg-white/5 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-500">Cancel</button>
+                    <button onclick="saveNewProject()" class="flex-1 py-4 bg-indigo-600 rounded-2xl text-[10px] font-black uppercase tracking-widest">Create</button>
                 </div>
-                <p id="rec-status" class="text-slate-600 text-[10px] font-black tracking-[0.4em] uppercase">Ready</p>
             </div>
         </div>
 
-        <!-- Complete View -->
-        <div id="view-complete" class="hidden w-full max-w-md p-8 flex flex-col items-center justify-center h-screen text-center">
-            <div class="w-24 h-24 bg-indigo-500/10 rounded-[2rem] flex items-center justify-center mb-8 rotate-12">
-                <i class="fas fa-check text-indigo-400 text-3xl"></i>
+        <div id="modal-export" class="hidden fixed inset-0 z-[90] modal-blur flex items-center justify-center p-6">
+            <div class="bg-[#151518] w-full max-w-sm rounded-[3rem] p-8 border border-white/5 text-center">
+                <h3 class="text-xl font-black italic tracking-tighter mb-8">EXPORT AUDIO (MP3)</h3>
+                <div class="space-y-3">
+                    <button onclick="runExport('full')" class="w-full py-4 bg-white/5 rounded-2xl font-bold text-xs flex justify-between px-6 items-center"><span>Full .ZIP</span> <i class="fas fa-download opacity-20"></i></button>
+                    <button onclick="runExport('character')" class="w-full py-4 bg-white/5 rounded-2xl font-bold text-xs flex justify-between px-6 items-center"><span id="exp-char-label">Character</span> <i class="fas fa-user opacity-20"></i></button>
+                    <button onclick="runExport('chapter')" class="w-full py-4 bg-white/5 rounded-2xl font-bold text-xs flex justify-between px-6 items-center"><span id="exp-chap-label">Chapter</span> <i class="fas fa-book opacity-20"></i></button>
+                </div>
+                <button onclick="closeModals()" class="mt-6 text-[10px] font-black text-slate-600 uppercase tracking-widest">Close</button>
             </div>
-            <h2 class="text-3xl font-black italic mb-4">CHAPTER COMPLETED!!</h2>
-            <p class="text-slate-500 mb-12">All audio has been encoded on your Raspberry Pi.</p>
-            <button onclick="showView('dashboard')" class="w-full bg-indigo-600 py-5 rounded-3xl font-black italic text-lg">BACK TO BOOK</button>
         </div>
     </div>
 
     <script>
-        // CONFIG: Replace with your actual ngrok URL
-        // Example: https://abc-123.ngrok-free.app (No trailing slash)
         const BACKEND_URL = "https://habile-lissa-phytogenic.ngrok-free.dev/"; 
         
         let state = {
@@ -153,61 +243,203 @@
             currentIndex: 0,
             mediaRecorder: null,
             chunks: [],
-            isExpanded: false
+            isRecording: false
         };
 
-        // Check server connection on load
-        async function checkConnection() {
-            const statusText = document.getElementById('connection-status');
-            const statusDot = document.getElementById('connection-dot');
+        async function syncToPi() {
             try {
-                const res = await fetch(BACKEND_URL + "/", {
-                    headers: { 'ngrok-skip-browser-warning': 'true' }
+                await fetch(BACKEND_URL + "/save_projects", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+                    body: JSON.stringify({ books: state.books })
                 });
-                if (res.ok) {
-                    statusText.innerText = "Server Online";
-                    statusText.classList.replace('text-slate-400', 'text-emerald-400');
-                    statusDot.classList.replace('bg-slate-500', 'bg-emerald-500');
-                } else {
-                    throw new Error();
+            } catch (e) { console.warn("Offline Sync"); }
+        }
+
+        async function loadFromPi() {
+            const dot = document.getElementById('connection-dot');
+            try {
+                const res = await fetch(BACKEND_URL + "/get_projects", { headers: {'ngrok-skip-browser-warning': 'true'} });
+                if(res.ok) {
+                    const data = await res.json();
+                    state.books = data.books || [];
+                    renderHome();
+                    dot.className = "w-1.5 h-1.5 rounded-full bg-emerald-500";
+                    document.querySelector('#connection-status span').innerText = "System Online";
                 }
-            } catch (err) {
-                statusText.innerText = "Server Offline";
-                statusText.classList.replace('text-slate-400', 'text-red-400');
-                statusDot.classList.replace('bg-slate-500', 'bg-red-500');
+            } catch (e) { 
+                dot.className = "w-1.5 h-1.5 rounded-full bg-red-500";
+                document.querySelector('#connection-status span').innerText = "System Offline";
             }
         }
-        checkConnection();
 
-        function showView(viewId) {
-            ['home', 'dashboard', 'studio', 'complete'].forEach(v => {
-                document.getElementById('view-' + v).classList.add('hidden');
-            });
-            document.getElementById('view-' + viewId).classList.remove('hidden');
+        function renderHome() {
+            const list = document.getElementById('book-list');
+            list.innerHTML = state.books.length ? state.books.map((b, i) => `
+                <div onclick="openBook(${i})" class="bg-[#151518] p-6 rounded-[2.5rem] border border-white/5 flex items-center justify-between active:scale-95 transition-all">
+                    <div>
+                        <h4 class="font-black italic text-lg tracking-tight uppercase">${b.title}</h4>
+                        <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest mt-1">${b.chapters.length} Chapters • ${b.characters.length} Cast</p>
+                    </div>
+                    <i class="fas fa-chevron-right text-slate-800"></i>
+                </div>
+            `).join('') : '<div class="h-40 flex items-center justify-center text-slate-700 font-bold uppercase tracking-widest text-[10px]">No Projects Found</div>';
         }
 
-        function openNewBookModal() {
-            document.getElementById('modal-new-book').classList.remove('hidden');
-            document.getElementById('input-book-title').value = "";
-            document.getElementById('input-script-text').value = "";
+        function openBook(i) {
+            state.activeBook = state.books[i];
+            document.getElementById('dash-title').innerText = state.activeBook.title;
+            state.selectedChar = null; state.selectedChap = null;
+            
+            document.getElementById('cast-list').innerHTML = state.activeBook.characters.map(c => `
+                <button onclick="selectChar('${c}')" id="c-${c}" class="p-4 rounded-2xl hardware-btn border border-white/5 text-slate-500 font-bold text-[11px] text-left transition-all truncate">${c}</button>
+            `).join('');
+            
+            document.getElementById('chapter-list').innerHTML = state.activeBook.chapters.map((c, idx) => `
+                <button onclick="selectChap(${idx})" id="ch-${idx}" class="w-full p-5 rounded-[1.5rem] hardware-btn border border-white/5 text-left font-bold text-slate-500 flex justify-between items-center">
+                    <span class="text-sm">${c.title}</span>
+                    <span class="text-[9px] text-slate-700 uppercase">${c.parts.length} lines</span>
+                </button>
+            `).join('');
+            
+            checkStudioBtn();
+            showView('dashboard');
         }
 
-        function closeNewBookModal() {
-            document.getElementById('modal-new-book').classList.add('hidden');
+        function selectChar(c) {
+            state.selectedChar = c;
+            document.querySelectorAll('[id^="c-"]').forEach(el => el.className = "p-4 rounded-2xl hardware-btn border border-white/5 text-slate-500 font-bold text-[11px] text-left transition-all truncate");
+            document.getElementById('c-'+c).className = "p-4 rounded-2xl bg-indigo-600 border-indigo-400 text-white font-bold text-[11px] text-left shadow-lg shadow-indigo-900/40 truncate";
+            checkStudioBtn();
         }
 
-        async function processNewBook() {
-            const title = document.getElementById('input-book-title').value.trim();
-            const text = document.getElementById('input-script-text').value.trim();
-            if (!title || !text) return; 
-            setLoader(true, "Building Studio", "Parsing Script Data...");
-            setTimeout(() => {
-                const book = parseScript(text, title);
-                state.books.push(book);
-                renderHome();
-                setLoader(false);
-                closeNewBookModal();
-            }, 600);
+        function selectChap(i) {
+            state.selectedChap = state.activeBook.chapters[i];
+            document.querySelectorAll('[id^="ch-"]').forEach(el => el.className = "w-full p-5 rounded-[1.5rem] hardware-btn border border-white/5 text-left font-bold text-slate-500 flex justify-between items-center");
+            document.getElementById('ch-'+i).className = "w-full p-5 rounded-[1.5rem] bg-white/5 border-white/10 text-white text-left font-bold flex justify-between items-center";
+            checkStudioBtn();
+        }
+
+        function checkStudioBtn() { document.getElementById('studio-btn').disabled = !state.selectedChar || !state.selectedChap; }
+
+        function enterStudio() {
+            state.currentIndex = 0;
+            renderPart();
+            showView('studio');
+        }
+
+        function renderPart() {
+            const filteredLines = state.selectedChap.parts.filter(p => p.character === state.selectedChar);
+            const part = filteredLines[state.currentIndex];
+            if(!part) { showView('dashboard'); return; }
+            document.getElementById('st-chap').innerText = state.selectedChap.title;
+            document.getElementById('st-scene').innerText = part.scene || "DYNAMIC";
+            document.getElementById('st-char').innerText = part.character;
+            document.getElementById('st-text').innerText = part.text;
+            const progress = ((state.currentIndex + 1) / filteredLines.length) * 100;
+            document.getElementById('st-progress').style.width = progress + "%";
+        }
+
+        async function toggleRecording() {
+            const container = document.getElementById('view-studio');
+            const status = document.getElementById('rec-status');
+            if (state.isRecording) {
+                state.mediaRecorder.stop();
+                state.isRecording = false;
+                container.classList.remove('recording');
+                status.innerText = "ENCODING...";
+                setLoader(true, "Encoding MP3 on Pi");
+            } else {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    state.mediaRecorder = new MediaRecorder(stream);
+                    state.chunks = [];
+                    state.mediaRecorder.ondataavailable = e => state.chunks.push(e.data);
+                    state.mediaRecorder.onstop = uploadRecording;
+                    state.mediaRecorder.start();
+                    state.isRecording = true;
+                    container.classList.add('recording');
+                    status.innerText = "RECORDING";
+                } catch(e) { alert("Microphone access required."); }
+            }
+        }
+
+        async function uploadRecording() {
+            const blob = new Blob(state.chunks, { type: 'audio/webm' });
+            const formData = new FormData();
+            formData.append('audio', blob);
+            formData.append('book_title', state.activeBook.title);
+            const filtered = state.selectedChap.parts.filter(p => p.character === state.selectedChar);
+            const part = filtered[state.currentIndex];
+            const name = `${state.selectedChap.title.replace(/\s+/g, '_')}_Part${state.currentIndex + 1}_${part.character}.webm`;
+            formData.append('filename', name);
+            
+            try {
+                const res = await fetch(BACKEND_URL + "/upload_audio", { 
+                    method: 'POST', body: formData, headers: {'ngrok-skip-browser-warning': 'true'} 
+                });
+                if(res.ok) {
+                    setLoader(false);
+                    nextPart();
+                }
+            } catch(e) { 
+                setLoader(false); 
+                alert("Encoding failed. Check Pi ffmpeg."); 
+            }
+        }
+
+        function nextPart() {
+            const filteredLines = state.selectedChap.parts.filter(p => p.character === state.selectedChar);
+            if (state.currentIndex < filteredLines.length - 1) {
+                state.currentIndex++;
+                renderPart();
+                document.getElementById('rec-status').innerText = "STANDBY";
+            } else {
+                alert("Chapter Completed!");
+                showView('dashboard');
+            }
+        }
+
+        function prevPart() {
+            if(state.currentIndex > 0) {
+                state.currentIndex--;
+                renderPart();
+                document.getElementById('rec-status').innerText = "STANDBY";
+            }
+        }
+
+        function openExportModal() {
+            document.getElementById('exp-char-label').innerText = state.selectedChar || 'Char Only';
+            document.getElementById('exp-chap-label').innerText = state.selectedChap?.title || 'Chap Only';
+            document.getElementById('modal-export').classList.remove('hidden');
+        }
+
+        async function runExport(type) {
+            let url = `${BACKEND_URL}/export?book=${state.activeBook.title}`;
+            if (type === 'character' && state.selectedChar) url += `&type=character&value=${state.selectedChar}`;
+            if (type === 'chapter' && state.selectedChap) url += `&type=chapter&value=${state.selectedChap.title}`;
+            window.open(url, '_blank');
+            closeModals();
+        }
+
+        function showView(id) {
+            ['home', 'dashboard', 'studio'].forEach(v => document.getElementById('view-'+v).classList.add('hidden'));
+            document.getElementById('view-'+id).classList.remove('hidden');
+        }
+        function openNewBookModal() { document.getElementById('modal-new').classList.remove('hidden'); }
+        function closeModals() { document.querySelectorAll('.modal-blur').forEach(m => m.classList.add('hidden')); }
+        function setLoader(s, t = "Syncing") { 
+            const l = document.getElementById('loader');
+            document.getElementById('loader-text').innerText = t;
+            if(s) l.classList.remove('hidden'); else l.classList.add('hidden');
+        }
+
+        function saveNewProject() {
+            const title = document.getElementById('in-title').value;
+            const text = document.getElementById('in-text').value;
+            if(!title || !text) return;
+            state.books.push(parseScript(text, title));
+            syncToPi(); renderHome(); closeModals();
         }
 
         function parseScript(text, title) {
@@ -224,12 +456,12 @@
                 } else if (t.toUpperCase().startsWith('SCENE')) {
                     currentScene = t.split(':')[0].trim();
                 } else if (t.includes(':')) {
-                    const charPart = t.split(':')[0];
-                    const char = charPart.replace(/\(.*\)/, '').trim().toUpperCase();
-                    const dialogue = t.split(':').slice(1).join(':').trim();
-                    if (char && currentChap && dialogue) {
-                        book.characters.add(char);
-                        currentChap.parts.push({ character: char, scene: currentScene, text: dialogue });
+                    const [charPart, ...dialogue] = t.split(':');
+                    const cleanChar = charPart.split('(')[0].trim().toUpperCase();
+                    const text = dialogue.join(':').trim();
+                    if (cleanChar && currentChap && text && !cleanChar.startsWith('SOUND') && !cleanChar.startsWith('SFX')) {
+                        book.characters.add(cleanChar);
+                        currentChap.parts.push({ character: cleanChar, scene: currentScene, text: text });
                     }
                 }
             });
@@ -237,153 +469,8 @@
             return book;
         }
 
-        function renderHome() {
-            const list = document.getElementById('book-list');
-            list.innerHTML = state.books.map((b, i) => `
-                <div onclick="openBook(${i})" class="w-full bg-[#16161a] p-5 rounded-3xl flex items-center gap-5 cursor-pointer hover:bg-[#1c1c22] transition-all">
-                    <div class="w-12 h-12 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-400"><i class="fas fa-book"></i></div>
-                    <div class="flex-1">
-                        <h3 class="font-bold">${b.title}</h3>
-                        <p class="text-[10px] text-slate-500 uppercase tracking-widest">${b.chapters.length} Chapters • ${b.characters.length} Cast</p>
-                    </div>
-                    <i class="fas fa-chevron-right text-slate-800"></i>
-                </div>
-            `).join('');
-        }
-
-        function openBook(index) {
-            state.activeBook = state.books[index];
-            document.getElementById('dash-title').innerText = state.activeBook.title;
-            state.selectedChar = null;
-            state.selectedChap = null;
-            checkStudioBtn();
-            const cast = document.getElementById('cast-list');
-            cast.innerHTML = state.activeBook.characters.map(c => `
-                <button onclick="selectChar('${c}')" id="char-${c}" class="p-4 rounded-2xl bg-[#16161a] border border-white/5 text-slate-400 text-sm font-bold text-left transition-all">
-                    <i class="fas fa-user mb-2 block"></i> ${c}
-                </button>
-            `).join('');
-            const chaps = document.getElementById('chapter-list');
-            chaps.innerHTML = state.activeBook.chapters.map((c, i) => `
-                <button onclick="selectChap(${i})" id="chap-${i}" class="w-full p-4 rounded-2xl bg-[#16161a] border border-white/5 text-left flex justify-between transition-all">
-                    <span class="font-bold">${c.title}</span>
-                    <i class="fas fa-chevron-right text-slate-700"></i>
-                </button>
-            `).join('');
-            showView('dashboard');
-        }
-
-        function selectChar(c) {
-            state.selectedChar = c;
-            document.querySelectorAll('[id^="char-"]').forEach(el => el.className = "p-4 rounded-2xl bg-[#16161a] border border-white/5 text-slate-400 text-sm font-bold text-left transition-all");
-            document.getElementById('char-'+c).className = "p-4 rounded-2xl bg-indigo-600 border-indigo-400 text-white text-sm font-bold text-left shadow-lg shadow-indigo-900/20";
-            checkStudioBtn();
-        }
-
-        function selectChap(i) {
-            state.selectedChap = state.activeBook.chapters[i];
-            document.querySelectorAll('[id^="chap-"]').forEach(el => el.className = "w-full p-4 rounded-2xl bg-[#16161a] border border-white/5 text-left flex justify-between transition-all");
-            document.getElementById('chap-'+i).className = "w-full p-4 rounded-2xl bg-white/10 border-white/20 text-left flex justify-between";
-            checkStudioBtn();
-        }
-
-        function checkStudioBtn() { document.getElementById('studio-btn').disabled = !state.selectedChar || !state.selectedChap; }
-
-        function enterStudio() {
-            state.currentIndex = 0;
-            state.isExpanded = false;
-            renderPart();
-            showView('studio');
-        }
-
-        function toggleTextExpansion() {
-            state.isExpanded = !state.isExpanded;
-            const card = document.getElementById('script-card');
-            const btn = document.getElementById('show-more-btn');
-            if (state.isExpanded) {
-                card.classList.remove('h-72'); card.classList.add('max-h-[60vh]', 'overflow-y-auto'); btn.innerText = "Collapse";
-            } else {
-                card.classList.add('h-72'); card.classList.remove('max-h-[60vh]', 'overflow-y-auto'); btn.innerText = "Show More";
-            }
-        }
-
-        function renderPart() {
-            const filtered = state.selectedChap.parts.filter(p => p.character === state.selectedChar);
-            const part = filtered[state.currentIndex];
-            if (!part) { showView('complete'); return; }
-            document.getElementById('st-char').innerText = part.character;
-            document.getElementById('st-chap').innerText = state.selectedChap.title;
-            document.getElementById('st-scene').innerText = part.scene;
-            document.getElementById('st-text').innerText = part.text;
-            const card = document.getElementById('script-card');
-            const btn = document.getElementById('show-more-btn');
-            state.isExpanded = false;
-            card.className = "w-full bg-[#111114] rounded-[2.5rem] border border-white/10 p-10 flex flex-col items-center justify-center text-center h-72 overflow-hidden transition-all";
-            btn.innerText = "Show More";
-            if (part.text.length > 150) btn.classList.remove('hidden'); else btn.classList.add('hidden');
-        }
-
-        async function startRecording() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                state.mediaRecorder = new MediaRecorder(stream);
-                state.chunks = [];
-                state.mediaRecorder.ondataavailable = e => state.chunks.push(e.data);
-                state.mediaRecorder.onstop = saveToBackend;
-                state.mediaRecorder.start();
-                document.getElementById('rec-status').innerText = "Capture Active";
-                document.getElementById('start-btn').classList.add('recording-pulse');
-                document.getElementById('record-controls').innerHTML = `<button onclick="stopRecording()" class="w-20 h-20 border-2 border-white/20 rounded-full flex items-center justify-center shadow-indigo-500/50 shadow-2xl transition-all"><i class="fas fa-stop text-white"></i></button>`;
-            } catch (err) { alert("Please allow microphone access."); }
-        }
-
-        function stopRecording() {
-            if (state.mediaRecorder && state.mediaRecorder.state === "recording") state.mediaRecorder.stop();
-            document.getElementById('record-controls').innerHTML = `<button id="start-btn" onclick="startRecording()" class="w-24 h-24 bg-red-600 rounded-full flex items-center justify-center shadow-xl"><div class="w-8 h-8 bg-white rounded-full"></div></button>`;
-            setLoader(true, "Syncing to Pi Server", "FFMPEG Encoding Active");
-        }
-
-        async function saveToBackend() {
-            const blob = new Blob(state.chunks, { type: 'audio/webm' });
-            const formData = new FormData();
-            formData.append('audio', blob);
-            formData.append('book_title', state.activeBook.title);
-            const filtered = state.selectedChap.parts.filter(p => p.character === state.selectedChar);
-            const part = filtered[state.currentIndex];
-            const name = `${state.selectedChap.title.replace(/\s+/g, '_')}-${state.currentIndex + 1}-${part.character}.webm`;
-            formData.append('filename', name);
-
-            try {
-                const response = await fetch(BACKEND_URL + "/upload_audio", { 
-                    method: 'POST', 
-                    body: formData,
-                    headers: { 'ngrok-skip-browser-warning': 'true' } // SKIP NGROK WARNING PAGE
-                });
-                if (!response.ok) throw new Error();
-                setLoader(false);
-                nextPart();
-            } catch (err) {
-                setLoader(true, "Connection Failed", "Check ngrok URL or open it in a new tab first.");
-                setTimeout(() => setLoader(false), 3000);
-            }
-        }
-
-        function setLoader(show, main = "Syncing...", sub = "Processing") {
-            const l = document.getElementById('loader');
-            document.getElementById('loader-text').innerText = main;
-            document.getElementById('loader-subtext').innerText = sub;
-            if (show) l.classList.remove('hidden'); else l.classList.add('hidden');
-        }
-
-        function nextPart() { state.currentIndex++; renderPart(); }
-        function prevPart() { if(state.currentIndex > 0) { state.currentIndex--; renderPart(); } }
-
-        setInterval(() => {
-            const viz = document.getElementById('viz');
-            if (state.mediaRecorder && state.mediaRecorder.state === "recording") {
-                viz.innerHTML = Array(12).fill(0).map(() => `<div class="bg-indigo-500 w-1 rounded-full transition-all duration-75" style="height: ${Math.random()*40 + 10}px"></div>`).join('');
-            } else viz.innerHTML = "";
-        }, 100);
+        loadFromPi();
+        setInterval(loadFromPi, 15000);
     </script>
 </body>
 </html>
