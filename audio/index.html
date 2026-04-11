@@ -330,8 +330,21 @@
                 btn.disabled = true;
                 btn.className = "action-btn opacity-50";
             } else {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                state.mediaRecorder = new MediaRecorder(stream);
+                // IMPROVED AUDIO SETTINGS: Disable all filters for raw professional sound
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: {
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false,
+                        channelCount: 1,
+                        sampleRate: 48000
+                    } 
+                });
+                
+                // Increase bitrate to maximum (audio/webm usually defaults very low)
+                const options = { audioBitsPerSecond : 128000 };
+                state.mediaRecorder = new MediaRecorder(stream, options);
+                
                 state.chunks = [];
                 state.mediaRecorder.ondataavailable = e => state.chunks.push(e.data);
                 state.mediaRecorder.onstop = saveRecording;
