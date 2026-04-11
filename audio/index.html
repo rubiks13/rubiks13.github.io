@@ -17,46 +17,23 @@
             overscroll-behavior: none;
         }
 
-        .studio-bg { 
-            background: radial-gradient(circle at top right, #1e293b, #0f172a);
-        }
-
+        .studio-bg { background: radial-gradient(circle at top right, #1e293b, #0f172a); }
         .glass {
             background: rgba(30, 41, 59, 0.7);
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        .arrow-btn { 
-            width: 80px; 
-            height: 80px; 
-            background: #1e293b;
-            border: 2px solid #334155;
-            border-radius: 24px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            transition: all 0.2s;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
-        }
-        .arrow-btn:active { transform: scale(0.92); background: #334155; }
-
         .record-btn {
-            width: 100px;
-            height: 100px;
+            width: 100px; height: 100px;
             border-radius: 50%;
             background: #ef4444;
             border: 8px solid rgba(239, 68, 68, 0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
             box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
             transition: all 0.3s;
         }
-        .record-btn.recording {
-            animation: pulse-red 1.5s infinite;
-            border-radius: 30%;
-        }
+        .record-btn.recording { animation: pulse-red 1.5s infinite; border-radius: 30%; }
 
         @keyframes pulse-red {
             0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
@@ -68,32 +45,22 @@
             background: #1e293b;
             border-radius: 40px;
             padding: 40px;
-            min-height: 300px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+            min-height: 350px;
+            display: flex; flex-direction: column; justify-content: center;
             border: 1px solid rgba(255,255,255,0.05);
+            position: relative;
         }
 
-        .status-pill {
-            padding: 4px 12px;
-            border-radius: 999px;
-            font-size: 10px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        .page-transition {
-            animation: fadeIn 0.4s ease-out;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
+        .page-transition { animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
         .hide-scroll::-webkit-scrollbar { display: none; }
+
+        input, textarea, select {
+            background: #1e293b !important;
+            border: 1px solid rgba(255,255,255,0.1) !important;
+            color: white !important;
+        }
     </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden">
@@ -105,16 +72,22 @@
                 <span class="text-blue-500 font-black tracking-tighter text-sm uppercase">Voice Studio Pro</span>
                 <h1 class="text-5xl font-black tracking-tight">Projects</h1>
             </div>
-            <button onclick="showModal('add-book')" class="w-16 h-16 bg-blue-600 rounded-3xl flex items-center justify-center shadow-xl shadow-blue-900/20 active:scale-95 transition-transform">
-                <i data-lucide="plus" class="text-white w-8 h-8"></i>
-            </button>
+            <div class="flex gap-3">
+                <button onclick="syncWithPi()" class="w-16 h-16 glass rounded-3xl flex items-center justify-center">
+                    <i data-lucide="refresh-cw" class="w-6 h-6 text-slate-400"></i>
+                </button>
+                <button onclick="showModal('add-book')" class="w-16 h-16 bg-blue-600 rounded-3xl flex items-center justify-center shadow-xl shadow-blue-900/20 active:scale-95 transition-transform">
+                    <i data-lucide="plus" class="text-white w-8 h-8"></i>
+                </button>
+            </div>
         </header>
 
-        <div id="book-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+        <div id="book-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
 
-        <div id="empty-state" class="hidden flex flex-col items-center justify-center pt-20 text-slate-500">
-            <i data-lucide="folder-open" class="w-16 h-16 mb-4 opacity-20"></i>
-            <p class="font-medium">No projects yet. Tap + to start.</p>
+        <div id="empty-state" class="hidden flex flex-col items-center justify-center pt-32 text-slate-500">
+            <i data-lucide="mic-2" class="w-20 h-20 mb-6 opacity-10"></i>
+            <p class="text-xl font-bold italic">The studio is silent...</p>
+            <p class="text-sm opacity-50">Upload a script to begin recording.</p>
         </div>
     </div>
 
@@ -122,41 +95,46 @@
     <div id="view-book" class="hidden flex-1 p-8 overflow-y-auto flex flex-col page-transition">
         <div class="flex items-center justify-between mb-10">
             <button onclick="showView('dashboard')" class="w-12 h-12 glass rounded-2xl flex items-center justify-center">
-                <i data-lucide="chevron-left" class="text-slate-400"></i>
+                <i data-lucide="arrow-left" class="text-slate-400"></i>
             </button>
+            <button onclick="deleteBook()" class="text-red-500 font-bold uppercase text-xs tracking-widest px-4 py-2 hover:bg-red-500/10 rounded-xl transition-all">Delete Project</button>
         </div>
 
-        <div class="mb-10">
-            <h2 id="book-title" class="text-4xl font-black mb-2">Book Title</h2>
-            <p id="book-stats" class="text-slate-500 font-bold uppercase text-xs tracking-widest">0 LINES TOTAL</p>
+        <div class="mb-12">
+            <h2 id="book-title" class="text-5xl font-black mb-3">Project Title</h2>
+            <div class="flex gap-4 items-center">
+                <span id="book-stats" class="text-blue-500 font-black text-xs tracking-[0.2em] uppercase">0 LINES TOTAL</span>
+                <div class="h-1 w-1 bg-slate-700 rounded-full"></div>
+                <span id="book-completion" class="text-slate-500 font-black text-xs tracking-[0.2em] uppercase">0% DONE</span>
+            </div>
         </div>
 
-        <div class="space-y-4">
-            <div class="bg-slate-800/50 p-6 rounded-[32px] border border-white/5">
-                <label class="text-[10px] font-black uppercase text-slate-500 mb-3 block tracking-widest">1. Select Chapter</label>
-                <select id="sel-chapter" onchange="validateStudio()" class="w-full bg-transparent text-xl font-bold outline-none appearance-none cursor-pointer">
-                    <option value="">Choose a chapter...</option>
+        <div class="space-y-6 max-w-3xl">
+            <div class="glass p-8 rounded-[40px]">
+                <label class="text-[10px] font-black uppercase text-slate-500 mb-4 block tracking-widest">Stage 1: Location</label>
+                <select id="sel-chapter" onchange="validateStudio()" class="w-full bg-transparent text-2xl font-bold outline-none appearance-none cursor-pointer p-2 rounded-xl">
+                    <option value="">Select Chapter...</option>
                 </select>
             </div>
 
-            <div class="bg-slate-800/50 p-6 rounded-[32px] border border-white/5">
-                <label class="text-[10px] font-black uppercase text-slate-500 mb-3 block tracking-widest">2. Select Your Role</label>
-                <select id="sel-character" onchange="validateStudio()" class="w-full bg-transparent text-xl font-bold outline-none appearance-none cursor-pointer">
-                    <option value="">Choose a character...</option>
+            <div class="glass p-8 rounded-[40px]">
+                <label class="text-[10px] font-black uppercase text-slate-500 mb-4 block tracking-widest">Stage 2: Voice Actor</label>
+                <select id="sel-character" onchange="validateStudio()" class="w-full bg-transparent text-2xl font-bold outline-none appearance-none cursor-pointer p-2 rounded-xl">
+                    <option value="">Select Character...</option>
                 </select>
             </div>
 
-            <div id="character-progress" class="hidden px-6 py-2">
-                <div class="flex justify-between text-[10px] font-black text-slate-500 mb-2">
-                    <span>ROLE COMPLETION</span>
+            <div id="character-progress" class="hidden px-8 py-4">
+                <div class="flex justify-between text-[11px] font-black text-slate-400 mb-3 uppercase tracking-tighter">
+                    <span>Character Progress</span>
                     <span id="char-prog-percent">0%</span>
                 </div>
-                <div class="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
-                    <div id="char-prog-bar" class="h-full bg-blue-500 transition-all duration-500" style="width: 0%"></div>
+                <div class="w-full h-3 bg-slate-900/50 rounded-full overflow-hidden border border-white/5">
+                    <div id="char-prog-bar" class="h-full bg-blue-500 transition-all duration-700 shadow-[0_0_15px_rgba(59,130,246,0.5)]" style="width: 0%"></div>
                 </div>
             </div>
 
-            <button id="btn-enter" onclick="openStudio()" disabled class="w-full py-8 bg-blue-600 disabled:bg-slate-800/50 disabled:text-slate-600 rounded-[32px] font-black text-xl mt-6 transition-all shadow-xl shadow-blue-900/20">
+            <button id="btn-enter" onclick="openStudio()" disabled class="w-full py-10 bg-blue-600 disabled:bg-slate-800 disabled:text-slate-600 rounded-[40px] font-black text-2xl mt-8 transition-all shadow-2xl shadow-blue-900/40 active:scale-95">
                 ENTER RECORDING STUDIO
             </button>
         </div>
@@ -164,99 +142,102 @@
 
     <!-- VIEW: STUDIO -->
     <div id="view-studio" class="hidden fixed inset-0 z-40 studio-bg flex flex-col justify-between p-8 overflow-hidden">
-        <div class="flex justify-between items-center w-full max-w-5xl mx-auto">
-            <button onclick="changePart(-1)" class="arrow-btn">
-                <i data-lucide="chevron-left" class="w-8 h-8"></i>
+        <div class="flex justify-between items-center w-full max-w-6xl mx-auto">
+            <button onclick="changePart(-1)" class="w-20 h-20 glass rounded-3xl flex items-center justify-center active:scale-90 transition-all">
+                <i data-lucide="chevron-left" class="w-10 h-10"></i>
             </button>
             <div class="text-center">
-                <span id="st-char" class="block text-blue-500 font-black text-2xl uppercase tracking-tighter">CHARACTER</span>
-                <span id="st-chap" class="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em]">Chapter 1 • Scene 1</span>
+                <h3 id="st-char" class="text-blue-500 font-black text-3xl uppercase tracking-tighter">VOICE</h3>
+                <p id="st-chap" class="text-slate-500 text-xs font-black uppercase tracking-[0.3em] mt-1">CHAPTER 1</p>
             </div>
-            <button onclick="changePart(1)" class="arrow-btn">
-                <i data-lucide="chevron-right" class="w-8 h-8"></i>
+            <button onclick="changePart(1)" class="w-20 h-20 glass rounded-3xl flex items-center justify-center active:scale-90 transition-all">
+                <i data-lucide="chevron-right" class="w-10 h-10"></i>
             </button>
         </div>
 
-        <div class="w-full max-w-md mx-auto flex justify-center gap-1.5 mt-4" id="st-dots"></div>
+        <div class="w-full max-w-lg mx-auto flex justify-center gap-2 mt-6" id="st-dots"></div>
 
-        <div class="w-full max-w-4xl mx-auto flex-1 flex flex-col justify-center py-10">
-            <div id="script-container" class="script-card relative">
-                <div id="st-rec-indicator" class="hidden absolute top-8 left-8 flex items-center gap-2">
-                    <div class="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                    <span class="text-red-500 font-black text-[10px] tracking-widest">RECORDING LIVE</span>
+        <div class="w-full max-w-5xl mx-auto flex-1 flex flex-col justify-center py-10">
+            <div id="script-container" class="script-card">
+                <div id="st-rec-indicator" class="hidden absolute top-10 left-10 flex items-center gap-3">
+                    <div class="w-4 h-4 bg-red-500 rounded-full animate-pulse"></div>
+                    <span class="text-red-500 font-black text-xs tracking-widest uppercase">Recording Live</span>
                 </div>
-                <p id="st-text" class="text-3xl md:text-5xl text-center font-bold leading-[1.3] tracking-tight"></p>
-                <button id="btn-show-more" onclick="toggleText()" class="hidden mx-auto mt-8 px-6 py-2 glass rounded-full text-xs font-bold uppercase tracking-widest text-slate-400">
-                    Show Remaining Text
-                </button>
+                <div id="st-text-container" class="max-h-[400px] overflow-y-auto hide-scroll">
+                    <p id="st-text" class="text-4xl md:text-6xl text-center font-bold leading-tight tracking-tight px-10"></p>
+                </div>
             </div>
         </div>
 
-        <div class="w-full max-w-xl mx-auto pb-12">
+        <div class="w-full max-w-2xl mx-auto pb-10">
             <div id="studio-controls-initial" class="flex flex-col items-center">
-                <button id="ctrl-start" onclick="startRecording()" class="record-btn">
-                    <i data-lucide="mic" class="text-white w-10 h-10"></i>
-                </button>
-                <p class="mt-6 font-black text-slate-500 text-[10px] tracking-[0.3em] uppercase">Tap to Record</p>
+                <div class="flex items-center gap-10">
+                    <div id="st-playback" class="hidden">
+                        <button onclick="playCurrentRec()" class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center shadow-xl">
+                            <i data-lucide="play" class="fill-white w-6 h-6"></i>
+                        </button>
+                    </div>
+                    <button id="ctrl-start" onclick="startRecording()" class="record-btn">
+                        <i data-lucide="mic" class="text-white w-12 h-12"></i>
+                    </button>
+                    <div class="w-16"></div>
+                </div>
+                <p class="mt-8 font-black text-slate-500 text-[11px] tracking-[0.4em] uppercase">Tap Mic to Record Take</p>
             </div>
 
             <div id="studio-controls-active" class="hidden flex flex-col items-center w-full">
-                <canvas id="freq-canvas" class="w-full h-24 mb-8"></canvas>
-                <div class="flex items-center gap-8">
-                    <button onclick="cancelRecording()" class="w-16 h-16 rounded-full glass flex items-center justify-center">
-                        <i data-lucide="x" class="text-slate-400 w-6 h-6"></i>
+                <canvas id="freq-canvas" class="w-full h-32 mb-10"></canvas>
+                <div class="flex items-center gap-10">
+                    <button onclick="cancelRecording()" class="w-20 h-20 rounded-full glass flex items-center justify-center active:scale-90">
+                        <i data-lucide="rotate-ccw" class="text-slate-400 w-8 h-8"></i>
                     </button>
-                    <button onclick="stopAndSave()" class="w-24 h-24 bg-white rounded-[32px] flex items-center justify-center shadow-2xl">
-                        <i data-lucide="square" class="text-black w-8 h-8 fill-black"></i>
+                    <button onclick="stopAndSave()" class="w-28 h-28 bg-white rounded-[40px] flex items-center justify-center shadow-2xl active:scale-90">
+                        <i data-lucide="square" class="text-black w-10 h-10 fill-black"></i>
                     </button>
-                    <button id="btn-pause" onclick="togglePause()" class="w-16 h-16 rounded-full glass flex items-center justify-center">
-                        <i data-lucide="pause" id="pause-icon" class="text-slate-400 w-6 h-6"></i>
+                    <button id="btn-pause" onclick="togglePause()" class="w-20 h-20 rounded-full glass flex items-center justify-center active:scale-90">
+                        <i data-lucide="pause" id="pause-icon" class="text-slate-400 w-8 h-8"></i>
                     </button>
                 </div>
             </div>
         </div>
 
-        <div class="absolute top-8 right-8 flex gap-4">
-            <div id="st-playback" class="hidden flex items-center gap-2 glass p-2 rounded-2xl">
-                <button onclick="playCurrentRec()" class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
-                    <i data-lucide="play" class="w-4 h-4 fill-white"></i>
-                </button>
-            </div>
-            <button onclick="exitStudio()" class="w-12 h-12 glass rounded-2xl flex items-center justify-center">
-                <i data-lucide="x" class="text-slate-500"></i>
-            </button>
-        </div>
+        <button onclick="exitStudio()" class="absolute top-10 right-10 w-16 h-16 glass rounded-3xl flex items-center justify-center shadow-xl">
+            <i data-lucide="x" class="text-slate-400 w-8 h-8"></i>
+        </button>
     </div>
 
     <!-- MODAL: LOADER -->
-    <div id="loader" class="hidden fixed inset-0 z-[100] bg-slate-950/80 backdrop-blur-md flex flex-col items-center justify-center text-center p-10">
-        <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-8"></div>
-        <h3 id="loader-title" class="text-2xl font-black mb-2">Syncing with Pi</h3>
-        <p id="loader-msg" class="text-slate-400 font-medium">Please keep this window open...</p>
+    <div id="loader" class="hidden fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-xl flex flex-col items-center justify-center text-center p-10">
+        <div class="relative w-24 h-24 mb-10">
+            <div class="absolute inset-0 border-8 border-blue-500/20 rounded-full"></div>
+            <div class="absolute inset-0 border-8 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+        <h3 id="loader-title" class="text-3xl font-black mb-3">Syncing System</h3>
+        <p id="loader-msg" class="text-slate-400 font-medium text-lg">Talking to Raspberry Pi...</p>
     </div>
 
-    <!-- MODAL: ADD BOOK -->
-    <div id="modal-add-book" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-xl p-6 flex flex-col items-center justify-center page-transition">
-        <div class="w-full max-w-2xl bg-slate-900 border border-white/10 p-10 rounded-[48px] shadow-2xl space-y-8">
+    <!-- MODAL: ADD SCRIPT -->
+    <div id="modal-add-book" class="hidden fixed inset-0 z-50 bg-black/90 backdrop-blur-2xl p-6 flex flex-col items-center justify-center">
+        <div class="w-full max-w-3xl bg-slate-900 border border-white/10 p-12 rounded-[60px] shadow-2xl space-y-10">
             <div class="text-center">
-                <h2 class="text-4xl font-black mb-2">Import Script</h2>
-                <p class="text-slate-500 font-medium">Paste your script below.</p>
+                <h2 class="text-5xl font-black mb-4 tracking-tighter">Import Script</h2>
+                <p class="text-slate-500 text-lg">The Pi will parse characters and chapters automatically.</p>
             </div>
-            <div class="space-y-4">
-                <input id="inp-title" type="text" placeholder="Project Name" class="w-full bg-slate-800 p-6 rounded-3xl font-bold text-lg outline-none border border-transparent focus:border-blue-500 transition-colors">
-                <textarea id="inp-script" placeholder="CHARACTER: Line of dialogue..." class="w-full h-64 bg-slate-800 p-6 rounded-3xl font-mono text-sm outline-none hide-scroll border border-transparent focus:border-blue-500 transition-colors"></textarea>
+            <div class="space-y-6">
+                <input id="inp-title" type="text" placeholder="Production Title (e.g. Heidi)" class="w-full p-8 rounded-3xl font-bold text-xl outline-none focus:ring-4 ring-blue-500/20 transition-all">
+                <textarea id="inp-script" placeholder="CHARACTER: Line..." class="w-full h-80 p-8 rounded-3xl font-mono text-base outline-none hide-scroll focus:ring-4 ring-blue-500/20 transition-all"></textarea>
             </div>
-            <div class="flex gap-4">
-                <button onclick="hideModals()" class="flex-1 py-5 text-slate-500 font-bold uppercase tracking-widest text-xs">Cancel</button>
-                <button onclick="processScript()" class="flex-1 py-5 bg-blue-600 rounded-3xl font-black text-lg shadow-xl shadow-blue-900/40">INITIALIZE PROJECT</button>
+            <div class="flex gap-6">
+                <button onclick="hideModals()" class="flex-1 py-6 text-slate-500 font-bold uppercase tracking-widest text-sm">Dismiss</button>
+                <button onclick="processScript()" class="flex-1 py-6 bg-blue-600 rounded-3xl font-black text-xl shadow-2xl shadow-blue-900/40 active:scale-95 transition-all">INITIALIZE PROJECT</button>
             </div>
         </div>
     </div>
 
     <script>
-        // --- CONFIGURATION ---
-        // REPLACE WITH YOUR ACTUAL NGROK URL
-        const API = "https://habile-lissa-phytogenic.ngrok-free.dev/"; 
+        // --- CORE SETTINGS ---
+        // !!! REPLACE THIS WITH YOUR ACTUAL NGROK URL !!!
+        const API_BASE = "https://habile-lissa-phytogenic.ngrok-free.dev/"; 
         
         let db = { books: {} };
         let activeBook = null;
@@ -264,36 +245,17 @@
         let currIdx = 0;
         let mediaRec, stream, chunks = [];
         let isRec = false, actx, analyser, dataArr, animId;
-        let isTextExpanded = false;
 
-        // FETCH PROJECTS FROM PI
-        async function init() {
-            lucide.createIcons();
-            setLoading(true, "Connecting to Studio", "Fetching projects from Raspberry Pi...");
+        async function syncWithPi() {
+            setLoading(true, "Synchronizing", "Fetching current studio state from Pi...");
             try {
-                // Force a clean fetch from the backend
-                const res = await fetch(`${API}/db?t=${Date.now()}`); 
+                const res = await fetch(`${API_BASE}/db?t=${Date.now()}`);
                 if(res.ok) {
                     db = await res.json();
-                    console.log("DB Updated:", db);
                     renderDashboard();
-                } else {
-                    console.error("Server error when fetching DB");
                 }
-            } catch(e) { 
-                console.error("Connection failed. Check your ngrok status.");
-            }
+            } catch(e) { console.error("Pi Sync Failed", e); }
             setLoading(false);
-        }
-
-        async function saveDB() {
-            try {
-                await fetch(`${API}/db`, { 
-                    method: 'POST', 
-                    headers: {'Content-Type': 'application/json'}, 
-                    body: JSON.stringify(db) 
-                });
-            } catch(e) { console.warn("Remote sync failed."); }
         }
 
         function renderDashboard() {
@@ -302,89 +264,75 @@
             list.innerHTML = '';
             
             const books = Object.values(db.books || {});
-            console.log("Rendering Books:", books.length);
-            
             if (books.length === 0) {
                 empty.classList.remove('hidden');
             } else {
                 empty.classList.add('hidden');
-                books.sort((a,b) => new Date(b.updated_at || 0) - new Date(a.updated_at || 0));
+                books.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
                 
                 books.forEach(book => {
-                    const recordedCount = (book.parts || []).filter(p => p.recorded).length;
-                    const totalCount = (book.parts || []).length;
-                    const percent = Math.round((recordedCount / totalCount) * 100) || 0;
+                    const done = book.parts.filter(p => p.recorded).length;
+                    const total = book.parts.length;
+                    const p = Math.round((done/total)*100) || 0;
                     
-                    const div = document.createElement('div');
-                    div.className = "glass p-6 rounded-[32px] flex justify-between items-center group active:scale-[0.98] transition-all cursor-pointer";
-                    div.innerHTML = `
-                        <div onclick="openBook('${book.id}')" class="flex-1">
-                            <div class="flex items-center gap-3 mb-2">
-                                <span class="status-pill ${percent === 100 ? 'bg-green-500/20 text-green-500' : 'bg-blue-500/20 text-blue-500'}">
-                                    ${percent}% COMPLETE
-                                </span>
+                    const card = document.createElement('div');
+                    card.className = "glass p-10 rounded-[50px] space-y-6 group cursor-pointer hover:bg-slate-800/80 transition-all border border-white/5";
+                    card.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <div class="w-16 h-16 bg-blue-600/10 rounded-2xl flex items-center justify-center">
+                                <i data-lucide="book-open" class="text-blue-500 w-8 h-8"></i>
                             </div>
-                            <h3 class="font-black text-2xl tracking-tight">${book.title}</h3>
+                            <span class="status-pill ${p===100?'bg-green-500/20 text-green-500':'bg-blue-500/20 text-blue-500'}">
+                                ${p}% SYNCED
+                            </span>
                         </div>
-                        <button onclick="deleteBook('${book.id}')" class="w-10 h-10 rounded-xl hover:bg-red-500/10 flex items-center justify-center">
-                            <i data-lucide="trash-2" class="text-red-500/40 w-5 h-5"></i>
-                        </button>
+                        <div>
+                            <h3 class="text-3xl font-black tracking-tight mb-2">${book.title}</h3>
+                            <p class="text-slate-500 font-bold text-xs uppercase tracking-widest">${total} SCRIPT LINES</p>
+                        </div>
                     `;
-                    list.appendChild(div);
+                    card.onclick = () => openBook(book.id);
+                    list.appendChild(card);
                 });
             }
             lucide.createIcons();
-            showView('dashboard');
         }
 
-        // SEND NEW SCRIPT TO PI AND WAIT FOR SUCCESS
         async function processScript() {
             const title = document.getElementById('inp-title').value.trim();
             const text = document.getElementById('inp-script').value.trim();
             if(!title || !text) return;
 
-            setLoading(true, "Creating Project", "The Pi is processing the script...");
+            setLoading(true, "Importing Script", "Pi is identifying roles and chapters...");
             try {
-                const res = await fetch(`${API}/import_script`, {
+                const res = await fetch(`${API_BASE}/import_script`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ title, text })
                 });
-                
                 if(res.ok) {
-                    const result = await res.json();
-                    console.log("Success from Pi:", result);
-                    
-                    // Reset inputs
+                    hideModals();
                     document.getElementById('inp-title').value = '';
                     document.getElementById('inp-script').value = '';
-                    
-                    hideModals();
-                    
-                    // CRITICAL: Immediately ask the backend for the new list
-                    await init(); 
-                } else {
-                    alert("Pi failed to process the script.");
-                    setLoading(false);
+                    await syncWithPi();
                 }
-            } catch(e) { 
-                alert("Connection lost. Is ngrok running?"); 
-                setLoading(false);
-            }
+            } catch(e) { alert("Import error."); }
+            setLoading(false);
         }
 
         function openBook(id) {
             activeBook = db.books[id];
-            if (!activeBook) return;
-
             document.getElementById('book-title').innerText = activeBook.title;
-            document.getElementById('book-stats').innerText = `${activeBook.parts.length} LINES TOTAL`;
+            const total = activeBook.parts.length;
+            const done = activeBook.parts.filter(p => p.recorded).length;
+            document.getElementById('book-stats').innerText = `${total} LINES TOTAL`;
+            document.getElementById('book-completion').innerText = `${Math.round((done/total)*100)}% DONE`;
             
             const chapters = [...new Set(activeBook.parts.map(p => p.chapter))];
-            document.getElementById('sel-chapter').innerHTML = '<option value="">Choose a chapter...</option>' + 
+            document.getElementById('sel-chapter').innerHTML = '<option value="">Select Chapter...</option>' + 
                                chapters.map(c => `<option value="${c}">${c}</option>`).join('');
             
-            document.getElementById('sel-character').innerHTML = '<option value="">Choose a character...</option>' + 
+            document.getElementById('sel-character').innerHTML = '<option value="">Select Character...</option>' + 
                                activeBook.characters.map(c => `<option value="${c}">${c}</option>`).join('');
             
             validateStudio();
@@ -421,18 +369,17 @@
         function renderStudioPart() {
             const p = activeParts[currIdx];
             document.getElementById('st-char').innerText = p.character;
-            document.getElementById('st-chap').innerText = `${p.chapter} • Scene ${p.scene}`;
+            document.getElementById('st-chap').innerText = p.chapter;
+            document.getElementById('st-text').innerText = p.text;
             
             const dots = document.getElementById('st-dots');
             dots.innerHTML = '';
             activeParts.forEach((part, idx) => {
                 const d = document.createElement('div');
-                d.className = `h-1 rounded-full ${idx === currIdx ? 'w-8 bg-blue-500' : 'w-2 bg-slate-700'} ${part.recorded ? 'bg-green-500/40' : ''}`;
+                d.className = `h-1.5 rounded-full transition-all duration-300 ${idx === currIdx ? 'w-10 bg-blue-500' : 'w-2 bg-slate-800'} ${part.recorded ? 'bg-green-500/30' : ''}`;
                 dots.appendChild(d);
             });
             
-            isTextExpanded = false;
-            updateStudioText();
             document.getElementById('studio-controls-initial').classList.remove('hidden');
             document.getElementById('studio-controls-active').classList.add('hidden');
             document.getElementById('st-rec-indicator').classList.add('hidden');
@@ -440,58 +387,86 @@
             lucide.createIcons();
         }
 
-        function updateStudioText() {
-            const p = activeParts[currIdx];
-            const textEl = document.getElementById('st-text');
-            const btnMore = document.getElementById('btn-show-more');
-            if (p.text.length > 180 && !isTextExpanded) {
-                textEl.innerText = p.text.substring(0, 180) + "...";
-                btnMore.classList.remove('hidden');
-            } else {
-                textEl.innerText = p.text;
-                btnMore.classList.add('hidden');
-            }
-        }
-
-        function toggleText() { isTextExpanded = true; updateStudioText(); }
-
         async function startRecording() {
             try {
                 stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 actx = new AudioContext();
                 analyser = actx.createAnalyser();
-                const source = actx.createMediaStreamSource(stream);
-                source.connect(analyser);
+                actx.createMediaStreamSource(stream).connect(analyser);
                 dataArr = new Uint8Array(analyser.frequencyBinCount);
+                
                 mediaRec = new MediaRecorder(stream);
                 chunks = [];
                 mediaRec.ondataavailable = e => chunks.push(e.data);
                 mediaRec.start();
+                
                 isRec = true;
                 document.getElementById('studio-controls-initial').classList.add('hidden');
                 document.getElementById('studio-controls-active').classList.remove('hidden');
                 document.getElementById('st-rec-indicator').classList.remove('hidden');
                 drawVisualizer();
-            } catch(e) { alert("Mic required."); }
+            } catch(e) { alert("Microphone access denied."); }
         }
 
         function drawVisualizer() {
             if(!isRec) return;
             const cvs = document.getElementById('freq-canvas');
             const ctx = cvs.getContext('2d');
-            cvs.width = cvs.offsetWidth;
-            cvs.height = cvs.offsetHeight;
+            cvs.width = cvs.offsetWidth; cvs.height = cvs.offsetHeight;
             analyser.getByteFrequencyData(dataArr);
-            ctx.clearRect(0,0, cvs.width, cvs.height);
-            const barWidth = (cvs.width / dataArr.length) * 2.5;
-            let x = 0;
-            for(let i=0; i < dataArr.length; i++) {
-                const barHeight = (dataArr[i]/255) * cvs.height;
-                ctx.fillStyle = `rgba(59, 130, 246, ${dataArr[i]/255})`;
-                ctx.fillRect(x, cvs.height - barHeight, barWidth, barHeight);
-                x += barWidth + 2;
+            ctx.clearRect(0,0,cvs.width,cvs.height);
+            const bw = (cvs.width / 60);
+            for(let i=0; i<60; i++) {
+                const h = (dataArr[i*5]/255) * cvs.height;
+                ctx.fillStyle = `rgba(59, 130, 246, ${0.3 + (h/cvs.height)})`;
+                ctx.fillRect(i * (bw + 2), cvs.height/2 - h/2, bw, h);
             }
             animId = requestAnimationFrame(drawVisualizer);
+        }
+
+        async function stopAndSave() {
+            setLoading(true, "Finalizing Take", "Uploading to Pi...");
+            isRec = false;
+            cancelAnimationFrame(animId);
+            mediaRec.stop();
+            stream.getTracks().forEach(t => t.stop());
+            
+            mediaRec.onstop = async () => {
+                const blob = new Blob(chunks, { type: 'audio/webm' });
+                const part = activeParts[currIdx];
+                const fd = new FormData();
+                fd.append('audio', blob, 'take.webm');
+                
+                try {
+                    const res = await fetch(`${API_BASE}/upload_part`, { method: 'POST', body: fd });
+                    const data = await res.json();
+                    
+                    // Update Local State
+                    const dbPart = activeBook.parts.find(dp => dp.id === part.id);
+                    dbPart.recorded = true;
+                    dbPart.filename = data.filename;
+                    
+                    // Sync whole DB to Pi
+                    await fetch(`${API_BASE}/db`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(db)
+                    });
+
+                    if(currIdx < activeParts.length - 1) {
+                        currIdx++; renderStudioPart();
+                    } else { exitStudio(); }
+                } catch(e) { alert("Upload error."); }
+                setLoading(false);
+            };
+        }
+
+        function cancelRecording() {
+            isRec = false;
+            cancelAnimationFrame(animId);
+            if(mediaRec) mediaRec.stop();
+            if(stream) stream.getTracks().forEach(t => t.stop());
+            renderStudioPart();
         }
 
         function togglePause() {
@@ -506,77 +481,41 @@
             lucide.createIcons();
         }
 
-        async function stopAndSave() {
-            setLoading(true, "Encoding", "Saving audio to Pi...");
-            isRec = false;
-            cancelAnimationFrame(animId);
-            mediaRec.stop();
-            stream.getTracks().forEach(t => t.stop());
-            mediaRec.onstop = async () => {
-                const blob = new Blob(chunks, { type: 'audio/webm' });
-                const p = activeParts[currIdx];
-                const formData = new FormData();
-                formData.append('audio', blob, 'take.webm');
-                formData.append('metadata', JSON.stringify({ bookId: activeBook.id, partId: p.id }));
-                try {
-                    const res = await fetch(`${API}/upload_part`, { method: 'POST', body: formData });
-                    if(res.ok) {
-                        const data = await res.json();
-                        const dbPart = activeBook.parts.find(dp => dp.id === p.id);
-                        if(dbPart) { dbPart.recorded = true; dbPart.filename = data.filename; }
-                        await saveDB();
-                        if(currIdx < activeParts.length - 1) { currIdx++; renderStudioPart(); } else { exitStudio(); }
-                    }
-                } catch(e) { alert("Upload failed."); }
-                setLoading(false);
-            };
+        function playCurrentRec() {
+            const p = activeParts[currIdx];
+            if(p.filename) new Audio(`${API_BASE}/files/${p.filename}`).play();
         }
 
-        function cancelRecording() {
-            if(!confirm("Discard?")) return;
-            isRec = false;
-            cancelAnimationFrame(animId);
-            mediaRec.stop();
-            stream.getTracks().forEach(t => t.stop());
-            renderStudioPart();
+        async function deleteBook() {
+            if(!confirm("Destroy project?")) return;
+            delete db.books[activeBook.id];
+            await fetch(`${API_BASE}/db`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(db)
+            });
+            syncWithPi();
         }
 
-        function showView(id) {
-            document.querySelectorAll('[id^="view-"]').forEach(v => v.classList.add('hidden'));
-            document.getElementById('view-' + id).classList.remove('hidden');
-        }
-
-        function showModal(id) { document.getElementById('modal-' + id).classList.remove('hidden'); }
-        function hideModals() { document.querySelectorAll('[id^="modal-"]').forEach(m => m.classList.add('hidden')); }
-        
-        function setLoading(show, title = "Working", msg = "Please wait...") {
-            document.getElementById('loader-title').innerText = title;
-            document.getElementById('loader-msg').innerText = msg;
-            document.getElementById('loader').classList.toggle('hidden', !show);
-        }
-
-        function changePart(dir) {
-            const newIdx = currIdx + dir;
-            if(newIdx >= 0 && newIdx < activeParts.length) { currIdx = newIdx; renderStudioPart(); }
+        function changePart(d) {
+            const n = currIdx + d;
+            if(n >= 0 && n < activeParts.length) { currIdx = n; renderStudioPart(); }
         }
 
         function exitStudio() { showView('book'); validateStudio(); }
-        
-        async function deleteBook(id) {
-            if(!confirm("Delete project?")) return;
-            delete db.books[id];
-            await saveDB();
-            renderDashboard();
+        function showView(id) { 
+            document.querySelectorAll('[id^="view-"]').forEach(v => v.classList.add('hidden'));
+            document.getElementById('view-'+id).classList.remove('hidden');
+        }
+        function showModal(id) { document.getElementById('modal-'+id).classList.remove('hidden'); }
+        function hideModals() { document.querySelectorAll('[id^="modal-"]').forEach(m => m.classList.add('hidden')); }
+        function setLoading(s, t="", m="") {
+            document.getElementById('loader-title').innerText = t;
+            document.getElementById('loader-msg').innerText = m;
+            document.getElementById('loader').classList.toggle('hidden', !s);
         }
 
-        function playCurrentRec() {
-            const p = activeParts[currIdx];
-            if(!p.filename) return;
-            new Audio(`${API}/files/${p.filename}`).play();
-        }
-
-        // Start the app
-        window.onload = init;
+        window.onload = syncWithPi;
     </script>
 </body>
 </html>
