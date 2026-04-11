@@ -18,9 +18,7 @@
             overflow-x: hidden;
         }
 
-        /* Fluid Typography for Mobile */
         .text-fluid-lg { font-size: clamp(1.2rem, 5vw, 1.8rem); }
-        .text-fluid-sm { font-size: clamp(0.7rem, 2.5vw, 0.9rem); }
 
         .card { 
             background: linear-gradient(145deg, #16161a, #0f0f12);
@@ -75,10 +73,6 @@
             display: flex; align-items: center; justify-content: center;
             padding: 20px;
         }
-
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
     </style>
 </head>
 <body>
@@ -98,11 +92,10 @@
             </div>
             <button onclick="openModal('modal-new')" class="w-14 h-14 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-xl"><i class="fas fa-plus"></i></button>
         </header>
-
         <div id="book-list" class="space-y-4"></div>
     </div>
 
-    <!-- VIEW: DASHBOARD (The one you liked) -->
+    <!-- VIEW: DASHBOARD -->
     <div id="view-dashboard" class="hidden p-6 max-w-xl mx-auto min-h-screen pb-32">
         <header class="flex justify-between items-center py-8">
             <button onclick="showView('home')" class="w-12 h-12 flex items-center justify-center rounded-2xl bg-white/5 border border-white/10"><i class="fas fa-chevron-left"></i></button>
@@ -111,7 +104,6 @@
         </header>
 
         <div class="space-y-8">
-            <!-- Stats -->
             <div class="grid grid-cols-2 gap-4">
                 <div class="card text-center">
                     <span id="stat-lines" class="text-3xl font-black italic text-indigo-500">0</span>
@@ -123,7 +115,6 @@
                 </div>
             </div>
 
-            <!-- Cast List -->
             <section>
                 <div class="flex justify-between items-end mb-4 px-2">
                     <label class="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400">Select Cast</label>
@@ -132,10 +123,9 @@
                 <div id="cast-list" class="grid grid-cols-2 gap-3"></div>
             </section>
 
-            <!-- Chapter List -->
             <section id="chapter-section" class="opacity-10 pointer-events-none transition-all duration-500">
                 <div class="flex justify-between items-end mb-4 px-2">
-                    <label class="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400">Select Chapter</label>
+                    <label class="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400">Select Section</label>
                     <span class="text-[9px] opacity-20 uppercase">Step 2</span>
                 </div>
                 <div id="chapter-list" class="space-y-3"></div>
@@ -147,7 +137,7 @@
         </div>
     </div>
 
-    <!-- VIEW: STUDIO (The big one) -->
+    <!-- VIEW: STUDIO -->
     <div id="view-studio" class="hidden fixed inset-0 z-50 flex flex-col bg-[#003399]">
         <div class="flex justify-between items-center px-6 py-10">
             <button onclick="prevPart()" class="studio-nav"><i class="fas fa-chevron-left"></i></button>
@@ -160,11 +150,9 @@
 
         <div class="flex-1 flex flex-col items-center justify-center p-6 relative">
             <div id="st-progress" class="absolute top-0 text-[10px] font-black opacity-30 uppercase tracking-[0.4em]">Line 1 of 1</div>
-            
             <div class="script-box">
                 <p id="st-text" class="text-fluid-lg leading-tight">...</p>
             </div>
-
             <div class="mt-8 h-12 flex items-center justify-center">
                 <button id="btn-review" onclick="playbackExisting()" class="hidden bg-white/10 backdrop-blur-xl border border-white/10 px-8 py-3 rounded-full font-black text-[10px] uppercase tracking-[0.2em] flex items-center gap-3 active:scale-90">
                     <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div> Review Take
@@ -183,7 +171,6 @@
                     </div>
                 </div>
             </div>
-
             <button id="rec-btn" onclick="toggleRecording()" class="action-btn btn-rec">Start Recording</button>
         </div>
     </div>
@@ -194,11 +181,11 @@
             <h3 class="text-2xl font-black italic mb-8 uppercase tracking-tighter">New Project</h3>
             <div class="space-y-4">
                 <input type="text" id="in-title" placeholder="Book Title" class="w-full bg-black rounded-3xl p-6 outline-none font-bold border border-white/5 focus:border-indigo-500/50 transition-colors">
-                <textarea id="in-text" placeholder="PASTE SCRIPT HERE...&#10;&#10;CHAPTER 1&#10;HEIDI: Hello!&#10;PETER: Hi there!" class="w-full h-56 bg-black rounded-3xl p-6 outline-none resize-none text-sm border border-white/5 focus:border-indigo-500/50 transition-colors"></textarea>
+                <textarea id="in-text" placeholder="PASTE SCRIPT HERE...&#10;&#10;CHAPTER 1 or SCENE 1&#10;HEIDI: Hello!&#10;PETER: Hi there!" class="w-full h-56 bg-black rounded-3xl p-6 outline-none resize-none text-sm border border-white/5 focus:border-indigo-500/50 transition-colors"></textarea>
             </div>
             <div class="flex gap-4 mt-10">
                 <button onclick="closeModals()" class="flex-1 py-5 opacity-40 font-black text-[11px] uppercase tracking-widest">Cancel</button>
-                <button onclick="saveProject()" class="flex-1 py-5 bg-indigo-600 rounded-[28px] font-black text-[11px] uppercase tracking-widest shadow-xl shadow-indigo-900/20">Create Book</button>
+                <button onclick="saveProject()" class="flex-1 py-5 bg-indigo-600 rounded-[28px] font-black text-[11px] uppercase tracking-widest shadow-xl shadow-indigo-900/20">Create Project</button>
             </div>
         </div>
     </div>
@@ -211,7 +198,6 @@
             </div>
             <h3 class="text-xl font-black italic mb-2 uppercase">Export Studio</h3>
             <p class="text-xs opacity-40 mb-10 px-4">Download all processed high-quality voice takes to your device.</p>
-            
             <div class="space-y-3">
                 <button onclick="runExport('full')" class="w-full py-5 bg-white/5 rounded-3xl font-bold flex justify-between px-8 items-center border border-white/5">
                     <span class="text-sm">Full Project ZIP</span> <i class="fas fa-box-open opacity-30"></i>
@@ -225,8 +211,7 @@
     </div>
 
     <script>
-        const BACKEND_URL = "https://habile-lissa-phytogenic.ngrok-free.dev"; // UPDATE IF NGROK CHANGES
-        
+        const BACKEND_URL = "https://habile-lissa-phytogenic.ngrok-free.dev";
         let state = {
             books: [], activeBook: null, selectedChar: null, selectedChap: null,
             currentIndex: 0, isRecording: false, mediaRecorder: null, chunks: [],
@@ -253,7 +238,7 @@
                     <div class="flex-1 overflow-hidden pr-4">
                         <h4 class="font-black italic text-lg uppercase truncate tracking-tight">${b.title}</h4>
                         <div class="flex gap-3 mt-1 opacity-30 font-black text-[8px] uppercase tracking-widest">
-                            <span>${b.chapters.length} Chapters</span>
+                            <span>${b.chapters.length} Sections</span>
                             <span>${b.characters.length} Cast</span>
                         </div>
                     </div>
@@ -267,17 +252,14 @@
             state.selectedChar = null; state.selectedChap = null;
             document.getElementById('dash-title').innerText = state.activeBook.title;
             document.getElementById('stat-cast').innerText = state.activeBook.characters.length;
-            
             let totalLines = 0;
             state.activeBook.chapters.forEach(ch => totalLines += ch.parts.length);
             document.getElementById('stat-lines').innerText = totalLines;
-
             document.getElementById('cast-list').innerHTML = state.activeBook.characters.map(c => `
                 <button onclick="selectChar('${c}')" id="c-${c}" class="card !p-4 text-left bg-white/[0.03] transition-all">
                     <h5 class="text-[10px] font-black uppercase truncate text-white/40">${c}</h5>
                 </button>
             `).join('');
-            
             document.getElementById('chapter-section').classList.add('opacity-10', 'pointer-events-none');
             showView('dashboard');
         }
@@ -292,12 +274,10 @@
             const active = document.getElementById('c-'+c);
             active.className = "card !p-4 text-left bg-indigo-600 border-indigo-400 shadow-xl shadow-indigo-600/20 scale-[1.05]";
             active.querySelector('h5').className = "text-[10px] font-black uppercase truncate text-white";
-            
             const available = state.activeBook.chapters.map((ch, idx) => {
                 const count = ch.parts.filter(p => p.character === c).length;
                 return count > 0 ? { ch, idx, count } : null;
             }).filter(x => x);
-
             document.getElementById('chapter-list').innerHTML = available.map(item => `
                 <button onclick="selectChap(${item.idx})" id="ch-${item.idx}" class="w-full card flex justify-between items-center text-sm font-bold border-white/5 active:scale-95 transition-transform">
                     <span class="truncate pr-4">${item.ch.title}</span>
@@ -324,26 +304,19 @@
             toggle.querySelector('div').style.left = state.autoAdvance ? '22px' : '2px';
         }
 
-        function enterStudio() {
-            state.currentIndex = 0;
-            renderStudioPart();
-            showView('studio');
-        }
+        function enterStudio() { state.currentIndex = 0; renderStudioPart(); showView('studio'); }
 
         async function renderStudioPart() {
             const lines = state.selectedChap.parts.filter(p => p.character === state.selectedChar);
             if (!lines[state.currentIndex]) return;
-
             const part = lines[state.currentIndex];
             document.getElementById('st-char').innerText = part.character;
             document.getElementById('st-chap').innerText = state.selectedChap.title;
             document.getElementById('st-text').innerText = part.text;
             document.getElementById('st-progress').innerText = `Line ${state.currentIndex + 1} of ${lines.length}`;
-            
             const filename = `${state.selectedChap.title}_${state.currentIndex + 1}_${part.character}.mp3`;
             const res = await fetch(`${BACKEND_URL}/check_file?book=${state.activeBook.title}&filename=${filename}`, { headers: {'ngrok-skip-browser-warning': 'true'} });
             const data = await res.json();
-            
             state.currentAudioFile = data.exists ? data.filename : null;
             document.getElementById('btn-review').classList.toggle('hidden', !data.exists);
         }
@@ -376,70 +349,67 @@
             fd.append('audio', blob);
             fd.append('book_title', state.activeBook.title);
             fd.append('filename', `${state.selectedChap.title}_${state.currentIndex + 1}_${state.selectedChar}.webm`);
-            
             try {
                 await fetch(BACKEND_URL + "/upload_audio", { method: 'POST', body: fd, headers: {'ngrok-skip-browser-warning': 'true'} });
                 if (state.autoAdvance) {
                     const lines = state.selectedChap.parts.filter(p => p.character === state.selectedChar);
                     if (state.currentIndex < lines.length - 1) { state.currentIndex++; renderStudioPart(); }
-                    else { alert("Chapter Cast Complete!"); exitStudio(); }
+                    else { alert("Section Complete!"); exitStudio(); }
                 } else { renderStudioPart(); }
             } catch (e) { alert("Pi Connection Failed"); }
-            
             const btn = document.getElementById('rec-btn');
-            btn.disabled = false;
-            btn.innerText = "Start Recording";
-            btn.className = "action-btn btn-rec";
+            btn.disabled = false; btn.innerText = "Start Recording"; btn.className = "action-btn btn-rec";
             setLoader(false);
         }
 
         function playbackExisting() {
             if (!state.currentAudioFile) return;
-            const url = `${BACKEND_URL}/stream_audio?book=${state.activeBook.title}&filename=${state.currentAudioFile}`;
-            new Audio(url).play();
+            new Audio(`${BACKEND_URL}/stream_audio?book=${state.activeBook.title}&filename=${state.currentAudioFile}`).play();
         }
 
         async function saveProject() {
             const title = document.getElementById('in-title').value;
             const text = document.getElementById('in-text').value;
             if(!title || !text) return;
-            
             setLoader(true);
             const lines = text.split('\n');
             let book = { title, chapters: [], characters: new Set() };
-            let currentChap = null;
-            
+            let currentSection = null;
             lines.forEach(l => {
                 const t = l.trim();
                 if(!t) return;
-                if(t.toUpperCase().startsWith('CHAPTER')) {
-                    currentChap = { title: t, parts: [] };
-                    book.chapters.push(currentChap);
-                } else if(t.includes(':') && currentChap) {
+                const upper = t.toUpperCase();
+                // Recognize BOTH Chapter and Scene as triggers
+                if(upper.startsWith('CHAPTER') || upper.startsWith('SCENE')) {
+                    currentSection = { title: t, parts: [] };
+                    book.chapters.push(currentSection);
+                } else if(t.includes(':')) {
                     const [c, ...d] = t.split(':');
                     const char = c.trim().toUpperCase();
+                    // Fallback to create a default section if none exists
+                    if(!currentSection) {
+                        currentSection = { title: "Section 1", parts: [] };
+                        book.chapters.push(currentSection);
+                    }
                     book.characters.add(char);
-                    currentChap.parts.push({ character: char, text: d.join(':').trim() });
+                    currentSection.parts.push({ character: char, text: d.join(':').trim() });
                 }
             });
             book.characters = Array.from(book.characters).sort();
             state.books.push(book);
-            
             await fetch(BACKEND_URL + "/save_projects", { 
                 method: 'POST', 
                 headers: {'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true'}, 
                 body: JSON.stringify({ books: state.books }) 
             });
-            
             renderHome(); closeModals(); setLoader(false);
         }
 
         async function deleteBook(e, i) {
             e.stopPropagation();
-            if(!confirm("Delete this project and all recordings?")) return;
+            if(!confirm("Delete project?")) return;
             setLoader(true);
-            const title = state.books[i].title;
-            await fetch(BACKEND_URL + "/delete_project", { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ title }) });
+            await fetch(BACKEND_URL + "/delete_project", { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ title: state.books[i].title }) });
             state.books.splice(i, 1);
             await fetch(BACKEND_URL + "/save_projects", { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ books: state.books }) });
             renderHome(); setLoader(false);
@@ -459,7 +429,6 @@
             if (type === 'char') url += `&character=${state.selectedChar}`;
             window.open(url, '_blank');
         }
-
         init();
     </script>
 </body>
