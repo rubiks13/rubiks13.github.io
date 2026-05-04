@@ -3,36 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Restaurant POS System</title>
+    <title>Premium Restaurant POS System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
         /* Floating Logo Animation for Screensaver */
         @keyframes float {
             0% { transform: translate(0, 0); }
-            25% { transform: translate(30vw, 15vh); }
-            50% { transform: translate(60vw, 0); }
-            75% { transform: translate(30vw, -15vh); }
-            100% { transform: translate(0, 0); }
+            25% { transform: translate(25vw, 15vh) scale(1.1); }
+            50% { transform: translate(55vw, 0) scale(1); }
+            75% { transform: translate(25vw, -15vh) scale(1.1); }
+            100% { transform: translate(0, 0) scale(1); }
         }
         .screensaver-logo {
-            animation: float 25s linear infinite alternate;
-            max-width: 250px;
-            max-height: 250px;
+            animation: float 28s linear infinite alternate;
+            max-width: 280px;
+            max-height: 280px;
             border-radius: 50%;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.9);
+            filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.4));
         }
 
         /* Smooth Screen Transitions */
         .fade-enter {
-            animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: fadeIn 0.45s cubic-bezier(0.4, 0, 0.2, 1);
         }
         @keyframes fadeIn {
-            from { opacity: 0; transform: scale(0.98); }
-            to { opacity: 1; transform: scale(1); }
+            from { opacity: 0; transform: scale(0.97) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
         }
 
-        /* 80mm Receipt Printing Styles */
+        /* Receipt Printing Design */
         @media print {
             body * { visibility: hidden; }
             #print-area, #print-area * { visibility: visible; }
@@ -45,7 +46,7 @@
                 padding: 4mm;
                 font-family: 'Courier New', Courier, monospace;
                 font-size: 12px;
-                line-height: 1.2;
+                line-height: 1.3;
                 color: black;
                 display: block !important;
             }
@@ -55,57 +56,67 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
-        /* Modern Glass Effect */
         .glass-panel {
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
         }
         
-        /* Mobile Touch Optimizations */
-        button:active { transform: scale(0.96); }
+        button { touch-action: manipulation; transition: all 0.2s ease; }
+        button:active { transform: scale(0.94); }
         input { -webkit-appearance: none; }
+
+        .shadow-premium {
+            box-shadow: 0 20px 40px -15px rgba(0,0,0,0.1), 0 10px 20px -10px rgba(0,0,0,0.05);
+        }
+
+        .order-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 12px;
+        }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-900 h-screen overflow-hidden flex flex-col font-sans">
+<body class="bg-gray-50 text-slate-900 h-screen overflow-hidden flex flex-col font-sans select-none">
 
-    <!-- CONFIGURATION -->
     <script>
         const NGROK_URL = "https://habile-lissa-phytogenic.ngrok-free.dev";
     </script>
 
-    <!-- Main Content Area -->
-    <div id="app" class="flex-1 overflow-hidden relative flex flex-col fade-enter">
-        <div class="flex items-center justify-center h-full bg-slate-900 text-white">
+    <!-- Main Viewport -->
+    <div id="app" class="flex-1 overflow-hidden relative flex flex-col">
+        <div class="flex items-center justify-center h-full bg-slate-950 text-white">
             <div class="text-center">
-                <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-6"></div>
-                <p class="text-xl font-light tracking-[0.4em] uppercase opacity-60">Initializing Ramen OS</p>
+                <div class="inline-block animate-spin rounded-full h-14 w-14 border-t-4 border-blue-500 mb-8"></div>
+                <p class="text-xl font-bold tracking-[0.6em] uppercase opacity-40 italic">Ramen OS v2.0</p>
             </div>
         </div>
     </div>
 
-    <!-- Status Bar (Persistent) -->
-    <div id="status-bar" class="bg-slate-950 text-[10px] text-slate-500 px-6 py-2 flex justify-between uppercase tracking-[0.2em] border-t border-slate-800 z-[60]">
-        <div class="flex items-center gap-2">
-            <div id="status-indicator" class="h-2 w-2 rounded-full bg-yellow-500"></div>
-            <span id="net-status">Syncing...</span>
+    <!-- Persistent Global Footer -->
+    <div id="status-bar" class="bg-slate-950 text-[10px] text-slate-500 px-8 py-3 flex justify-between items-center uppercase tracking-[0.3em] border-t border-slate-800 z-[60]">
+        <div class="flex items-center gap-3">
+            <div id="status-indicator" class="h-2.5 w-2.5 rounded-full bg-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.5)]"></div>
+            <span id="net-status" class="font-bold">Booting Systems...</span>
         </div>
-        <div class="font-bold text-blue-400" id="device-tag">SYSTEM IDLE</div>
+        <div class="flex gap-6 items-center">
+            <span id="device-tag" class="font-black text-blue-500">STANDBY</span>
+            <span id="clock" class="text-slate-600 tabular-nums">00:00:00</span>
+        </div>
     </div>
 
-    <!-- Hidden Print Buffer -->
     <div id="print-area" style="display:none;"></div>
 
-    <!-- Toast Notifications -->
-    <div id="toast" class="fixed top-8 left-1/2 -translate-x-1/2 z-[100] transition-all duration-500 translate-y-[-200%] opacity-0">
-        <div class="bg-slate-900 text-white px-8 py-4 rounded-3xl shadow-2xl flex items-center gap-4 border border-slate-700">
-            <span id="toast-icon" class="text-xl">✨</span>
-            <span id="toast-text" class="font-black tracking-tight">System Message</span>
+    <!-- Premium Toast Notifications -->
+    <div id="toast" class="fixed top-10 left-1/2 -translate-x-1/2 z-[100] transition-all duration-700 translate-y-[-200%] opacity-0 pointer-events-none">
+        <div class="bg-slate-900/95 backdrop-blur-md text-white px-10 py-5 rounded-[2.5rem] shadow-2xl flex items-center gap-5 border border-slate-700/50">
+            <span id="toast-icon" class="text-2xl filter drop-shadow-md">✨</span>
+            <span id="toast-text" class="font-black tracking-tight text-lg">System Update</span>
         </div>
     </div>
 
     <script>
-        // --- APP STATE ---
+        // --- CORE APP STATE ---
         let socket;
         let currentRole = null;
         let currentScreen = 'role-selection';
@@ -113,35 +124,58 @@
             customers: [], 
             menu: [], 
             modifiers: [],
-            settings: { restaurantName: "RAMEN POS", logoUrl: "" } 
+            settings: { restaurantName: "PREMIUM RAMEN", logoUrl: "" } 
         };
         let orderContext = { activeCustomerId: null, category: null, cart: [], pendingItem: null };
 
         // --- NETWORK ENGINE ---
         function connectToServer() {
-            socket = io(NGROK_URL, { transports: ['websocket'], reconnection: true });
+            socket = io(NGROK_URL, { 
+                transports: ['websocket'], 
+                reconnection: true,
+                reconnectionAttempts: 10
+            });
             
             socket.on('connect', () => {
-                document.getElementById('net-status').innerText = "Online";
-                document.getElementById('status-indicator').className = "h-2 w-2 rounded-full bg-green-500";
+                updateStatusBar(true);
             });
 
             socket.on('disconnect', () => {
-                document.getElementById('net-status').innerText = "Disconnected";
-                document.getElementById('status-indicator').className = "h-2 w-2 rounded-full bg-red-500 animate-pulse";
+                updateStatusBar(false);
             });
 
             socket.on('sync_state', (newState) => {
-                state = newState;
+                state = { ...state, ...newState };
+                if (!state.modifiers) state.modifiers = [];
                 render();
             });
 
             socket.on('kitchen_print_order', (data) => {
-                if (currentRole === 'kitchen') handleKitchenPrint(data.customerName, data.items);
+                if (currentRole === 'kitchen' && currentScreen !== 'screensaver') {
+                    handleKitchenPrint(data.customerName, data.items);
+                }
             });
         }
 
-        // --- NAVIGATION & ROUTING ---
+        function updateStatusBar(online) {
+            const status = document.getElementById('net-status');
+            const indicator = document.getElementById('status-indicator');
+            if(online) {
+                status.innerText = "Connection: Stable";
+                indicator.className = "h-2.5 w-2.5 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]";
+            } else {
+                status.innerText = "Connection: Offline";
+                indicator.className = "h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.5)]";
+            }
+        }
+
+        // --- CLOCK MODULE ---
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('clock').innerText = now.toLocaleTimeString('en-GB');
+        }, 1000);
+
+        // --- VIEW CONTROLLER ---
         function render() {
             const app = document.getElementById('app');
             app.classList.remove('fade-enter');
@@ -150,35 +184,44 @@
 
             if (!currentRole) return renderRoleSelection(app);
 
-            if (currentRole === 'ordering') {
-                if (currentScreen === 'customer-list') renderOrderingList(app);
-                else if (currentScreen === 'menu') renderOrderingMenu(app);
-            } else if (currentRole === 'kitchen') {
-                if (currentScreen === 'screensaver') renderKitchenScreensaver(app);
-                else if (currentScreen === 'password') renderKitchenPassword(app);
-                else if (currentScreen === 'dashboard') renderKitchenDashboard(app);
-                else if (currentScreen === 'settings') renderKitchenSettings(app);
-            }
+            // Routing Logic
+            const roleRoutes = {
+                'ordering': {
+                    'customer-list': renderOrderingList,
+                    'menu': renderOrderingMenu
+                },
+                'kitchen': {
+                    'screensaver': renderKitchenScreensaver,
+                    'password': renderKitchenPassword,
+                    'dashboard': renderKitchenDashboard,
+                    'settings': renderKitchenSettings
+                }
+            };
+
+            const viewFn = roleRoutes[currentRole][currentScreen];
+            if (viewFn) viewFn(app);
         }
 
-        // --- VIEW: ROLE SELECTION ---
+        // --- VIEWS: INITIALIZATION ---
         function renderRoleSelection(container) {
             container.innerHTML = `
-            <div class="h-full flex flex-col items-center justify-center bg-slate-900 text-white p-10">
-                <div class="mb-16 text-center">
-                    <h1 class="text-6xl font-black italic tracking-tighter mb-4">RAMEN <span class="text-blue-500">POS</span></h1>
-                    <div class="h-1.5 w-24 bg-blue-500 mx-auto rounded-full"></div>
+            <div class="h-full flex flex-col items-center justify-center bg-slate-900 text-white p-12 overflow-hidden relative">
+                <div class="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(59,130,246,0.15),transparent)] pointer-events-none"></div>
+                <div class="mb-20 text-center relative z-10">
+                    <h1 class="text-7xl font-black italic tracking-tighter mb-6 drop-shadow-2xl">RAMEN <span class="text-blue-500">POS</span></h1>
+                    <div class="h-2 w-32 bg-gradient-to-r from-blue-600 to-indigo-600 mx-auto rounded-full"></div>
+                    <p class="mt-6 text-slate-500 font-bold uppercase tracking-[0.5em] text-xs">Enterprise Terminal v2</p>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-3xl">
-                    <button onclick="setDeviceRole('ordering')" class="bg-blue-600 p-10 rounded-[3rem] shadow-2xl transition-all hover:-translate-y-2 text-left group">
-                        <span class="text-5xl block mb-6">📱</span>
-                        <span class="text-3xl font-black block mb-2">Ordering</span>
-                        <span class="text-blue-200 text-sm opacity-60 font-medium">Handheld Customer Terminal</span>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-10 w-full max-w-4xl relative z-10">
+                    <button onclick="setDeviceRole('ordering')" class="bg-blue-600 p-12 rounded-[3.5rem] shadow-2xl transition-all hover:translate-y-[-8px] text-left group">
+                        <span class="text-6xl block mb-8 filter drop-shadow-lg">📱</span>
+                        <span class="text-4xl font-black block mb-2">Ordering</span>
+                        <span class="text-blue-200 text-sm opacity-60 font-medium">Handheld Mobile Terminal</span>
                     </button>
-                    <button onclick="setDeviceRole('kitchen')" class="bg-red-600 p-10 rounded-[3rem] shadow-2xl transition-all hover:-translate-y-2 text-left group">
-                        <span class="text-5xl block mb-6">🍳</span>
-                        <span class="text-3xl font-black block mb-2">Kitchen</span>
-                        <span class="text-red-200 text-sm opacity-60 font-medium">Management & Printing</span>
+                    <button onclick="setDeviceRole('kitchen')" class="bg-red-600 p-12 rounded-[3.5rem] shadow-2xl transition-all hover:translate-y-[-8px] text-left group">
+                        <span class="text-6xl block mb-8 filter drop-shadow-lg">🍳</span>
+                        <span class="text-4xl font-black block mb-2">Kitchen</span>
+                        <span class="text-red-200 text-sm opacity-60 font-medium">Manager Dashboard</span>
                     </button>
                 </div>
             </div>`;
@@ -192,35 +235,39 @@
             render();
         }
 
-        // --- VIEW: ORDERING (MOBILE OPTIMIZED) ---
+        // --- VIEWS: ORDERING (MOBILE) ---
         function renderOrderingList(container) {
             container.innerHTML = `
             <div class="flex flex-col h-full bg-white">
-                <header class="p-6 bg-white flex justify-between items-center border-b">
-                    <h2 class="text-2xl font-black italic">RAMEN <span class="text-blue-500">POS</span></h2>
-                    <button onclick="currentRole=null; render()" class="text-slate-400 font-bold text-xs uppercase tracking-widest">Logout</button>
+                <header class="p-8 bg-white flex justify-between items-center border-b">
+                    <h2 class="text-3xl font-black italic tracking-tighter">RAMEN <span class="text-blue-500">POS</span></h2>
+                    <button onclick="currentRole=null; render()" class="h-12 w-12 flex items-center justify-center bg-slate-50 rounded-2xl text-slate-400">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    </button>
                 </header>
-                <div class="p-6 bg-slate-50 border-b">
-                    <p class="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-4">New Order Session</p>
-                    <div class="flex gap-2">
-                        <input id="new-cust-input" type="text" placeholder="Table # or Name" class="flex-1 p-4 rounded-2xl border-2 border-slate-100 focus:border-blue-500 outline-none font-bold shadow-inner">
-                        <button onclick="handleAddCustomer()" class="bg-blue-600 text-white w-14 rounded-2xl font-black text-2xl shadow-lg shadow-blue-100">+</button>
+                <div class="p-8 bg-slate-50 border-b">
+                    <p class="text-[10px] font-black uppercase text-slate-400 tracking-[0.3em] mb-4 ml-1">Assign New Session</p>
+                    <div class="flex gap-3">
+                        <input id="new-cust-input" type="text" placeholder="Table # or Customer Name" class="flex-1 p-5 rounded-3xl border-2 border-slate-100 focus:border-blue-500 outline-none font-bold text-lg shadow-inner">
+                        <button onclick="handleAddCustomer()" class="bg-blue-600 text-white w-16 h-16 rounded-3xl font-black text-3xl shadow-xl shadow-blue-200">+</button>
                     </div>
                 </div>
-                <div class="flex-1 overflow-y-auto p-6 space-y-4">
+                <div class="flex-1 overflow-y-auto p-8 space-y-5">
                     ${state.customers.map(c => `
-                        <div class="flex items-center gap-3">
-                            <button onclick="openOrderingMenu('${c.id}')" class="flex-1 bg-white p-6 rounded-[2.5rem] border-2 border-slate-50 shadow-sm flex justify-between items-center text-left active:bg-blue-50 transition-all">
+                        <div class="flex items-center gap-4">
+                            <button onclick="openOrderingMenu('${c.id}')" class="flex-1 bg-white p-8 rounded-[3rem] border-2 border-slate-100 shadow-premium flex justify-between items-center text-left active:bg-blue-50 transition-all">
                                 <div>
-                                    <span class="block text-2xl font-black text-slate-800">${c.name}</span>
-                                    <span class="text-xs font-bold text-slate-400 uppercase">${c.orders.length} Items Pending</span>
+                                    <span class="block text-2xl font-black text-slate-900">${c.name}</span>
+                                    <span class="text-xs font-bold text-blue-500 uppercase tracking-widest">${c.orders.length} items in tray</span>
                                 </div>
-                                <div class="h-10 w-10 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 font-black">&rarr;</div>
+                                <div class="h-12 w-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 font-black">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"></path></svg>
+                                </div>
                             </button>
-                            <button onclick="handleDeleteCustomer('${c.id}')" class="h-14 w-14 bg-red-50 text-red-400 rounded-3xl font-black text-2xl active:bg-red-500 active:text-white transition-all">&times;</button>
+                            <button onclick="handleDeleteCustomer('${c.id}')" class="h-16 w-16 bg-red-50 text-red-400 rounded-[2rem] font-black text-2xl flex items-center justify-center border-2 border-red-100">&times;</button>
                         </div>
                     `).join('')}
-                    ${state.customers.length === 0 ? '<div class="text-center py-20 text-slate-300 italic font-medium">No active sessions. Add one above.</div>' : ''}
+                    ${state.customers.length === 0 ? '<div class="text-center py-24 opacity-30 italic font-medium text-slate-400">Waiting for first session...</div>' : ''}
                 </div>
             </div>`;
         }
@@ -234,45 +281,47 @@
 
             container.innerHTML = `
             <div class="flex flex-col h-full bg-white relative">
-                <header class="p-4 bg-white border-b flex items-center justify-between z-50">
-                    <button onclick="currentScreen='customer-list'; render()" class="h-10 w-10 flex items-center justify-center bg-slate-100 rounded-xl font-black">&larr;</button>
+                <header class="p-6 bg-white border-b flex items-center justify-between z-50">
+                    <button onclick="currentScreen='customer-list'; render()" class="h-12 w-12 flex items-center justify-center bg-slate-100 rounded-2xl font-black text-slate-900">
+                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"></path></svg>
+                    </button>
                     <div class="text-center">
-                        <span class="block font-black text-lg">${customer.name}</span>
-                        <span class="text-[10px] text-blue-500 font-black uppercase tracking-widest">Active Order</span>
+                        <span class="block font-black text-xl tracking-tight">${customer.name}</span>
+                        <span class="text-[10px] text-blue-500 font-black uppercase tracking-[0.3em]">Ordering Mode</span>
                     </div>
-                    <div class="w-10"></div>
+                    <div class="w-12"></div>
                 </header>
 
-                <div class="flex overflow-x-auto p-3 gap-2 no-scrollbar bg-slate-50 border-b sticky top-0 z-40">
+                <div class="flex overflow-x-auto p-4 gap-3 no-scrollbar bg-slate-50 border-b sticky top-0 z-40">
                     ${state.menu.map(m => `
-                        <button onclick="orderContext.category='${m.category}'; render()" class="px-6 py-3 rounded-2xl font-black text-sm whitespace-nowrap transition-all ${orderContext.category === m.category ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'bg-white text-slate-400 border border-slate-200'}">
+                        <button onclick="orderContext.category='${m.category}'; render()" class="px-8 py-4 rounded-2xl font-black text-xs whitespace-nowrap transition-all ${orderContext.category === m.category ? 'bg-blue-600 text-white shadow-xl shadow-blue-200' : 'bg-white text-slate-400 border-2 border-slate-100'}">
                             ${m.category.toUpperCase()}
                         </button>
                     `).join('')}
                 </div>
 
-                <div class="flex-1 overflow-y-auto p-4 grid grid-cols-2 gap-3 content-start pb-40">
+                <div class="flex-1 overflow-y-auto p-6 grid grid-cols-2 sm:grid-cols-3 gap-4 content-start pb-48">
                     ${(activeCat?.items || []).map(item => `
-                        <button onclick="triggerModifierCheck('${item.name}', ${item.price})" class="bg-white border-2 border-slate-100 p-5 rounded-[2rem] text-left h-40 flex flex-col justify-between shadow-sm active:scale-95 transition-all">
-                            <span class="font-black text-slate-800 text-lg leading-tight">${item.name}</span>
-                            <span class="text-blue-600 font-black text-xl">$${item.price.toFixed(2)}</span>
+                        <button onclick="triggerModifierCheck('${item.name}', ${item.price})" class="bg-white border-2 border-slate-100 p-6 rounded-[2.5rem] text-left h-44 flex flex-col justify-between shadow-premium hover:border-blue-200 active:scale-95">
+                            <span class="font-black text-slate-900 text-xl leading-none tracking-tight">${item.name}</span>
+                            <span class="text-blue-600 font-black text-2xl">$${item.price.toFixed(2)}</span>
                         </button>
                     `).join('')}
                 </div>
 
-                <!-- Footer Cart Drawer -->
-                <div class="absolute bottom-0 left-0 right-0 glass-panel p-6 border-t-2 border-slate-100 rounded-t-[3rem] shadow-[0_-15px_40px_rgba(0,0,0,0.05)] z-[60]">
-                    <div class="flex justify-between items-center mb-6 px-2">
+                <!-- Floating Cart Action Bar -->
+                <div class="absolute bottom-0 left-0 right-0 glass-panel p-8 border-t-2 border-slate-100 rounded-t-[4rem] shadow-[0_-20px_50px_rgba(0,0,0,0.08)] z-[60]">
+                    <div class="flex justify-between items-center mb-8 px-4">
                         <div>
-                            <span class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Selection</span>
-                            <p class="font-black text-2xl">${orderContext.cart.length} Items</p>
+                            <span class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Basket</span>
+                            <p class="font-black text-3xl leading-none mt-1">${orderContext.cart.length} Items</p>
                         </div>
                         <div class="text-right">
                             <span class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Total</span>
-                            <p class="font-black text-2xl text-green-600">$${orderContext.cart.reduce((s,i)=>s+i.price,0).toFixed(2)}</p>
+                            <p class="font-black text-3xl leading-none mt-1 text-green-600">$${orderContext.cart.reduce((s,i)=>s+i.price,0).toFixed(2)}</p>
                         </div>
                     </div>
-                    <button onclick="submitOrderToKitchen()" class="w-full bg-slate-900 text-white py-5 rounded-[2rem] font-black text-lg shadow-2xl active:bg-blue-600 active:scale-95 transition-all disabled:opacity-20" ${orderContext.cart.length === 0 ? 'disabled' : ''}>SEND TO KITCHEN</button>
+                    <button onclick="submitOrderToKitchen()" class="w-full bg-slate-950 text-white py-6 rounded-[2.5rem] font-black text-xl shadow-2xl active:bg-blue-600 active:scale-95 transition-all disabled:opacity-10" ${orderContext.cart.length === 0 ? 'disabled' : ''}>SEND TO KITCHEN</button>
                 </div>
 
                 ${orderContext.pendingItem ? renderModifierPopup() : ''}
@@ -280,62 +329,76 @@
         }
 
         function renderModifierPopup() {
+            // Find modifiers specifically linked to this category
             const applicableMods = (state.modifiers || []).filter(m => m.category === orderContext.category);
+            
+            // If no modifiers exist for this category, auto-add the item
             if (applicableMods.length === 0) {
-                setTimeout(() => finalizeAddItem(orderContext.pendingItem.name, orderContext.pendingItem.price), 10);
+                setTimeout(() => finalizeAddItem(orderContext.pendingItem.name, orderContext.pendingItem.price), 50);
                 return '';
             }
 
             return `
-            <div class="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[100] flex items-end sm:items-center justify-center p-4">
-                <div class="bg-white w-full max-w-md rounded-[3rem] p-10 shadow-2xl fade-enter">
-                    <h3 class="text-3xl font-black text-slate-900 mb-2">Options</h3>
-                    <p class="text-slate-400 font-bold mb-8">Personalize your ${orderContext.pendingItem.name}</p>
+            <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-xl z-[100] flex items-end sm:items-center justify-center p-6">
+                <div class="bg-white w-full max-w-xl rounded-[4rem] p-12 shadow-2xl fade-enter max-h-[85vh] flex flex-col">
+                    <div class="mb-10">
+                        <h3 class="text-4xl font-black text-slate-950 tracking-tighter mb-2">Add Extras?</h3>
+                        <p class="text-slate-400 font-bold text-lg">Customizing: ${orderContext.pendingItem.name}</p>
+                    </div>
                     
-                    <div class="space-y-8 max-h-[50vh] overflow-y-auto mb-10 pr-2">
+                    <div class="flex-1 overflow-y-auto space-y-12 pr-4 no-scrollbar">
                         ${applicableMods.map(mod => `
                             <div>
-                                <h4 class="text-[10px] font-black uppercase text-blue-500 tracking-[0.2em] mb-4">${mod.name}</h4>
-                                <div class="grid grid-cols-2 gap-3">
+                                <h4 class="text-[11px] font-black uppercase text-blue-600 tracking-[0.3em] mb-6 flex items-center gap-3">
+                                    <span class="h-1.5 w-1.5 rounded-full bg-blue-600"></span>
+                                    ${mod.name}
+                                </h4>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     ${mod.options.map(opt => `
-                                        <button onclick="finalizeAddItem('${orderContext.pendingItem.name} (${opt.name})', ${orderContext.pendingItem.price + opt.price})" class="bg-slate-50 p-5 rounded-3xl border-2 border-transparent hover:border-blue-500 text-left transition-all group">
-                                            <span class="block font-black text-slate-700 group-hover:text-blue-600">${opt.name}</span>
-                                            <span class="text-xs font-bold text-slate-400">+$${opt.price.toFixed(2)}</span>
+                                        <button onclick="finalizeAddItem('${orderContext.pendingItem.name} (${opt.name})', ${orderContext.pendingItem.price + opt.price})" class="bg-slate-50 p-6 rounded-[2rem] border-4 border-transparent hover:border-blue-500 hover:bg-white text-left transition-all shadow-sm group">
+                                            <div class="flex justify-between items-center">
+                                                <span class="font-black text-slate-800 text-lg group-hover:text-blue-600">${opt.name}</span>
+                                                <span class="text-sm font-black text-slate-400">+$${opt.price.toFixed(2)}</span>
+                                            </div>
                                         </button>
                                     `).join('')}
                                 </div>
                             </div>
                         `).join('')}
-                        <button onclick="finalizeAddItem(orderContext.pendingItem.name, orderContext.pendingItem.price)" class="w-full border-2 border-dashed border-slate-200 p-5 rounded-[2rem] text-slate-400 font-black text-sm uppercase tracking-widest">Add Regular Item</button>
                     </div>
-                    <button onclick="orderContext.pendingItem = null; render()" class="w-full py-2 text-slate-300 font-black text-xs uppercase tracking-[0.3em]">Cancel</button>
+
+                    <div class="mt-12 space-y-4">
+                        <button onclick="finalizeAddItem(orderContext.pendingItem.name, orderContext.pendingItem.price)" class="w-full bg-slate-100 text-slate-600 py-6 rounded-[2rem] font-black text-lg hover:bg-slate-200">No Extras, Add Plain</button>
+                        <button onclick="orderContext.pendingItem = null; render()" class="w-full py-4 text-slate-300 font-black text-xs uppercase tracking-[0.4em]">Dismiss</button>
+                    </div>
                 </div>
             </div>`;
         }
 
-        // --- VIEW: KITCHEN (FULL FEATURES RESTORED) ---
+        // --- VIEWS: KITCHEN TERMINAL ---
         function renderKitchenScreensaver(container) {
             container.innerHTML = `
             <div onclick="currentScreen='password'; render()" class="h-full w-full bg-slate-950 flex items-center justify-center cursor-pointer overflow-hidden relative">
-                <img src="${state.settings.logoUrl || 'https://via.placeholder.com/300?text=LOGO'}" class="screensaver-logo pointer-events-none">
-                <div class="absolute bottom-16 text-slate-600 font-black uppercase tracking-[1em] text-[10px] animate-pulse">Touch Terminal to Start</div>
-                <div class="absolute top-12 left-12 text-white opacity-20 font-black text-2xl italic tracking-tighter">${state.settings.restaurantName}</div>
+                <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.1),transparent)] pointer-events-none"></div>
+                <img src="${state.settings.logoUrl || 'https://via.placeholder.com/400?text=BRAND+LOGO'}" class="screensaver-logo pointer-events-none object-cover border-8 border-slate-900">
+                <div class="absolute bottom-20 text-slate-500 font-black uppercase tracking-[1.5em] text-xs animate-pulse">Touch Terminal to Interface</div>
+                <div class="absolute top-16 left-16 text-white opacity-10 font-black text-4xl italic tracking-tighter">${state.settings.restaurantName}</div>
             </div>`;
         }
 
         function renderKitchenPassword(container) {
             container.innerHTML = `
-            <div class="h-full flex items-center justify-center bg-slate-900 p-6">
-                <div class="bg-white rounded-[3rem] p-12 w-full max-w-sm shadow-[0_50px_100px_rgba(0,0,0,0.5)]">
-                    <div class="text-center mb-10">
-                        <div class="h-20 w-20 bg-blue-50 text-blue-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6 text-4xl">🔐</div>
-                        <h2 class="text-3xl font-black text-slate-900">Secure Access</h2>
-                        <p class="text-slate-400 font-medium">Enter terminal passcode</p>
+            <div class="h-full flex items-center justify-center bg-slate-950 p-8">
+                <div class="bg-white rounded-[4rem] p-16 w-full max-w-lg shadow-[0_60px_120px_rgba(0,0,0,0.6)]">
+                    <div class="text-center mb-12">
+                        <div class="h-24 w-24 bg-blue-50 text-blue-600 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 text-5xl shadow-inner border-2 border-blue-100">🔒</div>
+                        <h2 class="text-4xl font-black text-slate-950 tracking-tight">Security Check</h2>
+                        <p class="text-slate-400 font-bold mt-2">Enter authorized terminal PIN</p>
                     </div>
-                    <input id="pin-input" type="password" maxlength="4" placeholder="••••" class="w-full text-center text-6xl p-6 bg-slate-50 border-4 border-transparent focus:border-blue-500 rounded-[2rem] mb-8 tracking-[0.4em] focus:outline-none font-black text-slate-800">
-                    <div class="grid grid-cols-2 gap-4">
-                        <button onclick="handlePinSubmit()" class="bg-blue-600 text-white py-6 rounded-[2rem] font-black text-xl shadow-xl shadow-blue-200">ENTER</button>
-                        <button onclick="currentScreen='screensaver'; render()" class="bg-slate-100 text-slate-400 py-6 rounded-[2rem] font-black text-xl">CANCEL</button>
+                    <input id="pin-input" type="password" maxlength="4" placeholder="••••" class="w-full text-center text-7xl p-8 bg-slate-50 border-4 border-transparent focus:border-blue-500 rounded-[2.5rem] mb-12 tracking-[0.5em] focus:outline-none font-black text-slate-950 shadow-inner">
+                    <div class="grid grid-cols-2 gap-6">
+                        <button onclick="handlePinSubmit()" class="bg-blue-600 text-white py-8 rounded-[2.5rem] font-black text-2xl shadow-2xl shadow-blue-200">ACCESS</button>
+                        <button onclick="currentScreen='screensaver'; render()" class="bg-slate-100 text-slate-400 py-8 rounded-[2.5rem] font-black text-2xl">EXIT</button>
                     </div>
                 </div>
             </div>`;
@@ -345,49 +408,54 @@
         function renderKitchenDashboard(container) {
             container.innerHTML = `
             <div class="flex flex-col h-full bg-slate-50">
-                <header class="bg-slate-950 p-8 text-white flex justify-between items-center shadow-2xl z-50">
-                    <div class="flex items-center gap-6">
-                        <div class="h-14 w-14 rounded-full bg-white p-1 overflow-hidden">
-                            <img src="${state.settings.logoUrl || ''}" class="h-full w-full object-cover rounded-full">
+                <header class="bg-slate-950 p-10 text-white flex justify-between items-center shadow-2xl z-50">
+                    <div class="flex items-center gap-8">
+                        <div class="h-20 w-20 rounded-[2rem] bg-white p-1 overflow-hidden shadow-xl border-4 border-slate-800">
+                            <img src="${state.settings.logoUrl || ''}" class="h-full w-full object-cover rounded-[1.8rem]">
                         </div>
                         <div>
-                            <h1 class="font-black text-3xl tracking-tighter italic leading-none">${state.settings.restaurantName}</h1>
-                            <p class="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em] mt-2">Active Kitchen Terminal</p>
+                            <h1 class="font-black text-4xl tracking-tighter italic leading-none">${state.settings.restaurantName}</h1>
+                            <div class="flex items-center gap-3 mt-3">
+                                <span class="h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
+                                <p class="text-slate-500 text-[11px] font-black uppercase tracking-[0.4em]">KITCHEN LIVE DATA FEED</p>
+                            </div>
                         </div>
                     </div>
-                    <div class="flex gap-4">
-                        <button onclick="currentScreen='settings'; render()" class="bg-slate-800 hover:bg-slate-700 px-8 py-4 rounded-[1.5rem] font-black text-xs uppercase tracking-widest transition-all">System Manager</button>
-                        <button onclick="currentScreen='screensaver'; render()" class="bg-red-900/30 text-red-400 border border-red-900/50 px-8 py-4 rounded-[1.5rem] font-black text-xs uppercase tracking-widest">Lock</button>
+                    <div class="flex gap-6">
+                        <button onclick="currentScreen='settings'; render()" class="bg-slate-800 hover:bg-slate-700 px-10 py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest transition-all border border-slate-700">Manager Settings</button>
+                        <button onclick="currentScreen='screensaver'; render()" class="bg-red-950/40 text-red-500 border border-red-900/40 px-10 py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest hover:bg-red-900/60 transition-all">Lock</button>
                     </div>
                 </header>
                 
-                <div class="flex-1 overflow-y-auto p-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10 content-start">
+                <div class="flex-1 overflow-y-auto p-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-12 content-start">
                     ${state.customers.map(c => {
                         const total = c.orders.reduce((acc, i) => acc + i.price, 0);
                         return `
-                        <div class="bg-white rounded-[3rem] p-10 shadow-sm border-2 border-white hover:border-blue-100 hover:shadow-2xl transition-all flex flex-col h-[480px]">
-                            <div class="mb-8">
-                                <h3 class="text-4xl font-black text-slate-900 truncate mb-2">${c.name}</h3>
-                                <div class="bg-slate-100 px-4 py-2 rounded-xl inline-block text-[10px] font-black uppercase text-slate-500 tracking-widest">${c.orders.length} Active Dishes</div>
+                        <div class="bg-white rounded-[3.5rem] p-10 shadow-premium border-2 border-white hover:border-blue-100 hover:shadow-2xl transition-all flex flex-col h-[520px] group">
+                            <div class="mb-8 flex justify-between items-start">
+                                <div>
+                                    <h3 class="text-4xl font-black text-slate-950 truncate mb-2 tracking-tighter">${c.name}</h3>
+                                    <div class="bg-blue-50 text-blue-600 px-5 py-2 rounded-2xl inline-block text-[11px] font-black uppercase tracking-widest border border-blue-100">${c.orders.length} Active Dishes</div>
+                                </div>
                             </div>
-                            <div class="flex-1 overflow-y-auto mb-8 space-y-3 pr-2 scrollbar-thin">
+                            <div class="flex-1 overflow-y-auto mb-8 space-y-4 pr-3 no-scrollbar">
                                 ${c.orders.map(o => `
-                                    <div class="flex items-start gap-3 text-sm font-bold text-slate-600">
-                                        <span class="text-blue-500 text-lg leading-none">•</span>
-                                        <span>${o.name}</span>
+                                    <div class="flex items-start gap-4 text-base font-bold text-slate-600 bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+                                        <span class="text-blue-500 text-xl leading-none">#</span>
+                                        <span class="leading-tight">${o.name}</span>
                                     </div>
                                 `).join('')}
                             </div>
                             <div class="mt-auto border-t-4 border-slate-50 pt-8">
                                 <div class="flex justify-between items-baseline mb-8">
-                                    <span class="text-slate-400 text-xs font-black uppercase">Current Bill</span>
-                                    <span class="text-4xl font-black text-green-600">$${total.toFixed(2)}</span>
+                                    <span class="text-slate-400 text-xs font-black uppercase tracking-widest">Running Total</span>
+                                    <span class="text-4xl font-black text-green-600 tracking-tighter">$${total.toFixed(2)}</span>
                                 </div>
-                                <button onclick="handlePrintFinalReceipt('${c.id}')" class="w-full bg-slate-900 text-white py-5 rounded-[2rem] font-black text-sm shadow-xl active:scale-95 transition-all">CLOSE & PRINT BILL</button>
+                                <button onclick="handlePrintFinalReceipt('${c.id}')" class="w-full bg-slate-950 text-white py-6 rounded-[2.5rem] font-black text-sm shadow-2xl active:scale-95 hover:bg-blue-600 transition-all">CLOSE & PRINT BILL</button>
                             </div>
                         </div>`;
                     }).join('')}
-                    ${state.customers.length === 0 ? '<div class="col-span-full py-40 text-center opacity-20"><span class="text-8xl block mb-6">🍜</span><p class="font-black text-5xl uppercase tracking-tighter italic">Kitchen is Idle</p></div>' : ''}
+                    ${state.customers.length === 0 ? '<div class="col-span-full py-52 text-center opacity-10"><span class="text-9xl block mb-10">🥢</span><p class="font-black text-6xl uppercase tracking-tighter italic">Standing By for Orders</p></div>' : ''}
                 </div>
             </div>`;
         }
@@ -395,68 +463,72 @@
         function renderKitchenSettings(container) {
             container.innerHTML = `
             <div class="flex flex-col h-full bg-white">
-                <header class="p-10 border-b-4 border-slate-50 flex justify-between items-center bg-white sticky top-0 z-[60]">
+                <header class="p-12 border-b-8 border-slate-50 flex justify-between items-center bg-white sticky top-0 z-[60]">
                     <div>
-                        <h2 class="text-5xl font-black tracking-tighter text-slate-900">System Management</h2>
-                        <p class="text-slate-400 font-bold mt-2">Configure menu, branding, and modifiers</p>
+                        <h2 class="text-6xl font-black tracking-tighter text-slate-950 leading-none">Terminal Manager</h2>
+                        <p class="text-slate-400 font-bold mt-4 text-lg">Configure Architecture & Branding</p>
                     </div>
-                    <button onclick="currentScreen='dashboard'; render()" class="bg-blue-600 text-white px-10 py-5 rounded-[2rem] font-black shadow-2xl shadow-blue-100 transition-all active:scale-95">BACK TO TERMINAL</button>
+                    <button onclick="currentScreen='dashboard'; render()" class="bg-blue-600 text-white px-12 py-6 rounded-[2.5rem] font-black shadow-2xl shadow-blue-200 transition-all active:scale-95 hover:bg-blue-700">BACK TO LIVE FEED</button>
                 </header>
                 
-                <div class="flex-1 overflow-y-auto p-12 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-3 gap-16">
+                <div class="flex-1 overflow-y-auto p-16 max-w-[1600px] mx-auto w-full grid grid-cols-1 lg:grid-cols-3 gap-20">
                     
-                    <!-- Branding -->
-                    <div class="space-y-12">
+                    <!-- BRANDING COLUMN -->
+                    <div class="space-y-16">
                         <section>
-                            <h3 class="text-xs font-black uppercase text-blue-500 mb-8 tracking-[0.4em]">Brand Identity</h3>
-                            <div class="bg-slate-50 p-8 rounded-[3rem] space-y-6">
+                            <h3 class="text-xs font-black uppercase text-blue-500 mb-10 tracking-[0.5em] flex items-center gap-4">
+                                <span class="h-px flex-1 bg-blue-100"></span> 01 BRANDING
+                            </h3>
+                            <div class="bg-slate-50 p-10 rounded-[3.5rem] space-y-8 shadow-inner">
                                 <div>
-                                    <label class="text-[10px] font-black uppercase text-slate-400 block mb-3 ml-2">Restaurant Name</label>
-                                    <input id="brand-name-input" type="text" value="${state.settings.restaurantName}" class="w-full p-5 bg-white rounded-2xl font-bold border-2 border-transparent focus:border-blue-500 outline-none">
+                                    <label class="text-[10px] font-black uppercase text-slate-400 block mb-3 ml-3 tracking-widest">Business Name</label>
+                                    <input id="brand-name-input" type="text" value="${state.settings.restaurantName}" class="w-full p-6 bg-white rounded-3xl font-bold border-2 border-transparent focus:border-blue-500 outline-none shadow-sm text-lg">
                                 </div>
                                 <div>
-                                    <label class="text-[10px] font-black uppercase text-slate-400 block mb-3 ml-2">Logo URL (PNG/JPG)</label>
-                                    <input id="brand-logo-input" type="text" value="${state.settings.logoUrl}" class="w-full p-5 bg-white rounded-2xl font-bold border-2 border-transparent focus:border-blue-500 outline-none">
+                                    <label class="text-[10px] font-black uppercase text-slate-400 block mb-3 ml-3 tracking-widest">Corporate Logo (URL)</label>
+                                    <input id="brand-logo-input" type="text" value="${state.settings.logoUrl}" class="w-full p-6 bg-white rounded-3xl font-bold border-2 border-transparent focus:border-blue-500 outline-none shadow-sm text-lg">
                                 </div>
-                                <button onclick="handleUpdateBranding()" class="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-sm tracking-widest shadow-xl">SAVE BRANDING</button>
+                                <button onclick="handleUpdateBranding()" class="w-full bg-slate-950 text-white py-6 rounded-3xl font-black text-sm tracking-[0.2em] shadow-xl hover:bg-blue-600 transition-all">SYNCHRONIZE BRAND</button>
                             </div>
                         </section>
                     </div>
 
-                    <!-- Menu Editor -->
-                    <div class="space-y-12">
+                    <!-- MENU COLUMN -->
+                    <div class="space-y-16">
                         <section>
-                            <h3 class="text-xs font-black uppercase text-blue-500 mb-8 tracking-[0.4em]">Menu Architecture</h3>
-                            <div class="bg-blue-50 p-8 rounded-[3rem] border-2 border-blue-100 mb-10">
-                                <label class="text-[10px] font-black uppercase text-blue-400 block mb-3 ml-2">Create New Category</label>
-                                <div class="flex gap-2">
-                                    <input id="new-cat-input" type="text" placeholder="e.g. Appetizers" class="flex-1 p-5 bg-white rounded-2xl font-bold outline-none focus:ring-4 focus:ring-blue-200">
-                                    <button onclick="handleAddCategory()" class="bg-blue-600 text-white px-8 rounded-2xl font-black text-xs">ADD</button>
+                            <h3 class="text-xs font-black uppercase text-blue-500 mb-10 tracking-[0.5em] flex items-center gap-4">
+                                <span class="h-px flex-1 bg-blue-100"></span> 02 MENU GRID
+                            </h3>
+                            <div class="bg-blue-50/50 p-10 rounded-[3.5rem] border-2 border-blue-100 mb-12 shadow-sm">
+                                <label class="text-[10px] font-black uppercase text-blue-400 block mb-4 ml-3 tracking-widest">Define New Section</label>
+                                <div class="flex gap-3">
+                                    <input id="new-cat-input" type="text" placeholder="e.g. Signature Bowls" class="flex-1 p-6 bg-white rounded-3xl font-bold outline-none focus:ring-4 focus:ring-blue-100 text-lg">
+                                    <button onclick="handleAddCategory()" class="bg-blue-600 text-white px-10 rounded-3xl font-black text-xs shadow-lg shadow-blue-100">CREATE</button>
                                 </div>
                             </div>
 
-                            <div class="space-y-8">
+                            <div class="space-y-10">
                                 ${state.menu.map((cat, idx) => `
-                                    <div class="bg-slate-50 p-8 rounded-[3rem]">
-                                        <div class="flex justify-between items-center mb-6 border-b pb-4">
-                                            <span class="font-black text-xl">${cat.category}</span>
-                                            <button onclick="handleDeleteCategory(${idx})" class="text-red-400 font-black text-[10px] uppercase hover:text-red-600 transition-colors">Delete</button>
+                                    <div class="bg-slate-50 p-10 rounded-[4rem] border border-slate-100">
+                                        <div class="flex justify-between items-center mb-8 border-b border-slate-200 pb-6">
+                                            <span class="font-black text-2xl tracking-tight">${cat.category}</span>
+                                            <button onclick="handleDeleteCategory(${idx})" class="text-red-400 font-black text-[10px] uppercase hover:text-red-600 tracking-widest transition-colors">Terminate</button>
                                         </div>
-                                        <div class="space-y-3 mb-8">
+                                        <div class="space-y-4 mb-10">
                                             ${cat.items.map((i, iIdx) => `
-                                                <div class="flex justify-between bg-white p-4 rounded-2xl shadow-sm group">
-                                                    <div class="flex items-center gap-3">
-                                                        <button onclick="handleDeleteItem(${idx}, ${iIdx})" class="text-slate-300 hover:text-red-500">&times;</button>
-                                                        <span class="font-bold text-slate-700">${i.name}</span>
+                                                <div class="flex justify-between bg-white p-5 rounded-3xl shadow-sm border border-slate-50 group">
+                                                    <div class="flex items-center gap-4">
+                                                        <button onclick="handleDeleteItem(${idx}, ${iIdx})" class="text-slate-200 hover:text-red-500 transition-colors text-2xl font-light">&times;</button>
+                                                        <span class="font-bold text-slate-800 text-lg">${i.name}</span>
                                                     </div>
-                                                    <span class="font-black text-blue-600">$${i.price.toFixed(2)}</span>
+                                                    <span class="font-black text-blue-600 text-lg">$${i.price.toFixed(2)}</span>
                                                 </div>
                                             `).join('')}
                                         </div>
-                                        <div class="bg-white p-3 rounded-[2rem] flex gap-2 border-2 border-slate-100 shadow-inner">
-                                            <input id="i-n-${idx}" placeholder="Name" class="flex-1 text-sm font-bold outline-none pl-4">
-                                            <input id="i-p-${idx}" type="number" step="0.01" placeholder="Price" class="w-20 text-sm font-bold outline-none">
-                                            <button onclick="handleAddItem(${idx})" class="bg-green-500 text-white h-12 w-12 rounded-2xl font-black">+</button>
+                                        <div class="bg-white p-4 rounded-[2.5rem] flex gap-3 border-2 border-slate-100 shadow-inner">
+                                            <input id="i-n-${idx}" placeholder="Dish Name" class="flex-1 text-sm font-bold outline-none pl-5">
+                                            <input id="i-p-${idx}" type="number" step="0.01" placeholder="Price" class="w-24 text-sm font-bold outline-none border-l pl-3">
+                                            <button onclick="handleAddItem(${idx})" class="bg-green-500 text-white h-14 w-14 rounded-2xl font-black text-2xl shadow-lg shadow-green-100 hover:bg-green-600">+</button>
                                         </div>
                                     </div>
                                 `).join('')}
@@ -464,35 +536,49 @@
                         </section>
                     </div>
 
-                    <!-- Modifier Editor -->
-                    <div class="space-y-12">
+                    <!-- MODIFIERS COLUMN -->
+                    <div class="space-y-16">
                         <section>
-                            <h3 class="text-xs font-black uppercase text-blue-500 mb-8 tracking-[0.4em]">Modifiers & Add-ons</h3>
-                            <div class="bg-purple-50 p-8 rounded-[3rem] border-2 border-purple-100 mb-10 space-y-4">
-                                <input id="mod-name-input" placeholder="Modifier Title (e.g. Pancake Sides)" class="w-full p-5 bg-white rounded-2xl font-bold outline-none">
-                                <select id="mod-cat-select" class="w-full p-5 bg-white rounded-2xl font-bold">
-                                    ${state.menu.map(m => `<option value="${m.category}">${m.category}</option>`).join('')}
-                                </select>
-                                <button onclick="handleAddModifierGroup()" class="w-full bg-purple-600 text-white py-5 rounded-2xl font-black text-sm shadow-xl">LINK TO CATEGORY</button>
+                            <h3 class="text-xs font-black uppercase text-blue-500 mb-10 tracking-[0.5em] flex items-center gap-4">
+                                <span class="h-px flex-1 bg-blue-100"></span> 03 ADD-ONS
+                            </h3>
+                            <div class="bg-purple-50 p-10 rounded-[3.5rem] border-2 border-purple-100 mb-12 space-y-6 shadow-sm">
+                                <input id="mod-name-input" placeholder="Title (e.g. Broth Upgrades)" class="w-full p-6 bg-white rounded-3xl font-bold outline-none focus:ring-4 focus:ring-purple-100 text-lg shadow-sm">
+                                <div class="relative">
+                                    <select id="mod-cat-select" class="w-full p-6 bg-white rounded-3xl font-bold outline-none appearance-none text-lg shadow-sm">
+                                        ${state.menu.map(m => `<option value="${m.category}">${m.category}</option>`).join('')}
+                                    </select>
+                                    <div class="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">▼</div>
+                                </div>
+                                <button onclick="handleAddModifierGroup()" class="w-full bg-purple-600 text-white py-6 rounded-3xl font-black text-sm tracking-[0.2em] shadow-xl hover:bg-purple-700 transition-all">LINK TO SECTION</button>
                             </div>
 
-                            <div class="space-y-8">
+                            <div class="space-y-10">
                                 ${(state.modifiers || []).map((m, idx) => `
-                                    <div class="bg-slate-50 p-8 rounded-[3rem] border border-slate-200">
-                                        <div class="flex justify-between items-center mb-4">
-                                            <span class="font-black text-slate-800">${m.name} <span class="text-slate-300 ml-1">(${m.category})</span></span>
-                                            <button onclick="handleDeleteModifier(${idx})" class="text-red-400 font-bold text-xs">&times;</button>
+                                    <div class="bg-slate-50 p-10 rounded-[4rem] border border-slate-100 shadow-sm relative overflow-hidden">
+                                        <div class="absolute top-0 right-0 p-4">
+                                             <button onclick="handleDeleteModifier(${idx})" class="text-slate-300 hover:text-red-500 transition-colors font-black text-2xl">&times;</button>
                                         </div>
-                                        <div class="flex flex-wrap gap-2 mb-6">
-                                            ${m.options.map(opt => `<span class="bg-white border px-3 py-1.5 rounded-full text-[10px] font-black text-slate-500">${opt.name} (+$${opt.price})</span>`).join('')}
+                                        <div class="mb-6">
+                                            <span class="font-black text-2xl text-slate-950 block">${m.name}</span>
+                                            <span class="text-[10px] font-black text-purple-400 uppercase tracking-widest mt-1 block">Scope: ${m.category}</span>
                                         </div>
-                                        <div class="bg-white p-3 rounded-[1.5rem] flex gap-2">
-                                            <input id="opt-n-${idx}" placeholder="Option" class="flex-1 text-[10px] font-bold outline-none pl-3">
-                                            <input id="opt-p-${idx}" type="number" placeholder="$" class="w-12 text-[10px] font-bold outline-none">
-                                            <button onclick="handleModifierOptionAdd(${idx})" class="bg-slate-900 text-white h-10 w-10 rounded-xl font-black">+</button>
+                                        <div class="flex flex-wrap gap-2 mb-10">
+                                            ${m.options.map(opt => `
+                                                <span class="bg-white border-2 border-slate-100 px-4 py-2 rounded-2xl text-xs font-bold text-slate-500 shadow-sm">
+                                                    ${opt.name} <span class="text-purple-500 ml-1">+$${opt.price}</span>
+                                                </span>
+                                            `).join('')}
+                                            ${m.options.length === 0 ? '<span class="text-slate-300 italic text-sm">No options defined yet</span>' : ''}
+                                        </div>
+                                        <div class="bg-white p-4 rounded-[2.5rem] flex gap-3 border-2 border-slate-100 shadow-inner">
+                                            <input id="opt-n-${idx}" placeholder="Extra Title" class="flex-1 text-sm font-bold outline-none pl-5">
+                                            <input id="opt-p-${idx}" type="number" placeholder="$" class="w-20 text-sm font-bold outline-none border-l pl-3">
+                                            <button onclick="handleModifierOptionAdd(${idx})" class="bg-slate-950 text-white h-14 w-14 rounded-2xl font-black text-xl shadow-xl hover:bg-purple-600 transition-all">+</button>
                                         </div>
                                     </div>
                                 `).join('')}
+                                ${state.modifiers.length === 0 ? '<div class="text-center py-20 opacity-20 italic">No modifiers globally configured.</div>' : ''}
                             </div>
                         </section>
                     </div>
@@ -500,7 +586,7 @@
             </div>`;
         }
 
-        // --- CONTROLLER LOGIC ---
+        // --- CORE CONTROLLERS ---
         function triggerModifierCheck(name, price) {
             orderContext.pendingItem = { name, price };
             render();
@@ -509,14 +595,14 @@
         function finalizeAddItem(name, price) {
             orderContext.cart.push({ name, price });
             orderContext.pendingItem = null;
-            showToast("✅ Added to Order");
+            showToast("✨ Added to Tray");
             render();
         }
 
         function submitOrderToKitchen() {
             socket.emit('send_order_to_kitchen', { customerId: orderContext.activeCustomerId, items: orderContext.cart });
             orderContext.cart = [];
-            showToast("🚀 Order Sent!");
+            showToast("🚀 Order Dispatched!");
             currentScreen = 'customer-list';
             render();
         }
@@ -525,32 +611,33 @@
             if (document.getElementById('pin-input').value === '1234') {
                 currentScreen = 'dashboard';
                 render();
+                showToast("🔓 Terminal Unlocked");
             } else {
-                showToast("❌ Access Denied");
+                showToast("❌ Invalid Passcode");
                 document.getElementById('pin-input').value = '';
             }
         }
 
-        // --- PRINTING LOGIC (SAFER BUFFER) ---
+        // --- PRINTING ENGINE (RESTORED) ---
         function handleKitchenPrint(customerName, items) {
             const area = document.getElementById('print-area');
             area.innerHTML = `
-                <div style="text-align:center; padding-bottom:10px; border-bottom:2px solid black; margin-bottom:15px;">
-                    <h2 style="font-size:24px; margin:0;">KITCHEN TICKET</h2>
-                    <p style="margin:5px 0; font-weight:bold;">${state.settings.restaurantName}</p>
-                    <p style="font-size:10px;">${new Date().toLocaleTimeString()}</p>
+                <div style="text-align:center; padding-bottom:15px; border-bottom:2px dashed black; margin-bottom:20px;">
+                    <h2 style="font-size:26px; margin:0; letter-spacing:-1px;">KITCHEN TICKET</h2>
+                    <p style="margin:5px 0; font-weight:bold; font-size:14px;">Terminal: ${state.settings.restaurantName}</p>
+                    <p style="font-size:10px; opacity:0.6;">${new Date().toLocaleString()}</p>
                 </div>
-                <div style="font-size:18px; font-weight:black; margin-bottom:15px; background:black; color:white; padding:8px; text-align:center;">
+                <div style="font-size:22px; font-weight:900; margin-bottom:20px; background:black; color:white; padding:12px; text-align:center; border-radius:5px;">
                     CUSTOMER: ${customerName.toUpperCase()}
                 </div>
-                <div style="font-size:16px; line-height:1.6;">
-                    ${items.map(i => `<div style="margin-bottom:8px; border-bottom:1px solid #eee;">[ ] ${i.name}</div>`).join('')}
+                <div style="font-size:18px; line-height:1.6; font-weight:bold;">
+                    ${items.map(i => `<div style="margin-bottom:12px; border-bottom:1px solid #ddd; padding-bottom:5px;">[ ] ${i.name.toUpperCase()}</div>`).join('')}
                 </div>
-                <div style="margin-top:30px; text-align:center; font-size:10px; border-top:1px solid black; padding-top:10px;">
-                    RAMEN POS NETWORK ENGINE
+                <div style="margin-top:40px; text-align:center; font-size:10px; border-top:1px solid black; padding-top:15px; font-style:italic;">
+                    -- RAMEN POS ENTERPRISE --
                 </div>
             `;
-            setTimeout(() => { window.print(); }, 250);
+            setTimeout(() => { window.print(); }, 300);
         }
 
         function handlePrintFinalReceipt(id) {
@@ -559,37 +646,38 @@
             const total = customer.orders.reduce((acc, i) => acc + i.price, 0);
             const area = document.getElementById('print-area');
             area.innerHTML = `
-                <div style="text-align:center; border-bottom:3px solid black; padding-bottom:15px; margin-bottom:20px;">
-                    <h1 style="font-size:28px; margin:0;">${state.settings.restaurantName}</h1>
-                    <p style="font-size:10px;">Visit us again soon!</p>
+                <div style="text-align:center; border-bottom:4px solid black; padding-bottom:20px; margin-bottom:25px;">
+                    <h1 style="font-size:32px; margin:0; letter-spacing:-2px;">${state.settings.restaurantName}</h1>
+                    <p style="font-size:11px; margin-top:5px; font-weight:bold; text-transform:uppercase;">Hospitality Receipt</p>
                 </div>
-                <div style="margin-bottom:15px; font-weight:bold;">BILL FOR: ${customer.name}</div>
-                <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
+                <div style="margin-bottom:20px; font-weight:black; font-size:14px;">GUEST: ${customer.name}</div>
+                <table style="width:100%; border-collapse:collapse; margin-bottom:25px; font-size:14px;">
                     ${customer.orders.map(i => `
                         <tr>
-                            <td style="padding:6px 0; border-bottom:1px solid #ddd;">${i.name}</td>
-                            <td style="text-align:right; padding:6px 0; border-bottom:1px solid #ddd;">$${i.price.toFixed(2)}</td>
+                            <td style="padding:8px 0; border-bottom:1px solid #eee;">${i.name}</td>
+                            <td style="text-align:right; padding:8px 0; border-bottom:1px solid #eee;">$${i.price.toFixed(2)}</td>
                         </tr>
                     `).join('')}
                 </table>
-                <div style="border-top:4px double black; padding-top:10px;">
-                    <div style="display:flex; justify-content:space-between; font-weight:black; font-size:22px;">
+                <div style="border-top:5px double black; padding-top:15px; margin-top:10px;">
+                    <div style="display:flex; justify-content:space-between; font-weight:900; font-size:26px; letter-spacing:-1px;">
                         <span>TOTAL</span>
                         <span>$${total.toFixed(2)}</span>
                     </div>
                 </div>
-                <p style="text-align:center; margin-top:50px; font-size:12px; font-weight:bold;">*** THANK YOU ***</p>
+                <p style="text-align:center; margin-top:60px; font-size:14px; font-weight:900; letter-spacing:2px;">*** VISIT AGAIN ***</p>
+                <div style="text-align:center; margin-top:10px; font-size:8px;">Transaction ID: ${Math.random().toString(36).substr(2, 9).toUpperCase()}</div>
             `;
-            setTimeout(() => { window.print(); }, 250);
+            setTimeout(() => { window.print(); }, 300);
         }
 
-        // --- SETTINGS SYNC ---
+        // --- DATA SYNC ---
         function handleUpdateBranding() {
             socket.emit('update_settings', {
                 restaurantName: document.getElementById('brand-name-input').value,
                 logoUrl: document.getElementById('brand-logo-input').value
             });
-            showToast("✨ Settings Synced");
+            showToast("🏢 Branding Synced");
         }
 
         function handleAddCategory() {
@@ -597,7 +685,7 @@
             if(name) {
                 socket.emit('update_menu', [...state.menu, { category: name, items: [] }]);
                 document.getElementById('new-cat-input').value = '';
-                showToast("📁 Category Created");
+                showToast("📁 Section Created");
             }
         }
 
@@ -616,10 +704,11 @@
             const name = document.getElementById('mod-name-input').value;
             const cat = document.getElementById('mod-cat-select').value;
             if(name) {
-                const mods = [...(state.modifiers || []), { name, category: cat, options: [] }];
-                socket.emit('update_modifiers', mods);
+                const updatedMods = [...(state.modifiers || []), { name, category: cat, options: [] }];
+                socket.emit('update_modifiers', updatedMods);
                 document.getElementById('mod-name-input').value = '';
-                showToast("🎨 Modifier Linked");
+                showToast("🎨 Modifier Group Linked");
+                render(); // Explicit force rerender
             }
         }
 
@@ -631,10 +720,11 @@
                 mods[idx].options.push({ name: n, price: p });
                 socket.emit('update_modifiers', mods);
                 showToast("➕ Option Saved");
+                render();
             }
         }
 
-        // --- UI UTILS ---
+        // --- GLOBAL HELPERS ---
         function showToast(text) {
             const toast = document.getElementById('toast');
             document.getElementById('toast-text').innerText = text;
@@ -643,7 +733,7 @@
             setTimeout(() => {
                 toast.style.transform = "translate(-50%, -200%)";
                 toast.style.opacity = "0";
-            }, 2500);
+            }, 3000);
         }
 
         function handleAddCustomer() { 
@@ -654,7 +744,7 @@
         function openOrderingMenu(id) { orderContext.activeCustomerId = id; orderContext.cart = []; currentScreen = 'menu'; render(); }
         function handleDeleteCategory(i) { let m = [...state.menu]; m.splice(i,1); socket.emit('update_menu', m); }
         function handleDeleteItem(idx, iIdx) { let m = JSON.parse(JSON.stringify(state.menu)); m[idx].items.splice(iIdx,1); socket.emit('update_menu', m); }
-        function handleDeleteModifier(idx) { let m = [...state.modifiers]; m.splice(idx,1); socket.emit('update_modifiers', m); }
+        function handleDeleteModifier(idx) { let m = [...state.modifiers]; m.splice(idx,1); socket.emit('update_modifiers', m); render(); }
 
         window.onload = render;
     </script>
