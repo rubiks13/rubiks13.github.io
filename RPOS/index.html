@@ -420,14 +420,20 @@
                         <div class="space-y-8">
                             ${state.menu.map((cat, idx) => `
                                 <div class="bg-slate-50 p-8 rounded-[2.5rem] border border-slate-100">
-                                    <h4 class="font-black text-xl text-slate-800 mb-6 border-b pb-4 flex justify-between">
+                                    <h4 class="font-black text-xl text-slate-800 mb-6 border-b pb-4 flex justify-between items-center">
                                         <span>${cat.category}</span>
-                                        <span class="text-slate-300 text-xs uppercase tracking-widest">${cat.items.length} Items</span>
+                                        <div class="flex items-center gap-3">
+                                            <span class="text-slate-300 text-[10px] uppercase tracking-widest font-black">${cat.items.length} Items</span>
+                                            <button onclick="handleDeleteCategory(${idx})" class="bg-red-50 text-red-500 px-3 py-1 rounded-lg text-[10px] font-black hover:bg-red-500 hover:text-white transition-colors">DELETE</button>
+                                        </div>
                                     </h4>
                                     <div class="space-y-3 mb-8">
-                                        ${cat.items.map(i => `
-                                            <div class="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-50">
-                                                <span class="font-bold text-slate-700">${i.name}</span>
+                                        ${cat.items.map((i, itemIdx) => `
+                                            <div class="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-50 group">
+                                                <div class="flex items-center gap-4">
+                                                    <button onclick="handleDeleteItem(${idx}, ${itemIdx})" class="text-slate-300 hover:text-red-500 font-black text-lg transition-colors leading-none">&times;</button>
+                                                    <span class="font-bold text-slate-700">${i.name}</span>
+                                                </div>
                                                 <span class="font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-lg text-sm">$${i.price.toFixed(2)}</span>
                                             </div>
                                         `).join('')}
@@ -509,8 +515,15 @@
             if(name) {
                 const newMenu = [...state.menu, { category: name, items: [] }];
                 socket.emit('update_menu', newMenu);
+                document.getElementById('new-cat-input').value = '';
                 showToast("📁 Category Created");
             }
+        }
+        function handleDeleteCategory(idx) {
+            let newMenu = JSON.parse(JSON.stringify(state.menu));
+            newMenu.splice(idx, 1);
+            socket.emit('update_menu', newMenu);
+            showToast("🗑️ Category Deleted");
         }
         function handleAddItem(catIdx) {
             const name = document.getElementById(`item-name-${catIdx}`).value;
@@ -521,6 +534,12 @@
                 socket.emit('update_menu', newMenu);
                 showToast("🍔 Item Added");
             }
+        }
+        function handleDeleteItem(catIdx, itemIdx) {
+            let newMenu = JSON.parse(JSON.stringify(state.menu));
+            newMenu[catIdx].items.splice(itemIdx, 1);
+            socket.emit('update_menu', newMenu);
+            showToast("🗑️ Item Removed");
         }
 
         // --- PRINTING ENGINE ---
