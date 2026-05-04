@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant POS System</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Socket.io for the "RAMEN" network -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        /* Floating Logo Animation for Screensaver */
+        @keyframes float {
+            0% { transform: translate(0, 0); }
+            25% { transform: translate(40vw, 20vh); }
+            50% { transform: translate(80vw, 0); }
+            75% { transform: translate(40vw, -20vh); }
+            100% { transform: translate(0, 0); }
+        }
+        .screensaver-logo {
+            animation: float 15s linear infinite alternate;
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 50%;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        /* Hide everything EXCEPT the print area when printing */
+        @media print {
+            body * { visibility: hidden; }
+            #print-area, #print-area * { visibility: visible; }
+            #print-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 80mm; /* 80mm receipt printer width */
+                margin: 0;
+                padding: 0;
+                font-family: monospace;
+                font-size: 12px;
+            }
+            @page { margin: 0; size: 80mm auto; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 h-screen overflow-hidden selection:bg-blue-200">
+
+    <!-- SETUP: PUT YOUR NGROK URL HERE -->
+    <script>
+        // --- CONFIGURATION ---
+        // Replace this with your actual ngrok URL when you run it!
+        // Example: "https://1234-abcd.ngrok-free.app"
+        const NGROK_URL = "https://habile-lissa-phytogenic.ngrok-free.dev/";
+    </script>
+
+    <!-- CUSTOM MESSAGE BOX (Replacing alert()) -->
+    <div id="msg-box" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-lg p-6 max-w-sm w-full text-center shadow-xl">
+            <p id="msg-box-text" class="text-lg mb-4"></p>
+            <button onclick="closeMsgBox()" class="bg-blue-600 text-white px-6 py-2 rounded shadow hover:bg-blue-700">OK</button>
+        </div>
+    </div>
+
+    <!-- MAIN APP CONTAINER -->
+    <div id="app" class="h-full w-full">
+        <!-- Screens injected via JavaScript -->
+    </div>
+
+    <!-- 80MM PRINT AREA (Hidden on screen, visible on paper) -->
+    <div id="print-area" class="hidden absolute top-0 left-0 bg-white p-4"></div>
+
+    <script>
+        // --- APP STATE ---
+        let socket;
+        let currentRole = null; // 'kitchen' or 'ordering'
+        let currentScreen = 'role-selection';
+        
+        let state = {
+            customers: [],
+            menu: [],
+            settings: { restaurantName: "Loading...", logoUrl: "" }
+        };
+
+        let orderingState = {
+            activeCustomerId: null,
+            activeCategory: null,
+            pendingCart: []
+        };
+
+        // --- UTILITIES ---
+        function showMsg(text) {
+            document.getElementById('msg-box-text').innerText = text;
+            document.getElementById('msg-box').classList.remove('hidden');
+        }
+        function closeMsgBox() {
+            document.getElementById('msg-box').classList.add('hidden');
+        }
+        function formatCurrency(num) {
+            return "$" + parseFloat(num).toFixed(2);
+        }
+
+        // --- INITIALIZATION ---
+        function initRamenNetwork() {
+            try {
+                socket = io(NGROK_URL);
+                socket.on('connect', () => console.log('RAMEN Network Connected!'));
+                
+                socket.on('sync_state', (newState) => {
+                    state = newState;
+                    render();
+                });
+
+                // Kitchen Print Listener
+                socket.on('kitchen_print_order', (data) => {
+                    if (currentRole === 'kitchen') {
+                        printKitchenOrder(data.customerName, data.items);
+                    }
+                });
+            } catch(e) {
+                console.error("Socket error. Check your Ngrok URL.", e);
+            }
+        }
+
+        // --- PRINTING LOGIC (80mm) ---
+        function printKitchenOrder(customerName, items) {
+            const printArea = document.getElementById('print-area');
+            let html = `
+                <div class="text-center mb-4">
+                    <h2 class="font-bold text-xl">${state.settings.restaurantName}</h2>
+                    <p class="text-sm border-b pb-2">KITCHEN TICKET</p>
+                </div>
+                <p class="font-bold mb-2">Customer: ${customerName}</p>
+                <table class="w-full text-left mb-4">
+                    <thead><tr class="border-b"><th>Item</th></tr></thead>
+                    <tbody>
+            `;
+            items.forEach(item => {
+                html += `<tr><td class="py-1">- ${item.name}</td></tr>`;
+            });
+            html += `</tbody></table><p class="text-center text-xs mt-4">--- END OF TICKET ---</p>`;
+            
+            printArea.innerHTML = html;
+            window.print();
+        }
+
+        function printFinalReceipt(customer) {
+            const printArea = document.getElementById('print-area');
+            let total = 0;
+            let html = `
+                <div class="text-center mb-4">
+                    <h2 class="font-bold text-xl">${state.settings.restaurantName}</h2>
+                    <p class="text-sm border-b pb-2">FINAL RECEIPT</p>
+                </div>
+                <p class="font-bold mb-2">Customer: ${customer.name}</p>
+                <table class="w-full text-left mb-4">
+                    <thead><tr class="border-b"><th>Item</th><th class="text-right">Price</th></tr></thead>
+                    <tbody>
+            `;
+            customer.orders.forEach(item => {
+                total += item.price;
+                html += `<tr><td class="py-1">${item.name}</td><td class="text-right py-1">${formatCurrency(item.price)}</td></tr>`;
+            });
+            html += `
+                    </tbody>
+                </table>
+                <div class="border-t pt-2 font-bold flex justify-between text-lg">
+                    <span>TOTAL:</span>
+                    <span>${formatCurrency(total)}</span>
+                </div>
+                <p class="text-center text-xs mt-6">Thank you for dining with us!</p>
+            `;
+            
+            printArea.innerHTML = html;
+            window.print();
+        }
+
+        // --- RENDER ENGINE ---
+        function render() {
+            const appDiv = document.getElementById('app');
+            
+            if (currentRole === null) {
+                appDiv.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-full bg-slate-800 text-white p-6">
+                        <h1 class="text-4xl font-bold mb-8 text-center">POS Setup</h1>
+                        <p class="mb-4 text-slate-300">Select this device's role:</p>
+                        <div class="flex gap-4 w-full max-w-md">
+                            <button onclick="setRole('kitchen')" class="flex-1 bg-red-500 hover:bg-red-600 p-6 rounded-xl text-xl font-bold shadow-lg transition transform hover:scale-105">🍳 Kitchen<br><span class="text-sm font-normal">Computer</span></button>
+                            <button onclick="setRole('ordering')" class="flex-1 bg-blue-500 hover:bg-blue-600 p-6 rounded-xl text-xl font-bold shadow-lg transition transform hover:scale-105">📱 Ordering<br><span class="text-sm font-normal">Device</span></button>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            if (currentRole === 'ordering') {
+                if (currentScreen === 'customer-list') renderOrderingCustomerList(appDiv);
+                if (currentScreen === 'menu') renderOrderingMenu(appDiv);
+            }
+
+            if (currentRole === 'kitchen') {
+                if (currentScreen === 'screensaver') renderKitchenScreensaver(appDiv);
+                if (currentScreen === 'password') renderKitchenPassword(appDiv);
+                if (currentScreen === 'dashboard') renderKitchenDashboard(appDiv);
+                if (currentScreen === 'settings') renderKitchenSettings(appDiv);
+            }
+        }
+
+        function setRole(role) {
+            currentRole = role;
+            if(role === 'ordering') currentScreen = 'customer-list';
+            if(role === 'kitchen') currentScreen = 'screensaver';
+            initRamenNetwork();
+            render();
+        }
+
+        // --- ORDERING SCREENS ---
+        function renderOrderingCustomerList(container) {
+            let listHtml = state.customers.map(c => `
+                <div class="bg-white p-4 rounded shadow flex justify-between items-center mb-3">
+                    <div class="flex-1 text-xl font-bold cursor-pointer" onclick="openMenuForCustomer('${c.id}')">${c.name}</div>
+                    <button onclick="deleteCustomer('${c.id}')" class="text-red-500 hover:bg-red-100 p-2 rounded-full w-10 h-10 flex items-center justify-center text-xl font-bold">&times;</button>
+                </div>
+            `).join('');
+
+            if(state.customers.length === 0) listHtml = `<p class="text-center text-gray-500 italic mt-10">No customers yet.</p>`;
+
+            container.innerHTML = `
+                <div class="h-full flex flex-col bg-gray-50">
+                    <div class="bg-blue-600 text-white p-4 shadow flex justify-between items-center">
+                        <h2 class="text-xl font-bold">Select Customer</h2>
+                    </div>
+                    <div class="p-4 flex gap-2">
+                        <input type="text" id="new-customer-name" placeholder="New Customer Name..." class="flex-1 p-3 border rounded shadow-inner focus:outline-blue-500">
+                        <button onclick="addCustomer()" class="bg-green-500 text-white px-6 py-3 rounded shadow font-bold hover:bg-green-600">Add</button>
+                    </div>
+                    <div class="flex-1 overflow-y-auto p-4 pt-0">
+                        ${listHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderOrderingMenu(container) {
+            const customer = state.customers.find(c => c.id === orderingState.activeCustomerId);
+            if (!customer) { currentScreen = 'customer-list'; render(); return; }
+
+            // Default category selection
+            if(!orderingState.activeCategory && state.menu.length > 0) {
+                orderingState.activeCategory = state.menu[0].category;
+            }
+
+            const activeCatData = state.menu.find(m => m.category === orderingState.activeCategory);
+            const items = activeCatData ? activeCatData.items : [];
+
+            let tabsHtml = state.menu.map(m => `
+                <button onclick="setOrderingCategory('${m.category}')" class="px-6 py-3 font-bold whitespace-nowrap ${orderingState.activeCategory === m.category ? 'border-b-4 border-blue-600 text-blue-600' : 'text-gray-500 hover:bg-gray-100'}">${m.category}</button>
+            `).join('');
+
+            let itemsHtml = items.map(i => `
+                <div onclick="addToCart(${i.id}, '${i.name}', ${i.price})" class="bg-white p-4 rounded-xl shadow cursor-pointer active:scale-95 transition flex flex-col justify-between aspect-square border border-gray-200">
+                    <span class="font-bold text-lg leading-tight">${i.name}</span>
+                    <span class="text-blue-600 font-bold">${formatCurrency(i.price)}</span>
+                </div>
+            `).join('');
+
+            let cartHtml = orderingState.pendingCart.map((cItem, index) => `
+                <div class="flex justify-between items-center border-b py-2 text-sm">
+                    <span>${cItem.name}</span>
+                    <button onclick="removeFromCart(${index})" class="text-red-500 font-bold px-2">&times;</button>
+                </div>
+            `).join('');
+
+            container.innerHTML = `
+                <div class="h-full flex flex-col">
+                    <!-- Header -->
+                    <div class="bg-blue-600 text-white p-4 shadow flex justify-between items-center z-10">
+                        <button onclick="backToCustomers()" class="font-bold px-3 py-1 bg-blue-700 rounded hover:bg-blue-800">&larr; Back</button>
+                        <h2 class="text-xl font-bold truncate px-2">Ordering for: ${customer.name}</h2>
+                        <div class="w-16"></div> <!-- Spacer -->
+                    </div>
+                    
+                    <!-- Tabs -->
+                    <div class="flex overflow-x-auto bg-white border-b shadow-sm z-10">
+                        ${tabsHtml}
+                    </div>
+
+                    <!-- Main Area -->
+                    <div class="flex-1 flex overflow-hidden">
+                        <!-- Items Grid -->
+                        <div class="flex-1 overflow-y-auto p-4 bg-gray-100">
+                            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                ${itemsHtml}
+                            </div>
+                        </div>
+
+                        <!-- Current Order Panel -->
+                        <div class="w-64 bg-white border-l shadow-xl flex flex-col z-20">
+                            <div class="p-3 bg-gray-200 font-bold text-center border-b">Current Order</div>
+                            <div class="flex-1 overflow-y-auto p-3 bg-gray-50">
+                                ${cartHtml || '<p class="text-xs text-gray-400 text-center mt-10">Tap items to add</p>'}
+                            </div>
+                            <div class="p-4 border-t bg-white">
+                                <button onclick="sendOrder()" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-xl shadow-lg transition transform hover:scale-105 active:bg-green-700 disabled:opacity-50 disabled:transform-none" ${orderingState.pendingCart.length === 0 ? 'disabled' : ''}>
+                                    SEND TO KITCHEN
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- ORDERING ACTIONS ---
+        function addCustomer() {
+            const input = document.getElementById('new-customer-name');
+            if(input.value.trim() !== '') {
+                socket.emit('add_customer', input.value.trim());
+                input.value = '';
+            }
+        }
+        function deleteCustomer(id) {
+            socket.emit('delete_customer', id);
+        }
+        function openMenuForCustomer(id) {
+            orderingState.activeCustomerId = id;
+            orderingState.pendingCart = []; // Clear old cart
+            currentScreen = 'menu';
+            render();
+        }
+        function backToCustomers() {
+            orderingState.pendingCart = [];
+            currentScreen = 'customer-list';
+            render();
+        }
+        function setOrderingCategory(cat) {
+            orderingState.activeCategory = cat;
+            render();
+        }
+        function addToCart(id, name, price) {
+            orderingState.pendingCart.push({ id, name, price });
+            render();
+        }
+        function removeFromCart(index) {
+            orderingState.pendingCart.splice(index, 1);
+            render();
+        }
+        function sendOrder() {
+            if(orderingState.pendingCart.length > 0) {
+                // Send via RAMEN
+                socket.emit('send_order_to_kitchen', {
+                    customerId: orderingState.activeCustomerId,
+                    items: orderingState.pendingCart
+                });
+                orderingState.pendingCart = [];
+                showMsg("Order Sent to Kitchen!");
+                currentScreen = 'customer-list';
+                render();
+            }
+        }
+
+
+        // --- KITCHEN SCREENS ---
+        function renderKitchenScreensaver(container) {
+            container.innerHTML = `
+                <div class="h-full w-full bg-slate-900 overflow-hidden relative cursor-pointer" onclick="showPasswordScreen()">
+                    <img src="${state.settings.logoUrl}" onerror="this.src='https://via.placeholder.com/200?text=No+Logo'" class="absolute top-0 left-0 screensaver-logo pointer-events-none">
+                    <div class="absolute bottom-4 left-0 right-0 text-center text-slate-500 opacity-50">Tap screen to open dashboard</div>
+                </div>
+            `;
+        }
+
+        function showPasswordScreen() {
+            currentScreen = 'password';
+            render();
+        }
+
+        function renderKitchenPassword(container) {
+            container.innerHTML = `
+                <div class="h-full w-full bg-slate-800 flex items-center justify-center p-4">
+                    <div class="bg-white p-8 rounded-2xl shadow-2xl max-w-sm w-full text-center">
+                        <h2 class="text-2xl font-bold mb-6">Enter Password</h2>
+                        <input type="password" id="kitchen-pass" class="w-full text-center text-3xl tracking-widest p-4 border-2 border-gray-300 rounded-xl mb-6 focus:border-red-500 focus:outline-none" placeholder="****">
+                        <div class="flex gap-4">
+                            <button onclick="checkPassword()" class="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold hover:bg-red-700">Login</button>
+                            <button onclick="currentScreen='screensaver'; render();" class="flex-1 bg-gray-300 py-3 rounded-xl font-bold hover:bg-gray-400">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            // Auto focus and enter key support
+            setTimeout(() => {
+                const input = document.getElementById('kitchen-pass');
+                if(input) {
+                    input.focus();
+                    input.addEventListener('keypress', (e) => { if(e.key === 'Enter') checkPassword(); });
+                }
+            }, 100);
+        }
+
+        function checkPassword() {
+            const pass = document.getElementById('kitchen-pass').value;
+            if(pass === '1234') {
+                currentScreen = 'dashboard';
+                render();
+            } else {
+                showMsg("Incorrect Password!");
+                document.getElementById('kitchen-pass').value = '';
+            }
+        }
+
+        function renderKitchenDashboard(container) {
+            let custHtml = state.customers.map(c => {
+                let total = c.orders.reduce((sum, item) => sum + item.price, 0);
+                return `
+                <div class="bg-white p-6 rounded-xl shadow border border-gray-100 flex flex-col justify-between">
+                    <div>
+                        <h3 class="font-bold text-xl mb-2">${c.name}</h3>
+                        <p class="text-gray-500 text-sm mb-4">${c.orders.length} items ordered</p>
+                    </div>
+                    <div class="flex items-center justify-between mt-auto pt-4 border-t">
+                        <span class="font-bold text-lg text-green-600">${formatCurrency(total)}</span>
+                        <button onclick='printFinalReceipt(${JSON.stringify(c).replace(/'/g, "&#39;")})' class="bg-gray-800 text-white px-4 py-2 rounded shadow hover:bg-gray-900 text-sm font-bold">Print Receipt</button>
+                    </div>
+                </div>
+                `;
+            }).join('');
+
+            if(state.customers.length === 0) custHtml = `<p class="col-span-full text-center text-gray-500 py-10">No active customers.</p>`;
+
+            container.innerHTML = `
+                <div class="h-full flex flex-col bg-slate-50">
+                    <div class="bg-red-700 text-white p-4 shadow-md flex justify-between items-center">
+                        <h2 class="text-2xl font-bold tracking-wide">${state.settings.restaurantName} - KITCHEN</h2>
+                        <div class="flex gap-4">
+                            <button onclick="currentScreen='settings'; render();" class="bg-red-800 hover:bg-red-900 px-4 py-2 rounded shadow font-bold">⚙ Settings</button>
+                            <button onclick="currentScreen='screensaver'; render();" class="bg-transparent border border-white px-4 py-2 rounded hover:bg-white hover:text-red-700 font-bold">Lock</button>
+                        </div>
+                    </div>
+                    <div class="p-6 overflow-y-auto flex-1">
+                        <h3 class="text-xl font-bold mb-6 border-b pb-2 text-slate-800">Active Tables / Customers</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            ${custHtml}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderKitchenSettings(container) {
+            let menuHtml = state.menu.map((m, catIndex) => `
+                <div class="bg-white p-4 rounded border shadow-sm mb-4">
+                    <div class="flex justify-between items-center border-b pb-2 mb-2">
+                        <h4 class="font-bold text-lg">${m.category}</h4>
+                    </div>
+                    <ul class="mb-4">
+                        ${m.items.map(i => `<li class="flex justify-between text-sm py-1 border-b border-gray-50 border-dotted"><span>${i.name}</span> <span>${formatCurrency(i.price)}</span></li>`).join('')}
+                    </ul>
+                    <div class="flex gap-2 text-sm">
+                        <input type="text" id="new-item-name-${catIndex}" placeholder="Item Name" class="border p-2 rounded flex-1">
+                        <input type="number" id="new-item-price-${catIndex}" placeholder="Price" step="0.01" class="border p-2 rounded w-24">
+                        <button onclick="addMenuItem(${catIndex})" class="bg-green-500 text-white px-3 rounded hover:bg-green-600 font-bold">+</button>
+                    </div>
+                </div>
+            `).join('');
+
+            container.innerHTML = `
+                <div class="h-full flex flex-col bg-slate-50">
+                    <div class="bg-slate-800 text-white p-4 flex justify-between items-center shadow">
+                        <h2 class="text-xl font-bold">System Settings</h2>
+                        <button onclick="currentScreen='dashboard'; render();" class="bg-slate-600 px-4 py-2 rounded hover:bg-slate-500">Done</button>
+                    </div>
+                    <div class="p-6 overflow-y-auto flex-1 max-w-4xl mx-auto w-full grid grid-cols-1 md:grid-cols-2 gap-8">
+                        
+                        <!-- General Settings -->
+                        <div>
+                            <h3 class="font-bold text-xl mb-4 border-b pb-2">General</h3>
+                            <div class="mb-4">
+                                <label class="block text-sm font-bold mb-1">Restaurant Name</label>
+                                <div class="flex gap-2">
+                                    <input type="text" id="set-name" value="${state.settings.restaurantName}" class="border p-2 rounded flex-1">
+                                    <button onclick="saveName()" class="bg-blue-600 text-white px-4 rounded font-bold">Save</button>
+                                </div>
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-sm font-bold mb-1">Logo Image URL</label>
+                                <p class="text-xs text-gray-500 mb-1">Paste a link to an image (e.g., from Imgur)</p>
+                                <div class="flex gap-2">
+                                    <input type="text" id="set-logo" value="${state.settings.logoUrl}" class="border p-2 rounded flex-1">
+                                    <button onclick="saveLogo()" class="bg-blue-600 text-white px-4 rounded font-bold">Save</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Menu Settings -->
+                        <div>
+                            <h3 class="font-bold text-xl mb-4 border-b pb-2">Menu Editor</h3>
+                            <div class="mb-6 flex gap-2">
+                                <input type="text" id="new-cat-name" placeholder="New Category Name" class="border p-2 rounded flex-1 border-blue-300">
+                                <button onclick="addCategory()" class="bg-blue-600 text-white px-4 rounded font-bold">Add Cat</button>
+                            </div>
+                            ${menuHtml}
+                        </div>
+
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- SETTINGS ACTIONS ---
+        function saveName() {
+            const val = document.getElementById('set-name').value;
+            socket.emit('update_settings', { restaurantName: val });
+            showMsg("Name saved!");
+        }
+        function saveLogo() {
+            const val = document.getElementById('set-logo').value;
+            socket.emit('update_settings', { logoUrl: val });
+            showMsg("Logo URL saved!");
+        }
+        function addCategory() {
+            const val = document.getElementById('new-cat-name').value;
+            if(val) {
+                let newMenu = [...state.menu, { category: val, items: [] }];
+                socket.emit('update_menu', newMenu);
+            }
+        }
+        function addMenuItem(catIndex) {
+            const nameInput = document.getElementById(`new-item-name-${catIndex}`);
+            const priceInput = document.getElementById(`new-item-price-${catIndex}`);
+            
+            if(nameInput.value && priceInput.value) {
+                let newMenu = JSON.parse(JSON.stringify(state.menu)); // Deep copy
+                newMenu[catIndex].items.push({
+                    id: Date.now(),
+                    name: nameInput.value,
+                    price: parseFloat(priceInput.value)
+                });
+                socket.emit('update_menu', newMenu);
+            }
+        }
+
+        // Run initial render
+        window.onload = render;
+
+    </script>
+</body>
+</html>
