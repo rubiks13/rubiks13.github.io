@@ -4,28 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Restaurant POS System</title>
-    <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Socket.io for the "RAMEN" network -->
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
         /* Floating Logo Animation for Screensaver */
         @keyframes float {
             0% { transform: translate(0, 0); }
-            25% { transform: translate(40vw, 20vh); }
-            50% { transform: translate(80vw, 0); }
-            75% { transform: translate(40vw, -20vh); }
+            25% { transform: translate(35vw, 18vh); }
+            50% { transform: translate(70vw, 0); }
+            75% { transform: translate(35vw, -18vh); }
             100% { transform: translate(0, 0); }
         }
         .screensaver-logo {
-            animation: float 15s linear infinite alternate;
-            max-width: 200px;
-            max-height: 200px;
+            animation: float 22s linear infinite alternate;
+            max-width: 220px;
+            max-height: 220px;
             border-radius: 50%;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.7);
         }
 
-        /* Hide everything EXCEPT the print area when printing */
+        /* 80mm Receipt Printing Styles */
         @media print {
             body * { visibility: hidden; }
             #print-area, #print-area * { visibility: visible; }
@@ -33,515 +31,568 @@
                 position: absolute;
                 left: 0;
                 top: 0;
-                width: 80mm; /* 80mm receipt printer width */
+                width: 80mm;
                 margin: 0;
-                padding: 0;
-                font-family: monospace;
+                padding: 4mm;
+                font-family: 'Courier New', Courier, monospace;
                 font-size: 12px;
+                line-height: 1.2;
+                color: black;
             }
             @page { margin: 0; size: 80mm auto; }
         }
+
+        /* Smooth scroll for category tabs */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800 h-screen overflow-hidden selection:bg-blue-200">
+<body class="bg-gray-100 text-gray-900 h-screen overflow-hidden flex flex-col font-sans">
 
-    <!-- SETUP: PUT YOUR NGROK URL HERE -->
+    <!-- CONFIGURATION -->
     <script>
-        // --- CONFIGURATION ---
-        // Replace this with your actual ngrok URL when you run it!
-        // Example: "https://1234-abcd.ngrok-free.app"
+        // PASTE YOUR NGROK URL HERE. 
+        // Important: No trailing slash! 
         const NGROK_URL = "https://habile-lissa-phytogenic.ngrok-free.dev";
     </script>
 
-    <!-- CUSTOM MESSAGE BOX (Replacing alert()) -->
-    <div id="msg-box" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-lg p-6 max-w-sm w-full text-center shadow-xl">
-            <p id="msg-box-text" class="text-lg mb-4"></p>
-            <button onclick="closeMsgBox()" class="bg-blue-600 text-white px-6 py-2 rounded shadow hover:bg-blue-700">OK</button>
+    <!-- Main App View -->
+    <div id="app" class="flex-1 overflow-hidden relative flex flex-col">
+        <div class="flex items-center justify-center h-full bg-slate-900 text-white">
+            <div class="text-center">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+                <p class="text-xl font-light tracking-widest">WAKING UP THE RAMEN NETWORK...</p>
+            </div>
         </div>
     </div>
 
-    <!-- MAIN APP CONTAINER -->
-    <div id="app" class="h-full w-full">
-        <!-- Screens injected via JavaScript -->
+    <!-- Status Bar -->
+    <div id="status-bar" class="bg-slate-900 text-[10px] text-slate-400 px-4 py-1.5 flex justify-between uppercase tracking-[0.2em] border-t border-slate-800">
+        <div class="flex items-center gap-2">
+            <div id="status-indicator" class="h-2 w-2 rounded-full bg-yellow-500"></div>
+            <span>Server: <span id="net-status" class="text-slate-200">Connecting...</span></span>
+        </div>
+        <span id="device-info" class="font-bold text-blue-400">Initializing</span>
     </div>
 
-    <!-- 80MM PRINT AREA (Hidden on screen, visible on paper) -->
-    <div id="print-area" class="hidden absolute top-0 left-0 bg-white p-4"></div>
+    <!-- Print Canvas -->
+    <div id="print-area" class="hidden"></div>
+
+    <!-- Global Notifications -->
+    <div id="toast" class="fixed top-6 left-1/2 -translate-x-1/2 z-[100] transition-all duration-300 translate-y-[-150%] opacity-0">
+        <div class="bg-slate-800 text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border border-slate-700">
+            <span id="toast-icon">✨</span>
+            <span id="toast-text" class="font-bold">Message</span>
+        </div>
+    </div>
 
     <script>
         // --- APP STATE ---
         let socket;
-        let currentRole = null; // 'kitchen' or 'ordering'
+        let currentRole = null;
         let currentScreen = 'role-selection';
-        
-        let state = {
-            customers: [],
-            menu: [],
-            settings: { restaurantName: "Loading...", logoUrl: "" }
+        let state = { 
+            customers: [], 
+            menu: [], 
+            settings: { restaurantName: "Loading...", logoUrl: "" } 
         };
+        let orderContext = { activeCustomerId: null, category: null, cart: [] };
 
-        let orderingState = {
-            activeCustomerId: null,
-            activeCategory: null,
-            pendingCart: []
-        };
-
-        // --- UTILITIES ---
-        function showMsg(text) {
-            document.getElementById('msg-box-text').innerText = text;
-            document.getElementById('msg-box').classList.remove('hidden');
-        }
-        function closeMsgBox() {
-            document.getElementById('msg-box').classList.add('hidden');
-        }
-        function formatCurrency(num) {
-            return "$" + parseFloat(num).toFixed(2);
-        }
-
-        // --- INITIALIZATION ---
-        function initRamenNetwork() {
-            try {
-                socket = io(NGROK_URL);
-                socket.on('connect', () => console.log('RAMEN Network Connected!'));
-                
-                socket.on('sync_state', (newState) => {
-                    state = newState;
-                    render();
-                });
-
-                // Kitchen Print Listener
-                socket.on('kitchen_print_order', (data) => {
-                    if (currentRole === 'kitchen') {
-                        printKitchenOrder(data.customerName, data.items);
-                    }
-                });
-            } catch(e) {
-                console.error("Socket error. Check your Ngrok URL.", e);
-            }
-        }
-
-        // --- PRINTING LOGIC (80mm) ---
-        function printKitchenOrder(customerName, items) {
-            const printArea = document.getElementById('print-area');
-            let html = `
-                <div class="text-center mb-4">
-                    <h2 class="font-bold text-xl">${state.settings.restaurantName}</h2>
-                    <p class="text-sm border-b pb-2">KITCHEN TICKET</p>
-                </div>
-                <p class="font-bold mb-2">Customer: ${customerName}</p>
-                <table class="w-full text-left mb-4">
-                    <thead><tr class="border-b"><th>Item</th></tr></thead>
-                    <tbody>
-            `;
-            items.forEach(item => {
-                html += `<tr><td class="py-1">- ${item.name}</td></tr>`;
-            });
-            html += `</tbody></table><p class="text-center text-xs mt-4">--- END OF TICKET ---</p>`;
+        // --- CORE NETWORK ENGINE ---
+        function connectToServer() {
+            const statusText = document.getElementById('net-status');
+            const statusDot = document.getElementById('status-indicator');
             
-            printArea.innerHTML = html;
-            window.print();
-        }
-
-        function printFinalReceipt(customer) {
-            const printArea = document.getElementById('print-area');
-            let total = 0;
-            let html = `
-                <div class="text-center mb-4">
-                    <h2 class="font-bold text-xl">${state.settings.restaurantName}</h2>
-                    <p class="text-sm border-b pb-2">FINAL RECEIPT</p>
-                </div>
-                <p class="font-bold mb-2">Customer: ${customer.name}</p>
-                <table class="w-full text-left mb-4">
-                    <thead><tr class="border-b"><th>Item</th><th class="text-right">Price</th></tr></thead>
-                    <tbody>
-            `;
-            customer.orders.forEach(item => {
-                total += item.price;
-                html += `<tr><td class="py-1">${item.name}</td><td class="text-right py-1">${formatCurrency(item.price)}</td></tr>`;
+            socket = io(NGROK_URL, {
+                transports: ['websocket'],
+                reconnection: true,
+                reconnectionDelay: 2000
             });
-            html += `
-                    </tbody>
-                </table>
-                <div class="border-t pt-2 font-bold flex justify-between text-lg">
-                    <span>TOTAL:</span>
-                    <span>${formatCurrency(total)}</span>
-                </div>
-                <p class="text-center text-xs mt-6">Thank you for dining with us!</p>
-            `;
-            
-            printArea.innerHTML = html;
-            window.print();
+
+            socket.on('connect', () => {
+                statusText.innerText = "Online";
+                statusDot.classList.replace('bg-yellow-500', 'bg-green-500');
+                statusDot.classList.replace('bg-red-500', 'bg-green-500');
+            });
+
+            socket.on('connect_error', () => {
+                statusText.innerText = "Offline";
+                statusDot.classList.replace('bg-green-500', 'bg-red-500');
+                statusDot.classList.replace('bg-yellow-500', 'bg-red-500');
+            });
+
+            socket.on('sync_state', (newState) => {
+                state = newState;
+                render();
+            });
+
+            socket.on('kitchen_print_order', (data) => {
+                if (currentRole === 'kitchen') {
+                    handleKitchenPrint(data.customerName, data.items);
+                }
+            });
         }
 
-        // --- RENDER ENGINE ---
+        // --- RENDER ROUTING ---
         function render() {
-            const appDiv = document.getElementById('app');
+            const app = document.getElementById('app');
             
-            if (currentRole === null) {
-                appDiv.innerHTML = `
-                    <div class="flex flex-col items-center justify-center h-full bg-slate-800 text-white p-6">
-                        <h1 class="text-4xl font-bold mb-8 text-center">POS Setup</h1>
-                        <p class="mb-4 text-slate-300">Select this device's role:</p>
-                        <div class="flex gap-4 w-full max-w-md">
-                            <button onclick="setRole('kitchen')" class="flex-1 bg-red-500 hover:bg-red-600 p-6 rounded-xl text-xl font-bold shadow-lg transition transform hover:scale-105">🍳 Kitchen<br><span class="text-sm font-normal">Computer</span></button>
-                            <button onclick="setRole('ordering')" class="flex-1 bg-blue-500 hover:bg-blue-600 p-6 rounded-xl text-xl font-bold shadow-lg transition transform hover:scale-105">📱 Ordering<br><span class="text-sm font-normal">Device</span></button>
-                        </div>
-                    </div>
-                `;
+            if (!currentRole) {
+                renderRoleSelection(app);
                 return;
             }
 
             if (currentRole === 'ordering') {
-                if (currentScreen === 'customer-list') renderOrderingCustomerList(appDiv);
-                if (currentScreen === 'menu') renderOrderingMenu(appDiv);
-            }
-
-            if (currentRole === 'kitchen') {
-                if (currentScreen === 'screensaver') renderKitchenScreensaver(appDiv);
-                if (currentScreen === 'password') renderKitchenPassword(appDiv);
-                if (currentScreen === 'dashboard') renderKitchenDashboard(appDiv);
-                if (currentScreen === 'settings') renderKitchenSettings(appDiv);
+                if (currentScreen === 'customer-list') renderOrderingList(app);
+                else if (currentScreen === 'menu') renderOrderingMenu(app);
+            } else if (currentRole === 'kitchen') {
+                if (currentScreen === 'screensaver') renderKitchenScreensaver(app);
+                else if (currentScreen === 'password') renderKitchenPassword(app);
+                else if (currentScreen === 'dashboard') renderKitchenDashboard(app);
+                else if (currentScreen === 'settings') renderKitchenSettings(app);
             }
         }
 
-        function setRole(role) {
+        // --- VIEW: ROLE SELECTION ---
+        function renderRoleSelection(container) {
+            container.innerHTML = `
+            <div class="h-full flex flex-col items-center justify-center bg-slate-900 text-white p-10">
+                <div class="mb-12 text-center">
+                    <h1 class="text-5xl font-black mb-3 tracking-tighter italic">RAMEN <span class="text-blue-500">POS</span></h1>
+                    <div class="h-1 w-20 bg-blue-500 mx-auto rounded-full"></div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl">
+                    <button onclick="setDeviceRole('ordering')" class="group bg-blue-600 hover:bg-blue-500 p-8 rounded-3xl shadow-2xl transition-all duration-300 hover:-translate-y-2">
+                        <div class="text-5xl mb-4">📱</div>
+                        <span class="block text-3xl font-black mb-1">ORDERING</span>
+                        <span class="text-blue-200 text-sm opacity-80 font-medium">Customer Handheld Device</span>
+                    </button>
+                    <button onclick="setDeviceRole('kitchen')" class="group bg-red-600 hover:bg-red-500 p-8 rounded-3xl shadow-2xl transition-all duration-300 hover:-translate-y-2">
+                        <div class="text-5xl mb-4">🍳</div>
+                        <span class="block text-3xl font-black mb-1">KITCHEN</span>
+                        <span class="text-red-200 text-sm opacity-80 font-medium">Kitchen Terminal & Printing</span>
+                    </button>
+                </div>
+            </div>`;
+        }
+
+        function setDeviceRole(role) {
             currentRole = role;
-            if(role === 'ordering') currentScreen = 'customer-list';
-            if(role === 'kitchen') currentScreen = 'screensaver';
-            initRamenNetwork();
+            document.getElementById('device-info').innerText = role.toUpperCase();
+            currentScreen = (role === 'ordering') ? 'customer-list' : 'screensaver';
+            connectToServer();
             render();
         }
 
-        // --- ORDERING SCREENS ---
-        function renderOrderingCustomerList(container) {
-            let listHtml = state.customers.map(c => `
-                <div class="bg-white p-4 rounded shadow flex justify-between items-center mb-3">
-                    <div class="flex-1 text-xl font-bold cursor-pointer" onclick="openMenuForCustomer('${c.id}')">${c.name}</div>
-                    <button onclick="deleteCustomer('${c.id}')" class="text-red-500 hover:bg-red-100 p-2 rounded-full w-10 h-10 flex items-center justify-center text-xl font-bold">&times;</button>
-                </div>
-            `).join('');
-
-            if(state.customers.length === 0) listHtml = `<p class="text-center text-gray-500 italic mt-10">No customers yet.</p>`;
-
+        // --- VIEW: ORDERING CUSTOMERS ---
+        function renderOrderingList(container) {
             container.innerHTML = `
-                <div class="h-full flex flex-col bg-gray-50">
-                    <div class="bg-blue-600 text-white p-4 shadow flex justify-between items-center">
-                        <h2 class="text-xl font-bold">Select Customer</h2>
-                    </div>
-                    <div class="p-4 flex gap-2">
-                        <input type="text" id="new-customer-name" placeholder="New Customer Name..." class="flex-1 p-3 border rounded shadow-inner focus:outline-blue-500">
-                        <button onclick="addCustomer()" class="bg-green-500 text-white px-6 py-3 rounded shadow font-bold hover:bg-green-600">Add</button>
-                    </div>
-                    <div class="flex-1 overflow-y-auto p-4 pt-0">
-                        ${listHtml}
+            <div class="flex flex-col h-full bg-white">
+                <header class="bg-blue-600 px-6 py-5 text-white flex justify-between items-center shadow-lg z-20">
+                    <h1 class="font-black text-2xl italic tracking-tighter">RAMEN <span class="text-blue-300 font-normal">POS</span></h1>
+                    <button onclick="resetApp()" class="bg-blue-700 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest">Logout</button>
+                </header>
+                
+                <div class="p-6 bg-slate-50 border-b flex flex-col gap-4">
+                    <h2 class="text-slate-400 text-xs font-black uppercase tracking-[0.2em]">Add New Customer</h2>
+                    <div class="flex gap-3">
+                        <input id="cust-name-input" type="text" placeholder="e.g. Table 5 / John D." class="flex-1 p-4 rounded-2xl border-2 border-slate-200 focus:border-blue-500 outline-none font-bold text-lg shadow-sm">
+                        <button onclick="handleAddCustomer()" class="bg-green-500 text-white px-8 rounded-2xl font-black shadow-lg shadow-green-100 hover:bg-green-600 active:scale-95 transition-all">ADD</button>
                     </div>
                 </div>
-            `;
+
+                <div class="flex-1 overflow-y-auto p-6 space-y-4">
+                    <h2 class="text-slate-400 text-xs font-black uppercase tracking-[0.2em] mb-2">Active Customers</h2>
+                    ${state.customers.map(c => `
+                        <div class="flex items-center gap-3 group">
+                            <div onclick="openOrderingMenu('${c.id}')" class="flex-1 bg-white border-2 border-slate-100 p-6 rounded-3xl shadow-sm hover:border-blue-300 active:bg-blue-50 transition-all flex justify-between items-center cursor-pointer">
+                                <div>
+                                    <span class="block text-2xl font-black text-slate-800">${c.name}</span>
+                                    <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">${c.orders.length} Items</span>
+                                </div>
+                                <div class="h-12 w-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 font-black text-2xl">&rarr;</div>
+                            </div>
+                            <button onclick="handleDeleteCustomer('${c.id}')" class="w-14 h-14 flex items-center justify-center bg-red-50 text-red-500 rounded-3xl font-black text-2xl hover:bg-red-500 hover:text-white transition-all">&times;</button>
+                        </div>
+                    `).join('')}
+                    ${state.customers.length === 0 ? '<div class="text-center py-20 text-slate-300 italic">No customers found. Add one above!</div>' : ''}
+                </div>
+            </div>`;
         }
 
+        // --- VIEW: ORDERING MENU ---
         function renderOrderingMenu(container) {
-            const customer = state.customers.find(c => c.id === orderingState.activeCustomerId);
+            const customer = state.customers.find(c => c.id === orderContext.activeCustomerId);
             if (!customer) { currentScreen = 'customer-list'; render(); return; }
-
-            // Default category selection
-            if(!orderingState.activeCategory && state.menu.length > 0) {
-                orderingState.activeCategory = state.menu[0].category;
-            }
-
-            const activeCatData = state.menu.find(m => m.category === orderingState.activeCategory);
-            const items = activeCatData ? activeCatData.items : [];
-
-            let tabsHtml = state.menu.map(m => `
-                <button onclick="setOrderingCategory('${m.category}')" class="px-6 py-3 font-bold whitespace-nowrap ${orderingState.activeCategory === m.category ? 'border-b-4 border-blue-600 text-blue-600' : 'text-gray-500 hover:bg-gray-100'}">${m.category}</button>
-            `).join('');
-
-            let itemsHtml = items.map(i => `
-                <div onclick="addToCart(${i.id}, '${i.name}', ${i.price})" class="bg-white p-4 rounded-xl shadow cursor-pointer active:scale-95 transition flex flex-col justify-between aspect-square border border-gray-200">
-                    <span class="font-bold text-lg leading-tight">${i.name}</span>
-                    <span class="text-blue-600 font-bold">${formatCurrency(i.price)}</span>
-                </div>
-            `).join('');
-
-            let cartHtml = orderingState.pendingCart.map((cItem, index) => `
-                <div class="flex justify-between items-center border-b py-2 text-sm">
-                    <span>${cItem.name}</span>
-                    <button onclick="removeFromCart(${index})" class="text-red-500 font-bold px-2">&times;</button>
-                </div>
-            `).join('');
+            
+            if (!orderContext.category && state.menu.length > 0) orderContext.category = state.menu[0].category;
+            const activeCategoryData = state.menu.find(m => m.category === orderContext.category);
 
             container.innerHTML = `
-                <div class="h-full flex flex-col">
-                    <!-- Header -->
-                    <div class="bg-blue-600 text-white p-4 shadow flex justify-between items-center z-10">
-                        <button onclick="backToCustomers()" class="font-bold px-3 py-1 bg-blue-700 rounded hover:bg-blue-800">&larr; Back</button>
-                        <h2 class="text-xl font-bold truncate px-2">Ordering for: ${customer.name}</h2>
-                        <div class="w-16"></div> <!-- Spacer -->
+            <div class="flex flex-col h-full bg-slate-100">
+                <header class="bg-blue-600 p-4 text-white flex items-center justify-between shadow-md z-30">
+                    <button onclick="currentScreen='customer-list'; render()" class="bg-blue-700 w-12 h-12 flex items-center justify-center rounded-2xl font-black">&larr;</button>
+                    <div class="text-center">
+                        <span class="text-[10px] font-black uppercase tracking-widest text-blue-200">Now Serving</span>
+                        <h2 class="font-black text-xl leading-none">${customer.name}</h2>
                     </div>
-                    
-                    <!-- Tabs -->
-                    <div class="flex overflow-x-auto bg-white border-b shadow-sm z-10">
-                        ${tabsHtml}
+                    <div class="w-12"></div>
+                </header>
+
+                <div class="flex overflow-x-auto bg-white border-b sticky top-0 z-20 no-scrollbar shadow-sm">
+                    ${state.menu.map(m => `
+                        <button onclick="setCategory('${m.category}')" class="px-8 py-5 font-black text-sm whitespace-nowrap transition-all ${orderContext.category === m.category ? 'text-blue-600 border-b-4 border-blue-600 bg-blue-50/50' : 'text-slate-400 hover:text-slate-600'}">
+                            ${m.category.toUpperCase()}
+                        </button>
+                    `).join('')}
+                </div>
+
+                <div class="flex-1 flex overflow-hidden">
+                    <!-- Items Area -->
+                    <div class="flex-1 overflow-y-auto p-6 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 content-start">
+                        ${(activeCategoryData?.items || []).map(item => `
+                            <button onclick="addToCart('${item.name}', ${item.price})" class="bg-white p-5 rounded-3xl shadow-sm border-2 border-transparent hover:border-blue-200 active:scale-95 transition-all flex flex-col justify-between h-40 text-left group">
+                                <span class="font-black text-lg text-slate-800 leading-tight group-hover:text-blue-600">${item.name}</span>
+                                <div class="flex justify-between items-end">
+                                    <span class="text-blue-600 font-black text-xl">$${item.price.toFixed(2)}</span>
+                                    <div class="h-8 w-8 bg-slate-100 rounded-full flex items-center justify-center font-bold text-slate-400">+</div>
+                                </div>
+                            </button>
+                        `).join('')}
                     </div>
 
-                    <!-- Main Area -->
-                    <div class="flex-1 flex overflow-hidden">
-                        <!-- Items Grid -->
-                        <div class="flex-1 overflow-y-auto p-4 bg-gray-100">
-                            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                ${itemsHtml}
-                            </div>
+                    <!-- Sidebar Cart -->
+                    <div class="w-80 bg-white border-l-2 border-slate-100 flex flex-col shadow-2xl z-20">
+                        <div class="p-5 border-b flex justify-between items-center bg-slate-50">
+                            <span class="font-black text-slate-400 uppercase text-xs tracking-widest">Selected Items</span>
+                            <span class="bg-blue-600 text-white px-2 py-1 rounded-lg text-xs font-bold">${orderContext.cart.length}</span>
                         </div>
-
-                        <!-- Current Order Panel -->
-                        <div class="w-64 bg-white border-l shadow-xl flex flex-col z-20">
-                            <div class="p-3 bg-gray-200 font-bold text-center border-b">Current Order</div>
-                            <div class="flex-1 overflow-y-auto p-3 bg-gray-50">
-                                ${cartHtml || '<p class="text-xs text-gray-400 text-center mt-10">Tap items to add</p>'}
+                        <div class="flex-1 overflow-y-auto p-4 space-y-2">
+                            ${orderContext.cart.map((item, idx) => `
+                                <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100 group">
+                                    <div>
+                                        <span class="block font-bold text-sm text-slate-700">${item.name}</span>
+                                        <span class="text-xs font-bold text-blue-500">$${item.price.toFixed(2)}</span>
+                                    </div>
+                                    <button onclick="removeFromCart(${idx})" class="text-red-400 hover:text-red-600 font-bold px-2">&times;</button>
+                                </div>
+                            `).join('')}
+                            ${orderContext.cart.length === 0 ? '<div class="text-center py-20 text-slate-300 text-sm">Select items from the menu</div>' : ''}
+                        </div>
+                        <div class="p-6 border-t space-y-4">
+                            <div class="flex justify-between items-center font-black text-xl px-2">
+                                <span class="text-slate-400 text-sm uppercase">Total</span>
+                                <span>$${orderContext.cart.reduce((s, i) => s + i.price, 0).toFixed(2)}</span>
                             </div>
-                            <div class="p-4 border-t bg-white">
-                                <button onclick="sendOrder()" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-xl shadow-lg transition transform hover:scale-105 active:bg-green-700 disabled:opacity-50 disabled:transform-none" ${orderingState.pendingCart.length === 0 ? 'disabled' : ''}>
-                                    SEND TO KITCHEN
-                                </button>
-                            </div>
+                            <button onclick="submitOrderToKitchen()" class="w-full bg-green-500 hover:bg-green-600 text-white py-5 rounded-2xl font-black text-lg shadow-xl shadow-green-100 active:scale-95 transition-all disabled:opacity-30 disabled:grayscale disabled:scale-100" ${orderContext.cart.length === 0 ? 'disabled' : ''}>
+                                SEND TO KITCHEN
+                            </button>
                         </div>
                     </div>
                 </div>
-            `;
+            </div>`;
         }
 
-        // --- ORDERING ACTIONS ---
-        function addCustomer() {
-            const input = document.getElementById('new-customer-name');
-            if(input.value.trim() !== '') {
-                socket.emit('add_customer', input.value.trim());
-                input.value = '';
-            }
-        }
-        function deleteCustomer(id) {
-            socket.emit('delete_customer', id);
-        }
-        function openMenuForCustomer(id) {
-            orderingState.activeCustomerId = id;
-            orderingState.pendingCart = []; // Clear old cart
-            currentScreen = 'menu';
-            render();
-        }
-        function backToCustomers() {
-            orderingState.pendingCart = [];
-            currentScreen = 'customer-list';
-            render();
-        }
-        function setOrderingCategory(cat) {
-            orderingState.activeCategory = cat;
-            render();
-        }
-        function addToCart(id, name, price) {
-            orderingState.pendingCart.push({ id, name, price });
-            render();
-        }
-        function removeFromCart(index) {
-            orderingState.pendingCart.splice(index, 1);
-            render();
-        }
-        function sendOrder() {
-            if(orderingState.pendingCart.length > 0) {
-                // Send via RAMEN
-                socket.emit('send_order_to_kitchen', {
-                    customerId: orderingState.activeCustomerId,
-                    items: orderingState.pendingCart
-                });
-                orderingState.pendingCart = [];
-                showMsg("Order Sent to Kitchen!");
-                currentScreen = 'customer-list';
-                render();
-            }
-        }
-
-
-        // --- KITCHEN SCREENS ---
+        // --- VIEW: KITCHEN SCREENSAVER ---
         function renderKitchenScreensaver(container) {
             container.innerHTML = `
-                <div class="h-full w-full bg-slate-900 overflow-hidden relative cursor-pointer" onclick="showPasswordScreen()">
-                    <img src="${state.settings.logoUrl}" onerror="this.src='https://via.placeholder.com/200?text=No+Logo'" class="absolute top-0 left-0 screensaver-logo pointer-events-none">
-                    <div class="absolute bottom-4 left-0 right-0 text-center text-slate-500 opacity-50">Tap screen to open dashboard</div>
-                </div>
-            `;
+            <div onclick="currentScreen='password'; render()" class="h-full w-full bg-slate-950 flex items-center justify-center cursor-pointer overflow-hidden relative">
+                <img src="${state.settings.logoUrl}" onerror="this.src='https://via.placeholder.com/200?text=LOGO'" class="screensaver-logo pointer-events-none">
+                <div class="absolute bottom-12 text-slate-600 font-black uppercase tracking-[0.8em] text-xs animate-pulse">Touch to begin</div>
+                <div class="absolute top-10 left-10 text-white opacity-20 font-black text-2xl italic tracking-tighter">${state.settings.restaurantName}</div>
+            </div>`;
         }
 
-        function showPasswordScreen() {
-            currentScreen = 'password';
-            render();
-        }
-
+        // --- VIEW: KITCHEN PASSWORD ---
         function renderKitchenPassword(container) {
             container.innerHTML = `
-                <div class="h-full w-full bg-slate-800 flex items-center justify-center p-4">
-                    <div class="bg-white p-8 rounded-2xl shadow-2xl max-w-sm w-full text-center">
-                        <h2 class="text-2xl font-bold mb-6">Enter Password</h2>
-                        <input type="password" id="kitchen-pass" class="w-full text-center text-3xl tracking-widest p-4 border-2 border-gray-300 rounded-xl mb-6 focus:border-red-500 focus:outline-none" placeholder="****">
-                        <div class="flex gap-4">
-                            <button onclick="checkPassword()" class="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold hover:bg-red-700">Login</button>
-                            <button onclick="currentScreen='screensaver'; render();" class="flex-1 bg-gray-300 py-3 rounded-xl font-bold hover:bg-gray-400">Cancel</button>
-                        </div>
+            <div class="h-full flex items-center justify-center bg-slate-900 p-6">
+                <div class="bg-white rounded-[2.5rem] p-10 w-full max-w-sm shadow-2xl">
+                    <div class="text-center mb-8">
+                        <div class="h-16 w-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl font-black">🔒</div>
+                        <h2 class="text-2xl font-black text-slate-800">Staff Secure Area</h2>
+                        <p class="text-slate-400 text-sm">Enter pin to access dashboard</p>
+                    </div>
+                    <input id="pin-input" type="password" placeholder="••••" class="w-full text-center text-5xl p-5 border-4 border-slate-100 rounded-3xl mb-8 tracking-[0.5em] focus:border-blue-500 focus:outline-none font-black text-slate-800">
+                    <div class="grid grid-cols-2 gap-4">
+                        <button onclick="handlePinSubmit()" class="bg-blue-600 text-white py-5 rounded-2xl font-black text-xl shadow-lg shadow-blue-100">GO</button>
+                        <button onclick="currentScreen='screensaver'; render()" class="bg-slate-100 text-slate-400 py-5 rounded-2xl font-black text-xl">BACK</button>
                     </div>
                 </div>
-            `;
-            // Auto focus and enter key support
+            </div>`;
             setTimeout(() => {
-                const input = document.getElementById('kitchen-pass');
-                if(input) {
-                    input.focus();
-                    input.addEventListener('keypress', (e) => { if(e.key === 'Enter') checkPassword(); });
-                }
+                const pin = document.getElementById('pin-input');
+                pin.focus();
+                pin.addEventListener('keyup', (e) => { if(e.key === 'Enter') handlePinSubmit(); });
             }, 100);
         }
 
-        function checkPassword() {
-            const pass = document.getElementById('kitchen-pass').value;
-            if(pass === '1234') {
+        // --- VIEW: KITCHEN DASHBOARD ---
+        function renderKitchenDashboard(container) {
+            container.innerHTML = `
+            <div class="flex flex-col h-full bg-slate-50">
+                <header class="bg-slate-900 p-6 text-white flex justify-between items-center shadow-xl z-30">
+                    <div class="flex items-center gap-4">
+                        <img src="${state.settings.logoUrl}" class="h-10 w-10 rounded-full border border-slate-700 bg-white p-1">
+                        <h1 class="font-black text-2xl tracking-tighter italic">${state.settings.restaurantName} <span class="text-slate-500 font-normal ml-2">Kitchen Dashboard</span></h1>
+                    </div>
+                    <div class="flex gap-4">
+                        <button onclick="currentScreen='settings'; render()" class="bg-slate-800 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest border border-slate-700">Settings</button>
+                        <button onclick="currentScreen='screensaver'; render()" class="bg-red-900/40 text-red-400 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest border border-red-900/50">Lock</button>
+                    </div>
+                </header>
+                
+                <div class="flex-1 overflow-y-auto p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 content-start">
+                    ${state.customers.map(c => {
+                        const total = c.orders.reduce((acc, i) => acc + i.price, 0);
+                        return `
+                        <div class="bg-white rounded-[2rem] p-8 shadow-sm border-2 border-white hover:border-blue-100 transition-all flex flex-col h-80">
+                            <div class="mb-6">
+                                <h3 class="text-3xl font-black text-slate-800 truncate">${c.name}</h3>
+                                <p class="text-slate-400 text-xs font-black uppercase tracking-widest mt-1">${c.orders.length} Active Orders</p>
+                            </div>
+                            <div class="flex-1 overflow-y-auto mb-4 border-t pt-4">
+                                ${c.orders.slice(-3).map(o => `<div class="text-xs text-slate-500 font-medium mb-1 truncate">• ${o.name}</div>`).join('')}
+                                ${c.orders.length > 3 ? `<div class="text-[10px] text-blue-500 font-black">+ ${c.orders.length - 3} more</div>` : ''}
+                            </div>
+                            <div class="mt-auto border-t-2 border-slate-50 pt-6">
+                                <div class="flex justify-between items-end mb-6">
+                                    <span class="text-slate-400 text-[10px] font-black uppercase tracking-widest">Total Bill</span>
+                                    <span class="text-3xl font-black text-green-600">$${total.toFixed(2)}</span>
+                                </div>
+                                <button onclick="handlePrintFinalReceipt('${c.id}')" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-sm shadow-xl active:scale-95 transition-all">PRINT FINAL RECEIPT</button>
+                            </div>
+                        </div>`;
+                    }).join('')}
+                    ${state.customers.length === 0 ? '<div class="col-span-full py-40 text-center text-slate-300 font-black text-4xl italic">Waiting for incoming orders...</div>' : ''}
+                </div>
+            </div>`;
+        }
+
+        // --- VIEW: KITCHEN SETTINGS ---
+        function renderKitchenSettings(container) {
+            container.innerHTML = `
+            <div class="flex flex-col h-full bg-white">
+                <header class="p-8 border-b-2 border-slate-50 flex justify-between items-center bg-white sticky top-0 z-20">
+                    <h2 class="text-4xl font-black tracking-tighter text-slate-900">System Management</h2>
+                    <button onclick="currentScreen='dashboard'; render()" class="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-blue-100">Back to Dashboard</button>
+                </header>
+                
+                <div class="flex-1 overflow-y-auto p-10 max-w-5xl mx-auto w-full grid grid-cols-1 md:grid-cols-2 gap-16">
+                    
+                    <!-- Branding Settings -->
+                    <div class="space-y-12">
+                        <section>
+                            <h3 class="text-xs font-black uppercase text-blue-500 mb-6 tracking-[0.3em]">Branding & Identity</h3>
+                            <div class="space-y-6">
+                                <div class="bg-slate-50 p-6 rounded-3xl">
+                                    <label class="text-[10px] font-black uppercase text-slate-400 block mb-2 ml-1">Restaurant Name</label>
+                                    <div class="flex gap-3">
+                                        <input id="brand-name-input" type="text" value="${state.settings.restaurantName}" class="flex-1 p-4 bg-white rounded-2xl font-bold border border-slate-100">
+                                        <button onclick="handleUpdateBranding()" class="bg-slate-900 text-white px-6 rounded-2xl font-black text-xs">SAVE</button>
+                                    </div>
+                                </div>
+                                <div class="bg-slate-50 p-6 rounded-3xl">
+                                    <label class="text-[10px] font-black uppercase text-slate-400 block mb-2 ml-1">Logo URL (Imgur link etc.)</label>
+                                    <div class="flex gap-3">
+                                        <input id="brand-logo-input" type="text" value="${state.settings.logoUrl}" class="flex-1 p-4 bg-white rounded-2xl font-bold border border-slate-100">
+                                        <button onclick="handleUpdateBranding()" class="bg-slate-900 text-white px-6 rounded-2xl font-black text-xs">SAVE</button>
+                                    </div>
+                                    <div class="mt-4 flex justify-center">
+                                        <img src="${state.settings.logoUrl}" class="h-20 w-20 rounded-full border-4 border-white shadow-md bg-slate-200">
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
+                    <!-- Menu Editor -->
+                    <section>
+                        <h3 class="text-xs font-black uppercase text-blue-500 mb-6 tracking-[0.3em]">Menu Construction</h3>
+                        <div class="bg-blue-50 p-6 rounded-3xl mb-8 border-2 border-blue-100">
+                            <label class="text-[10px] font-black uppercase text-blue-400 block mb-2 ml-1">Create New Category</label>
+                            <div class="flex gap-3">
+                                <input id="new-cat-input" type="text" placeholder="e.g. Appetizers" class="flex-1 p-4 bg-white rounded-2xl font-bold outline-none focus:ring-2 focus:ring-blue-400">
+                                <button onclick="handleAddCategory()" class="bg-blue-600 text-white px-6 rounded-2xl font-black text-xs">ADD</button>
+                            </div>
+                        </div>
+
+                        <div class="space-y-8">
+                            ${state.menu.map((cat, idx) => `
+                                <div class="bg-slate-50 p-8 rounded-[2.5rem] border border-slate-100">
+                                    <h4 class="font-black text-xl text-slate-800 mb-6 border-b pb-4 flex justify-between">
+                                        <span>${cat.category}</span>
+                                        <span class="text-slate-300 text-xs uppercase tracking-widest">${cat.items.length} Items</span>
+                                    </h4>
+                                    <div class="space-y-3 mb-8">
+                                        ${cat.items.map(i => `
+                                            <div class="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-50">
+                                                <span class="font-bold text-slate-700">${i.name}</span>
+                                                <span class="font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-lg text-sm">$${i.price.toFixed(2)}</span>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                    <div class="bg-white p-4 rounded-2xl border-2 border-slate-100 flex gap-3">
+                                        <input id="item-name-${idx}" type="text" placeholder="Item Name" class="flex-1 text-sm font-bold outline-none">
+                                        <input id="item-price-${idx}" type="number" step="0.01" placeholder="0.00" class="w-20 text-sm font-bold outline-none text-right">
+                                        <button onclick="handleAddItem(${idx})" class="bg-green-500 text-white h-10 w-10 rounded-xl font-black text-xl flex items-center justify-center">+</button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </section>
+                </div>
+            </div>`;
+        }
+
+        // --- CONTROLLER: ACTIONS ---
+        function handleAddCustomer() {
+            const input = document.getElementById('cust-name-input');
+            if(input.value.trim()) {
+                socket.emit('add_customer', input.value.trim());
+                input.value = '';
+                showToast("✅ Customer Added");
+            }
+        }
+        function handleDeleteCustomer(id) {
+            socket.emit('delete_customer', id);
+            showToast("🗑️ Customer Removed");
+        }
+        function openOrderingMenu(id) {
+            orderContext.activeCustomerId = id;
+            orderContext.cart = [];
+            currentScreen = 'menu';
+            render();
+        }
+        function setCategory(cat) {
+            orderContext.category = cat;
+            render();
+        }
+        function addToCart(name, price) {
+            orderContext.cart.push({ name, price });
+            render();
+        }
+        function removeFromCart(idx) {
+            orderContext.cart.splice(idx, 1);
+            render();
+        }
+        function submitOrderToKitchen() {
+            socket.emit('send_order_to_kitchen', {
+                customerId: orderContext.activeCustomerId,
+                items: orderContext.cart
+            });
+            orderContext.cart = [];
+            showToast("🚀 SENT TO KITCHEN");
+            currentScreen = 'customer-list';
+            render();
+        }
+        function handlePinSubmit() {
+            const input = document.getElementById('pin-input');
+            if (input.value === '1234') {
                 currentScreen = 'dashboard';
                 render();
             } else {
-                showMsg("Incorrect Password!");
-                document.getElementById('kitchen-pass').value = '';
+                showToast("❌ Incorrect Pin");
+                input.value = '';
+                input.focus();
             }
         }
-
-        function renderKitchenDashboard(container) {
-            let custHtml = state.customers.map(c => {
-                let total = c.orders.reduce((sum, item) => sum + item.price, 0);
-                return `
-                <div class="bg-white p-6 rounded-xl shadow border border-gray-100 flex flex-col justify-between">
-                    <div>
-                        <h3 class="font-bold text-xl mb-2">${c.name}</h3>
-                        <p class="text-gray-500 text-sm mb-4">${c.orders.length} items ordered</p>
-                    </div>
-                    <div class="flex items-center justify-between mt-auto pt-4 border-t">
-                        <span class="font-bold text-lg text-green-600">${formatCurrency(total)}</span>
-                        <button onclick='printFinalReceipt(${JSON.stringify(c).replace(/'/g, "&#39;")})' class="bg-gray-800 text-white px-4 py-2 rounded shadow hover:bg-gray-900 text-sm font-bold">Print Receipt</button>
-                    </div>
-                </div>
-                `;
-            }).join('');
-
-            if(state.customers.length === 0) custHtml = `<p class="col-span-full text-center text-gray-500 py-10">No active customers.</p>`;
-
-            container.innerHTML = `
-                <div class="h-full flex flex-col bg-slate-50">
-                    <div class="bg-red-700 text-white p-4 shadow-md flex justify-between items-center">
-                        <h2 class="text-2xl font-bold tracking-wide">${state.settings.restaurantName} - KITCHEN</h2>
-                        <div class="flex gap-4">
-                            <button onclick="currentScreen='settings'; render();" class="bg-red-800 hover:bg-red-900 px-4 py-2 rounded shadow font-bold">⚙ Settings</button>
-                            <button onclick="currentScreen='screensaver'; render();" class="bg-transparent border border-white px-4 py-2 rounded hover:bg-white hover:text-red-700 font-bold">Lock</button>
-                        </div>
-                    </div>
-                    <div class="p-6 overflow-y-auto flex-1">
-                        <h3 class="text-xl font-bold mb-6 border-b pb-2 text-slate-800">Active Tables / Customers</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            ${custHtml}
-                        </div>
-                    </div>
-                </div>
-            `;
+        function handleUpdateBranding() {
+            socket.emit('update_settings', {
+                restaurantName: document.getElementById('brand-name-input').value,
+                logoUrl: document.getElementById('brand-logo-input').value
+            });
+            showToast("✨ Branding Updated");
         }
-
-        function renderKitchenSettings(container) {
-            let menuHtml = state.menu.map((m, catIndex) => `
-                <div class="bg-white p-4 rounded border shadow-sm mb-4">
-                    <div class="flex justify-between items-center border-b pb-2 mb-2">
-                        <h4 class="font-bold text-lg">${m.category}</h4>
-                    </div>
-                    <ul class="mb-4">
-                        ${m.items.map(i => `<li class="flex justify-between text-sm py-1 border-b border-gray-50 border-dotted"><span>${i.name}</span> <span>${formatCurrency(i.price)}</span></li>`).join('')}
-                    </ul>
-                    <div class="flex gap-2 text-sm">
-                        <input type="text" id="new-item-name-${catIndex}" placeholder="Item Name" class="border p-2 rounded flex-1">
-                        <input type="number" id="new-item-price-${catIndex}" placeholder="Price" step="0.01" class="border p-2 rounded w-24">
-                        <button onclick="addMenuItem(${catIndex})" class="bg-green-500 text-white px-3 rounded hover:bg-green-600 font-bold">+</button>
-                    </div>
-                </div>
-            `).join('');
-
-            container.innerHTML = `
-                <div class="h-full flex flex-col bg-slate-50">
-                    <div class="bg-slate-800 text-white p-4 flex justify-between items-center shadow">
-                        <h2 class="text-xl font-bold">System Settings</h2>
-                        <button onclick="currentScreen='dashboard'; render();" class="bg-slate-600 px-4 py-2 rounded hover:bg-slate-500">Done</button>
-                    </div>
-                    <div class="p-6 overflow-y-auto flex-1 max-w-4xl mx-auto w-full grid grid-cols-1 md:grid-cols-2 gap-8">
-                        
-                        <!-- General Settings -->
-                        <div>
-                            <h3 class="font-bold text-xl mb-4 border-b pb-2">General</h3>
-                            <div class="mb-4">
-                                <label class="block text-sm font-bold mb-1">Restaurant Name</label>
-                                <div class="flex gap-2">
-                                    <input type="text" id="set-name" value="${state.settings.restaurantName}" class="border p-2 rounded flex-1">
-                                    <button onclick="saveName()" class="bg-blue-600 text-white px-4 rounded font-bold">Save</button>
-                                </div>
-                            </div>
-                            <div class="mb-4">
-                                <label class="block text-sm font-bold mb-1">Logo Image URL</label>
-                                <p class="text-xs text-gray-500 mb-1">Paste a link to an image (e.g., from Imgur)</p>
-                                <div class="flex gap-2">
-                                    <input type="text" id="set-logo" value="${state.settings.logoUrl}" class="border p-2 rounded flex-1">
-                                    <button onclick="saveLogo()" class="bg-blue-600 text-white px-4 rounded font-bold">Save</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Menu Settings -->
-                        <div>
-                            <h3 class="font-bold text-xl mb-4 border-b pb-2">Menu Editor</h3>
-                            <div class="mb-6 flex gap-2">
-                                <input type="text" id="new-cat-name" placeholder="New Category Name" class="border p-2 rounded flex-1 border-blue-300">
-                                <button onclick="addCategory()" class="bg-blue-600 text-white px-4 rounded font-bold">Add Cat</button>
-                            </div>
-                            ${menuHtml}
-                        </div>
-
-                    </div>
-                </div>
-            `;
-        }
-
-        // --- SETTINGS ACTIONS ---
-        function saveName() {
-            const val = document.getElementById('set-name').value;
-            socket.emit('update_settings', { restaurantName: val });
-            showMsg("Name saved!");
-        }
-        function saveLogo() {
-            const val = document.getElementById('set-logo').value;
-            socket.emit('update_settings', { logoUrl: val });
-            showMsg("Logo URL saved!");
-        }
-        function addCategory() {
-            const val = document.getElementById('new-cat-name').value;
-            if(val) {
-                let newMenu = [...state.menu, { category: val, items: [] }];
+        function handleAddCategory() {
+            const name = document.getElementById('new-cat-input').value;
+            if(name) {
+                const newMenu = [...state.menu, { category: name, items: [] }];
                 socket.emit('update_menu', newMenu);
+                showToast("📁 Category Created");
             }
         }
-        function addMenuItem(catIndex) {
-            const nameInput = document.getElementById(`new-item-name-${catIndex}`);
-            const priceInput = document.getElementById(`new-item-price-${catIndex}`);
-            
-            if(nameInput.value && priceInput.value) {
-                let newMenu = JSON.parse(JSON.stringify(state.menu)); // Deep copy
-                newMenu[catIndex].items.push({
-                    id: Date.now(),
-                    name: nameInput.value,
-                    price: parseFloat(priceInput.value)
-                });
+        function handleAddItem(catIdx) {
+            const name = document.getElementById(`item-name-${catIdx}`).value;
+            const price = parseFloat(document.getElementById(`item-price-${catIdx}`).value);
+            if(name && !isNaN(price)) {
+                let newMenu = JSON.parse(JSON.stringify(state.menu));
+                newMenu[catIdx].items.push({ id: Date.now(), name, price });
                 socket.emit('update_menu', newMenu);
+                showToast("🍔 Item Added");
             }
         }
 
-        // Run initial render
+        // --- PRINTING ENGINE ---
+        function handleKitchenPrint(customerName, items) {
+            const area = document.getElementById('print-area');
+            area.innerHTML = `
+                <div style="text-align:center; border-bottom:2px solid black; padding-bottom:10px; margin-bottom:15px;">
+                    <h1 style="font-size:24px; margin:0;">${state.settings.restaurantName}</h1>
+                    <p style="margin:5px 0; font-weight:bold; font-size:16px;">KITCHEN TICKET</p>
+                    <p style="margin:0; font-size:10px;">${new Date().toLocaleTimeString()}</p>
+                </div>
+                <div style="font-size:18px; font-weight:bold; margin-bottom:15px;">
+                    CUSTOMER: ${customerName.toUpperCase()}
+                </div>
+                <div style="border-bottom:1px solid black; padding-bottom:10px; margin-bottom:10px;">
+                    ${items.map(i => `<p style="margin:8px 0; font-size:16px;">[ ] ${i.name}</p>`).join('')}
+                </div>
+                <p style="text-align:center; font-size:10px;">ORDER RECEIVED BY RAMEN NETWORK</p>
+            `;
+            window.print();
+        }
+
+        function handlePrintFinalReceipt(id) {
+            const customer = state.customers.find(c => c.id === id);
+            if(!customer) return;
+            const total = customer.orders.reduce((acc, i) => acc + i.price, 0);
+            const area = document.getElementById('print-area');
+            area.innerHTML = `
+                <div style="text-align:center; border-bottom:2px solid black; padding-bottom:10px; margin-bottom:15px;">
+                    <h1 style="font-size:24px; margin:0;">${state.settings.restaurantName}</h1>
+                    <p style="margin:5px 0; font-weight:bold;">TAX INVOICE / RECEIPT</p>
+                </div>
+                <p style="font-weight:bold;">CUSTOMER: ${customer.name}</p>
+                <p style="font-size:10px;">Date: ${new Date().toLocaleString()}</p>
+                <div style="border-bottom:1px dashed black; margin:10px 0;"></div>
+                <table style="width:100%; border-collapse:collapse;">
+                    ${customer.orders.map(i => `
+                        <tr>
+                            <td style="padding:4px 0;">${i.name}</td>
+                            <td style="text-align:right;">$${i.price.toFixed(2)}</td>
+                        </tr>
+                    `).join('')}
+                </table>
+                <div style="border-top:2px solid black; margin-top:15px; padding-top:10px;">
+                    <div style="display:flex; justify-content:space-between; font-weight:black; font-size:20px;">
+                        <span>TOTAL</span>
+                        <span>$${total.toFixed(2)}</span>
+                    </div>
+                </div>
+                <p style="text-align:center; margin-top:30px; font-size:14px; font-weight:bold;">THANK YOU FOR YOUR PATRONAGE</p>
+            `;
+            window.print();
+        }
+
+        // --- UI HELPERS ---
+        function showToast(text) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-text').innerText = text;
+            toast.style.transform = "translate(-50%, 0)";
+            toast.style.opacity = "1";
+            setTimeout(() => {
+                toast.style.transform = "translate(-50%, -150%)";
+                toast.style.opacity = "0";
+            }, 2500);
+        }
+        function resetApp() {
+            currentRole = null;
+            if(socket) socket.disconnect();
+            render();
+        }
+
         window.onload = render;
-
     </script>
 </body>
 </html>
