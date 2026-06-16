@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agri Drone Services | California</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'agri-green': '#206a37', /* Matched to business card */
+                        'agri-navy': '#1d2433',  /* Matched to business card */
+                        'agri-gold': '#d4af37',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .hero-bg {
+            /* Fallback gradient if you don't have a background image right away */
+            background: linear-gradient(rgba(29, 36, 51, 0.8), rgba(32, 106, 55, 0.8)), url('https://images.unsplash.com/photo-1592982537447-6f2a6a0c5c1b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80') center/cover no-repeat;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 antialiased">
+
+    <!-- Navigation -->
+    <nav class="bg-white shadow-md fixed w-full z-50 top-0">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-20">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center gap-2">
+                        <!-- Simple Drone SVG Icon -->
+                        <svg class="h-8 w-8 text-agri-green" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                        </svg>
+                        <div class="flex flex-col">
+                            <span class="font-extrabold text-2xl text-agri-green tracking-tight leading-none">AGRI DRONE</span>
+                            <span class="font-bold text-sm text-agri-navy tracking-widest leading-none">SERVICES</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="#services" class="text-gray-600 hover:text-agri-green transition font-medium">Services</a>
+                    <a href="#video" class="text-gray-600 hover:text-agri-green transition font-medium">Watch Video</a>
+                    <a href="#contact" class="text-gray-600 hover:text-agri-green transition font-medium">Contact Us</a>
+                </div>
+                <!-- Mobile menu button -->
+                <div class="md:hidden flex items-center">
+                    <button id="mobile-menu-btn" class="text-gray-600 hover:text-agri-green focus:outline-none">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white border-t">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="#services" class="block px-3 py-2 text-gray-600 hover:text-agri-green font-medium">Services</a>
+                <a href="#video" class="block px-3 py-2 text-gray-600 hover:text-agri-green font-medium">Watch Video</a>
+                <a href="#contact" class="block px-3 py-2 text-gray-600 hover:text-agri-green font-medium">Contact Us</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero-bg h-screen min-h-[600px] flex items-center justify-center pt-20">
+        <div class="text-center px-4 max-w-4xl mx-auto">
+            <h1 class="text-4xl md:text-6xl font-extrabold text-white mb-6 drop-shadow-lg">
+                Precision Agriculture <br/><span class="text-agri-gold">From Above</span>
+            </h1>
+            <p class="text-xl md:text-2xl text-gray-200 mb-8 font-light drop-shadow-md">
+                Commercial & Agricultural Drone Services Serving All of California
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="#contact" class="bg-agri-green hover:bg-green-700 text-white font-bold py-3 px-8 rounded-full transition shadow-lg">Get a Quote</a>
+                <a href="#services" class="bg-white hover:bg-gray-100 text-agri-navy font-bold py-3 px-8 rounded-full transition shadow-lg">Our Services</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Services Section -->
+    <section id="services" class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-extrabold text-agri-navy mb-4">Our Services</h2>
+                <div class="h-1 w-24 bg-agri-green mx-auto rounded"></div>
+                <p class="mt-4 text-gray-600 max-w-2xl mx-auto">We provide state-of-the-art agricultural drone solutions to improve crop yield, efficiency, and farm management.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Service 1 -->
+                <div class="bg-gray-50 rounded-xl p-8 shadow-sm hover:shadow-md transition border border-gray-100">
+                    <div class="w-14 h-14 bg-green-100 text-agri-green rounded-lg flex items-center justify-center mb-6">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-agri-navy mb-3">Spraying</h3>
+                    <p class="text-gray-600">Precise, targeted application of liquid fertilizers, pesticides, and herbicides. Reduces chemical usage and minimizes soil compaction.</p>
+                </div>
+
+                <!-- Service 2 -->
+                <div class="bg-gray-50 rounded-xl p-8 shadow-sm hover:shadow-md transition border border-gray-100">
+                    <div class="w-14 h-14 bg-green-100 text-agri-green rounded-lg flex items-center justify-center mb-6">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-agri-navy mb-3">Granular Spreading</h3>
+                    <p class="text-gray-600">Efficient and even broadcasting of seeds, granular fertilizers, and cover crops across difficult terrain or wet fields.</p>
+                </div>
+
+                <!-- Service 3 -->
+                <div class="bg-gray-50 rounded-xl p-8 shadow-sm hover:shadow-md transition border border-gray-100">
+                    <div class="w-14 h-14 bg-green-100 text-agri-green rounded-lg flex items-center justify-center mb-6">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-agri-navy mb-3">Mapping</h3>
+                    <p class="text-gray-600">High-resolution aerial imaging and field analysis to monitor crop health, plan treatments, and maximize your farm's potential.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Promotional Video Section -->
+    <section id="video" class="py-20 bg-gray-100">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-3xl md:text-4xl font-extrabold text-agri-navy mb-4">See Us In Action</h2>
+            <div class="h-1 w-24 bg-agri-green mx-auto rounded mb-10"></div>
+            
+            <!-- Video Container -->
+            <div class="relative rounded-2xl overflow-hidden shadow-2xl bg-black border-4 border-gray-800 aspect-video">
+                <!-- 
+                  INSTRUCTIONS FOR GITHUB: 
+                  Place your 'video.mp4' file in the exact same folder as this index.html file 
+                -->
+                <video 
+                    controls 
+                    class="w-full h-full object-cover"
+                    poster="https://images.unsplash.com/photo-1628359355624-8556235bbfa1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80">
+                    <source src="video.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+            <p class="mt-6 text-gray-500 italic">Watch how Agri Drone Services brings precision and efficiency to the field.</p>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="bg-agri-navy rounded-3xl shadow-xl overflow-hidden flex flex-col lg:flex-row">
+                
+                <!-- Contact Info (Left Side) -->
+                <div class="bg-agri-navy text-white p-10 lg:w-2/5 flex flex-col justify-center">
+                    <h2 class="text-3xl font-bold mb-2">Get In Touch</h2>
+                    <p class="text-gray-300 mb-8">Serving Commercial Agriculture throughout California. Contact us today for scheduling and quotes.</p>
+                    
+                    <div class="space-y-6">
+                        <!-- James Koehn -->
+                        <div class="flex items-start">
+                            <div class="bg-agri-green p-3 rounded-full mr-4">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-lg">James Koehn</h4>
+                                <p class="text-sm text-gray-300">Owner / Operator</p>
+                                <a href="tel:2096008082" class="text-agri-gold hover:text-white transition block mt-1">(209) 600-8082</a>
+                            </div>
+                        </div>
+
+                        <!-- Mark Koehn -->
+                        <div class="flex items-start">
+                            <div class="bg-agri-green p-3 rounded-full mr-4">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-lg">Mark Koehn</h4>
+                                <p class="text-sm text-gray-300">Owner / Operator</p>
+                                <a href="tel:2099962634" class="text-agri-gold hover:text-white transition block mt-1">(209) 996-2634</a>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start mt-8 pt-8 border-t border-gray-700">
+                            <div class="bg-agri-green p-3 rounded-full mr-4">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-lg">Service Area</h4>
+                                <p class="text-agri-gold mt-1">Serving California</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contact Form (Right Side) -->
+                <div class="bg-gray-50 p-10 lg:w-3/5">
+                    <h3 class="text-2xl font-bold text-agri-navy mb-6">Send us a Message</h3>
+                    
+                    <form id="contactForm" class="space-y-6">
+                        <div>
+                            <label for="name" class="block text-sm font-medium text-gray-700">Full Name</label>
+                            <input type="text" id="name" name="name" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-agri-green focus:ring-agri-green border p-3" placeholder="John Doe">
+                        </div>
+                        
+                        <div>
+                            <label for="email" class="block text-sm font-medium text-gray-700">Email Address</label>
+                            <input type="email" id="email" name="email" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-agri-green focus:ring-agri-green border p-3" placeholder="john@example.com">
+                        </div>
+                        
+                        <div>
+                            <label for="message" class="block text-sm font-medium text-gray-700">Message</label>
+                            <textarea id="message" name="message" rows="4" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-agri-green focus:ring-agri-green border p-3" placeholder="How can we help you?"></textarea>
+                        </div>
+                        
+                        <button type="submit" class="w-full bg-agri-green hover:bg-green-700 text-white font-bold py-3 px-4 rounded-md transition shadow-md">
+                            Send Message
+                        </button>
+                    </form>
+
+                    <!-- Success Message (Hidden by default) -->
+                    <div id="successMessage" class="hidden mt-4 p-4 bg-green-100 text-green-700 rounded-md border border-green-200">
+                        Thank you! Your message has been sent. We will get back to you shortly.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-gray-400 py-8 text-center">
+        <div class="max-w-7xl mx-auto px-4">
+            <p>&copy; <span id="year"></span> Agri Drone Services. All rights reserved.</p>
+            <p class="mt-2 text-sm">Agriculture - Commercial | Serving California</p>
+        </div>
+    </footer>
+
+    <!-- Interactive Scripts -->
+    <script>
+        // Set current year in footer
+        document.getElementById('year').textContent = new Date().getFullYear();
+
+        // Mobile menu toggle
+        const btn = document.getElementById('mobile-menu-btn');
+        const menu = document.getElementById('mobile-menu');
+
+        btn.addEventListener('click', () => {
+            menu.classList.toggle('hidden');
+        });
+
+        // Close mobile menu on link click
+        menu.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                menu.classList.add('hidden');
+            });
+        });
+
+        // Handle Contact Form Submission (Front-end only simulation)
+        document.getElementById('contactForm').addEventListener('submit', function(e) {
+            e.preventDefault(); // Prevent page reload
+            
+            // In a real scenario, you would send the data to a server here using fetch() or similar.
+            // Since this is static GitHub pages hosting, we just show a success message.
+            
+            document.getElementById('contactForm').reset();
+            const successMsg = document.getElementById('successMessage');
+            successMsg.classList.remove('hidden');
+            
+            // Hide message after 5 seconds
+            setTimeout(() => {
+                successMsg.classList.add('hidden');
+            }, 5000);
+        });
+    </script>
+</body>
+</html>
