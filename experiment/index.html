@@ -48,7 +48,7 @@
       }
     }
 
-    /* Precision thermal paper styling engineered specifically for 80mm printers */
+    /* Precision thermal paper styling engineered for 80mm continuous thermal printers (double length tags) */
     @media print {
       @page {
         size: 80mm auto;
@@ -85,7 +85,6 @@
       }
     }
 
-    /* Sleek custom scrollbars */
     ::-webkit-scrollbar {
       width: 6px;
       height: 6px;
@@ -104,7 +103,6 @@
 </head>
 <body class="h-full flex flex-col bg-slate-950 text-slate-100 overflow-x-hidden select-none">
 
-  <!-- AIRPORT TERMINAL HEADER BAR -->
   <header class="bg-slate-900 border-b border-slate-800 px-4 py-3 flex items-center justify-between gap-4 sticky top-0 z-40 shadow-xl">
     <div class="flex items-center space-x-3">
       <div class="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20 flex items-center justify-center font-bold text-xl">
@@ -113,7 +111,7 @@
       <div>
         <div class="flex items-center gap-2">
           <h1 class="font-extrabold text-base md:text-lg text-white leading-tight tracking-wide">AEROSKY AIRWAYS</h1>
-          <span class="text-[10px] uppercase font-mono-code bg-sky-500/20 text-sky-400 px-2 py-0.5 rounded border border-sky-500/30">DESK #04 • JFK INTL</span>
+          <span class="text-[10px] uppercase font-mono-code bg-sky-500/20 text-sky-400 px-2 py-0.5 rounded border border-sky-500/30">TERMINAL #01 • JFK INTL</span>
         </div>
         <p class="text-xs text-slate-400 flex items-center gap-3">
           <span><i class="fa-solid fa-user-gear text-slate-500 mr-1"></i> Agent: J. Vance (ID #8841)</span>
@@ -122,163 +120,167 @@
       </div>
     </div>
 
-    <!-- Active Flight & Scanner Hardware Indicators -->
-    <div class="flex items-center gap-3">
-      <div class="hidden sm:flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800 text-xs">
+    <!-- Header Actions & Navigation -->
+    <div class="flex items-center gap-2 sm:gap-3">
+      <div class="hidden md:flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800 text-xs">
         <span class="relative flex h-2 w-2">
           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
           <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
         </span>
-        <span class="text-slate-300 font-mono-code text-[11px]">2D SCANNER ACTIVE</span>
+        <span class="text-slate-300 font-mono-code text-[11px]">SCANNER READY</span>
       </div>
 
-      <button onclick="openFlightManifestModal()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition flex items-center gap-1.5" title="View Flight Roster">
-        <i class="fa-solid fa-list-check text-sky-400"></i>
-        <span>Flight Manifest</span>
+      <button onclick="openBatchGeneratorModal()" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow" title="Generate & Print 100 Barcodes">
+        <i class="fa-solid fa-barcode"></i>
+        <span>PRINT 100 BARCODES</span>
       </button>
 
-      <button onclick="openNewBookingModal()" class="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold transition flex items-center gap-1.5 shadow" title="Create New Reservation">
-        <i class="fa-solid fa-user-plus"></i>
-        <span>New Passenger</span>
+      <button onclick="openRosterModal()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition flex items-center gap-1.5" title="View Pending Passengers in LocalStorage">
+        <i class="fa-solid fa-users text-sky-400"></i>
+        <span>Roster (<span id="pnr-count-badge">0</span>)</span>
+      </button>
+
+      <button onclick="resetSystemDatabase()" class="p-2 rounded-lg bg-slate-800 hover:bg-rose-900/50 text-slate-400 hover:text-rose-400 border border-slate-700 transition" title="Reset All Local Storage Data">
+        <i class="fa-solid fa-rotate-left text-xs"></i>
       </button>
 
       <button onclick="toggleAudio()" id="audio-toggle-btn" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" title="Toggle Terminal Audio">
-        <i class="fa-solid fa-volume-high text-sm"></i>
+        <i class="fa-solid fa-volume-high text-xs"></i>
       </button>
     </div>
   </header>
 
-  <!-- MAIN AGENT WORKSPACE -->
-  <main class="flex-1 max-w-7xl w-full mx-auto p-3 md:p-5 grid grid-cols-1 lg:grid-cols-12 gap-5 overflow-hidden">
+  <main class="flex-1 max-w-6xl w-full mx-auto p-3 md:p-6 flex flex-col overflow-hidden">
 
-    <!-- LEFT COLUMN: Passenger Roster & Flight Selection (Cols 1-4) -->
-    <section class="lg:col-span-4 flex flex-col space-y-4">
-      
-      <!-- PNR & Name Search Box -->
-      <div class="bg-slate-900 p-3.5 rounded-2xl border border-slate-800 shadow-md space-y-3">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Passenger Lookup</span>
-          <span class="text-[10px] bg-slate-950 font-mono-code text-slate-400 px-2 py-0.5 rounded border border-slate-800">PNR / NAME</span>
+    <!-- IDLE WORKSPACE STATE (When no passenger barcode has been scanned) -->
+    <div id="workspace-idle-card" class="flex-1 bg-slate-900 border border-slate-800 rounded-3xl p-8 flex flex-col items-center justify-center text-center space-y-6 shadow-2xl my-auto">
+      <div class="relative">
+        <div class="w-24 h-24 rounded-3xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400 text-5xl animate-pulse">
+          <i class="fa-solid fa-barcode"></i>
         </div>
-        <div class="relative">
-          <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-500 text-xs"></i>
-          <input type="text" id="passenger-search-input" placeholder="Search PNR (e.g. 6X9K2P) or surname..." onkeyup="filterPassengerRoster()" class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sky-500 font-mono-code">
+        <div class="absolute -top-2 -right-2 bg-emerald-500 text-slate-950 p-2 rounded-full text-xs font-bold shadow-lg">
+          <i class="fa-solid fa-wifi"></i>
         </div>
       </div>
 
-      <!-- Passenger List Scrollable Area -->
-      <div class="flex-1 bg-slate-900/80 p-3.5 rounded-2xl border border-slate-800 shadow-md flex flex-col overflow-hidden">
-        <div class="flex items-center justify-between mb-3 text-xs font-semibold text-slate-400 px-1">
-          <span>ACTIVE BOOKINGS</span>
-          <span id="passenger-count-badge" class="font-mono-code text-sky-400">0 Listed</span>
+      <div class="space-y-2 max-w-md">
+        <h2 class="text-2xl md:text-3xl font-extrabold text-white tracking-wide">PLEASE SCAN A PASSENGER BARCODE</h2>
+        <p class="text-xs md:text-sm text-slate-400">
+          Point standard 2D/1D hand scanner at ticket barcode or click below to pick from pending generated passenger manifest.
+        </p>
+      </div>
+
+      <!-- Quick Manual Barcode / PNR Lookup Input -->
+      <div class="w-full max-w-md space-y-3 pt-2">
+        <div class="flex items-center gap-2 bg-slate-950 p-2 rounded-2xl border border-slate-800 focus-within:border-sky-500 transition">
+          <i class="fa-solid fa-keyboard text-slate-500 ml-3 text-sm"></i>
+          <input type="text" id="manual-scan-input" placeholder="Enter PNR or Tag Code (e.g. 6X9K2P)..." onkeydown="if(event.key==='Enter') manualScanSubmit()" class="w-full bg-transparent border-none text-sm text-white font-mono-code focus:outline-none uppercase px-2">
+          <button onclick="manualScanSubmit()" class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-bold transition">
+            SCAN
+          </button>
         </div>
 
-        <div id="passenger-roster-list" class="flex-1 space-y-2 overflow-y-auto max-h-[calc(100vh-280px)] pr-1">
-          <!-- Dynamically populated passenger cards -->
+        <div class="flex flex-wrap items-center justify-center gap-2 pt-2">
+          <button onclick="openBatchGeneratorModal()" class="px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-xl text-xs font-bold transition flex items-center gap-2">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <span>Generate 100 Passenger Barcodes</span>
+          </button>
+          <button onclick="openRosterModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-2">
+            <i class="fa-solid fa-list text-sky-400"></i>
+            <span>Select From Roster</span>
+          </button>
         </div>
       </div>
-    </section>
+    </div>
 
-    <!-- RIGHT COLUMN: Active Passenger Check-In Desk & Baggage Handler (Cols 5-12) -->
-    <section class="lg:col-span-8 flex flex-col bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
+    <!-- ACTIVE PASSENGER WORKSPACE CARD (Visible when a passenger is active) -->
+    <div id="workspace-active-card" class="hidden flex-1 bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl flex flex-col overflow-hidden">
       
-      <!-- Active Passenger Header Banner -->
-      <div id="active-passenger-header" class="p-4 border-b border-slate-800 bg-slate-900/90 flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center space-x-3 flex-1 min-w-[280px]">
-          <div id="passenger-status-avatar" class="w-12 h-12 rounded-2xl bg-sky-500/10 text-sky-400 border border-sky-500/30 flex items-center justify-center font-bold text-xl shrink-0">
+      <div class="p-4 md:p-5 border-b border-slate-800 bg-slate-900/90 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center space-x-4 flex-1 min-w-[280px]">
+          <div class="w-12 h-12 rounded-2xl bg-sky-500/10 text-sky-400 border border-sky-500/30 flex items-center justify-center font-bold text-2xl shrink-0">
             <i class="fa-solid fa-passport"></i>
           </div>
           <div class="flex-1 space-y-1">
             <div class="flex flex-wrap items-center gap-2">
-              <label class="text-[10px] uppercase font-bold text-slate-500">Passenger Name:</label>
-              <input type="text" id="input-passenger-name" value="ELEANOR VANCE" oninput="updateActivePassengerData()" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-sm font-extrabold text-white focus:outline-none focus:border-sky-500 w-full sm:w-64 uppercase font-mono-code">
-              <span class="text-xs text-slate-500">PNR:</span>
-              <input type="text" id="input-passenger-pnr" value="6X9K2P" oninput="updateActivePassengerData()" class="bg-slate-950 border border-slate-800 rounded px-2 py-0.5 text-xs font-mono-code text-sky-400 font-bold w-20 focus:outline-none focus:border-sky-500 uppercase">
+              <span id="active-passenger-name" class="text-lg font-extrabold text-white uppercase font-mono-code">ELEANOR VANCE</span>
+              <span id="active-passenger-pnr" class="text-xs font-mono-code font-bold bg-sky-500/20 text-sky-400 px-2 py-0.5 rounded border border-sky-500/30">PNR: 6X9K2P</span>
             </div>
-            <div class="flex items-center gap-2 text-xs text-slate-400">
-              <span class="text-[10px] text-slate-500 uppercase font-bold">Route:</span>
-              <input type="text" id="input-origin" value="JFK" oninput="updateActivePassengerData()" class="bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 text-xs font-mono-code text-white w-14 focus:outline-none focus:border-sky-500 uppercase text-center">
-              <span>&rarr;</span>
-              <input type="text" id="input-destination" value="LHR" oninput="updateActivePassengerData()" class="bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 text-xs font-mono-code text-sky-400 font-bold w-14 focus:outline-none focus:border-sky-500 uppercase text-center">
-              <span class="text-slate-500">• Flight:</span>
-              <input type="text" id="input-flight-no" value="AS-892" oninput="updateActivePassengerData()" class="bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 text-xs font-mono-code text-white w-20 focus:outline-none focus:border-sky-500 uppercase text-center">
+            <div class="flex flex-wrap items-center gap-3 text-xs text-slate-400 font-mono-code">
+              <span>FLIGHT: <strong id="active-flight-no" class="text-white">AS-892</strong></span>
+              <span>•</span>
+              <span>ROUTE: <strong id="active-route" class="text-sky-400">JFK &rarr; LHR</strong> (<span id="active-dest-city">LONDON</span>)</span>
+              <span>•</span>
+              <span>AIRCRAFT: <strong id="active-aircraft-type" class="text-amber-400">Boeing 777-300ER</strong></span>
             </div>
           </div>
         </div>
 
-        <div class="flex items-center gap-2" id="checkin-status-container">
-          <span class="text-xs font-mono-code px-3 py-1 rounded-xl bg-slate-950 text-slate-500 border border-slate-800">UNPROCESSED</span>
+        <div class="flex items-center gap-2">
+          <button onclick="unloadActivePassenger()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold border border-slate-700 transition flex items-center gap-1.5">
+            <i class="fa-solid fa-xmark"></i>
+            <span>Cancel / Eject</span>
+          </button>
         </div>
       </div>
 
-      <!-- Check-In Workspace Content -->
-      <div class="flex-1 p-4 md:p-6 space-y-5 overflow-y-auto max-h-[calc(100vh-230px)]">
+      <div class="flex-1 p-4 md:p-6 space-y-6 overflow-y-auto max-h-[calc(100vh-220px)]">
         
-        <!-- Flight Details Bar -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-950 p-4 rounded-xl border border-slate-800 text-xs font-mono-code">
-          <div>
-            <span class="text-slate-500 block text-[10px] uppercase">FLIGHT NUMBER</span>
-            <span id="detail-flight-no" class="font-bold text-white text-sm">AS-892</span>
-          </div>
-          <div>
-            <span class="text-slate-500 block text-[10px] uppercase">ORIGIN / DEST</span>
-            <span id="detail-route" class="font-bold text-sky-400 text-sm">JFK &rarr; LHR</span>
-          </div>
-          <div>
-            <span class="text-slate-500 block text-[10px] uppercase">BOARDING / GATE</span>
-            <span id="detail-gate" class="font-bold text-amber-400 text-sm">14:20 / GATE B12</span>
-          </div>
+        <!-- Cabin Class & Flight Info Summary -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-950 p-4 rounded-2xl border border-slate-800 text-xs font-mono-code">
           <div>
             <span class="text-slate-500 block text-[10px] uppercase">CABIN CLASS</span>
             <span id="detail-cabin" class="font-bold text-emerald-400 text-sm">Business Class</span>
           </div>
-        </div>
-
-        <!-- Seat Selection & Upgrade Section -->
-        <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800 space-y-3">
-          <div class="flex items-center justify-between">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
-              <i class="fa-solid fa-chair text-sky-400"></i> Seat Assignment & Cabin Tier
-            </h3>
-            <span class="text-[11px] text-slate-400">Click to change seat</span>
+          <div>
+            <span class="text-slate-500 block text-[10px] uppercase">BOARDING GROUP</span>
+            <span id="detail-group" class="font-bold text-sky-400 text-sm">Group 2</span>
           </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <label class="block text-[10px] uppercase font-semibold text-slate-400 mb-1">Assigned Seat</label>
-              <input type="text" id="input-seat-num" value="12A" onchange="updateActivePassengerData()" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono-code text-white focus:outline-none focus:border-sky-500 uppercase">
-            </div>
-            <div>
-              <label class="block text-[10px] uppercase font-semibold text-slate-400 mb-1">Boarding Group</label>
-              <select id="input-group-num" onchange="updateActivePassengerData()" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono-code text-white focus:outline-none focus:border-sky-500">
-                <option value="Group 1 (Priority)">Group 1 (Priority)</option>
-                <option value="Group 2 (Business)" selected>Group 2 (Business)</option>
-                <option value="Group 3 (Main Cabin)">Group 3 (Main Cabin)</option>
-                <option value="Group 4 (Economy)">Group 4 (Economy)</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-[10px] uppercase font-semibold text-slate-400 mb-1">Frequent Flyer Status</label>
-              <input type="text" id="input-ff-status" value="AeroGold Elite" onchange="updateActivePassengerData()" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono-code text-amber-400 focus:outline-none focus:border-sky-500">
-            </div>
+          <div>
+            <span class="text-slate-500 block text-[10px] uppercase">GATE / TIME</span>
+            <span id="detail-gate-time" class="font-bold text-amber-400 text-sm">GATE B12 / 14:20</span>
+          </div>
+          <div>
+            <span class="text-slate-500 block text-[10px] uppercase">FREQUENT FLYER</span>
+            <span id="detail-ff-status" class="font-bold text-amber-300 text-sm">AeroGold Elite</span>
           </div>
         </div>
 
-        <!-- Baggage Checking & Weighing Scale Terminal -->
-        <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800 space-y-4">
+        <!-- Interactive Seat Selection Card -->
+        <div class="bg-slate-950/80 p-5 rounded-2xl border border-slate-800 flex flex-wrap items-center justify-between gap-4">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold text-lg">
+              <i class="fa-solid fa-chair"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs uppercase font-bold text-slate-400">ASSIGNED SEAT:</span>
+                <span id="active-seat-display" class="font-mono-code font-black text-xl text-white">12A</span>
+              </div>
+              <p class="text-xs text-slate-500">Live seat allocation map saved per flight roster</p>
+            </div>
+          </div>
+
+          <button onclick="openSeatMapModal()" class="px-4 py-2.5 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-lg">
+            <i class="fa-solid fa-map-location-dot"></i>
+            <span>OPEN AIRCRAFT SEAT MAP</span>
+          </button>
+        </div>
+
+        <div class="bg-slate-950/80 p-5 rounded-2xl border border-slate-800 space-y-4">
           <div class="flex items-center justify-between">
             <div>
               <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
                 <i class="fa-solid fa-suitcase-rolling text-amber-400"></i> Checked Baggage Scale & Bag Tagging
               </h3>
-              <p class="text-[11px] text-slate-400">Max standard allowance: 23.0 kg per bag</p>
+              <p class="text-[11px] text-slate-400">Select a specific bag below before printing tag. Max standard allowance: 23.0 kg.</p>
             </div>
-            <button onclick="addBagToPassenger()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-sky-400 rounded-lg text-xs font-semibold border border-slate-700 transition flex items-center gap-1">
+            <button onclick="addBagToActivePassenger()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-sky-400 rounded-xl text-xs font-bold border border-slate-700 transition flex items-center gap-1.5 shadow">
               <i class="fa-solid fa-plus text-xs"></i> Add Bag
             </button>
           </div>
 
-          <!-- Bag Items Container -->
+          <!-- Bags list container -->
           <div id="bags-list-container" class="space-y-2">
             <!-- Dynamically populated checked bag items -->
           </div>
@@ -286,11 +288,10 @@
 
       </div>
 
-      <!-- ACTION BUTTONS FOOTER BAR -->
       <div class="p-4 border-t border-slate-800 bg-slate-950 grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <button onclick="previewAndPrintBagTags()" class="px-4 py-3 bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-bold rounded-xl transition shadow-lg flex items-center justify-center gap-2 text-xs">
+        <button onclick="previewAndPrintSelectedBagTag()" class="px-4 py-3 bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-bold rounded-xl transition shadow-lg flex items-center justify-center gap-2 text-xs">
           <i class="fa-solid fa-barcode text-sm"></i>
-          <span>PRINT 80mm BAG TAGS</span>
+          <span>PRINT SELECTED BAG TAG (DOUBLE-LENGTH)</span>
         </button>
 
         <button onclick="previewAndPrintBoardingPass()" class="px-4 py-3 bg-sky-600 hover:bg-sky-500 active:scale-95 text-white font-bold rounded-xl transition shadow-lg flex items-center justify-center gap-2 text-xs">
@@ -300,18 +301,154 @@
 
         <button onclick="completeCheckInProcess()" class="px-4 py-3 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold rounded-xl transition shadow-lg flex items-center justify-center gap-2 text-xs">
           <i class="fa-solid fa-circle-check text-sm"></i>
-          <span>COMPLETE CHECK-IN</span>
+          <span>COMPLETE CHECK-IN & CLEAR</span>
         </button>
       </div>
 
-    </section>
+    </div>
 
   </main>
 
-  <!-- Hidden Scanner Keystroke Listener Field -->
-  <input type="text" id="global-barcode-listener" class="opacity-0 absolute top-0 left-0 w-1 h-1 pointer-events-none" autocomplete="off">
+  <!-- MODAL 1: 100-PASSENGER BATCH BARCODE GENERATOR & PRINT SHEET -->
+  <div id="batch-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-4xl w-full p-5 shadow-2xl space-y-4 max-h-[92vh] flex flex-col">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+            <i class="fa-solid fa-barcode"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-white text-base">Batch Barcode Generator & Sheet</h3>
+            <p class="text-xs text-slate-400">Generate up to 100 random passengers with 1D barcodes</p>
+          </div>
+        </div>
+        <button onclick="closeModal('batch-modal')" class="text-slate-400 hover:text-white text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
 
-  <!-- MODAL 0: 80mm THERMAL PRINT PREVIEW MODAL -->
+      <!-- Generator controls -->
+      <div class="flex flex-wrap items-center justify-between gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
+        <div class="flex items-center gap-3">
+          <label class="text-xs font-semibold text-slate-400">Count:</label>
+          <select id="batch-gen-count" class="bg-slate-900 border border-slate-800 text-xs font-mono-code text-white rounded-lg px-3 py-1.5 focus:outline-none">
+            <option value="10">10 Passengers</option>
+            <option value="25">25 Passengers</option>
+            <option value="50">50 Passengers</option>
+            <option value="100" selected>100 Passengers</option>
+          </select>
+          <button onclick="generateBatchPassengers()" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-xs transition shadow">
+            Generate New Batch
+          </button>
+        </div>
+
+        <div class="text-xs font-mono-code text-slate-400">
+          Click any barcode row to simulate scanning it immediately.
+        </div>
+      </div>
+
+      <!-- Printable / Scrollable Barcode Sheet -->
+      <div class="flex-1 overflow-y-auto bg-slate-950 p-4 rounded-xl border border-slate-800">
+        <div id="batch-barcode-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+          <!-- Dynamically populated barcode card tiles -->
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-3 border-t border-slate-800 pt-3">
+        <button onclick="closeModal('batch-modal')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold">
+          Close
+        </button>
+        <button onclick="printBatchBarcodeSheet()" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-lg">
+          <i class="fa-solid fa-print"></i>
+          <span>PRINT BARCODE SHEET</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: INTERACTIVE AIRCRAFT SEAT MAP MODAL -->
+  <div id="seatmap-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-3xl w-full p-5 shadow-2xl space-y-4 max-h-[92vh] flex flex-col">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-sky-500/10 text-sky-400 flex items-center justify-center">
+            <i class="fa-solid fa-plane"></i>
+          </div>
+          <div>
+            <h3 id="seatmap-modal-title" class="font-bold text-white text-base">Aircraft Seat Map - Boeing 777</h3>
+            <p id="seatmap-modal-subtitle" class="text-xs text-slate-400">Select an available seat for passenger</p>
+          </div>
+        </div>
+        <button onclick="closeModal('seatmap-modal')" class="text-slate-400 hover:text-white text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Seat Map Legend -->
+      <div class="flex items-center justify-center gap-6 bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-xs font-mono-code">
+        <div class="flex items-center gap-2">
+          <div class="w-4 h-4 rounded bg-sky-600 border border-sky-400"></div>
+          <span class="text-slate-300">Selected</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="w-4 h-4 rounded bg-slate-800 border border-slate-700"></div>
+          <span class="text-slate-300">Available</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="w-4 h-4 rounded bg-rose-900/60 border border-rose-700/80"></div>
+          <span class="text-rose-400">Occupied</span>
+        </div>
+      </div>
+
+      <!-- Aircraft Cabin Seating Grid -->
+      <div class="flex-1 overflow-y-auto bg-slate-950 p-4 rounded-xl border border-slate-800 flex justify-center">
+        <div id="seatmap-grid-container" class="space-y-4 w-full max-w-lg font-mono-code">
+          <!-- Aircraft rows rendered dynamically -->
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-3 border-t border-slate-800 pt-3">
+        <button onclick="closeModal('seatmap-modal')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold">
+          Confirm Seat Selection
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 3: PENDING PASSENGER ROSTER OVERVIEW MODAL -->
+  <div id="roster-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-5 shadow-2xl space-y-4 max-h-[85vh] flex flex-col">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-sky-500/10 text-sky-400 flex items-center justify-center">
+            <i class="fa-solid fa-users"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-white text-base">Saved Passenger Roster</h3>
+            <p class="text-xs text-slate-400">Active queue stored in LocalStorage</p>
+          </div>
+        </div>
+        <button onclick="closeModal('roster-modal')" class="text-slate-400 hover:text-white text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Filter search -->
+      <input type="text" id="roster-search-input" placeholder="Search passenger name or PNR..." onkeyup="renderRosterListModal()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono-code text-white focus:outline-none focus:border-sky-500">
+
+      <div class="flex-1 overflow-y-auto space-y-2 pr-1" id="roster-modal-list">
+        <!-- Dynamically rendered roster items -->
+      </div>
+
+      <div class="flex justify-end gap-2 border-t border-slate-800 pt-3">
+        <button onclick="closeModal('roster-modal')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 4: 80mm THERMAL PRINT PREVIEW MODAL -->
   <div id="print-preview-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-5 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
       <div class="flex items-center justify-between border-b border-slate-800 pb-3">
@@ -320,8 +457,8 @@
             <i class="fa-solid fa-print"></i>
           </div>
           <div>
-            <h3 class="font-bold text-white text-base">80mm Thermal Print Preview</h3>
-            <p class="text-xs text-slate-400">Verify layout before sending to receipt printer</p>
+            <h3 id="preview-modal-title" class="font-bold text-white text-base">80mm Thermal Print Preview</h3>
+            <p class="text-xs text-slate-400">Verify thermal formatting before output</p>
           </div>
         </div>
         <button onclick="closeModal('print-preview-modal')" class="text-slate-400 hover:text-white text-lg">
@@ -348,142 +485,7 @@
     </div>
   </div>
 
-  <!-- MODAL 1: SCANNER BAG TRACKING & GATE VALIDATION MODAL -->
-  <div id="scanner-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-5 shadow-2xl space-y-4">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-        <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-lg bg-sky-500/10 text-sky-400 flex items-center justify-center">
-            <i class="fa-solid fa-barcode"></i>
-          </div>
-          <div>
-            <h3 class="font-bold text-white text-base">Baggage & Boarding Pass Verifier</h3>
-            <p class="text-xs text-slate-400">Scanned Barcode / QR Payload Reader</p>
-          </div>
-        </div>
-        <button onclick="closeModal('scanner-modal')" class="text-slate-400 hover:text-white text-lg">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
-
-      <div id="scanner-modal-content" class="space-y-3 font-mono-code text-xs">
-        <!-- Scan results populate here -->
-      </div>
-
-      <div class="flex justify-end gap-2 border-t border-slate-800 pt-3">
-        <button onclick="closeModal('scanner-modal')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold">
-          Close Window
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL 2: FLIGHT MANIFEST & ROSTER OVERVIEW -->
-  <div id="manifest-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-5 shadow-2xl space-y-4">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-        <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
-            <i class="fa-solid fa-clipboard-list"></i>
-          </div>
-          <div>
-            <h3 class="font-bold text-white text-base">Flight Manifest Summary</h3>
-            <p class="text-xs text-slate-400">Flight AS-892 (JFK &rarr; LHR)</p>
-          </div>
-        </div>
-        <button onclick="closeModal('manifest-modal')" class="text-slate-400 hover:text-white text-lg">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
-
-      <div class="grid grid-cols-3 gap-3 font-mono-code text-xs text-center">
-        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
-          <span class="text-slate-500 text-[10px] block">TOTAL BOOKED</span>
-          <span id="manifest-total-count" class="text-lg font-bold text-white">0</span>
-        </div>
-        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
-          <span class="text-slate-500 text-[10px] block">CHECKED IN</span>
-          <span id="manifest-checked-count" class="text-lg font-bold text-emerald-400">0</span>
-        </div>
-        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
-          <span class="text-slate-500 text-[10px] block">CHECKED BAGS</span>
-          <span id="manifest-bags-count" class="text-lg font-bold text-amber-400">0</span>
-        </div>
-      </div>
-
-      <div class="flex justify-end gap-2 border-t border-slate-800 pt-3">
-        <button onclick="closeModal('manifest-modal')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold">
-          Close
-        </button>
-        <button onclick="printManifestThermal()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow">
-          <i class="fa-solid fa-print"></i>
-          <span>PRINT 80mm MANIFEST REPORT</span>
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL 3: NEW PASSENGER RESERVATION CREATOR -->
-  <div id="new-booking-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-        <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-lg bg-sky-500/10 text-sky-400 flex items-center justify-center">
-            <i class="fa-solid fa-user-plus"></i>
-          </div>
-          <div>
-            <h3 class="font-bold text-white text-base">New Flight Booking</h3>
-            <p class="text-xs text-slate-400">Create new passenger record</p>
-          </div>
-        </div>
-        <button onclick="closeModal('new-booking-modal')" class="text-slate-400 hover:text-white text-lg">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
-
-      <div class="space-y-3 text-xs">
-        <div>
-          <label class="block font-semibold uppercase text-slate-400 mb-1">Full Name (First Last)</label>
-          <input type="text" id="new-p-name" placeholder="e.g. David Hassel" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white font-mono-code focus:outline-none focus:border-sky-500">
-        </div>
-        <div class="grid grid-cols-2 gap-2">
-          <div>
-            <label class="block font-semibold uppercase text-slate-400 mb-1">Flight Number</label>
-            <input type="text" id="new-p-flight" value="AS-892" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white font-mono-code focus:outline-none focus:border-sky-500">
-          </div>
-          <div>
-            <label class="block font-semibold uppercase text-slate-400 mb-1">Destination IATA</label>
-            <input type="text" id="new-p-dest" value="LHR" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sky-400 font-mono-code focus:outline-none focus:border-sky-500 uppercase">
-          </div>
-        </div>
-        <div class="grid grid-cols-2 gap-2">
-          <div>
-            <label class="block font-semibold uppercase text-slate-400 mb-1">Seat Number</label>
-            <input type="text" id="new-p-seat" value="18F" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white font-mono-code focus:outline-none focus:border-sky-500 uppercase">
-          </div>
-          <div>
-            <label class="block font-semibold uppercase text-slate-400 mb-1">Cabin Class</label>
-            <select id="new-p-cabin" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white font-mono-code focus:outline-none focus:border-sky-500">
-              <option value="Economy Class">Economy Class</option>
-              <option value="Business Class">Business Class</option>
-              <option value="First Class">First Class</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <div class="flex justify-end gap-2 border-t border-slate-800 pt-3">
-        <button onclick="closeModal('new-booking-modal')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold">
-          Cancel
-        </button>
-        <button onclick="saveNewPassengerBooking()" class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-bold shadow">
-          Create Booking
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL 4: TOUCHSCREEN NUMPAD FOR BAGGAGE WEIGHT -->
+  <!-- MODAL 5: TOUCHSCREEN NUMPAD FOR BAGGAGE WEIGHT -->
   <div id="numpad-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
       <div class="flex items-center justify-between border-b border-slate-800 pb-3">
@@ -501,157 +503,143 @@
         </button>
       </div>
 
-      <!-- Weight Display readout -->
       <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 text-center space-y-1">
         <span class="text-[10px] text-slate-500 font-mono-code uppercase block">SCALE READOUT</span>
         <div class="flex items-center justify-center gap-2">
           <span id="numpad-display" class="font-mono-code font-black text-3xl text-amber-400">20.0</span>
           <span class="font-mono-code font-bold text-lg text-slate-400">KG</span>
         </div>
-        <div id="numpad-status-badge" class="pt-1">
-          <!-- Overweight / Standard badge dynamically inserted -->
-        </div>
-      </div>
-
-      <!-- Quick Preset Weight Buttons -->
-      <div>
-        <span class="text-[10px] font-semibold uppercase text-slate-400 block mb-1.5">Quick Presets</span>
-        <div class="grid grid-cols-6 gap-1.5 font-mono-code text-xs">
-          <button onclick="numpadSetPreset('15.0')" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 active:scale-95 font-bold">15</button>
-          <button onclick="numpadSetPreset('18.0')" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 active:scale-95 font-bold">18</button>
-          <button onclick="numpadSetPreset('20.0')" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 active:scale-95 font-bold">20</button>
-          <button onclick="numpadSetPreset('23.0')" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500/30 rounded-lg active:scale-95 font-bold">23</button>
-          <button onclick="numpadSetPreset('25.0')" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-rose-400 border border-rose-500/30 rounded-lg active:scale-95 font-bold">25</button>
-          <button onclick="numpadSetPreset('30.0')" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-rose-400 border border-rose-500/30 rounded-lg active:scale-95 font-bold">30</button>
-        </div>
+        <div id="numpad-status-badge" class="pt-1"></div>
       </div>
 
       <!-- Keypad Touch Grid -->
       <div class="grid grid-cols-3 gap-2 font-mono-code text-lg font-bold">
-        <button onclick="numpadAppend('7')" class="p-3.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700/80 active:scale-95 shadow">7</button>
-        <button onclick="numpadAppend('8')" class="p-3.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700/80 active:scale-95 shadow">8</button>
-        <button onclick="numpadAppend('9')" class="p-3.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700/80 active:scale-95 shadow">9</button>
+        <button onclick="numpadAppend('7')" class="p-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700 active:scale-95 shadow">7</button>
+        <button onclick="numpadAppend('8')" class="p-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700 active:scale-95 shadow">8</button>
+        <button onclick="numpadAppend('9')" class="p-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700 active:scale-95 shadow">9</button>
         
-        <button onclick="numpadAppend('4')" class="p-3.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700/80 active:scale-95 shadow">4</button>
-        <button onclick="numpadAppend('5')" class="p-3.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700/80 active:scale-95 shadow">5</button>
-        <button onclick="numpadAppend('6')" class="p-3.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700/80 active:scale-95 shadow">6</button>
+        <button onclick="numpadAppend('4')" class="p-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700 active:scale-95 shadow">4</button>
+        <button onclick="numpadAppend('5')" class="p-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700 active:scale-95 shadow">5</button>
+        <button onclick="numpadAppend('6')" class="p-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700 active:scale-95 shadow">6</button>
 
-        <button onclick="numpadAppend('1')" class="p-3.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700/80 active:scale-95 shadow">1</button>
-        <button onclick="numpadAppend('2')" class="p-3.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700/80 active:scale-95 shadow">2</button>
-        <button onclick="numpadAppend('3')" class="p-3.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700/80 active:scale-95 shadow">3</button>
+        <button onclick="numpadAppend('1')" class="p-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700 active:scale-95 shadow">1</button>
+        <button onclick="numpadAppend('2')" class="p-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700 active:scale-95 shadow">2</button>
+        <button onclick="numpadAppend('3')" class="p-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700 active:scale-95 shadow">3</button>
 
-        <button onclick="numpadAppend('.')" class="p-3.5 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-xl border border-slate-700/80 active:scale-95 shadow font-black">.</button>
-        <button onclick="numpadAppend('0')" class="p-3.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700/80 active:scale-95 shadow">0</button>
-        <button onclick="numpadBackspace()" class="p-3.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 rounded-xl border border-rose-500/30 active:scale-95 shadow flex items-center justify-center">
-          <i class="fa-solid fa-delete-left text-xl"></i>
+        <button onclick="numpadAppend('.')" class="p-3 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-xl border border-slate-700 active:scale-95 shadow font-black">.</button>
+        <button onclick="numpadAppend('0')" class="p-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700 active:scale-95 shadow">0</button>
+        <button onclick="numpadBackspace()" class="p-3 bg-rose-500/20 text-rose-400 rounded-xl border border-rose-500/30 active:scale-95 shadow flex items-center justify-center">
+          <i class="fa-solid fa-delete-left text-lg"></i>
         </button>
       </div>
 
       <div class="flex items-center gap-2 border-t border-slate-800 pt-3">
-        <button onclick="numpadClear()" class="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold border border-slate-700 active:scale-95">
-          Clear
-        </button>
-        <button onclick="confirmNumpadWeight()" class="flex-1 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-xl text-xs shadow-lg flex items-center justify-center gap-2 active:scale-95">
-          <i class="fa-solid fa-check text-sm"></i>
-          <span>CONFIRM WEIGHT</span>
+        <button onclick="numpadClear()" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold border border-slate-700">Clear</button>
+        <button onclick="confirmNumpadWeight()" class="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-xl text-xs shadow-lg flex items-center justify-center gap-2">
+          <i class="fa-solid fa-check"></i> CONFIRM WEIGHT
         </button>
       </div>
     </div>
   </div>
 
-  <!-- MANDATORY PHYSICAL PRINT AREA FOR WINDOWS 80mm THERMAL PRINTER DRIVER -->
+  <!-- Hidden Scanner Keystroke Listener Field -->
+  <input type="text" id="global-barcode-listener" class="opacity-0 absolute top-0 left-0 w-1 h-1 pointer-events-none" autocomplete="off">
+
+  <!-- PHYSICAL THERMAL PRINTING TARGET AREA -->
   <div id="print-area">
-    <div id="printable-thermal-receipt">
-      <!-- Dynamic 80mm thermal content injected here prior to window.print() -->
-    </div>
+    <div id="printable-thermal-receipt"></div>
   </div>
 
   <script>
     /* ==========================================================================
-       1. DATABASE & STATE MANAGEMENT FOR AIRPORT DESK
+       LOCALSTORAGE STATE & DATA DICTIONARIES
        ========================================================================== */
-    const PASSENGER_DATABASE = [
-      {
-        pnr: '6X9K2P',
-        name: 'ELEANOR VANCE',
-        flightNo: 'AS-892',
-        origin: 'JFK',
-        destination: 'LHR',
-        destCity: 'LONDON HEATHROW',
-        gate: 'B12',
-        boardingTime: '14:20',
-        seat: '12A',
-        group: 'Group 2 (Business)',
-        cabin: 'Business Class',
-        ffStatus: 'AeroGold Elite',
-        checkedIn: false,
-        bags: [
-          { id: 'BAG-6X9K2P-1', weight: 21.5, status: 'CHECKED', tagCode: '0006921501' },
-          { id: 'BAG-6X9K2P-2', weight: 18.2, status: 'CHECKED', tagCode: '0006921502' }
-        ]
-      },
-      {
-        pnr: '9M4R7T',
-        name: 'MARCUS THORNE',
-        flightNo: 'AS-892',
-        origin: 'JFK',
-        destination: 'LHR',
-        destCity: 'LONDON HEATHROW',
-        gate: 'B12',
-        boardingTime: '14:20',
-        seat: '04F',
-        group: 'Group 1 (Priority)',
-        cabin: 'First Class',
-        ffStatus: 'AeroExecutive Platinum',
-        checkedIn: true,
-        bags: [
-          { id: 'BAG-9M4R7T-1', weight: 24.8, status: 'CHECKED', tagCode: '0009471001' }
-        ]
-      },
-      {
-        pnr: '3B8W1Q',
-        name: 'SOPHIA CHEN',
-        flightNo: 'AS-892',
-        origin: 'JFK',
-        destination: 'LHR',
-        destCity: 'LONDON HEATHROW',
-        gate: 'B12',
-        boardingTime: '14:20',
-        seat: '28C',
-        group: 'Group 3 (Main Cabin)',
-        cabin: 'Economy Class',
-        ffStatus: 'AeroClub Member',
-        checkedIn: false,
-        bags: [
-          { id: 'BAG-3B8W1Q-1', weight: 19.0, status: 'CHECKED', tagCode: '0003819001' }
-        ]
-      },
-      {
-        pnr: '7H2L5V',
-        name: 'ALEXANDER RIVERS',
-        flightNo: 'AS-401',
-        origin: 'JFK',
-        destination: 'HND',
-        destCity: 'TOKYO HANEDA',
-        gate: 'C08',
-        boardingTime: '16:05',
-        seat: '19K',
-        group: 'Group 2 (Business)',
-        cabin: 'Business Class',
-        ffStatus: 'AeroGold Elite',
-        checkedIn: false,
-        bags: []
-      }
+    const LOCALSTORAGE_KEY = 'aerosky_terminal_db_v3';
+
+    // Multiple airport destinations database
+    const AIRPORT_DESTINATIONS = [
+      { code: 'LHR', city: 'LONDON HEATHROW', country: 'UNITED KINGDOM' },
+      { code: 'HND', city: 'TOKYO HANEDA', country: 'JAPAN' },
+      { code: 'CDG', city: 'PARIS CHARLES DE GAULLE', country: 'FRANCE' },
+      { code: 'DXB', city: 'DUBAI INTL', country: 'UNITED ARAB EMIRATES' },
+      { code: 'SYD', city: 'SYDNEY KINGSFORD', country: 'AUSTRALIA' },
+      { code: 'LAX', city: 'LOS ANGELES INTL', country: 'UNITED STATES' },
+      { code: 'FRA', city: 'FRANKFURT MAIN', country: 'GERMANY' },
+      { code: 'SIN', city: 'SINGAPORE CHANGI', country: 'SINGAPORE' },
+      { code: 'ORD', city: 'CHICAGO O\'HARE', country: 'UNITED STATES' },
+      { code: 'MIA', city: 'MIAMI INTL', country: 'UNITED STATES' }
     ];
 
-    let activePnr = '6X9K2P';
+    const FLIGHT_ROSTERS = [
+      { flightNo: 'AS-892', aircraft: 'Boeing 777-300ER', gate: 'B12', boardingTime: '14:20' },
+      { flightNo: 'AS-401', aircraft: 'Boeing 737-800', gate: 'C08', boardingTime: '16:05' },
+      { flightNo: 'AS-202', aircraft: 'Airbus A350-900', gate: 'A15', boardingTime: '18:45' }
+    ];
+
+    const MOCK_FIRST_NAMES = ['ELEANOR', 'MARCUS', 'SOPHIA', 'ALEXANDER', 'DANIEL', 'OLIVIA', 'LIAM', 'EMMA', 'NOAH', 'ISABELLA', 'ETHAN', 'MIA', 'LUCAS', 'AVA', 'HENRY', 'CHARLOTTE', 'BENJAMIN', 'AMELIA', 'JAMES', 'HARPER'];
+    const MOCK_LAST_NAMES = ['VANCE', 'THORNE', 'CHEN', 'RIVERS', 'WRIGHT', 'ROSSI', 'SANTOS', 'KIM', 'PATEL', 'HUGHES', 'BENNETT', 'FOSTER', 'HAYES', 'SULLIVAN', 'MURPHY', 'WALSH', 'REID', 'BROOKS', 'COLE', 'GRAHAM'];
+
+    /* App Engine State */
+    let passengerDatabase = []; // Array of passenger objects saved in LocalStorage
+    let occupiedSeatsByFlight = {}; // Map of flightNo -> Array of seat strings (e.g. {'AS-892': ['12A', '04F']})
+    let activePassenger = null; // Currently scanned/loaded passenger
+    let selectedBagId = null; // Currently selected bag ID for printing tag
+
     let audioEnabled = true;
     let audioCtx = null;
     let currentPreparedHTML = '';
 
     /* Touchscreen Numpad State Variables */
-    let numpadTargetBagId = null; // null for new bag, string for existing bag id
+    let numpadTargetBagId = null;
     let numpadValue = '20.0';
+
+    function loadStateFromLocalStorage() {
+      try {
+        const stored = localStorage.getItem(LOCALSTORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          passengerDatabase = parsed.passengers || [];
+          occupiedSeatsByFlight = parsed.occupiedSeats || {};
+        } else {
+          passengerDatabase = [];
+          occupiedSeatsByFlight = {};
+        }
+      } catch (e) {
+        passengerDatabase = [];
+        occupiedSeatsByFlight = {};
+      }
+      updateHeaderBadgeCount();
+    }
+
+    function saveStateToLocalStorage() {
+      try {
+        const dataToStore = {
+          passengers: passengerDatabase,
+          occupiedSeats: occupiedSeatsByFlight
+        };
+        localStorage.setItem(LOCALSTORAGE_KEY, JSON.stringify(dataToStore));
+      } catch (e) {}
+      updateHeaderBadgeCount();
+    }
+
+    function updateHeaderBadgeCount() {
+      const badge = document.getElementById('pnr-count-badge');
+      if (badge) {
+        badge.innerText = passengerDatabase.length;
+      }
+    }
+
+    function resetSystemDatabase() {
+      if (confirm("Reset local storage? This will clear all generated passengers and occupied seat maps.")) {
+        localStorage.removeItem(LOCALSTORAGE_KEY);
+        passengerDatabase = [];
+        occupiedSeatsByFlight = {};
+        activePassenger = null;
+        saveStateToLocalStorage();
+        unloadActivePassenger();
+        playBeepSound(800, 0.1);
+      }
+    }
 
     function initAudio() {
       if (!audioCtx) {
@@ -659,280 +647,14 @@
       }
     }
 
-    function loadActivePassengerWorkspace() {
-      const passenger = PASSENGER_DATABASE.find(p => p.pnr === activePnr);
-      if (!passenger) return;
-
-      // Inputs
-      document.getElementById('input-passenger-name').value = passenger.name;
-      document.getElementById('input-passenger-pnr').value = passenger.pnr;
-      document.getElementById('input-origin').value = passenger.origin;
-      document.getElementById('input-destination').value = passenger.destination;
-      document.getElementById('input-flight-no').value = passenger.flightNo;
-
-      // Status indicator
-      const statusContainer = document.getElementById('checkin-status-container');
-      if (passenger.checkedIn) {
-        statusContainer.innerHTML = `
-          <span class="text-xs font-mono-code font-bold px-3 py-1 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
-            <i class="fa-solid fa-circle-check"></i> READY FOR BOARDING
-          </span>
-        `;
-      } else {
-        statusContainer.innerHTML = `
-          <span class="text-xs font-mono-code font-bold px-3 py-1 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center gap-1.5">
-            <i class="fa-solid fa-hourglass-half"></i> DESK CHECK-IN REQUIRED
-          </span>
-        `;
-      }
-
-      // Flight Details
-      document.getElementById('detail-flight-no').innerText = passenger.flightNo;
-      document.getElementById('detail-route').innerText = `${passenger.origin} → ${passenger.destination}`;
-      document.getElementById('detail-gate').innerText = `${passenger.boardingTime} / GATE ${passenger.gate}`;
-      document.getElementById('detail-cabin').innerText = passenger.cabin;
-
-      // Seat & Group Inputs
-      document.getElementById('input-seat-num').value = passenger.seat;
-      document.getElementById('input-group-num').value = passenger.group;
-      document.getElementById('input-ff-status').value = passenger.ffStatus;
-
-      // Bags list
-      renderBaggageScaleUI(passenger);
-    }
-
-    function updateActivePassengerData() {
-      const passenger = PASSENGER_DATABASE.find(p => p.pnr === activePnr);
-      if (!passenger) return;
-
-      // Live bind inputs to passenger database object
-      const newName = document.getElementById('input-passenger-name').value.toUpperCase();
-      const newPnr = document.getElementById('input-passenger-pnr').value.toUpperCase();
-      const newOrigin = document.getElementById('input-origin').value.toUpperCase();
-      const newDest = document.getElementById('input-destination').value.toUpperCase();
-      const newFlight = document.getElementById('input-flight-no').value.toUpperCase();
-
-      passenger.name = newName || 'PASSENGER NAME';
-      passenger.pnr = newPnr || activePnr;
-      passenger.origin = newOrigin || 'JFK';
-      passenger.destination = newDest || 'LHR';
-      passenger.flightNo = newFlight || 'AS-892';
-
-      passenger.seat = document.getElementById('input-seat-num').value.toUpperCase();
-      passenger.group = document.getElementById('input-group-num').value;
-      passenger.ffStatus = document.getElementById('input-ff-status').value;
-
-      // Sync display labels
-      document.getElementById('detail-flight-no').innerText = passenger.flightNo;
-      document.getElementById('detail-route').innerText = `${passenger.origin} → ${passenger.destination}`;
-
-      // Refresh left roster
-      renderPassengerRoster(document.getElementById('passenger-search-input').value);
-    }
-
-    function generate80mmBagTagHTML(passenger) {
-      return passenger.bags.map((b, index) => {
-        const isHeavy = b.weight > 23.0;
-        const heavyTag = isHeavy 
-          ? `<div style="background-color: #000; color: #fff; font-size: 16pt; font-weight: 900; text-align: center; padding: 4px; margin: 6px 0; letter-spacing: 1px;">HEAVY / OVERWEIGHT BAG</div>`
-          : '';
-
-        return `
-          <div style="text-align: center; font-family: Arial, sans-serif; padding-bottom: 15px; margin-bottom: 15px; border-bottom: 3px dashed #000; color: #000; background: #fff;">
-            <div style="font-size: 16pt; font-weight: 900; letter-spacing: 1px; border-bottom: 3px solid #000; padding-bottom: 4px;">AEROSKY AIRWAYS</div>
-            <div style="font-size: 10pt; font-weight: bold; margin-top: 2px;">BAGGAGE CLAIM & IDENTIFICATION TAG</div>
-
-            <!-- HUGE DESTINATION AIRPORT CODE FOR THERMAL LEGIBILITY -->
-            <div style="font-size: 48pt; font-weight: 900; margin: 4px 0; line-height: 1.0; letter-spacing: 2px;">${passenger.destination}</div>
-            <div style="font-size: 12pt; font-weight: 900; text-transform: uppercase;">DEST: ${passenger.destCity}</div>
-            
-            ${heavyTag}
-
-            <div style="border-bottom: 2px solid #000; margin: 8px 0;"></div>
-
-            <div style="text-align: left; font-size: 11pt; line-height: 1.4; font-weight: bold;">
-              <div>PASSENGER: <span style="font-size: 13pt; font-weight: 900;">${passenger.name}</span></div>
-              <div>FLIGHT: <span style="font-size: 13pt; font-weight: 900;">${passenger.flightNo}</span> &nbsp;|&nbsp; SEAT: <span style="font-size: 13pt; font-weight: 900;">${passenger.seat}</span></div>
-              <div>PNR LOCATOR: <span style="font-size: 12pt; font-weight: 900;">${passenger.pnr}</span></div>
-              <div>BAG WEIGHT: <span style="font-size: 13pt; font-weight: 900;">${b.weight.toFixed(1)} KG</span></div>
-              <div>BAG PIECE: <span style="font-size: 12pt; font-weight: 900;">BAG ${index + 1} OF ${passenger.bags.length}</span></div>
-              <div>ROUTING: <strong>${passenger.origin} &rarr; ${passenger.destination}</strong></div>
-            </div>
-
-            <div style="border-bottom: 2px solid #000; margin: 8px 0;"></div>
-
-            <!-- 1D BARCODE FOR AUTOMATIC SORTING CONVEYORS -->
-            <div style="display: flex; justify-content: center; margin: 10px 0;">
-              <svg id="svg-tag-${b.id}"></svg>
-            </div>
-
-            <div style="font-size: 12pt; font-weight: 900; letter-spacing: 2px;">* ${b.tagCode} *</div>
-            <div style="font-size: 9pt; font-weight: bold; margin-top: 6px; border-top: 1px dashed #000; padding-top: 4px;">CLAIM STUB - RETAIN FOR PASSENGER MATCH</div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    function generate80mmBoardingPassHTML(passenger) {
-      return `
-        <div style="text-align: center; font-family: Arial, sans-serif; padding-bottom: 10px; color: #000; background: #fff;">
-          <div style="font-size: 16pt; font-weight: 900; letter-spacing: 1px; border-bottom: 3px solid #000; padding-bottom: 4px;">AEROSKY BOARDING PASS</div>
-          <div style="font-size: 11pt; font-weight: bold; margin: 3px 0;">SYSTEM CHECK-IN RECEIPT</div>
-          <div style="border-bottom: 2px solid #000; margin: 6px 0;"></div>
-
-          <div style="text-align: left; margin-bottom: 8px;">
-            <div style="font-size: 10pt; font-weight: bold; text-transform: uppercase;">PASSENGER NAME:</div>
-            <div style="font-size: 16pt; font-weight: 900; text-transform: uppercase; margin-bottom: 4px;">${passenger.name}</div>
-            <div style="font-size: 11pt; font-weight: bold;">PNR: <strong style="font-size: 13pt;">${passenger.pnr}</strong> &nbsp;|&nbsp; CLASS: <strong>${passenger.cabin}</strong></div>
-            <div style="font-size: 10pt; font-weight: bold; color: #333;">STATUS: ${passenger.ffStatus}</div>
-          </div>
-
-          <div style="border-bottom: 2px solid #000; margin: 6px 0;"></div>
-
-          <div style="display: grid; grid-template-columns: 1fr 1fr; text-align: left; gap: 6px; font-size: 12pt; font-weight: 900;">
-            <div style="border: 2px solid #000; padding: 4px; text-align: center;">
-              <span style="font-size: 8pt; display: block; font-weight: bold;">FLIGHT</span>
-              <span style="font-size: 16pt;">${passenger.flightNo}</span>
-            </div>
-            <div style="border: 2px solid #000; padding: 4px; text-align: center; background-color: #000; color: #fff;">
-              <span style="font-size: 8pt; display: block; font-weight: bold;">SEAT</span>
-              <span style="font-size: 18pt;">${passenger.seat}</span>
-            </div>
-            <div style="border: 2px solid #000; padding: 4px; text-align: center;">
-              <span style="font-size: 8pt; display: block; font-weight: bold;">GATE</span>
-              <span style="font-size: 14pt;">${passenger.gate}</span>
-            </div>
-            <div style="border: 2px solid #000; padding: 4px; text-align: center;">
-              <span style="font-size: 8pt; display: block; font-weight: bold;">BOARDING</span>
-              <span style="font-size: 14pt;">${passenger.boardingTime}</span>
-            </div>
-          </div>
-
-          <div style="text-align: left; margin-top: 8px; font-size: 11pt; font-weight: bold;">
-            <div>BOARDING GROUP: <strong>${passenger.group}</strong></div>
-            <div>ROUTE: <strong>${passenger.origin} &rarr; ${passenger.destination} (${passenger.destCity})</strong></div>
-          </div>
-
-          <div style="border-bottom: 2px solid #000; margin: 8px 0;"></div>
-
-          <!-- 2D QR CODE FOR GATE SCANNER VERIFICATION -->
-          <div style="display: flex; justify-content: center; margin: 10px 0;">
-            <div id="bp-qr-target"></div>
-          </div>
-
-          <div style="font-size: 11pt; font-weight: 900; letter-spacing: 1px;">* PASS ID: ${passenger.pnr}-${passenger.seat} *</div>
-          <div style="font-size: 9pt; font-weight: bold; margin-top: 6px; border-top: 1px dashed #000; padding-top: 4px;">PLEASE BE AT GATE 30 MINUTES PRIOR TO DEPARTURE</div>
-        </div>
-      `;
-    }
-
-    function previewAndPrintBagTags() {
-      const passenger = PASSENGER_DATABASE.find(p => p.pnr === activePnr);
-      if (!passenger) return;
-
-      if (passenger.bags.length === 0) {
-        alert("Cannot print baggage tags: No bags registered for this passenger.");
-        return;
-      }
-
-      currentPreparedHTML = generate80mmBagTagHTML(passenger);
-
-      // Render into screen preview modal
-      const previewContainer = document.getElementById('screen-receipt-preview');
-      previewContainer.innerHTML = currentPreparedHTML;
-
-      // Generate Code128 Barcodes using JsBarcode
-      setTimeout(() => {
-        passenger.bags.forEach(b => {
-          try {
-            JsBarcode(`#svg-tag-${b.id}`, b.tagCode, {
-              format: "CODE128",
-              width: 2.2,
-              height: 60,
-              displayValue: false
-            });
-          } catch(e) {}
-        });
-      }, 100);
-
-      document.getElementById('print-preview-modal').classList.remove('hidden');
-    }
-
-    function previewAndPrintBoardingPass() {
-      const passenger = PASSENGER_DATABASE.find(p => p.pnr === activePnr);
-      if (!passenger) return;
-
-      currentPreparedHTML = generate80mmBoardingPassHTML(passenger);
-
-      const previewContainer = document.getElementById('screen-receipt-preview');
-      previewContainer.innerHTML = currentPreparedHTML;
-
-      setTimeout(() => {
-        const target = document.getElementById('bp-qr-target');
-        if (target) {
-          target.innerHTML = '';
-          new QRCode(target, {
-            text: `PASS:${passenger.pnr}:${passenger.flightNo}:${passenger.seat}`,
-            width: 130,
-            height: 130,
-            colorDark: "#000000",
-            colorLight: "#ffffff"
-          });
-        }
-      }, 100);
-
-      document.getElementById('print-preview-modal').classList.remove('hidden');
-    }
-
-    function triggerPhysicalThermalPrint() {
-      closeModal('print-preview-modal');
-      playGateAccessChime();
-
-      const passenger = PASSENGER_DATABASE.find(p => p.pnr === activePnr);
-      if (!passenger) return;
-
-      const physicalPrintArea = document.getElementById('printable-thermal-receipt');
-      physicalPrintArea.innerHTML = currentPreparedHTML;
-
-      setTimeout(() => {
-        // Re-generate barcodes for physical printer DOM
-        passenger.bags.forEach(b => {
-          try {
-            JsBarcode(`#svg-tag-${b.id}`, b.tagCode, {
-              format: "CODE128",
-              width: 2.2,
-              height: 60,
-              displayValue: false
-            });
-          } catch(e) {}
-        });
-
-        const target = physicalPrintArea.querySelector('#bp-qr-target');
-        if (target) {
-          target.innerHTML = '';
-          new QRCode(target, {
-            text: `PASS:${passenger.pnr}:${passenger.flightNo}:${passenger.seat}`,
-            width: 130,
-            height: 130,
-            colorDark: "#000000",
-            colorLight: "#ffffff"
-          });
-        }
-
-        setTimeout(() => {
-          window.print();
-        }, 150);
-      }, 100);
-    }
-
     function toggleAudio() {
       audioEnabled = !audioEnabled;
       const btn = document.getElementById('audio-toggle-btn');
       if (audioEnabled) {
-        btn.innerHTML = `<i class="fa-solid fa-volume-high text-sm"></i>`;
+        btn.innerHTML = `<i class="fa-solid fa-volume-high text-xs"></i>`;
         playBeepSound(1200, 0.04);
       } else {
-        btn.innerHTML = `<i class="fa-solid fa-volume-xmark text-sm text-slate-500"></i>`;
+        btn.innerHTML = `<i class="fa-solid fa-volume-xmark text-xs text-slate-500"></i>`;
       }
     }
 
@@ -961,8 +683,8 @@
         const osc1 = audioCtx.createOscillator();
         const gain1 = audioCtx.createGain();
         osc1.type = 'triangle';
-        osc1.frequency.setValueAtTime(880, now); // A5
-        osc1.frequency.setValueAtTime(1318.51, now + 0.1); // E6
+        osc1.frequency.setValueAtTime(880, now);
+        osc1.frequency.setValueAtTime(1318.51, now + 0.1);
         gain1.gain.setValueAtTime(0.2, now);
         gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
         osc1.connect(gain1);
@@ -972,112 +694,326 @@
       } catch(e) {}
     }
 
-    /* Roster & Passenger Details Logic */
-    function renderPassengerRoster(filterTerm = '') {
-      const container = document.getElementById('passenger-roster-list');
-      const filtered = PASSENGER_DATABASE.filter(p => {
-        const term = filterTerm.toLowerCase();
-        return p.name.toLowerCase().includes(term) || 
-               p.pnr.toLowerCase().includes(term) ||
-               p.flightNo.toLowerCase().includes(term);
-      });
+    function openBatchGeneratorModal() {
+      playBeepSound(1100, 0.04);
+      if (passengerDatabase.length === 0) {
+        generateBatchPassengers();
+      } else {
+        renderBatchBarcodeGrid();
+      }
+      document.getElementById('batch-modal').classList.remove('hidden');
+    }
 
-      document.getElementById('passenger-count-badge').innerText = `${filtered.length} Booked`;
+    function generateBatchPassengers() {
+      const count = parseInt(document.getElementById('batch-gen-count').value || '100');
+      passengerDatabase = [];
+      occupiedSeatsByFlight = {};
 
-      if (filtered.length === 0) {
-        container.innerHTML = `
-          <div class="py-8 text-center text-slate-500 font-mono-code text-xs">
-            No passenger reservations match query.
+      for (let i = 0; i < count; i++) {
+        const firstName = MOCK_FIRST_NAMES[Math.floor(Math.random() * MOCK_FIRST_NAMES.length)];
+        const lastName = MOCK_LAST_NAMES[Math.floor(Math.random() * MOCK_LAST_NAMES.length)];
+        const pnr = Math.random().toString(36).substring(2, 8).toUpperCase();
+        
+        const destObj = AIRPORT_DESTINATIONS[Math.floor(Math.random() * AIRPORT_DESTINATIONS.length)];
+        const flightObj = FLIGHT_ROSTERS[Math.floor(Math.random() * FLIGHT_ROSTERS.length)];
+
+        // Generate random seat e.g. 05A, 18F, 24C
+        const rowNum = String(Math.floor(Math.random() * 30) + 1).padStart(2, '0');
+        const seatLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'J', 'K'];
+        const seatLetter = seatLetters[Math.floor(Math.random() * seatLetters.length)];
+        const seat = `${rowNum}${seatLetter}`;
+
+        // Reserve occupied seat
+        if (!occupiedSeatsByFlight[flightObj.flightNo]) {
+          occupiedSeatsByFlight[flightObj.flightNo] = [];
+        }
+        occupiedSeatsByFlight[flightObj.flightNo].push(seat);
+
+        const cabins = ['Business Class', 'Economy Class', 'First Class'];
+        const cabin = cabins[Math.floor(Math.random() * cabins.length)];
+
+        passengerDatabase.push({
+          pnr: pnr,
+          name: `${firstName} ${lastName}`,
+          flightNo: flightObj.flightNo,
+          aircraft: flightObj.aircraft,
+          gate: flightObj.gate,
+          boardingTime: flightObj.boardingTime,
+          origin: 'JFK',
+          destination: destObj.code,
+          destCity: destObj.city,
+          seat: seat,
+          group: cabin.includes('First') ? 'Group 1' : cabin.includes('Business') ? 'Group 2' : 'Group 3',
+          cabin: cabin,
+          ffStatus: 'AeroClub Member',
+          checkedIn: false,
+          bags: [
+            { id: `BAG-${pnr}-1`, weight: Math.round((18 + Math.random() * 8) * 10) / 10, tagCode: `000${Math.floor(100000 + Math.random() * 899999)}` }
+          ]
+        });
+      }
+
+      saveStateToLocalStorage();
+      renderBatchBarcodeGrid();
+      playBeepSound(1500, 0.08);
+    }
+
+    function renderBatchBarcodeGrid() {
+      const grid = document.getElementById('batch-barcode-grid');
+      if (!grid) return;
+
+      grid.innerHTML = passengerDatabase.map((p, idx) => `
+        <div onclick="scanAndLoadPassenger('${p.pnr}')" class="bg-slate-900 border border-slate-800 hover:border-emerald-500/60 p-3 rounded-xl cursor-pointer active:scale-95 transition flex flex-col items-center justify-between text-center space-y-2 group">
+          <div class="w-full flex items-center justify-between text-[10px] font-mono-code text-slate-400">
+            <span>#${idx + 1}</span>
+            <span class="text-sky-400 font-bold">${p.flightNo} (${p.destination})</span>
           </div>
-        `;
+
+          <div class="text-xs font-extrabold text-white group-hover:text-emerald-400 transition font-mono-code uppercase truncate max-w-full">
+            ${p.name}
+          </div>
+
+          <!-- 1D Barcode SVG Canvas -->
+          <div class="bg-white p-2 rounded w-full flex items-center justify-center">
+            <svg id="batch-barcode-svg-${p.pnr}"></svg>
+          </div>
+
+          <div class="text-[11px] font-mono-code font-extrabold text-slate-300">
+            PNR: <span class="text-amber-400">${p.pnr}</span> | SEAT: ${p.seat}
+          </div>
+        </div>
+      `).join('');
+
+      // Generate 1D barcode SVGs using JsBarcode
+      setTimeout(() => {
+        passengerDatabase.forEach(p => {
+          try {
+            JsBarcode(`#batch-barcode-svg-${p.pnr}`, p.pnr, {
+              format: "CODE128",
+              width: 1.6,
+              height: 35,
+              displayValue: false,
+              margin: 0
+            });
+          } catch(e) {}
+        });
+      }, 50);
+    }
+
+    function printBatchBarcodeSheet() {
+      closeModal('batch-modal');
+      const physicalArea = document.getElementById('printable-thermal-receipt');
+      
+      physicalArea.innerHTML = `
+        <div style="font-family: Arial, sans-serif; text-align: center; font-size: 10pt; color: #000;">
+          <h2 style="margin: 0; font-size: 14pt;">AEROSKY PASSENGER BARCODE SHEET</h2>
+          <p style="margin: 2px 0 10px 0; font-size: 9pt;">Total Bookings Generated: ${passengerDatabase.length}</p>
+          <div style="border-bottom: 2px solid #000; margin-bottom: 10px;"></div>
+
+          ${passengerDatabase.map(p => `
+            <div style="page-break-inside: avoid; border-bottom: 1px dashed #000; padding: 6px 0; margin-bottom: 6px; text-align: left;">
+              <div style="font-weight: bold; font-size: 11pt;">${p.name} (${p.pnr})</div>
+              <div style="font-size: 9pt;">FLIGHT: ${p.flightNo} &rarr; ${p.destination} | SEAT: ${p.seat}</div>
+              <div style="text-align: center; margin: 4px 0;">
+                <svg id="print-sheet-svg-${p.pnr}"></svg>
+              </div>
+              <div style="text-align: center; font-size: 9pt; font-weight: bold;">* ${p.pnr} *</div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+
+      setTimeout(() => {
+        passengerDatabase.forEach(p => {
+          try {
+            JsBarcode(`#print-sheet-svg-${p.pnr}`, p.pnr, {
+              format: "CODE128",
+              width: 2.0,
+              height: 45,
+              displayValue: false
+            });
+          } catch(e) {}
+        });
+        window.print();
+      }, 150);
+    }
+
+    function scanAndLoadPassenger(pnrOrCode) {
+      const code = pnrOrCode.trim().toUpperCase();
+      let passenger = passengerDatabase.find(p => p.pnr === code);
+
+      // Search by bag tag code if not PNR directly
+      if (!passenger) {
+        passengerDatabase.forEach(p => {
+          p.bags.forEach(b => {
+            if (b.tagCode === code || b.id === code) {
+              passenger = p;
+            }
+          });
+        });
+      }
+
+      if (!passenger) {
+        alert(`Barcode or PNR "${code}" not found in current station local storage roster.`);
         return;
       }
 
-      container.innerHTML = filtered.map(p => {
-        const isActive = p.pnr === activePnr;
-        const activeBorder = isActive ? 'border-sky-500 bg-slate-900 shadow-md' : 'border-slate-800/80 bg-slate-950 hover:border-slate-700';
-        const checkinTag = p.checkedIn 
-          ? `<span class="text-[9px] bg-emerald-500/20 text-emerald-400 font-mono-code px-1.5 py-0.5 rounded border border-emerald-500/30">CHECKED-IN</span>` 
-          : `<span class="text-[9px] bg-amber-500/20 text-amber-400 font-mono-code px-1.5 py-0.5 rounded border border-amber-500/30">PENDING</span>`;
+      activePassenger = passenger;
+      selectedBagId = passenger.bags.length > 0 ? passenger.bags[0].id : null;
+      playGateAccessChime();
 
-        return `
-          <button onclick="selectPassenger('${p.pnr}')" class="w-full text-left p-3 rounded-xl border ${activeBorder} transition active:scale-[0.98] flex items-center justify-between">
-            <div>
-              <div class="flex items-center gap-2 mb-1">
-                <span class="font-extrabold text-xs text-white">${p.name}</span>
-                ${checkinTag}
-              </div>
-              <div class="text-[10px] text-slate-400 font-mono-code flex items-center gap-2">
-                <span>PNR: <strong class="text-sky-400">${p.pnr}</strong></span>
-                <span>•</span>
-                <span>${p.flightNo} (${p.destination})</span>
-              </div>
-            </div>
-            <div class="text-right font-mono-code text-xs">
-              <span class="block text-slate-200 font-bold">${p.seat}</span>
-              <span class="text-[10px] text-slate-500">${p.bags.length} Bag(s)</span>
-            </div>
-          </button>
-        `;
-      }).join('');
+      // Render workspace UI
+      document.getElementById('workspace-idle-card').classList.add('hidden');
+      document.getElementById('workspace-active-card').classList.remove('hidden');
+
+      document.getElementById('active-passenger-name').innerText = passenger.name;
+      document.getElementById('active-passenger-pnr').innerText = `PNR: ${passenger.pnr}`;
+      document.getElementById('active-flight-no').innerText = passenger.flightNo;
+      document.getElementById('active-route').innerHTML = `${passenger.origin} &rarr; ${passenger.destination}`;
+      document.getElementById('active-dest-city').innerText = passenger.destCity;
+      document.getElementById('active-aircraft-type').innerText = passenger.aircraft;
+
+      document.getElementById('detail-cabin').innerText = passenger.cabin;
+      document.getElementById('detail-group').innerText = passenger.group;
+      document.getElementById('detail-gate-time').innerText = `GATE ${passenger.gate} / ${passenger.boardingTime}`;
+      document.getElementById('detail-ff-status').innerText = passenger.ffStatus;
+
+      document.getElementById('active-seat-display').innerText = passenger.seat;
+
+      renderActiveBaggageList();
+      closeModal('batch-modal');
+      closeModal('roster-modal');
     }
 
-    function filterPassengerRoster() {
-      const term = document.getElementById('passenger-search-input').value;
-      renderPassengerRoster(term);
+    function manualScanSubmit() {
+      const val = document.getElementById('manual-scan-input').value;
+      if (val) {
+        scanAndLoadPassenger(val);
+        document.getElementById('manual-scan-input').value = '';
+      }
     }
 
-    function selectPassenger(pnr) {
-      activePnr = pnr;
-      playBeepSound(1100, 0.04);
-      renderPassengerRoster(document.getElementById('passenger-search-input').value);
-      loadActivePassengerWorkspace();
+    function unloadActivePassenger() {
+      activePassenger = null;
+      selectedBagId = null;
+      document.getElementById('workspace-active-card').classList.add('hidden');
+      document.getElementById('workspace-idle-card').classList.remove('hidden');
     }
 
-    function renderBaggageScaleUI(passenger) {
+    function openSeatMapModal() {
+      if (!activePassenger) return;
+      playBeepSound(1200, 0.04);
+
+      const modalTitle = document.getElementById('seatmap-modal-title');
+      const modalSubtitle = document.getElementById('seatmap-modal-subtitle');
+      modalTitle.innerText = `Aircraft Seat Map - ${activePassenger.aircraft}`;
+      modalSubtitle.innerText = `Flight ${activePassenger.flightNo} (${activePassenger.origin} → ${activePassenger.destination}) • Current Seat: ${activePassenger.seat}`;
+
+      renderInteractiveSeatGrid();
+      document.getElementById('seatmap-modal').classList.remove('hidden');
+    }
+
+    function renderInteractiveSeatGrid() {
+      const container = document.getElementById('seatmap-grid-container');
+      if (!container || !activePassenger) return;
+
+      const flightNo = activePassenger.flightNo;
+      const takenSeats = occupiedSeatsByFlight[flightNo] || [];
+
+      // Generate seating rows e.g., Rows 1 through 20
+      let html = '';
+      const seatColumns = ['A', 'B', 'C', 'AISLE', 'D', 'E', 'F'];
+
+      for (let r = 1; r <= 20; r++) {
+        const rowStr = String(r).padStart(2, '0');
+        
+        html += `<div class="flex items-center justify-center gap-1.5 sm:gap-2">`;
+        html += `<span class="w-6 text-[10px] font-bold text-slate-500 text-right mr-1">${rowStr}</span>`;
+
+        seatColumns.forEach(col => {
+          if (col === 'AISLE') {
+            html += `<div class="w-4 sm:w-6 text-center text-[9px] text-slate-600"></div>`;
+            return;
+          }
+
+          const seatCode = `${rowStr}${col}`;
+          const isCurrent = activePassenger.seat === seatCode;
+          const isOccupied = takenSeats.includes(seatCode) && !isCurrent;
+
+          if (isCurrent) {
+            html += `<button onclick="assignSeatToActivePassenger('${seatCode}')" class="w-8 h-8 sm:w-9 sm:h-9 bg-sky-600 text-white font-extrabold text-xs rounded-lg border border-sky-400 shadow-md flex items-center justify-center">${col}</button>`;
+          } else if (isOccupied) {
+            html += `<button disabled class="w-8 h-8 sm:w-9 sm:h-9 bg-slate-900 text-slate-600 font-bold text-xs rounded-lg border border-slate-800 cursor-not-allowed flex items-center justify-center">${col}</button>`;
+          } else {
+            html += `<button onclick="assignSeatToActivePassenger('${seatCode}')" class="w-8 h-8 sm:w-9 sm:h-9 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-lg border border-slate-700 active:scale-95 transition flex items-center justify-center">${col}</button>`;
+          }
+        });
+
+        html += `</div>`;
+      }
+
+      container.innerHTML = html;
+    }
+
+    function assignSeatToActivePassenger(newSeat) {
+      if (!activePassenger) return;
+
+      const flightNo = activePassenger.flightNo;
+      if (!occupiedSeatsByFlight[flightNo]) {
+        occupiedSeatsByFlight[flightNo] = [];
+      }
+
+      // Remove old seat from occupied list
+      occupiedSeatsByFlight[flightNo] = occupiedSeatsByFlight[flightNo].filter(s => s !== activePassenger.seat);
+
+      // Add new seat
+      activePassenger.seat = newSeat;
+      occupiedSeatsByFlight[flightNo].push(newSeat);
+
+      saveStateToLocalStorage();
+      document.getElementById('active-seat-display').innerText = newSeat;
+      playBeepSound(1600, 0.05);
+      renderInteractiveSeatGrid();
+    }
+
+    function renderActiveBaggageList() {
       const container = document.getElementById('bags-list-container');
-      
-      if (passenger.bags.length === 0) {
+      if (!container || !activePassenger) return;
+
+      if (activePassenger.bags.length === 0) {
         container.innerHTML = `
           <div class="py-6 text-center text-slate-500 font-mono-code text-xs italic bg-slate-950 p-4 rounded-xl border border-slate-800/80">
-            No checked bags registered for this passenger. Click "Add Bag" above.
+            No hold baggage added for this passenger. Click "Add Bag" above.
           </div>
         `;
         return;
       }
 
-      container.innerHTML = passenger.bags.map((b, index) => {
+      container.innerHTML = activePassenger.bags.map((b, idx) => {
+        const isSelected = selectedBagId === b.id;
         const isOverweight = b.weight > 23.0;
-        const weightColor = isOverweight ? 'text-rose-400 font-bold' : 'text-emerald-400 font-bold';
-        const warningBadge = isOverweight 
-          ? `<span class="text-[9px] bg-rose-500/20 text-rose-400 px-1.5 py-0.5 rounded border border-rose-500/30 font-mono-code">OVERWEIGHT +$50</span>`
-          : `<span class="text-[9px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/30 font-mono-code">STANDARD</span>`;
+        const borderClass = isSelected ? 'border-amber-500 bg-amber-500/10' : 'border-slate-800 bg-slate-950 hover:border-slate-700';
 
         return `
-          <div class="flex items-center justify-between bg-slate-950 border border-slate-800 p-3 rounded-xl">
+          <div onclick="selectBagForPrinting('${b.id}')" class="flex items-center justify-between p-3.5 rounded-xl border ${borderClass} cursor-pointer transition">
             <div class="flex items-center space-x-3">
-              <div class="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 font-mono-code text-xs font-bold">
-                #${index + 1}
-              </div>
+              <input type="radio" name="bag-selection" ${isSelected ? 'checked' : ''} class="accent-amber-500 w-4 h-4">
               <div>
                 <div class="font-mono-code font-bold text-xs text-white flex items-center gap-2">
-                  <span>${b.id}</span>
-                  ${warningBadge}
+                  <span>PIECE #${idx + 1} (${b.id})</span>
+                  ${isOverweight ? '<span class="text-[9px] bg-rose-500/20 text-rose-400 px-1.5 py-0.5 rounded border border-rose-500/30">OVERWEIGHT</span>' : ''}
                 </div>
-                <div class="text-[10px] font-mono-code text-slate-500">TAG CODE: ${b.tagCode}</div>
+                <div class="text-[10px] font-mono-code text-slate-500">TAG: ${b.tagCode}</div>
               </div>
             </div>
 
-            <!-- Touchscreen Scale Weight Trigger Button -->
-            <div class="flex items-center space-x-3">
-              <button onclick="openNumpadForBagWeight('${b.id}', '${b.weight}')" class="flex items-center space-x-2 bg-slate-900 hover:bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-xl active:scale-95 transition" title="Tap to adjust weight on touchscreen">
+            <div class="flex items-center space-x-3" onclick="event.stopPropagation()">
+              <button onclick="openNumpadForBagWeight('${b.id}', '${b.weight}')" class="flex items-center space-x-2 bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-xl active:scale-95 transition">
                 <i class="fa-solid fa-calculator text-amber-400 text-xs"></i>
-                <span class="text-[10px] text-slate-400 font-mono-code">SCALE:</span>
-                <span class="font-mono-code text-sm ${weightColor}">${b.weight.toFixed(1)}</span>
-                <span class="text-[10px] text-slate-400 font-mono-code">KG</span>
+                <span class="font-mono-code text-sm font-bold ${isOverweight ? 'text-rose-400' : 'text-emerald-400'}">${b.weight.toFixed(1)} KG</span>
               </button>
 
-              <button onclick="removeBagFromPassenger('${b.id}')" class="p-2 text-slate-500 hover:text-rose-400 transition" title="Remove bag">
+              <button onclick="removeBagFromActivePassenger('${b.id}')" class="p-2 text-slate-500 hover:text-rose-400 transition">
                 <i class="fa-solid fa-trash-can text-xs"></i>
               </button>
             </div>
@@ -1086,9 +1022,29 @@
       }).join('');
     }
 
-    /* Touchscreen Numpad Handler Functions */
+    function selectBagForPrinting(bagId) {
+      selectedBagId = bagId;
+      playBeepSound(1200, 0.03);
+      renderActiveBaggageList();
+    }
+
+    function addBagToActivePassenger() {
+      if (!activePassenger) return;
+      openNumpadForNewBag();
+    }
+
+    function removeBagFromActivePassenger(bagId) {
+      if (!activePassenger) return;
+      activePassenger.bags = activePassenger.bags.filter(b => b.id !== bagId);
+      if (selectedBagId === bagId) {
+        selectedBagId = activePassenger.bags.length > 0 ? activePassenger.bags[0].id : null;
+      }
+      saveStateToLocalStorage();
+      renderActiveBaggageList();
+    }
+
+    /* Touchscreen Numpad Handlers */
     function openNumpadForNewBag() {
-      playBeepSound(1200, 0.04);
       numpadTargetBagId = 'NEW';
       numpadValue = '20.0';
       updateNumpadDisplay();
@@ -1096,7 +1052,6 @@
     }
 
     function openNumpadForBagWeight(bagId, currentWeight) {
-      playBeepSound(1200, 0.04);
       numpadTargetBagId = bagId;
       numpadValue = String(currentWeight || '20.0');
       updateNumpadDisplay();
@@ -1109,422 +1064,310 @@
         if (numpadValue.includes('.')) return;
         numpadValue += '.';
       } else {
-        if (numpadValue === '0') {
-          numpadValue = char;
-        } else if (numpadValue.length < 5) {
-          numpadValue += char;
-        }
+        if (numpadValue === '0') numpadValue = char;
+        else if (numpadValue.length < 5) numpadValue += char;
       }
       updateNumpadDisplay();
     }
 
     function numpadBackspace() {
       playBeepSound(900, 0.03);
-      if (numpadValue.length > 1) {
-        numpadValue = numpadValue.slice(0, -1);
-      } else {
-        numpadValue = '0';
-      }
+      numpadValue = numpadValue.length > 1 ? numpadValue.slice(0, -1) : '0';
       updateNumpadDisplay();
     }
 
     function numpadClear() {
-      playBeepSound(800, 0.03);
       numpadValue = '0';
       updateNumpadDisplay();
     }
 
-    function numpadSetPreset(val) {
-      playBeepSound(1300, 0.04);
-      numpadValue = val;
-      updateNumpadDisplay();
-    }
-
     function updateNumpadDisplay() {
-      const displayElem = document.getElementById('numpad-display');
-      const badgeElem = document.getElementById('numpad-status-badge');
-      if (!displayElem) return;
-
-      displayElem.innerText = numpadValue;
-
-      const numVal = parseFloat(numpadValue) || 0;
-      if (numVal > 23.0) {
-        badgeElem.innerHTML = `<span class="text-[10px] bg-rose-500/20 text-rose-400 font-mono-code font-bold px-2 py-0.5 rounded border border-rose-500/30 uppercase"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Overweight (+ $50 Fee)</span>`;
-      } else {
-        badgeElem.innerHTML = `<span class="text-[10px] bg-emerald-500/20 text-emerald-400 font-mono-code font-bold px-2 py-0.5 rounded border border-emerald-500/30 uppercase"><i class="fa-solid fa-circle-check mr-1"></i> Standard Allowance</span>`;
-      }
+      const display = document.getElementById('numpad-display');
+      if (display) display.innerText = numpadValue;
     }
 
     function confirmNumpadWeight() {
-      const passenger = PASSENGER_DATABASE.find(p => p.pnr === activePnr);
-      if (!passenger) return;
-
-      const weightNum = parseFloat(numpadValue) || 19.5;
-      playBeepSound(1600, 0.05);
+      if (!activePassenger) return;
+      const weightNum = parseFloat(numpadValue) || 20.0;
 
       if (numpadTargetBagId === 'NEW') {
-        const bagIndex = passenger.bags.length + 1;
-        const randomTag = Math.floor(100000 + Math.random() * 899999);
-        passenger.bags.push({
-          id: `BAG-${passenger.pnr}-${bagIndex}`,
+        const bagIndex = activePassenger.bags.length + 1;
+        const newBag = {
+          id: `BAG-${activePassenger.pnr}-${bagIndex}`,
           weight: weightNum,
-          status: 'CHECKED',
-          tagCode: `000${randomTag}`
-        });
+          tagCode: `000${Math.floor(100000 + Math.random() * 899999)}`
+        };
+        activePassenger.bags.push(newBag);
+        selectedBagId = newBag.id;
       } else {
-        const bag = passenger.bags.find(b => b.id === numpadTargetBagId);
-        if (bag) {
-          bag.weight = weightNum;
-        }
+        const bag = activePassenger.bags.find(b => b.id === numpadTargetBagId);
+        if (bag) bag.weight = weightNum;
       }
 
+      saveStateToLocalStorage();
       closeModal('numpad-modal');
-      renderBaggageScaleUI(passenger);
-      renderPassengerRoster(document.getElementById('passenger-search-input').value);
+      renderActiveBaggageList();
     }
 
-    function addBagToPassenger() {
-      openNumpadForNewBag();
+    function generateDoubleLengthBagTagHTML(passenger, bag) {
+      const isHeavy = bag.weight > 23.0;
+      const heavyBadge = isHeavy ? `<div style="background:#000; color:#fff; font-size:16pt; font-weight:900; text-align:center; padding:6px; margin:8px 0; letter-spacing:2px;">HEAVY / OVERWEIGHT BAG</div>` : '';
+
+      return `
+        <div style="text-align: center; font-family: Arial, sans-serif; padding-bottom: 20px; color: #000; background: #fff; width: 72mm; margin: 0 auto;">
+          
+          <!-- TOP ATTACHMENT LOOP HEADER -->
+          <div style="border: 4px solid #000; padding: 6px; margin-bottom: 10px;">
+            <div style="font-size: 14pt; font-weight: 900; letter-spacing: 2px;">AEROSKY AIRWAYS</div>
+            <div style="font-size: 9pt; font-weight: bold; border-top: 2px solid #000; margin-top: 4px; padding-top: 4px;">AUTOMATED BAGGAGE ROUTING TAG</div>
+          </div>
+
+          <!-- HUGE DESTINATION IATA CODE FOR HIGH VISIBILITY (2X HEIGHT FORMAT) -->
+          <div style="font-size: 64pt; font-weight: 900; line-height: 0.95; letter-spacing: 3px; margin: 10px 0;">${passenger.destination}</div>
+          <div style="font-size: 13pt; font-weight: 900; text-transform: uppercase;">DEST: ${passenger.destCity}</div>
+
+          ${heavyBadge}
+
+          <div style="border-bottom: 3px solid #000; margin: 12px 0;"></div>
+
+          <!-- PASSENGER DETAILS -->
+          <div style="text-align: left; font-size: 11pt; font-weight: bold; line-height: 1.5;">
+            <div>PASSENGER: <span style="font-size: 14pt; font-weight: 900;">${passenger.name}</span></div>
+            <div>FLIGHT: <span style="font-size: 14pt; font-weight: 900;">${passenger.flightNo}</span> &nbsp;|&nbsp; SEAT: <span style="font-size: 14pt; font-weight: 900;">${passenger.seat}</span></div>
+            <div>PNR LOCATOR: <span style="font-size: 13pt; font-weight: 900;">${passenger.pnr}</span></div>
+            <div>WEIGHT: <span style="font-size: 14pt; font-weight: 900;">${bag.weight.toFixed(1)} KG</span></div>
+            <div>TAG CODE: <span style="font-size: 12pt; font-weight: 900;">${bag.tagCode}</span></div>
+          </div>
+
+          <div style="border-bottom: 3px solid #000; margin: 12px 0;"></div>
+
+          <!-- PRIMARY 1D SORTING BARCODE -->
+          <div style="display: flex; justify-content: center; margin: 12px 0;">
+            <svg id="svg-bag-tag-primary"></svg>
+          </div>
+
+          <div style="font-size: 12pt; font-weight: 900; letter-spacing: 2px;">* ${bag.tagCode} *</div>
+
+          <!-- SECONDARY / DUPLICATE CLAIM STUB PORTION -->
+          <div style="border-top: 4px dashed #000; margin-top: 20px; padding-top: 15px; text-align: left;">
+            <div style="font-size: 12pt; font-weight: 900; text-align: center; margin-bottom: 6px;">BAGGAGE CLAIM PASSENGER STUB</div>
+            <div style="font-size: 10pt; font-weight: bold;">PASSENGER: ${passenger.name}</div>
+            <div style="font-size: 10pt; font-weight: bold;">FLIGHT: ${passenger.flightNo} &rarr; ${passenger.destination}</div>
+            <div style="font-size: 10pt; font-weight: bold;">BAG TAG ID: ${bag.tagCode}</div>
+
+            <div style="display: flex; justify-content: center; margin: 8px 0;">
+              <svg id="svg-bag-tag-stub"></svg>
+            </div>
+            <div style="text-align: center; font-size: 9pt; font-weight: bold;">RETAIN FOR BAGGAGE MATCH AT DESTINATION</div>
+          </div>
+
+        </div>
+      `;
     }
 
-    function removeBagFromPassenger(bagId) {
-      const passenger = PASSENGER_DATABASE.find(p => p.pnr === activePnr);
-      if (!passenger) return;
+    function previewAndPrintSelectedBagTag() {
+      if (!activePassenger) return;
 
-      playBeepSound(700, 0.05);
-      passenger.bags = passenger.bags.filter(b => b.id !== bagId);
-      renderBaggageScaleUI(passenger);
-      renderPassengerRoster(document.getElementById('passenger-search-input').value);
-    }
-
-    function updateBagWeight(bagId, newWeight) {
-      const passenger = PASSENGER_DATABASE.find(p => p.pnr === activePnr);
-      if (!passenger) return;
-
-      const bag = passenger.bags.find(b => b.id === bagId);
-      if (bag) {
-        bag.weight = parseFloat(newWeight || 0);
-        playBeepSound(1000, 0.03);
-        renderBaggageScaleUI(passenger);
-      }
-    }
-
-    /* 80mm Thermal Printing System for Baggage Claim Tags */
-    function printAllBagTags80mm() {
-      const passenger = PASSENGER_DATABASE.find(p => p.pnr === activePnr);
-      if (!passenger) return;
-
-      if (passenger.bags.length === 0) {
-        alert("Cannot print baggage tags: No bags registered for this passenger.");
+      if (!selectedBagId) {
+        alert("Please select a specific bag from the baggage scale list before printing a tag.");
         return;
       }
 
-      playGateAccessChime();
+      const bag = activePassenger.bags.find(b => b.id === selectedBagId);
+      if (!bag) {
+        alert("Selected bag not found.");
+        return;
+      }
 
-      const container = document.getElementById('printable-thermal-receipt');
-      container.innerHTML = passenger.bags.map(b => `
-        <div style="text-align: center; font-family: 'Courier New', monospace; font-size: 11px; line-height: 1.25; page-break-after: always; padding-bottom: 10px;">
-          <div style="font-size: 14px; font-weight: bold; border-bottom: 2px solid #000; padding-bottom: 3px;">AEROSKY BAGGAGE TAG</div>
-          
-          <div style="font-size: 32px; font-weight: 900; margin: 6px 0; letter-spacing: 2px;">${passenger.destination}</div>
-          <div style="font-size: 10px; font-weight: bold;">DESTINATION: ${passenger.destCity}</div>
-          <div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div>
+      currentPreparedHTML = generateDoubleLengthBagTagHTML(activePassenger, bag);
+      document.getElementById('screen-receipt-preview').innerHTML = currentPreparedHTML;
 
-          <div style="text-align: left; margin-bottom: 6px;">
-            <div>FLIGHT: <strong style="font-size: 13px;">${passenger.flightNo}</strong></div>
-            <div>PASSENGER: ${passenger.name}</div>
-            <div>PNR LOCATOR: <strong>${passenger.pnr}</strong></div>
-            <div>BAG WEIGHT: <strong>${b.weight.toFixed(1)} KG</strong></div>
-            <div>ROUTING: ${passenger.origin} &rarr; ${passenger.destination}</div>
-          </div>
-
-          <div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div>
-
-          <!-- 1D Barcode for Automatic Sorting Conveyors -->
-          <div style="display: flex; justify-content: center; margin: 8px 0;">
-            <svg id="svg-bag-${b.id}"></svg>
-          </div>
-
-          <div style="font-size: 11px; font-weight: bold;">* ${b.tagCode} *</div>
-          <div style="font-size: 9px; margin-top: 4px;">CLAIM STUB - RETAIN FOR BAGGAGE MATCH</div>
-          <div style="border-bottom: 1px dashed #000; margin-top: 6px;"></div>
-        </div>
-      `).join('');
-
-      // Generate Code128 Barcodes using JsBarcode
       setTimeout(() => {
-        passenger.bags.forEach(b => {
-          try {
-            JsBarcode(`#svg-bag-${b.id}`, b.tagCode, {
-              format: "CODE128",
-              width: 1.8,
-              height: 50,
-              displayValue: false
-            });
-          } catch(e) {}
-        });
-        window.print();
-      }, 150);
+        try {
+          JsBarcode("#svg-bag-tag-primary", bag.tagCode, { format: "CODE128", width: 2.2, height: 60, displayValue: false });
+          JsBarcode("#svg-bag-tag-stub", bag.tagCode, { format: "CODE128", width: 1.8, height: 40, displayValue: false });
+        } catch(e) {}
+      }, 80);
+
+      document.getElementById('preview-modal-title').innerText = 'Double-Length Thermal Bag Tag Preview';
+      document.getElementById('print-preview-modal').classList.remove('hidden');
     }
 
-    /* 80mm Thermal Printing System for Boarding Pass Slips */
-    function printBoardingPass80mm() {
-      const passenger = PASSENGER_DATABASE.find(p => p.pnr === activePnr);
-      if (!passenger) return;
+    function previewAndPrintBoardingPass() {
+      if (!activePassenger) return;
 
-      playGateAccessChime();
+      currentPreparedHTML = `
+        <div style="text-align: center; font-family: Arial, sans-serif; padding-bottom: 10px; color: #000; background: #fff;">
+          <div style="font-size: 16pt; font-weight: 900; letter-spacing: 1px; border-bottom: 3px solid #000; padding-bottom: 4px;">AEROSKY BOARDING PASS</div>
+          <div style="font-size: 10pt; font-weight: bold; margin: 3px 0;">SYSTEM CHECK-IN RECEIPT</div>
+          <div style="border-bottom: 2px solid #000; margin: 6px 0;"></div>
 
-      const container = document.getElementById('printable-thermal-receipt');
-      container.innerHTML = `
-        <div style="text-align: center; font-family: 'Courier New', monospace; font-size: 11px; line-height: 1.25;">
-          <div style="font-size: 14px; font-weight: bold;">AEROSKY BOARDING PASS</div>
-          <div style="font-size: 10px;">SYSTEM CHECK-IN PASS</div>
-          <div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div>
-
-          <div style="text-align: left; margin-bottom: 6px;">
-            <div style="font-size: 13px; font-weight: bold;">PASSENGER: ${passenger.name}</div>
-            <div>PNR LOCATOR: <strong>${passenger.pnr}</strong></div>
-            <div>CABIN: ${passenger.cabin}</div>
-            <div>STATUS: ${passenger.ffStatus}</div>
+          <div style="text-align: left; margin-bottom: 8px;">
+            <div style="font-size: 10pt; font-weight: bold; text-transform: uppercase;">PASSENGER NAME:</div>
+            <div style="font-size: 16pt; font-weight: 900; text-transform: uppercase; margin-bottom: 4px;">${activePassenger.name}</div>
+            <div style="font-size: 11pt; font-weight: bold;">PNR: <strong style="font-size: 13pt;">${activePassenger.pnr}</strong> &nbsp;|&nbsp; CLASS: <strong>${activePassenger.cabin}</strong></div>
           </div>
 
-          <div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div>
+          <div style="border-bottom: 2px solid #000; margin: 6px 0;"></div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; text-align: left; gap: 4px; font-size: 12px; font-weight: bold;">
-            <div>FLIGHT: ${passenger.flightNo}</div>
-            <div>SEAT: ${passenger.seat}</div>
-            <div>GATE: ${passenger.gate}</div>
-            <div>TIME: ${passenger.boardingTime}</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; text-align: left; gap: 6px; font-size: 12pt; font-weight: 900;">
+            <div style="border: 2px solid #000; padding: 4px; text-align: center;">
+              <span style="font-size: 8pt; display: block; font-weight: bold;">FLIGHT</span>
+              <span style="font-size: 16pt;">${activePassenger.flightNo}</span>
+            </div>
+            <div style="border: 2px solid #000; padding: 4px; text-align: center; background-color: #000; color: #fff;">
+              <span style="font-size: 8pt; display: block; font-weight: bold;">SEAT</span>
+              <span style="font-size: 18pt;">${activePassenger.seat}</span>
+            </div>
+            <div style="border: 2px solid #000; padding: 4px; text-align: center;">
+              <span style="font-size: 8pt; display: block; font-weight: bold;">GATE</span>
+              <span style="font-size: 14pt;">${activePassenger.gate}</span>
+            </div>
+            <div style="border: 2px solid #000; padding: 4px; text-align: center;">
+              <span style="font-size: 8pt; display: block; font-weight: bold;">BOARDING</span>
+              <span style="font-size: 14pt;">${activePassenger.boardingTime}</span>
+            </div>
           </div>
 
-          <div style="text-align: left; margin-top: 4px; font-size: 11px;">
-            <div>GROUP: ${passenger.group}</div>
-            <div>ROUTE: ${passenger.origin} &rarr; ${passenger.destination} (${passenger.destCity})</div>
+          <div style="text-align: left; margin-top: 8px; font-size: 11pt; font-weight: bold;">
+            <div>ROUTE: <strong>${activePassenger.origin} &rarr; ${activePassenger.destination} (${activePassenger.destCity})</strong></div>
           </div>
 
-          <div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div>
+          <div style="border-bottom: 2px solid #000; margin: 8px 0;"></div>
 
-          <!-- 2D QR Code for Gate Scanner Verification -->
-          <div style="display: flex; justify-content: center; margin: 8px 0;">
+          <!-- 2D QR CODE -->
+          <div style="display: flex; justify-content: center; margin: 10px 0;">
             <div id="bp-qr-target"></div>
           </div>
 
-          <div style="font-size: 10px; font-weight: bold;">* PASS ID: ${passenger.pnr}-${passenger.seat} *</div>
-          <div style="font-size: 9px; margin-top: 4px;">PLEASE BE AT GATE 30 MIN PRIOR TO DEPARTURE</div>
-          <div style="border-bottom: 1px dashed #000; margin-top: 6px;"></div>
+          <div style="font-size: 11pt; font-weight: 900; letter-spacing: 1px;">* PASS ID: ${activePassenger.pnr}-${activePassenger.seat} *</div>
         </div>
       `;
+
+      document.getElementById('screen-receipt-preview').innerHTML = currentPreparedHTML;
 
       setTimeout(() => {
         const target = document.getElementById('bp-qr-target');
         if (target) {
           target.innerHTML = '';
           new QRCode(target, {
-            text: `PASS:${passenger.pnr}:${passenger.flightNo}:${passenger.seat}`,
-            width: 100,
-            height: 100,
+            text: `PASS:${activePassenger.pnr}:${activePassenger.flightNo}:${activePassenger.seat}`,
+            width: 130,
+            height: 130,
             colorDark: "#000000",
             colorLight: "#ffffff"
           });
         }
-        window.print();
-      }, 150);
+      }, 80);
+
+      document.getElementById('preview-modal-title').innerText = '80mm Boarding Pass Preview';
+      document.getElementById('print-preview-modal').classList.remove('hidden');
     }
 
-    /* Complete Check-In Button Handler */
-    function completeCheckInProcess() {
-      const passenger = PASSENGER_DATABASE.find(p => p.pnr === activePnr);
-      if (!passenger) return;
-
-      passenger.checkedIn = true;
+    function triggerPhysicalThermalPrint() {
+      closeModal('print-preview-modal');
       playGateAccessChime();
-      loadActivePassengerWorkspace();
-      renderPassengerRoster(document.getElementById('passenger-search-input').value);
+
+      const physicalPrintArea = document.getElementById('printable-thermal-receipt');
+      physicalPrintArea.innerHTML = currentPreparedHTML;
+
+      setTimeout(() => {
+        if (activePassenger && selectedBagId) {
+          const bag = activePassenger.bags.find(b => b.id === selectedBagId);
+          if (bag) {
+            try {
+              JsBarcode("#svg-bag-tag-primary", bag.tagCode, { format: "CODE128", width: 2.2, height: 60, displayValue: false });
+              JsBarcode("#svg-bag-tag-stub", bag.tagCode, { format: "CODE128", width: 1.8, height: 40, displayValue: false });
+            } catch(e) {}
+          }
+        }
+
+        const target = physicalPrintArea.querySelector('#bp-qr-target');
+        if (target && activePassenger) {
+          target.innerHTML = '';
+          new QRCode(target, {
+            text: `PASS:${activePassenger.pnr}:${activePassenger.flightNo}:${activePassenger.seat}`,
+            width: 130,
+            height: 130,
+            colorDark: "#000000",
+            colorLight: "#ffffff"
+          });
+        }
+
+        setTimeout(() => { window.print(); }, 150);
+      }, 100);
     }
 
-    /* Global Hardware Barcode Scanner Listener */
-    let barcodeBuffer = '';
-    let barcodeTimeout = null;
+    function completeCheckInProcess() {
+      if (!activePassenger) return;
 
-    document.addEventListener('keydown', (e) => {
-      const listener = document.getElementById('global-barcode-listener');
-      if (document.activeElement !== document.getElementById('passenger-search-input') &&
-          document.activeElement !== document.getElementById('input-seat-num') &&
-          document.activeElement !== document.getElementById('new-p-name')) {
-        listener.focus();
-      }
+      const pnrToRemove = activePassenger.pnr;
+      playGateAccessChime();
 
-      if (e.key === 'Enter') {
-        if (barcodeBuffer.length > 2) {
-          handleScannedBarcodePayload(barcodeBuffer.trim());
-          barcodeBuffer = '';
-        }
-      } else if (e.key.length === 1) {
-        barcodeBuffer += e.key;
-        clearTimeout(barcodeTimeout);
-        barcodeTimeout = setTimeout(() => { barcodeBuffer = ''; }, 200);
-      }
-    });
+      // Delete/archive passenger from pending local storage database
+      passengerDatabase = passengerDatabase.filter(p => p.pnr !== pnrToRemove);
+      saveStateToLocalStorage();
 
-    function handleScannedBarcodePayload(code) {
-      playBeepSound(1500, 0.06);
+      // Reset workspace to idle screen
+      unloadActivePassenger();
+    }
 
-      const modal = document.getElementById('scanner-modal');
-      const content = document.getElementById('scanner-modal-content');
-      modal.classList.remove('hidden');
+    function openRosterModal() {
+      playBeepSound(1000, 0.04);
+      renderRosterListModal();
+      document.getElementById('roster-modal').classList.remove('hidden');
+    }
 
-      // Test 1: Is it a Boarding Pass QR payload (PASS:6X9K2P:AS-892:12A)?
-      if (code.startsWith('PASS:')) {
-        const parts = code.split(':');
-        const pnr = parts[1];
-        const passenger = PASSENGER_DATABASE.find(p => p.pnr === pnr);
+    function renderRosterListModal() {
+      const container = document.getElementById('roster-modal-list');
+      const query = (document.getElementById('roster-search-input')?.value || '').toLowerCase();
 
-        if (passenger) {
-          content.innerHTML = `
-            <div class="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 p-3.5 rounded-xl space-y-2">
-              <div class="flex items-center gap-2 font-bold text-sm">
-                <i class="fa-solid fa-circle-check text-base"></i>
-                <span>VALID BOARDING PASS SCANNED</span>
-              </div>
-              <div class="text-white">PASSENGER: <strong>${passenger.name}</strong></div>
-              <div>PNR: ${passenger.pnr} | FLIGHT: ${passenger.flightNo} | SEAT: ${passenger.seat}</div>
-              <div>GATE BOARDING ELIGIBILITY: <strong class="text-emerald-300">APPROVED</strong></div>
-            </div>
-          `;
-          selectPassenger(passenger.pnr);
-          return;
-        }
-      }
+      const filtered = passengerDatabase.filter(p => p.name.toLowerCase().includes(query) || p.pnr.toLowerCase().includes(query));
 
-      // Test 2: Is it a 1D Bag Tag Code?
-      let matchedBag = null;
-      let matchedPassenger = null;
-
-      PASSENGER_DATABASE.forEach(p => {
-        p.bags.forEach(b => {
-          if (b.tagCode === code || b.id === code) {
-            matchedBag = b;
-            matchedPassenger = p;
-          }
-        });
-      });
-
-      if (matchedBag && matchedPassenger) {
-        content.innerHTML = `
-          <div class="bg-sky-500/10 border border-sky-500/30 text-sky-400 p-3.5 rounded-xl space-y-2">
-            <div class="flex items-center gap-2 font-bold text-sm">
-              <i class="fa-solid fa-suitcase text-base"></i>
-              <span>SCANNED BAGGAGE MATCH FOUND</span>
-            </div>
-            <div class="text-white">TAG ID: <strong>${matchedBag.tagCode}</strong></div>
-            <div>OWNER: ${matchedPassenger.name} (PNR: ${matchedPassenger.pnr})</div>
-            <div>WEIGHT: ${matchedBag.weight} KG | DEST: <strong class="text-sky-300">${matchedPassenger.destination}</strong></div>
-            <div>SECURITY CLEARANCE: <strong class="text-emerald-400">PASSED X-RAY</strong></div>
-          </div>
-        `;
-        selectPassenger(matchedPassenger.pnr);
+      if (filtered.length === 0) {
+        container.innerHTML = `<div class="py-8 text-center text-slate-500 font-mono-code text-xs">No pending passengers found in local storage database.</div>`;
         return;
       }
 
-      // Fallback
-      content.innerHTML = `
-        <div class="bg-amber-500/10 border border-amber-500/30 text-amber-400 p-3.5 rounded-xl">
-          <i class="fa-solid fa-triangle-exclamation mr-1"></i> Scanned Code <strong>${code}</strong> not found in active station database.
-        </div>
-      `;
-    }
-
-    /* Flight Manifest & Report Functions */
-    function openFlightManifestModal() {
-      playBeepSound(1000, 0.04);
-      const totalBooked = PASSENGER_DATABASE.length;
-      const checkedIn = PASSENGER_DATABASE.filter(p => p.checkedIn).length;
-      const totalBags = PASSENGER_DATABASE.reduce((acc, p) => acc + p.bags.length, 0);
-
-      document.getElementById('manifest-total-count').innerText = totalBooked;
-      document.getElementById('manifest-checked-count').innerText = checkedIn;
-      document.getElementById('manifest-bags-count').innerText = totalBags;
-
-      document.getElementById('manifest-modal').classList.remove('hidden');
-    }
-
-    function printManifestThermal() {
-      closeModal('manifest-modal');
-      const container = document.getElementById('printable-thermal-receipt');
-      container.innerHTML = `
-        <div style="text-align: center; font-family: 'Courier New', monospace; font-size: 11px; line-height: 1.25;">
-          <div style="font-size: 14px; font-weight: bold;">FLIGHT MANIFEST REPORT</div>
-          <div>FLIGHT: AS-892 (JFK &rarr; LHR)</div>
-          <div>STATION: DESK #04</div>
-          <div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div>
-
-          <div style="text-align: left; margin-bottom: 6px;">
-            <div>TOTAL PASSENGERS BOOKED: ${PASSENGER_DATABASE.length}</div>
-            <div>TOTAL CHECKED IN: ${PASSENGER_DATABASE.filter(p => p.checkedIn).length}</div>
-            <div>TOTAL HOLD BAGGAGE: ${PASSENGER_DATABASE.reduce((acc, p) => acc + p.bags.length, 0)} BAGS</div>
+      container.innerHTML = filtered.map(p => `
+        <div onclick="scanAndLoadPassenger('${p.pnr}')" class="p-3 bg-slate-950 border border-slate-800 hover:border-sky-500 rounded-xl cursor-pointer transition flex items-center justify-between font-mono-code text-xs">
+          <div>
+            <div class="font-extrabold text-white">${p.name}</div>
+            <div class="text-[10px] text-slate-400">PNR: <strong class="text-sky-400">${p.pnr}</strong> | FLIGHT: ${p.flightNo} (${p.destination})</div>
           </div>
-
-          <div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div>
-
-          <div style="text-align: left; font-size: 10px;">
-            ${PASSENGER_DATABASE.map(p => `
-              <div style="margin-bottom: 3px;">
-                <span>${p.seat} - ${p.name.substring(0, 16)}</span><br>
-                <span>PNR: ${p.pnr} | STATUS: ${p.checkedIn ? 'CHECKED-IN' : 'PENDING'}</span>
-              </div>
-            `).join('')}
+          <div class="text-right">
+            <span class="block text-slate-200 font-bold">${p.seat}</span>
+            <span class="text-[10px] text-slate-500">${p.bags.length} Bag(s)</span>
           </div>
-
-          <div style="border-bottom: 1px dashed #000; margin-top: 6px;"></div>
         </div>
-      `;
-      setTimeout(() => { window.print(); }, 150);
-    }
-
-    /* New Booking Modal Handler */
-    function openNewBookingModal() {
-      playBeepSound(1000, 0.04);
-      document.getElementById('new-booking-modal').classList.remove('hidden');
-    }
-
-    function saveNewPassengerBooking() {
-      const name = document.getElementById('new-p-name').value.toUpperCase() || 'JOHN DOE';
-      const flightNo = document.getElementById('new-p-flight').value.toUpperCase() || 'AS-892';
-      const dest = document.getElementById('new-p-dest').value.toUpperCase() || 'LHR';
-      const seat = document.getElementById('new-p-seat').value.toUpperCase() || '22B';
-      const cabin = document.getElementById('new-p-cabin').value;
-
-      const newPnr = Math.random().toString(36).substring(2, 8).toUpperCase();
-
-      PASSENGER_DATABASE.push({
-        pnr: newPnr,
-        name: name,
-        flightNo: flightNo,
-        origin: 'JFK',
-        destination: dest,
-        destCity: 'INTERNATIONAL',
-        gate: 'B12',
-        boardingTime: '14:20',
-        seat: seat,
-        group: 'Group 3 (Main Cabin)',
-        cabin: cabin,
-        ffStatus: 'AeroClub Member',
-        checkedIn: false,
-        bags: []
-      });
-
-      closeModal('new-booking-modal');
-      selectPassenger(newPnr);
+      `).join('');
     }
 
     function closeModal(modalId) {
       document.getElementById(modalId).classList.add('hidden');
     }
 
-    /* Initialization */
+    let barcodeBuffer = '';
+    let barcodeTimeout = null;
+
+    document.addEventListener('keydown', (e) => {
+      const manualInput = document.getElementById('manual-scan-input');
+      if (document.activeElement === manualInput) return;
+
+      if (e.key === 'Enter') {
+        if (barcodeBuffer.length >= 3) {
+          scanAndLoadPassenger(barcodeBuffer.trim());
+          barcodeBuffer = '';
+        }
+      } else if (e.key.length === 1) {
+        barcodeBuffer += e.key;
+        clearTimeout(barcodeTimeout);
+        barcodeTimeout = setTimeout(() => { barcodeBuffer = ''; }, 250);
+      }
+    });
+
     window.onload = function() {
-      renderPassengerRoster();
-      loadActivePassengerWorkspace();
+      loadStateFromLocalStorage();
 
       setInterval(() => {
         document.getElementById('current-time-display').innerText = new Date().toLocaleTimeString();
