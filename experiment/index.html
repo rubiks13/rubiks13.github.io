@@ -483,6 +483,82 @@
     </div>
   </div>
 
+  <!-- MODAL 4: TOUCHSCREEN NUMPAD FOR BAGGAGE WEIGHT -->
+  <div id="numpad-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center">
+            <i class="fa-solid fa-calculator"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-white text-base">Baggage Scale Numpad</h3>
+            <p class="text-xs text-slate-400">Touchscreen Weight Entry (KG)</p>
+          </div>
+        </div>
+        <button onclick="closeModal('numpad-modal')" class="text-slate-400 hover:text-white text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Weight Display readout -->
+      <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 text-center space-y-1">
+        <span class="text-[10px] text-slate-500 font-mono-code uppercase block">SCALE READOUT</span>
+        <div class="flex items-center justify-center gap-2">
+          <span id="numpad-display" class="font-mono-code font-black text-3xl text-amber-400">20.0</span>
+          <span class="font-mono-code font-bold text-lg text-slate-400">KG</span>
+        </div>
+        <div id="numpad-status-badge" class="pt-1">
+          <!-- Overweight / Standard badge dynamically inserted -->
+        </div>
+      </div>
+
+      <!-- Quick Preset Weight Buttons -->
+      <div>
+        <span class="text-[10px] font-semibold uppercase text-slate-400 block mb-1.5">Quick Presets</span>
+        <div class="grid grid-cols-6 gap-1.5 font-mono-code text-xs">
+          <button onclick="numpadSetPreset('15.0')" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 active:scale-95 font-bold">15</button>
+          <button onclick="numpadSetPreset('18.0')" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 active:scale-95 font-bold">18</button>
+          <button onclick="numpadSetPreset('20.0')" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 active:scale-95 font-bold">20</button>
+          <button onclick="numpadSetPreset('23.0')" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500/30 rounded-lg active:scale-95 font-bold">23</button>
+          <button onclick="numpadSetPreset('25.0')" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-rose-400 border border-rose-500/30 rounded-lg active:scale-95 font-bold">25</button>
+          <button onclick="numpadSetPreset('30.0')" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-rose-400 border border-rose-500/30 rounded-lg active:scale-95 font-bold">30</button>
+        </div>
+      </div>
+
+      <!-- Keypad Touch Grid -->
+      <div class="grid grid-cols-3 gap-2 font-mono-code text-lg font-bold">
+        <button onclick="numpadAppend('7')" class="p-3.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700/80 active:scale-95 shadow">7</button>
+        <button onclick="numpadAppend('8')" class="p-3.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700/80 active:scale-95 shadow">8</button>
+        <button onclick="numpadAppend('9')" class="p-3.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700/80 active:scale-95 shadow">9</button>
+        
+        <button onclick="numpadAppend('4')" class="p-3.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700/80 active:scale-95 shadow">4</button>
+        <button onclick="numpadAppend('5')" class="p-3.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700/80 active:scale-95 shadow">5</button>
+        <button onclick="numpadAppend('6')" class="p-3.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700/80 active:scale-95 shadow">6</button>
+
+        <button onclick="numpadAppend('1')" class="p-3.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700/80 active:scale-95 shadow">1</button>
+        <button onclick="numpadAppend('2')" class="p-3.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700/80 active:scale-95 shadow">2</button>
+        <button onclick="numpadAppend('3')" class="p-3.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700/80 active:scale-95 shadow">3</button>
+
+        <button onclick="numpadAppend('.')" class="p-3.5 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-xl border border-slate-700/80 active:scale-95 shadow font-black">.</button>
+        <button onclick="numpadAppend('0')" class="p-3.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700/80 active:scale-95 shadow">0</button>
+        <button onclick="numpadBackspace()" class="p-3.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 rounded-xl border border-rose-500/30 active:scale-95 shadow flex items-center justify-center">
+          <i class="fa-solid fa-delete-left text-xl"></i>
+        </button>
+      </div>
+
+      <div class="flex items-center gap-2 border-t border-slate-800 pt-3">
+        <button onclick="numpadClear()" class="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold border border-slate-700 active:scale-95">
+          Clear
+        </button>
+        <button onclick="confirmNumpadWeight()" class="flex-1 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-xl text-xs shadow-lg flex items-center justify-center gap-2 active:scale-95">
+          <i class="fa-solid fa-check text-sm"></i>
+          <span>CONFIRM WEIGHT</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- MANDATORY PHYSICAL PRINT AREA FOR WINDOWS 80mm THERMAL PRINTER DRIVER -->
   <div id="print-area">
     <div id="printable-thermal-receipt">
@@ -572,6 +648,10 @@
     let audioEnabled = true;
     let audioCtx = null;
     let currentPreparedHTML = '';
+
+    /* Touchscreen Numpad State Variables */
+    let numpadTargetBagId = null; // null for new bag, string for existing bag id
+    let numpadValue = '20.0';
 
     function initAudio() {
       if (!audioCtx) {
@@ -988,15 +1068,16 @@
               </div>
             </div>
 
-            <!-- Weight scale input -->
+            <!-- Touchscreen Scale Weight Trigger Button -->
             <div class="flex items-center space-x-3">
-              <div class="flex items-center space-x-1.5 bg-slate-900 border border-slate-800 px-2 py-1 rounded-lg">
-                <span class="text-[10px] text-slate-500 font-mono-code">SCALE:</span>
-                <input type="number" step="0.1" value="${b.weight}" onchange="updateBagWeight('${b.id}', this.value)" class="w-16 bg-slate-950 text-center font-mono-code text-xs ${weightColor} focus:outline-none rounded py-0.5">
+              <button onclick="openNumpadForBagWeight('${b.id}', '${b.weight}')" class="flex items-center space-x-2 bg-slate-900 hover:bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-xl active:scale-95 transition" title="Tap to adjust weight on touchscreen">
+                <i class="fa-solid fa-calculator text-amber-400 text-xs"></i>
+                <span class="text-[10px] text-slate-400 font-mono-code">SCALE:</span>
+                <span class="font-mono-code text-sm ${weightColor}">${b.weight.toFixed(1)}</span>
                 <span class="text-[10px] text-slate-400 font-mono-code">KG</span>
-              </div>
+              </button>
 
-              <button onclick="removeBagFromPassenger('${b.id}')" class="p-1.5 text-slate-500 hover:text-rose-400 transition" title="Remove bag">
+              <button onclick="removeBagFromPassenger('${b.id}')" class="p-2 text-slate-500 hover:text-rose-400 transition" title="Remove bag">
                 <i class="fa-solid fa-trash-can text-xs"></i>
               </button>
             </div>
@@ -1005,22 +1086,105 @@
       }).join('');
     }
 
-    function addBagToPassenger() {
+    /* Touchscreen Numpad Handler Functions */
+    function openNumpadForNewBag() {
+      playBeepSound(1200, 0.04);
+      numpadTargetBagId = 'NEW';
+      numpadValue = '20.0';
+      updateNumpadDisplay();
+      document.getElementById('numpad-modal').classList.remove('hidden');
+    }
+
+    function openNumpadForBagWeight(bagId, currentWeight) {
+      playBeepSound(1200, 0.04);
+      numpadTargetBagId = bagId;
+      numpadValue = String(currentWeight || '20.0');
+      updateNumpadDisplay();
+      document.getElementById('numpad-modal').classList.remove('hidden');
+    }
+
+    function numpadAppend(char) {
+      playBeepSound(1400, 0.03);
+      if (char === '.') {
+        if (numpadValue.includes('.')) return;
+        numpadValue += '.';
+      } else {
+        if (numpadValue === '0') {
+          numpadValue = char;
+        } else if (numpadValue.length < 5) {
+          numpadValue += char;
+        }
+      }
+      updateNumpadDisplay();
+    }
+
+    function numpadBackspace() {
+      playBeepSound(900, 0.03);
+      if (numpadValue.length > 1) {
+        numpadValue = numpadValue.slice(0, -1);
+      } else {
+        numpadValue = '0';
+      }
+      updateNumpadDisplay();
+    }
+
+    function numpadClear() {
+      playBeepSound(800, 0.03);
+      numpadValue = '0';
+      updateNumpadDisplay();
+    }
+
+    function numpadSetPreset(val) {
+      playBeepSound(1300, 0.04);
+      numpadValue = val;
+      updateNumpadDisplay();
+    }
+
+    function updateNumpadDisplay() {
+      const displayElem = document.getElementById('numpad-display');
+      const badgeElem = document.getElementById('numpad-status-badge');
+      if (!displayElem) return;
+
+      displayElem.innerText = numpadValue;
+
+      const numVal = parseFloat(numpadValue) || 0;
+      if (numVal > 23.0) {
+        badgeElem.innerHTML = `<span class="text-[10px] bg-rose-500/20 text-rose-400 font-mono-code font-bold px-2 py-0.5 rounded border border-rose-500/30 uppercase"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Overweight (+ $50 Fee)</span>`;
+      } else {
+        badgeElem.innerHTML = `<span class="text-[10px] bg-emerald-500/20 text-emerald-400 font-mono-code font-bold px-2 py-0.5 rounded border border-emerald-500/30 uppercase"><i class="fa-solid fa-circle-check mr-1"></i> Standard Allowance</span>`;
+      }
+    }
+
+    function confirmNumpadWeight() {
       const passenger = PASSENGER_DATABASE.find(p => p.pnr === activePnr);
       if (!passenger) return;
 
-      playBeepSound(1300, 0.04);
-      const bagIndex = passenger.bags.length + 1;
-      const randomTag = Math.floor(100000 + Math.random() * 899999);
-      passenger.bags.push({
-        id: `BAG-${passenger.pnr}-${bagIndex}`,
-        weight: 19.5,
-        status: 'CHECKED',
-        tagCode: `000${randomTag}`
-      });
+      const weightNum = parseFloat(numpadValue) || 19.5;
+      playBeepSound(1600, 0.05);
 
+      if (numpadTargetBagId === 'NEW') {
+        const bagIndex = passenger.bags.length + 1;
+        const randomTag = Math.floor(100000 + Math.random() * 899999);
+        passenger.bags.push({
+          id: `BAG-${passenger.pnr}-${bagIndex}`,
+          weight: weightNum,
+          status: 'CHECKED',
+          tagCode: `000${randomTag}`
+        });
+      } else {
+        const bag = passenger.bags.find(b => b.id === numpadTargetBagId);
+        if (bag) {
+          bag.weight = weightNum;
+        }
+      }
+
+      closeModal('numpad-modal');
       renderBaggageScaleUI(passenger);
       renderPassengerRoster(document.getElementById('passenger-search-input').value);
+    }
+
+    function addBagToPassenger() {
+      openNumpadForNewBag();
     }
 
     function removeBagFromPassenger(bagId) {
