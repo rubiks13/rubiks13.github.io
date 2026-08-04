@@ -61,18 +61,11 @@
         padding: 0 !important;
         width: 80mm !important;
       }
-      body * {
-        visibility: hidden !important;
-        height: 0 !important;
-        overflow: hidden !important;
-      }
-      #print-area, #print-area * {
-        visibility: visible !important;
-        height: auto !important;
-        overflow: visible !important;
-        display: block !important;
+      body > *:not(#print-area) {
+        display: none !important;
       }
       #print-area {
+        display: block !important;
         position: absolute !important;
         left: 0 !important;
         top: 0 !important;
@@ -82,6 +75,19 @@
         background: #ffffff !important;
         color: #000000 !important;
         font-family: Arial, Helvetica, sans-serif !important;
+      }
+      #print-area * {
+        visibility: visible !important;
+      }
+      #print-area svg {
+        display: block !important;
+        margin: 0 auto !important;
+        max-width: 100% !important;
+      }
+      #print-area canvas, #print-area img {
+        display: block !important;
+        margin: 0 auto !important;
+        max-width: 100% !important;
       }
     }
 
@@ -815,7 +821,7 @@
               <div style="font-weight: bold; font-size: 11pt;">${p.name} (${p.pnr})</div>
               <div style="font-size: 9pt;">FLIGHT: ${p.flightNo} &rarr; ${p.destination} | SEAT: ${p.seat}</div>
               <div style="text-align: center; margin: 4px 0;">
-                <svg id="print-sheet-svg-${p.pnr}"></svg>
+                <svg class="print-sheet-svg" data-pnr="${p.pnr}"></svg>
               </div>
               <div style="text-align: center; font-size: 9pt; font-weight: bold;">* ${p.pnr} *</div>
             </div>
@@ -826,289 +832,20 @@
       setTimeout(() => {
         passengerDatabase.forEach(p => {
           try {
-            JsBarcode(`#print-sheet-svg-${p.pnr}`, p.pnr, {
-              format: "CODE128",
-              width: 2.0,
-              height: 45,
-              displayValue: false
-            });
+            const svgEl = physicalArea.querySelector(`.print-sheet-svg[data-pnr="${p.pnr}"]`);
+            if (svgEl) {
+              JsBarcode(svgEl, p.pnr, {
+                format: "CODE128",
+                width: 2.0,
+                height: 45,
+                displayValue: false
+              });
+            }
           } catch(e) {}
         });
-        window.print();
-      }, 150);
+        setTimeout(() => { window.print(); }, 200);
+      }, 100);
     }
-
-    function scanAndLoadPassenger(pnrOrCode) {
-      const code = pnrOrCode.trim().toUpperCase();
-      let passenger = passengerDatabase.find(p => p.pnr === code);
-
-      // Search by bag tag code if not PNR directly
-      if (!passenger) {
-        passengerDatabase.forEach(p => {
-          p.bags.forEach(b => {
-            if (b.tagCode === code || b.id === code) {
-              passenger = p;
-            }
-          });
-        });
-      }
-
-      if (!passenger) {
-        alert(`Barcode or PNR "${code}" not found in current station local storage roster.`);
-        return;
-      }
-
-      activePassenger = passenger;
-      selectedBagId = passenger.bags.length > 0 ? passenger.bags[0].id : null;
-      playGateAccessChime();
-
-      // Render workspace UI
-      document.getElementById('workspace-idle-card').classList.add('hidden');
-      document.getElementById('workspace-active-card').classList.remove('hidden');
-
-      document.getElementById('active-passenger-name').innerText = passenger.name;
-      document.getElementById('active-passenger-pnr').innerText = `PNR: ${passenger.pnr}`;
-      document.getElementById('active-flight-no').innerText = passenger.flightNo;
-      document.getElementById('active-route').innerHTML = `${passenger.origin} &rarr; ${passenger.destination}`;
-      document.getElementById('active-dest-city').innerText = passenger.destCity;
-      document.getElementById('active-aircraft-type').innerText = passenger.aircraft;
-
-      document.getElementById('detail-cabin').innerText = passenger.cabin;
-      document.getElementById('detail-group').innerText = passenger.group;
-      document.getElementById('detail-gate-time').innerText = `GATE ${passenger.gate} / ${passenger.boardingTime}`;
-      document.getElementById('detail-ff-status').innerText = passenger.ffStatus;
-
-      document.getElementById('active-seat-display').innerText = passenger.seat;
-
-      renderActiveBaggageList();
-      closeModal('batch-modal');
-      closeModal('roster-modal');
-    }
-
-    function manualScanSubmit() {
-      const val = document.getElementById('manual-scan-input').value;
-      if (val) {
-        scanAndLoadPassenger(val);
-        document.getElementById('manual-scan-input').value = '';
-      }
-    }
-
-    function unloadActivePassenger() {
-      activePassenger = null;
-      selectedBagId = null;
-      document.getElementById('workspace-active-card').classList.add('hidden');
-      document.getElementById('workspace-idle-card').classList.remove('hidden');
-    }
-
-    function openSeatMapModal() {
-      if (!activePassenger) return;
-      playBeepSound(1200, 0.04);
-
-      const modalTitle = document.getElementById('seatmap-modal-title');
-      const modalSubtitle = document.getElementById('seatmap-modal-subtitle');
-      modalTitle.innerText = `Aircraft Seat Map - ${activePassenger.aircraft}`;
-      modalSubtitle.innerText = `Flight ${activePassenger.flightNo} (${activePassenger.origin} → ${activePassenger.destination}) • Current Seat: ${activePassenger.seat}`;
-
-      renderInteractiveSeatGrid();
-      document.getElementById('seatmap-modal').classList.remove('hidden');
-    }
-
-    function renderInteractiveSeatGrid() {
-      const container = document.getElementById('seatmap-grid-container');
-      if (!container || !activePassenger) return;
-
-      const flightNo = activePassenger.flightNo;
-      const takenSeats = occupiedSeatsByFlight[flightNo] || [];
-
-      // Generate seating rows e.g., Rows 1 through 20
-      let html = '';
-      const seatColumns = ['A', 'B', 'C', 'AISLE', 'D', 'E', 'F'];
-
-      for (let r = 1; r <= 20; r++) {
-        const rowStr = String(r).padStart(2, '0');
-        
-        html += `<div class="flex items-center justify-center gap-1.5 sm:gap-2">`;
-        html += `<span class="w-6 text-[10px] font-bold text-slate-500 text-right mr-1">${rowStr}</span>`;
-
-        seatColumns.forEach(col => {
-          if (col === 'AISLE') {
-            html += `<div class="w-4 sm:w-6 text-center text-[9px] text-slate-600"></div>`;
-            return;
-          }
-
-          const seatCode = `${rowStr}${col}`;
-          const isCurrent = activePassenger.seat === seatCode;
-          const isOccupied = takenSeats.includes(seatCode) && !isCurrent;
-
-          if (isCurrent) {
-            html += `<button onclick="assignSeatToActivePassenger('${seatCode}')" class="w-8 h-8 sm:w-9 sm:h-9 bg-sky-600 text-white font-extrabold text-xs rounded-lg border border-sky-400 shadow-md flex items-center justify-center">${col}</button>`;
-          } else if (isOccupied) {
-            html += `<button disabled class="w-8 h-8 sm:w-9 sm:h-9 bg-slate-900 text-slate-600 font-bold text-xs rounded-lg border border-slate-800 cursor-not-allowed flex items-center justify-center">${col}</button>`;
-          } else {
-            html += `<button onclick="assignSeatToActivePassenger('${seatCode}')" class="w-8 h-8 sm:w-9 sm:h-9 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-lg border border-slate-700 active:scale-95 transition flex items-center justify-center">${col}</button>`;
-          }
-        });
-
-        html += `</div>`;
-      }
-
-      container.innerHTML = html;
-    }
-
-    function assignSeatToActivePassenger(newSeat) {
-      if (!activePassenger) return;
-
-      const flightNo = activePassenger.flightNo;
-      if (!occupiedSeatsByFlight[flightNo]) {
-        occupiedSeatsByFlight[flightNo] = [];
-      }
-
-      // Remove old seat from occupied list
-      occupiedSeatsByFlight[flightNo] = occupiedSeatsByFlight[flightNo].filter(s => s !== activePassenger.seat);
-
-      // Add new seat
-      activePassenger.seat = newSeat;
-      occupiedSeatsByFlight[flightNo].push(newSeat);
-
-      saveStateToLocalStorage();
-      document.getElementById('active-seat-display').innerText = newSeat;
-      playBeepSound(1600, 0.05);
-      renderInteractiveSeatGrid();
-    }
-
-    function renderActiveBaggageList() {
-      const container = document.getElementById('bags-list-container');
-      if (!container || !activePassenger) return;
-
-      if (activePassenger.bags.length === 0) {
-        container.innerHTML = `
-          <div class="py-6 text-center text-slate-500 font-mono-code text-xs italic bg-slate-950 p-4 rounded-xl border border-slate-800/80">
-            No hold baggage added for this passenger. Click "Add Bag" above.
-          </div>
-        `;
-        return;
-      }
-
-      container.innerHTML = activePassenger.bags.map((b, idx) => {
-        const isSelected = selectedBagId === b.id;
-        const isOverweight = b.weight > 23.0;
-        const borderClass = isSelected ? 'border-amber-500 bg-amber-500/10' : 'border-slate-800 bg-slate-950 hover:border-slate-700';
-
-        return `
-          <div onclick="selectBagForPrinting('${b.id}')" class="flex items-center justify-between p-3.5 rounded-xl border ${borderClass} cursor-pointer transition">
-            <div class="flex items-center space-x-3">
-              <input type="radio" name="bag-selection" ${isSelected ? 'checked' : ''} class="accent-amber-500 w-4 h-4">
-              <div>
-                <div class="font-mono-code font-bold text-xs text-white flex items-center gap-2">
-                  <span>PIECE #${idx + 1} (${b.id})</span>
-                  ${isOverweight ? '<span class="text-[9px] bg-rose-500/20 text-rose-400 px-1.5 py-0.5 rounded border border-rose-500/30">OVERWEIGHT</span>' : ''}
-                </div>
-                <div class="text-[10px] font-mono-code text-slate-500">TAG: ${b.tagCode}</div>
-              </div>
-            </div>
-
-            <div class="flex items-center space-x-3" onclick="event.stopPropagation()">
-              <button onclick="openNumpadForBagWeight('${b.id}', '${b.weight}')" class="flex items-center space-x-2 bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-xl active:scale-95 transition">
-                <i class="fa-solid fa-calculator text-amber-400 text-xs"></i>
-                <span class="font-mono-code text-sm font-bold ${isOverweight ? 'text-rose-400' : 'text-emerald-400'}">${b.weight.toFixed(1)} KG</span>
-              </button>
-
-              <button onclick="removeBagFromActivePassenger('${b.id}')" class="p-2 text-slate-500 hover:text-rose-400 transition">
-                <i class="fa-solid fa-trash-can text-xs"></i>
-              </button>
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    function selectBagForPrinting(bagId) {
-      selectedBagId = bagId;
-      playBeepSound(1200, 0.03);
-      renderActiveBaggageList();
-    }
-
-    function addBagToActivePassenger() {
-      if (!activePassenger) return;
-      openNumpadForNewBag();
-    }
-
-    function removeBagFromActivePassenger(bagId) {
-      if (!activePassenger) return;
-      activePassenger.bags = activePassenger.bags.filter(b => b.id !== bagId);
-      if (selectedBagId === bagId) {
-        selectedBagId = activePassenger.bags.length > 0 ? activePassenger.bags[0].id : null;
-      }
-      saveStateToLocalStorage();
-      renderActiveBaggageList();
-    }
-
-    /* Touchscreen Numpad Handlers */
-    function openNumpadForNewBag() {
-      numpadTargetBagId = 'NEW';
-      numpadValue = '20.0';
-      updateNumpadDisplay();
-      document.getElementById('numpad-modal').classList.remove('hidden');
-    }
-
-    function openNumpadForBagWeight(bagId, currentWeight) {
-      numpadTargetBagId = bagId;
-      numpadValue = String(currentWeight || '20.0');
-      updateNumpadDisplay();
-      document.getElementById('numpad-modal').classList.remove('hidden');
-    }
-
-    function numpadAppend(char) {
-      playBeepSound(1400, 0.03);
-      if (char === '.') {
-        if (numpadValue.includes('.')) return;
-        numpadValue += '.';
-      } else {
-        if (numpadValue === '0') numpadValue = char;
-        else if (numpadValue.length < 5) numpadValue += char;
-      }
-      updateNumpadDisplay();
-    }
-
-    function numpadBackspace() {
-      playBeepSound(900, 0.03);
-      numpadValue = numpadValue.length > 1 ? numpadValue.slice(0, -1) : '0';
-      updateNumpadDisplay();
-    }
-
-    function numpadClear() {
-      numpadValue = '0';
-      updateNumpadDisplay();
-    }
-
-    function updateNumpadDisplay() {
-      const display = document.getElementById('numpad-display');
-      if (display) display.innerText = numpadValue;
-    }
-
-    function confirmNumpadWeight() {
-      if (!activePassenger) return;
-      const weightNum = parseFloat(numpadValue) || 20.0;
-
-      if (numpadTargetBagId === 'NEW') {
-        const bagIndex = activePassenger.bags.length + 1;
-        const newBag = {
-          id: `BAG-${activePassenger.pnr}-${bagIndex}`,
-          weight: weightNum,
-          tagCode: `000${Math.floor(100000 + Math.random() * 899999)}`
-        };
-        activePassenger.bags.push(newBag);
-        selectedBagId = newBag.id;
-      } else {
-        const bag = activePassenger.bags.find(b => b.id === numpadTargetBagId);
-        if (bag) bag.weight = weightNum;
-      }
-
-      saveStateToLocalStorage();
-      closeModal('numpad-modal');
-      renderActiveBaggageList();
-    }
-
     function generateDoubleLengthBagTagHTML(passenger, bag) {
       const isHeavy = bag.weight > 23.0;
       const heavyBadge = isHeavy ? `<div style="background:#000; color:#fff; font-size:16pt; font-weight:900; text-align:center; padding:6px; margin:8px 0; letter-spacing:2px;">HEAVY / OVERWEIGHT BAG</div>` : '';
@@ -1143,7 +880,7 @@
 
           <!-- PRIMARY 1D SORTING BARCODE -->
           <div style="display: flex; justify-content: center; margin: 12px 0;">
-            <svg id="svg-bag-tag-primary"></svg>
+            <svg class="bag-tag-primary-svg"></svg>
           </div>
 
           <div style="font-size: 12pt; font-weight: 900; letter-spacing: 2px;">* ${bag.tagCode} *</div>
@@ -1156,7 +893,7 @@
             <div style="font-size: 10pt; font-weight: bold;">BAG TAG ID: ${bag.tagCode}</div>
 
             <div style="display: flex; justify-content: center; margin: 8px 0;">
-              <svg id="svg-bag-tag-stub"></svg>
+              <svg class="bag-tag-stub-svg"></svg>
             </div>
             <div style="text-align: center; font-size: 9pt; font-weight: bold;">RETAIN FOR BAGGAGE MATCH AT DESTINATION</div>
           </div>
@@ -1180,12 +917,15 @@
       }
 
       currentPreparedHTML = generateDoubleLengthBagTagHTML(activePassenger, bag);
-      document.getElementById('screen-receipt-preview').innerHTML = currentPreparedHTML;
+      const previewContainer = document.getElementById('screen-receipt-preview');
+      previewContainer.innerHTML = currentPreparedHTML;
 
       setTimeout(() => {
         try {
-          JsBarcode("#svg-bag-tag-primary", bag.tagCode, { format: "CODE128", width: 2.2, height: 60, displayValue: false });
-          JsBarcode("#svg-bag-tag-stub", bag.tagCode, { format: "CODE128", width: 1.8, height: 40, displayValue: false });
+          const primarySvg = previewContainer.querySelector('.bag-tag-primary-svg');
+          const stubSvg = previewContainer.querySelector('.bag-tag-stub-svg');
+          if (primarySvg) JsBarcode(primarySvg, bag.tagCode, { format: "CODE128", width: 2.2, height: 60, displayValue: false });
+          if (stubSvg) JsBarcode(stubSvg, bag.tagCode, { format: "CODE128", width: 1.8, height: 40, displayValue: false });
         } catch(e) {}
       }, 80);
 
@@ -1237,17 +977,18 @@
 
           <!-- 2D QR CODE -->
           <div style="display: flex; justify-content: center; margin: 10px 0;">
-            <div id="bp-qr-target"></div>
+            <div class="bp-qr-target"></div>
           </div>
 
           <div style="font-size: 11pt; font-weight: 900; letter-spacing: 1px;">* PASS ID: ${activePassenger.pnr}-${activePassenger.seat} *</div>
         </div>
       `;
 
-      document.getElementById('screen-receipt-preview').innerHTML = currentPreparedHTML;
+      const previewContainer = document.getElementById('screen-receipt-preview');
+      previewContainer.innerHTML = currentPreparedHTML;
 
       setTimeout(() => {
-        const target = document.getElementById('bp-qr-target');
+        const target = previewContainer.querySelector('.bp-qr-target');
         if (target) {
           target.innerHTML = '';
           new QRCode(target, {
@@ -1276,13 +1017,15 @@
           const bag = activePassenger.bags.find(b => b.id === selectedBagId);
           if (bag) {
             try {
-              JsBarcode("#svg-bag-tag-primary", bag.tagCode, { format: "CODE128", width: 2.2, height: 60, displayValue: false });
-              JsBarcode("#svg-bag-tag-stub", bag.tagCode, { format: "CODE128", width: 1.8, height: 40, displayValue: false });
+              const primarySvg = physicalPrintArea.querySelector('.bag-tag-primary-svg');
+              const stubSvg = physicalPrintArea.querySelector('.bag-tag-stub-svg');
+              if (primarySvg) JsBarcode(primarySvg, bag.tagCode, { format: "CODE128", width: 2.2, height: 60, displayValue: false });
+              if (stubSvg) JsBarcode(stubSvg, bag.tagCode, { format: "CODE128", width: 1.8, height: 40, displayValue: false });
             } catch(e) {}
           }
         }
 
-        const target = physicalPrintArea.querySelector('#bp-qr-target');
+        const target = physicalPrintArea.querySelector('.bp-qr-target');
         if (target && activePassenger) {
           target.innerHTML = '';
           new QRCode(target, {
@@ -1294,7 +1037,7 @@
           });
         }
 
-        setTimeout(() => { window.print(); }, 150);
+        setTimeout(() => { window.print(); }, 200);
       }, 100);
     }
 
