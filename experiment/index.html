@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AeroSky Agent Terminal - Airport Check-In & Baggage System</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- QRCode JS Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- JsBarcode Library for standard 1D barcodes -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            aero: {
+              500: '#0284c7',
+              600: '#0369a1',
+              700: '#075985',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap');
+
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+
+    .font-mono-code {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Precision thermal paper styling engineered specifically for 80mm receipt printers */
+    @media print {
+      body * {
+        visibility: hidden !important;
+      }
+      #print-area, #print-area * {
+        visibility: visible !important;
+      }
+      #print-area {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 72mm !important; /* Standard printable width for 80mm paper */
+        margin: 0 !important;
+        padding: 2mm 0 !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+        font-family: 'Courier New', Courier, monospace !important;
+        font-size: 11px !important;
+        line-height: 1.25 !important;
+      }
+      @page {
+        size: 80mm auto;
+        margin: 0;
+      }
+    }
+
+    /* Sleek custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(51, 65, 85, 0.8);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(71, 85, 105, 1);
+    }
+  </style>
+</head>
+<body class="h-full flex flex-col bg-slate-950 text-slate-100 overflow-x-hidden select-none">
+
+  <!-- AIRPORT TERMINAL HEADER BAR -->
+  <header class="bg-slate-900 border-b border-slate-800 px-4 py-3 flex items-center justify-between gap-4 sticky top-0 z-40 shadow-xl">
+    <div class="flex items-center space-x-3">
+      <div class="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20 flex items-center justify-center font-bold text-xl">
+        <i class="fa-solid fa-plane-departure"></i>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="font-extrabold text-base md:text-lg text-white leading-tight tracking-wide">AEROSKY AIRWAYS</h1>
+          <span class="text-[10px] uppercase font-mono-code bg-sky-500/20 text-sky-400 px-2 py-0.5 rounded border border-sky-500/30">DESK #04 • JFK INTL</span>
+        </div>
+        <p class="text-xs text-slate-400 flex items-center gap-3">
+          <span><i class="fa-solid fa-user-gear text-slate-500 mr-1"></i> Agent: J. Vance (ID #8841)</span>
+          <span id="current-time-display" class="font-mono-code text-slate-400">00:00:00 AM</span>
+        </p>
+      </div>
+    </div>
+
+    <!-- Active Flight & Scanner Hardware Indicators -->
+    <div class="flex items-center gap-3">
+      <div class="hidden sm:flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800 text-xs">
+        <span class="relative flex h-2 w-2">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+        </span>
+        <span class="text-slate-300 font-mono-code text-[11px]">2D SCANNER ACTIVE</span>
+      </div>
+
+      <button onclick="openFlightManifestModal()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition flex items-center gap-1.5" title="View Flight Roster">
+        <i class="fa-solid fa-list-check text-sky-400"></i>
+        <span>Flight Manifest</span>
+      </button>
+
+      <button onclick="openNewBookingModal()" class="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold transition flex items-center gap-1.5 shadow" title="Create New Reservation">
+        <i class="fa-solid fa-user-plus"></i>
+        <span>New Passenger</span>
+      </button>
+
+      <button onclick="toggleAudio()" id="audio-toggle-btn" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" title="Toggle Terminal Audio">
+        <i class="fa-solid fa-volume-high text-sm"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN AGENT WORKSPACE -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-3 md:p-5 grid grid-cols-1 lg:grid-cols-12 gap-5 overflow-hidden">
+
+    <!-- LEFT COLUMN: Passenger Roster & Flight Selection (Cols 1-4) -->
+    <section class="lg:col-span-4 flex flex-col space-y-4">
+      
+      <!-- PNR & Name Search Box -->
+      <div class="bg-slate-900 p-3.5 rounded-2xl border border-slate-800 shadow-md space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Passenger Lookup</span>
+          <span class="text-[10px] bg-slate-950 font-mono-code text-slate-400 px-2 py-0.5 rounded border border-slate-800">PNR / NAME</span>
+        </div>
+        <div class="relative">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-500 text-xs"></i>
+          <input type="text" id="passenger-search-input" placeholder="Search PNR (e.g. 6X9K2P) or surname..." onkeyup="filterPassengerRoster()" class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sky-500 font-mono-code">
+        </div>
+      </div>
+
+      <!-- Passenger List Scrollable Area -->
+      <div class="flex-1 bg-slate-900/80 p-3.5 rounded-2xl border border-slate-800 shadow-md flex flex-col overflow-hidden">
+        <div class="flex items-center justify-between mb-3 text-xs font-semibold text-slate-400 px-1">
+          <span>ACTIVE BOOKINGS</span>
+          <span id="passenger-count-badge" class="font-mono-code text-sky-400">0 Listed</span>
+        </div>
+
+        <div id="passenger-roster-list" class="flex-1 space-y-2 overflow-y-auto max-h-[calc(100vh-280px)] pr-1">
+          <!-- Dynamically populated passenger cards -->
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT COLUMN: Active Passenger Check-In Desk & Baggage Handler (Cols 5-12) -->
+    <section class="lg:col-span-8 flex flex-col bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
+      
+      <!-- Active Passenger Header Banner -->
+      <div id="active-passenger-header" class="p-4 border-b border-slate-800 bg-slate-900/90 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center space-x-3">
+          <div id="passenger-status-avatar" class="w-12 h-12 rounded-2xl bg-sky-500/10 text-sky-400 border border-sky-500/30 flex items-center justify-center font-bold text-xl">
+            <i class="fa-solid fa-passport"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 id="passenger-name-display" class="font-extrabold text-base md:text-lg text-white">SELECT A PASSENGER</h2>
+              <span id="pnr-badge-display" class="text-xs bg-slate-950 text-slate-400 font-mono-code px-2 py-0.5 rounded border border-slate-800">PNR: ------</span>
+            </div>
+            <p id="passenger-route-display" class="text-xs text-slate-400 flex items-center gap-2 mt-0.5">
+              <span>Select passenger from left panel or scan ticket QR</span>
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2" id="checkin-status-container">
+          <span class="text-xs font-mono-code px-3 py-1 rounded-xl bg-slate-950 text-slate-500 border border-slate-800">UNPROCESSED</span>
+        </div>
+      </div>
+
+      <!-- Check-In Workspace Content -->
+      <div class="flex-1 p-4 md:p-6 space-y-5 overflow-y-auto max-h-[calc(100vh-230px)]">
+        
+        <!-- Flight Details Bar -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-950 p-4 rounded-xl border border-slate-800 text-xs font-mono-code">
+          <div>
+            <span class="text-slate-500 block text-[10px] uppercase">FLIGHT NUMBER</span>
+            <span id="detail-flight-no" class="font-bold text-white text-sm">--</span>
+          </div>
+          <div>
+            <span class="text-slate-500 block text-[10px] uppercase">ORIGIN / DEST</span>
+            <span id="detail-route" class="font-bold text-sky-400 text-sm">--- &rarr; ---</span>
+          </div>
+          <div>
+            <span class="text-slate-500 block text-[10px] uppercase">BOARDING / GATE</span>
+            <span id="detail-gate" class="font-bold text-amber-400 text-sm">-- / GATE --</span>
+          </div>
+          <div>
+            <span class="text-slate-500 block text-[10px] uppercase">CABIN CLASS</span>
+            <span id="detail-cabin" class="font-bold text-emerald-400 text-sm">--</span>
+          </div>
+        </div>
+
+        <!-- Seat Selection & Upgrade Section -->
+        <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+              <i class="fa-solid fa-chair text-sky-400"></i> Seat Assignment & Cabin Tier
+            </h3>
+            <span class="text-[11px] text-slate-400">Click to change seat</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label class="block text-[10px] uppercase font-semibold text-slate-400 mb-1">Assigned Seat</label>
+              <input type="text" id="input-seat-num" value="12A" onchange="updateActivePassengerData()" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono-code text-white focus:outline-none focus:border-sky-500 uppercase">
+            </div>
+            <div>
+              <label class="block text-[10px] uppercase font-semibold text-slate-400 mb-1">Boarding Group</label>
+              <select id="input-group-num" onchange="updateActivePassengerData()" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono-code text-white focus:outline-none focus:border-sky-500">
+                <option value="Group 1 (Priority)">Group 1 (Priority)</option>
+                <option value="Group 2 (Business)" selected>Group 2 (Business)</option>
+                <option value="Group 3 (Main Cabin)">Group 3 (Main Cabin)</option>
+                <option value="Group 4 (Economy)">Group 4 (Economy)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[10px] uppercase font-semibold text-slate-400 mb-1">Frequent Flyer Status</label>
+              <input type="text" id="input-ff-status" value="AeroGold Elite" onchange="updateActivePassengerData()" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono-code text-amber-400 focus:outline-none focus:border-sky-500">
+            </div>
+          </div>
+        </div>
+
+        <!-- Baggage Checking & Weighing Scale Terminal -->
+        <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800 space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                <i class="fa-solid fa-suitcase-rolling text-amber-400"></i> Checked Baggage Scale & Bag Tagging
+              </h3>
+              <p class="text-[11px] text-slate-400">Max standard allowance: 23.0 kg per bag</p>
+            </div>
+            <button onclick="addBagToPassenger()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-sky-400 rounded-lg text-xs font-semibold border border-slate-700 transition flex items-center gap-1">
+              <i class="fa-solid fa-plus text-xs"></i> Add Bag
+            </button>
+          </div>
+
+          <!-- Bag Items Container -->
+          <div id="bags-list-container" class="space-y-2">
+            <!-- Dynamically populated checked bag items -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ACTION BUTTONS FOOTER BAR -->
+      <div class="p-4 border-t border-slate-800 bg-slate-950 grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <button onclick="printAllBagTags80mm()" class="px-4 py-3 bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-bold rounded-xl transition shadow-lg flex items-center justify-center gap-2 text-xs">
+          <i class="fa-solid fa-barcode text-sm"></i>
+          <span>PRINT 80mm BAG TAGS</span>
+        </button>
+
+        <button onclick="printBoardingPass80mm()" class="px-4 py-3 bg-sky-600 hover:bg-sky-500 active:scale-95 text-white font-bold rounded-xl transition shadow-lg flex items-center justify-center gap-2 text-xs">
+          <i class="fa-solid fa-ticket text-sm"></i>
+          <span>PRINT 80mm BOARDING PASS</span>
+        </button>
+
+        <button onclick="completeCheckInProcess()" class="px-4 py-3 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold rounded-xl transition shadow-lg flex items-center justify-center gap-2 text-xs">
+          <i class="fa-solid fa-circle-check text-sm"></i>
+          <span>COMPLETE CHECK-IN</span>
+        </button>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Hidden Scanner Keystroke Listener Field -->
+  <input type="text" id="global-barcode-listener" class="opacity-0 absolute top-0 left-0 w-1 h-1 pointer-events-none" autocomplete="off">
+
+  <!-- MODAL 1: SCANNER BAG TRACKING & GATE VALIDATION MODAL -->
+  <div id="scanner-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-sky-500/10 text-sky-400 flex items-center justify-center">
+            <i class="fa-solid fa-barcode"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-white text-base">Baggage & Boarding Pass Verifier</h3>
+            <p class="text-xs text-slate-400">Scanned Barcode / QR Payload Reader</p>
+          </div>
+        </div>
+        <button onclick="closeModal('scanner-modal')" class="text-slate-400 hover:text-white text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div id="scanner-modal-content" class="space-y-3 font-mono-code text-xs">
+        <!-- Scan results populate here -->
+      </div>
+
+      <div class="flex justify-end gap-2 border-t border-slate-800 pt-3">
+        <button onclick="closeModal('scanner-modal')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold">
+          Close Window
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: FLIGHT MANIFEST & ROSTER OVERVIEW -->
+  <div id="manifest-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+            <i class="fa-solid fa-clipboard-list"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-white text-base">Flight Manifest Summary</h3>
+            <p class="text-xs text-slate-400">Flight AS-892 (JFK &rarr; LHR)</p>
+          </div>
+        </div>
+        <button onclick="closeModal('manifest-modal')" class="text-slate-400 hover:text-white text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-3 gap-3 font-mono-code text-xs text-center">
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+          <span class="text-slate-500 text-[10px] block">TOTAL BOOKED</span>
+          <span id="manifest-total-count" class="text-lg font-bold text-white">0</span>
+        </div>
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+          <span class="text-slate-500 text-[10px] block">CHECKED IN</span>
+          <span id="manifest-checked-count" class="text-lg font-bold text-emerald-400">0</span>
+        </div>
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+          <span class="text-slate-500 text-[10px] block">CHECKED BAGS</span>
+          <span id="manifest-bags-count" class="text-lg font-bold text-amber-400">0</span>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 border-t border-slate-800 pt-3">
+        <button onclick="closeModal('manifest-modal')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold">
+          Close
+        </button>
+        <button onclick="printManifestThermal()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow">
+          <i class="fa-solid fa-print"></i>
+          <span>PRINT 80mm MANIFEST REPORT</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 3: NEW PASSENGER RESERVATION CREATOR -->
+  <div id="new-booking-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-sky-500/10 text-sky-400 flex items-center justify-center">
+            <i class="fa-solid fa-user-plus"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-white text-base">New Flight Booking</h3>
+            <p class="text-xs text-slate-400">Create new passenger record</p>
+          </div>
+        </div>
+        <button onclick="closeModal('new-booking-modal')" class="text-slate-400 hover:text-white text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-semibold uppercase text-slate-400 mb-1">Full Name (First Last)</label>
+          <input type="text" id="new-p-name" placeholder="e.g. David Hassel" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white font-mono-code focus:outline-none focus:border-sky-500">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-semibold uppercase text-slate-400 mb-1">Flight Number</label>
+            <input type="text" id="new-p-flight" value="AS-892" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white font-mono-code focus:outline-none focus:border-sky-500">
+          </div>
+          <div>
+            <label class="block font-semibold uppercase text-slate-400 mb-1">Destination IATA</label>
+            <input type="text" id="new-p-dest" value="LHR" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sky-400 font-mono-code focus:outline-none focus:border-sky-500 uppercase">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-semibold uppercase text-slate-400 mb-1">Seat Number</label>
+            <input type="text" id="new-p-seat" value="18F" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white font-mono-code focus:outline-none focus:border-sky-500 uppercase">
+          </div>
+          <div>
+            <label class="block font-semibold uppercase text-slate-400 mb-1">Cabin Class</label>
+            <select id="new-p-cabin" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white font-mono-code focus:outline-none focus:border-sky-500">
+              <option value="Economy Class">Economy Class</option>
+              <option value="Business Class">Business Class</option>
+              <option value="First Class">First Class</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 border-t border-slate-800 pt-3">
+        <button onclick="closeModal('new-booking-modal')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold">
+          Cancel
+        </button>
+        <button onclick="saveNewPassengerBooking()" class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-bold shadow">
+          Create Booking
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MANDATORY PHYSICAL PRINT AREA FOR WINDOWS 80mm THERMAL PRINTER DRIVER -->
+  <div id="print-area">
+    <div id="printable-thermal-receipt">
+      <!-- Dynamic 80mm thermal content injected here prior to window.print() -->
+    </div>
+  </div>
+
+  <script>
+    /* ==========================================================================
+       1. DATABASE & STATE MANAGEMENT FOR AIRPORT DESK
+       ========================================================================== */
+    const PASSENGER_DATABASE = [
+      {
+        pnr: '6X9K2P',
+        name: 'ELEANOR VANCE',
+        flightNo: 'AS-892',
+        origin: 'JFK',
+        destination: 'LHR',
+        destCity: 'LONDON HEATHROW',
+        gate: 'B12',
+        boardingTime: '14:20',
+        seat: '12A',
+        group: 'Group 2 (Business)',
+        cabin: 'Business Class',
+        ffStatus: 'AeroGold Elite',
+        checkedIn: false,
+        bags: [
+          { id: 'BAG-6X9K2P-1', weight: 21.5, status: 'CHECKED', tagCode: '0006921501' },
+          { id: 'BAG-6X9K2P-2', weight: 18.2, status: 'CHECKED', tagCode: '0006921502' }
+        ]
+      },
+      {
+        pnr: '9M4R7T',
+        name: 'MARCUS THORNE',
+        flightNo: 'AS-892',
+        origin: 'JFK',
+        destination: 'LHR',
+        destCity: 'LONDON HEATHROW',
+        gate: 'B12',
+        boardingTime: '14:20',
+        seat: '04F',
+        group: 'Group 1 (Priority)',
+        cabin: 'First Class',
+        ffStatus: 'AeroExecutive Platinum',
+        checkedIn: true,
+        bags: [
+          { id: 'BAG-9M4R7T-1', weight: 24.8, status: 'CHECKED', tagCode: '0009471001' }
+        ]
+      },
+      {
+        pnr: '3B8W1Q',
+        name: 'SOPHIA CHEN',
+        flightNo: 'AS-892',
+        origin: 'JFK',
+        destination: 'LHR',
+        destCity: 'LONDON HEATHROW',
+        gate: 'B12',
+        boardingTime: '14:20',
+        seat: '28C',
+        group: 'Group 3 (Main Cabin)',
+        cabin: 'Economy Class',
+        ffStatus: 'AeroClub Member',
+        checkedIn: false,
+        bags: [
+          { id: 'BAG-3B8W1Q-1', weight: 19.0, status: 'CHECKED', tagCode: '0003819001' }
+        ]
+      },
+      {
+        pnr: '7H2L5V',
+        name: 'ALEXANDER RIVERS',
+        flightNo: 'AS-401',
+        origin: 'JFK',
+        destination: 'HND',
+        destCity: 'TOKYO HANEDA',
+        gate: 'C08',
+        boardingTime: '16:05',
+        seat: '19K',
+        group: 'Group 2 (Business)',
+        cabin: 'Business Class',
+        ffStatus: 'AeroGold Elite',
+        checkedIn: false,
+        bags: []
+      }
+    ];
+
+    let activePnr = '6X9K2P';
+    let audioEnabled = true;
+    let audioCtx = null;
+
+    /* Web Audio Sound Effects Engine */
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    }
+
+    function toggleAudio() {
+      audioEnabled = !audioEnabled;
+      const btn = document.getElementById('audio-toggle-btn');
+      if (audioEnabled) {
+        btn.innerHTML = `<i class="fa-solid fa-volume-high text-sm"></i>`;
+        playBeepSound(1200, 0.04);
+      } else {
+        btn.innerHTML = `<i class="fa-solid fa-volume-xmark text-sm text-slate-500"></i>`;
+      }
+    }
+
+    function playBeepSound(freq = 1400, duration = 0.05) {
+      if (!audioEnabled) return;
+      initAudio();
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch(e) {}
+    }
+
+    function playGateAccessChime() {
+      if (!audioEnabled) return;
+      initAudio();
+      try {
+        const now = audioCtx.currentTime;
+        const osc1 = audioCtx.createOscillator();
+        const gain1 = audioCtx.createGain();
+        osc1.type = 'triangle';
+        osc1.frequency.setValueAtTime(880, now); // A5
+        osc1.frequency.setValueAtTime(1318.51, now + 0.1); // E6
+        gain1.gain.setValueAtTime(0.2, now);
+        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        osc1.connect(gain1);
+        gain1.connect(audioCtx.destination);
+        osc1.start(now);
+        osc1.stop(now + 0.4);
+      } catch(e) {}
+    }
+
+    /* Roster & Passenger Details Logic */
+    function renderPassengerRoster(filterTerm = '') {
+      const container = document.getElementById('passenger-roster-list');
+      const filtered = PASSENGER_DATABASE.filter(p => {
+        const term = filterTerm.toLowerCase();
+        return p.name.toLowerCase().includes(term) || 
+               p.pnr.toLowerCase().includes(term) ||
+               p.flightNo.toLowerCase().includes(term);
+      });
+
+      document.getElementById('passenger-count-badge').innerText = `${filtered.length} Booked`;
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="py-8 text-center text-slate-500 font-mono-code text-xs">
+            No passenger reservations match query.
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filtered.map(p => {
+        const isActive = p.pnr === activePnr;
+        const activeBorder = isActive ? 'border-sky-500 bg-slate-900 shadow-md' : 'border-slate-800/80 bg-slate-950 hover:border-slate-700';
+        const checkinTag = p.checkedIn 
+          ? `<span class="text-[9px] bg-emerald-500/20 text-emerald-400 font-mono-code px-1.5 py-0.5 rounded border border-emerald-500/30">CHECKED-IN</span>` 
+          : `<span class="text-[9px] bg-amber-500/20 text-amber-400 font-mono-code px-1.5 py-0.5 rounded border border-amber-500/30">PENDING</span>`;
+
+        return `
+          <button onclick="selectPassenger('${p.pnr}')" class="w-full text-left p-3 rounded-xl border ${activeBorder} transition active:scale-[0.98] flex items-center justify-between">
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class="font-extrabold text-xs text-white">${p.name}</span>
+                ${checkinTag}
+              </div>
+              <div class="text-[10px] text-slate-400 font-mono-code flex items-center gap-2">
+                <span>PNR: <strong class="text-sky-400">${p.pnr}</strong></span>
+                <span>•</span>
+                <span>${p.flightNo} (${p.destination})</span>
+              </div>
+            </div>
+            <div class="text-right font-mono-code text-xs">
+              <span class="block text-slate-200 font-bold">${p.seat}</span>
+              <span class="text-[10px] text-slate-500">${p.bags.length} Bag(s)</span>
+            </div>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function filterPassengerRoster() {
+      const term = document.getElementById('passenger-search-input').value;
+      renderPassengerRoster(term);
+    }
+
+    function selectPassenger(pnr) {
+      activePnr = pnr;
+      playBeepSound(1100, 0.04);
+      renderPassengerRoster(document.getElementById('passenger-search-input').value);
+      loadActivePassengerWorkspace();
+    }
+
+    function loadActivePassengerWorkspace() {
+      const passenger = PASSENGER_DATABASE.find(p => p.pnr === activePnr);
+      if (!passenger) return;
+
+      document.getElementById('passenger-name-display').innerText = passenger.name;
+      document.getElementById('pnr-badge-display').innerText = `PNR: ${passenger.pnr}`;
+      document.getElementById('passenger-route-display').innerHTML = `
+        <i class="fa-solid fa-plane text-sky-400 mr-1"></i> ${passenger.origin} (${passenger.flightNo}) &rarr; <strong class="text-white">${passenger.destination}</strong> (${passenger.destCity})
+      `;
+
+      // Status indicator
+      const statusContainer = document.getElementById('checkin-status-container');
+      if (passenger.checkedIn) {
+        statusContainer.innerHTML = `
+          <span class="text-xs font-mono-code font-bold px-3 py-1 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
+            <i class="fa-solid fa-circle-check"></i> READY FOR BOARDING
+          </span>
+        `;
+      } else {
+        statusContainer.innerHTML = `
+          <span class="text-xs font-mono-code font-bold px-3 py-1 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center gap-1.5">
+            <i class="fa-solid fa-hourglass-half"></i> DESK CHECK-IN REQUIRED
+          </span>
+        `;
+      }
+
+      // Flight Details
+      document.getElementById('detail-flight-no').innerText = passenger.flightNo;
+      document.getElementById('detail-route').innerText = `${passenger.origin} → ${passenger.destination}`;
+      document.getElementById('detail-gate').innerText = `${passenger.boardingTime} / GATE ${passenger.gate}`;
+      document.getElementById('detail-cabin').innerText = passenger.cabin;
+
+      // Inputs
+      document.getElementById('input-seat-num').value = passenger.seat;
+      document.getElementById('input-group-num').value = passenger.group;
+      document.getElementById('input-ff-status').value = passenger.ffStatus;
+
+      // Bags list
+      renderBaggageScaleUI(passenger);
+    }
+
+    function updateActivePassengerData() {
+      const passenger = PASSENGER_DATABASE.find(p => p.pnr === activePnr);
+      if (!passenger) return;
+
+      passenger.seat = document.getElementById('input-seat-num').value.toUpperCase();
+      passenger.group = document.getElementById('input-group-num').value;
+      passenger.ffStatus = document.getElementById('input-ff-status').value;
+    }
+
+    function renderBaggageScaleUI(passenger) {
+      const container = document.getElementById('bags-list-container');
+      
+      if (passenger.bags.length === 0) {
+        container.innerHTML = `
+          <div class="py-6 text-center text-slate-500 font-mono-code text-xs italic bg-slate-950 p-4 rounded-xl border border-slate-800/80">
+            No checked bags registered for this passenger. Click "Add Bag" above.
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = passenger.bags.map((b, index) => {
+        const isOverweight = b.weight > 23.0;
+        const weightColor = isOverweight ? 'text-rose-400 font-bold' : 'text-emerald-400 font-bold';
+        const warningBadge = isOverweight 
+          ? `<span class="text-[9px] bg-rose-500/20 text-rose-400 px-1.5 py-0.5 rounded border border-rose-500/30 font-mono-code">OVERWEIGHT +$50</span>`
+          : `<span class="text-[9px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/30 font-mono-code">STANDARD</span>`;
+
+        return `
+          <div class="flex items-center justify-between bg-slate-950 border border-slate-800 p-3 rounded-xl">
+            <div class="flex items-center space-x-3">
+              <div class="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 font-mono-code text-xs font-bold">
+                #${index + 1}
+              </div>
+              <div>
+                <div class="font-mono-code font-bold text-xs text-white flex items-center gap-2">
+                  <span>${b.id}</span>
+                  ${warningBadge}
+                </div>
+                <div class="text-[10px] font-mono-code text-slate-500">TAG CODE: ${b.tagCode}</div>
+              </div>
+            </div>
+
+            <!-- Weight scale input -->
+            <div class="flex items-center space-x-3">
+              <div class="flex items-center space-x-1.5 bg-slate-900 border border-slate-800 px-2 py-1 rounded-lg">
+                <span class="text-[10px] text-slate-500 font-mono-code">SCALE:</span>
+                <input type="number" step="0.1" value="${b.weight}" onchange="updateBagWeight('${b.id}', this.value)" class="w-16 bg-slate-950 text-center font-mono-code text-xs ${weightColor} focus:outline-none rounded py-0.5">
+                <span class="text-[10px] text-slate-400 font-mono-code">KG</span>
+              </div>
+
+              <button onclick="removeBagFromPassenger('${b.id}')" class="p-1.5 text-slate-500 hover:text-rose-400 transition" title="Remove bag">
+                <i class="fa-solid fa-trash-can text-xs"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function addBagToPassenger() {
+      const passenger = PASSENGER_DATABASE.find(p => p.pnr === activePnr);
+      if (!passenger) return;
+
+      playBeepSound(1300, 0.04);
+      const bagIndex = passenger.bags.length + 1;
+      const randomTag = Math.floor(100000 + Math.random() * 899999);
+      passenger.bags.push({
+        id: `BAG-${passenger.pnr}-${bagIndex}`,
+        weight: 19.5,
+        status: 'CHECKED',
+        tagCode: `000${randomTag}`
+      });
+
+      renderBaggageScaleUI(passenger);
+      renderPassengerRoster(document.getElementById('passenger-search-input').value);
+    }
+
+    function removeBagFromPassenger(bagId) {
+      const passenger = PASSENGER_DATABASE.find(p => p.pnr === activePnr);
+      if (!passenger) return;
+
+      playBeepSound(700, 0.05);
+      passenger.bags = passenger.bags.filter(b => b.id !== bagId);
+      renderBaggageScaleUI(passenger);
+      renderPassengerRoster(document.getElementById('passenger-search-input').value);
+    }
+
+    function updateBagWeight(bagId, newWeight) {
+      const passenger = PASSENGER_DATABASE.find(p => p.pnr === activePnr);
+      if (!passenger) return;
+
+      const bag = passenger.bags.find(b => b.id === bagId);
+      if (bag) {
+        bag.weight = parseFloat(newWeight || 0);
+        playBeepSound(1000, 0.03);
+        renderBaggageScaleUI(passenger);
+      }
+    }
+
+    /* 80mm Thermal Printing System for Baggage Claim Tags */
+    function printAllBagTags80mm() {
+      const passenger = PASSENGER_DATABASE.find(p => p.pnr === activePnr);
+      if (!passenger) return;
+
+      if (passenger.bags.length === 0) {
+        alert("Cannot print baggage tags: No bags registered for this passenger.");
+        return;
+      }
+
+      playGateAccessChime();
+
+      const container = document.getElementById('printable-thermal-receipt');
+      container.innerHTML = passenger.bags.map(b => `
+        <div style="text-align: center; font-family: 'Courier New', monospace; font-size: 11px; line-height: 1.25; page-break-after: always; padding-bottom: 10px;">
+          <div style="font-size: 14px; font-weight: bold; border-bottom: 2px solid #000; padding-bottom: 3px;">AEROSKY BAGGAGE TAG</div>
+          
+          <div style="font-size: 32px; font-weight: 900; margin: 6px 0; letter-spacing: 2px;">${passenger.destination}</div>
+          <div style="font-size: 10px; font-weight: bold;">DESTINATION: ${passenger.destCity}</div>
+          <div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div>
+
+          <div style="text-align: left; margin-bottom: 6px;">
+            <div>FLIGHT: <strong style="font-size: 13px;">${passenger.flightNo}</strong></div>
+            <div>PASSENGER: ${passenger.name}</div>
+            <div>PNR LOCATOR: <strong>${passenger.pnr}</strong></div>
+            <div>BAG WEIGHT: <strong>${b.weight.toFixed(1)} KG</strong></div>
+            <div>ROUTING: ${passenger.origin} &rarr; ${passenger.destination}</div>
+          </div>
+
+          <div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div>
+
+          <!-- 1D Barcode for Automatic Sorting Conveyors -->
+          <div style="display: flex; justify-content: center; margin: 8px 0;">
+            <svg id="svg-bag-${b.id}"></svg>
+          </div>
+
+          <div style="font-size: 11px; font-weight: bold;">* ${b.tagCode} *</div>
+          <div style="font-size: 9px; margin-top: 4px;">CLAIM STUB - RETAIN FOR BAGGAGE MATCH</div>
+          <div style="border-bottom: 1px dashed #000; margin-top: 6px;"></div>
+        </div>
+      `).join('');
+
+      // Generate Code128 Barcodes using JsBarcode
+      setTimeout(() => {
+        passenger.bags.forEach(b => {
+          try {
+            JsBarcode(`#svg-bag-${b.id}`, b.tagCode, {
+              format: "CODE128",
+              width: 1.8,
+              height: 50,
+              displayValue: false
+            });
+          } catch(e) {}
+        });
+        window.print();
+      }, 150);
+    }
+
+    /* 80mm Thermal Printing System for Boarding Pass Slips */
+    function printBoardingPass80mm() {
+      const passenger = PASSENGER_DATABASE.find(p => p.pnr === activePnr);
+      if (!passenger) return;
+
+      playGateAccessChime();
+
+      const container = document.getElementById('printable-thermal-receipt');
+      container.innerHTML = `
+        <div style="text-align: center; font-family: 'Courier New', monospace; font-size: 11px; line-height: 1.25;">
+          <div style="font-size: 14px; font-weight: bold;">AEROSKY BOARDING PASS</div>
+          <div style="font-size: 10px;">SYSTEM CHECK-IN PASS</div>
+          <div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div>
+
+          <div style="text-align: left; margin-bottom: 6px;">
+            <div style="font-size: 13px; font-weight: bold;">PASSENGER: ${passenger.name}</div>
+            <div>PNR LOCATOR: <strong>${passenger.pnr}</strong></div>
+            <div>CABIN: ${passenger.cabin}</div>
+            <div>STATUS: ${passenger.ffStatus}</div>
+          </div>
+
+          <div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; text-align: left; gap: 4px; font-size: 12px; font-weight: bold;">
+            <div>FLIGHT: ${passenger.flightNo}</div>
+            <div>SEAT: ${passenger.seat}</div>
+            <div>GATE: ${passenger.gate}</div>
+            <div>TIME: ${passenger.boardingTime}</div>
+          </div>
+
+          <div style="text-align: left; margin-top: 4px; font-size: 11px;">
+            <div>GROUP: ${passenger.group}</div>
+            <div>ROUTE: ${passenger.origin} &rarr; ${passenger.destination} (${passenger.destCity})</div>
+          </div>
+
+          <div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div>
+
+          <!-- 2D QR Code for Gate Scanner Verification -->
+          <div style="display: flex; justify-content: center; margin: 8px 0;">
+            <div id="bp-qr-target"></div>
+          </div>
+
+          <div style="font-size: 10px; font-weight: bold;">* PASS ID: ${passenger.pnr}-${passenger.seat} *</div>
+          <div style="font-size: 9px; margin-top: 4px;">PLEASE BE AT GATE 30 MIN PRIOR TO DEPARTURE</div>
+          <div style="border-bottom: 1px dashed #000; margin-top: 6px;"></div>
+        </div>
+      `;
+
+      setTimeout(() => {
+        const target = document.getElementById('bp-qr-target');
+        if (target) {
+          target.innerHTML = '';
+          new QRCode(target, {
+            text: `PASS:${passenger.pnr}:${passenger.flightNo}:${passenger.seat}`,
+            width: 100,
+            height: 100,
+            colorDark: "#000000",
+            colorLight: "#ffffff"
+          });
+        }
+        window.print();
+      }, 150);
+    }
+
+    /* Complete Check-In Button Handler */
+    function completeCheckInProcess() {
+      const passenger = PASSENGER_DATABASE.find(p => p.pnr === activePnr);
+      if (!passenger) return;
+
+      passenger.checkedIn = true;
+      playGateAccessChime();
+      loadActivePassengerWorkspace();
+      renderPassengerRoster(document.getElementById('passenger-search-input').value);
+    }
+
+    /* Global Hardware Barcode Scanner Listener */
+    let barcodeBuffer = '';
+    let barcodeTimeout = null;
+
+    document.addEventListener('keydown', (e) => {
+      const listener = document.getElementById('global-barcode-listener');
+      if (document.activeElement !== document.getElementById('passenger-search-input') &&
+          document.activeElement !== document.getElementById('input-seat-num') &&
+          document.activeElement !== document.getElementById('new-p-name')) {
+        listener.focus();
+      }
+
+      if (e.key === 'Enter') {
+        if (barcodeBuffer.length > 2) {
+          handleScannedBarcodePayload(barcodeBuffer.trim());
+          barcodeBuffer = '';
+        }
+      } else if (e.key.length === 1) {
+        barcodeBuffer += e.key;
+        clearTimeout(barcodeTimeout);
+        barcodeTimeout = setTimeout(() => { barcodeBuffer = ''; }, 200);
+      }
+    });
+
+    function handleScannedBarcodePayload(code) {
+      playBeepSound(1500, 0.06);
+
+      const modal = document.getElementById('scanner-modal');
+      const content = document.getElementById('scanner-modal-content');
+      modal.classList.remove('hidden');
+
+      // Test 1: Is it a Boarding Pass QR payload (PASS:6X9K2P:AS-892:12A)?
+      if (code.startsWith('PASS:')) {
+        const parts = code.split(':');
+        const pnr = parts[1];
+        const passenger = PASSENGER_DATABASE.find(p => p.pnr === pnr);
+
+        if (passenger) {
+          content.innerHTML = `
+            <div class="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 p-3.5 rounded-xl space-y-2">
+              <div class="flex items-center gap-2 font-bold text-sm">
+                <i class="fa-solid fa-circle-check text-base"></i>
+                <span>VALID BOARDING PASS SCANNED</span>
+              </div>
+              <div class="text-white">PASSENGER: <strong>${passenger.name}</strong></div>
+              <div>PNR: ${passenger.pnr} | FLIGHT: ${passenger.flightNo} | SEAT: ${passenger.seat}</div>
+              <div>GATE BOARDING ELIGIBILITY: <strong class="text-emerald-300">APPROVED</strong></div>
+            </div>
+          `;
+          selectPassenger(passenger.pnr);
+          return;
+        }
+      }
+
+      // Test 2: Is it a 1D Bag Tag Code?
+      let matchedBag = null;
+      let matchedPassenger = null;
+
+      PASSENGER_DATABASE.forEach(p => {
+        p.bags.forEach(b => {
+          if (b.tagCode === code || b.id === code) {
+            matchedBag = b;
+            matchedPassenger = p;
+          }
+        });
+      });
+
+      if (matchedBag && matchedPassenger) {
+        content.innerHTML = `
+          <div class="bg-sky-500/10 border border-sky-500/30 text-sky-400 p-3.5 rounded-xl space-y-2">
+            <div class="flex items-center gap-2 font-bold text-sm">
+              <i class="fa-solid fa-suitcase text-base"></i>
+              <span>SCANNED BAGGAGE MATCH FOUND</span>
+            </div>
+            <div class="text-white">TAG ID: <strong>${matchedBag.tagCode}</strong></div>
+            <div>OWNER: ${matchedPassenger.name} (PNR: ${matchedPassenger.pnr})</div>
+            <div>WEIGHT: ${matchedBag.weight} KG | DEST: <strong class="text-sky-300">${matchedPassenger.destination}</strong></div>
+            <div>SECURITY CLEARANCE: <strong class="text-emerald-400">PASSED X-RAY</strong></div>
+          </div>
+        `;
+        selectPassenger(matchedPassenger.pnr);
+        return;
+      }
+
+      // Fallback
+      content.innerHTML = `
+        <div class="bg-amber-500/10 border border-amber-500/30 text-amber-400 p-3.5 rounded-xl">
+          <i class="fa-solid fa-triangle-exclamation mr-1"></i> Scanned Code <strong>${code}</strong> not found in active station database.
+        </div>
+      `;
+    }
+
+    /* Flight Manifest & Report Functions */
+    function openFlightManifestModal() {
+      playBeepSound(1000, 0.04);
+      const totalBooked = PASSENGER_DATABASE.length;
+      const checkedIn = PASSENGER_DATABASE.filter(p => p.checkedIn).length;
+      const totalBags = PASSENGER_DATABASE.reduce((acc, p) => acc + p.bags.length, 0);
+
+      document.getElementById('manifest-total-count').innerText = totalBooked;
+      document.getElementById('manifest-checked-count').innerText = checkedIn;
+      document.getElementById('manifest-bags-count').innerText = totalBags;
+
+      document.getElementById('manifest-modal').classList.remove('hidden');
+    }
+
+    function printManifestThermal() {
+      closeModal('manifest-modal');
+      const container = document.getElementById('printable-thermal-receipt');
+      container.innerHTML = `
+        <div style="text-align: center; font-family: 'Courier New', monospace; font-size: 11px; line-height: 1.25;">
+          <div style="font-size: 14px; font-weight: bold;">FLIGHT MANIFEST REPORT</div>
+          <div>FLIGHT: AS-892 (JFK &rarr; LHR)</div>
+          <div>STATION: DESK #04</div>
+          <div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div>
+
+          <div style="text-align: left; margin-bottom: 6px;">
+            <div>TOTAL PASSENGERS BOOKED: ${PASSENGER_DATABASE.length}</div>
+            <div>TOTAL CHECKED IN: ${PASSENGER_DATABASE.filter(p => p.checkedIn).length}</div>
+            <div>TOTAL HOLD BAGGAGE: ${PASSENGER_DATABASE.reduce((acc, p) => acc + p.bags.length, 0)} BAGS</div>
+          </div>
+
+          <div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div>
+
+          <div style="text-align: left; font-size: 10px;">
+            ${PASSENGER_DATABASE.map(p => `
+              <div style="margin-bottom: 3px;">
+                <span>${p.seat} - ${p.name.substring(0, 16)}</span><br>
+                <span>PNR: ${p.pnr} | STATUS: ${p.checkedIn ? 'CHECKED-IN' : 'PENDING'}</span>
+              </div>
+            `).join('')}
+          </div>
+
+          <div style="border-bottom: 1px dashed #000; margin-top: 6px;"></div>
+        </div>
+      `;
+      setTimeout(() => { window.print(); }, 150);
+    }
+
+    /* New Booking Modal Handler */
+    function openNewBookingModal() {
+      playBeepSound(1000, 0.04);
+      document.getElementById('new-booking-modal').classList.remove('hidden');
+    }
+
+    function saveNewPassengerBooking() {
+      const name = document.getElementById('new-p-name').value.toUpperCase() || 'JOHN DOE';
+      const flightNo = document.getElementById('new-p-flight').value.toUpperCase() || 'AS-892';
+      const dest = document.getElementById('new-p-dest').value.toUpperCase() || 'LHR';
+      const seat = document.getElementById('new-p-seat').value.toUpperCase() || '22B';
+      const cabin = document.getElementById('new-p-cabin').value;
+
+      const newPnr = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+      PASSENGER_DATABASE.push({
+        pnr: newPnr,
+        name: name,
+        flightNo: flightNo,
+        origin: 'JFK',
+        destination: dest,
+        destCity: 'INTERNATIONAL',
+        gate: 'B12',
+        boardingTime: '14:20',
+        seat: seat,
+        group: 'Group 3 (Main Cabin)',
+        cabin: cabin,
+        ffStatus: 'AeroClub Member',
+        checkedIn: false,
+        bags: []
+      });
+
+      closeModal('new-booking-modal');
+      selectPassenger(newPnr);
+    }
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.add('hidden');
+    }
+
+    /* Initialization */
+    window.onload = function() {
+      renderPassengerRoster();
+      loadActivePassengerWorkspace();
+
+      setInterval(() => {
+        document.getElementById('current-time-display').innerText = new Date().toLocaleTimeString();
+      }, 1000);
+    };
+  </script>
+</body>
+</html>
