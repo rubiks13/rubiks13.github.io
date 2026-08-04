@@ -136,9 +136,9 @@
         <span class="text-slate-300 font-mono-code text-[11px]">SCANNER READY</span>
       </div>
 
-      <button onclick="openBatchGeneratorModal()" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow" title="Generate & Print 100 Barcodes">
+      <button onclick="openBatchGeneratorModal()" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow" title="Generate & Print 50 Barcodes">
         <i class="fa-solid fa-barcode"></i>
-        <span>PRINT 100 BARCODES</span>
+        <span>PRINT 50 BARCODES</span>
       </button>
 
       <button onclick="openRosterModal()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition flex items-center gap-1.5" title="View Pending Passengers in LocalStorage">
@@ -189,7 +189,7 @@
         <div class="flex flex-wrap items-center justify-center gap-2 pt-2">
           <button onclick="openBatchGeneratorModal()" class="px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-xl text-xs font-bold transition flex items-center gap-2">
             <i class="fa-solid fa-wand-magic-sparkles"></i>
-            <span>Generate 100 Passenger Barcodes</span>
+            <span>Generate 50 Passenger Barcodes</span>
           </button>
           <button onclick="openRosterModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-2">
             <i class="fa-solid fa-list text-sky-400"></i>
@@ -316,6 +316,7 @@
   </main>
 
   <!-- MODAL 1: 100-PASSENGER BATCH BARCODE GENERATOR & PRINT SHEET -->
+  <!-- MODAL 1: 50-PASSENGER BATCH BARCODE GENERATOR & PRINT SHEET -->
   <div id="batch-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-4xl w-full p-5 shadow-2xl space-y-4 max-h-[92vh] flex flex-col">
       <div class="flex items-center justify-between border-b border-slate-800 pb-3">
@@ -324,8 +325,8 @@
             <i class="fa-solid fa-barcode"></i>
           </div>
           <div>
-            <h3 class="font-bold text-white text-base">Batch Barcode Generator & Sheet</h3>
-            <p class="text-xs text-slate-400">Generate up to 100 random passengers with 1D barcodes</p>
+            <h3 class="font-bold text-white text-base">Batch Barcode Generator & Paper-Saving Sheet</h3>
+            <p class="text-xs text-slate-400">Generate up to 50 passengers with compact 1D barcodes</p>
           </div>
         </div>
         <button onclick="closeModal('batch-modal')" class="text-slate-400 hover:text-white text-lg">
@@ -340,8 +341,7 @@
           <select id="batch-gen-count" class="bg-slate-900 border border-slate-800 text-xs font-mono-code text-white rounded-lg px-3 py-1.5 focus:outline-none">
             <option value="10">10 Passengers</option>
             <option value="25">25 Passengers</option>
-            <option value="50">50 Passengers</option>
-            <option value="100" selected>100 Passengers</option>
+            <option value="50" selected>50 Passengers</option>
           </select>
           <button onclick="generateBatchPassengers()" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-xs transition shadow">
             Generate New Batch
@@ -711,7 +711,7 @@
     }
 
     function generateBatchPassengers() {
-      const count = parseInt(document.getElementById('batch-gen-count').value || '100');
+      const count = parseInt(document.getElementById('batch-gen-count').value || '50');
       passengerDatabase = [];
       occupiedSeatsByFlight = {};
 
@@ -811,19 +811,10 @@
       const physicalArea = document.getElementById('printable-thermal-receipt');
       
       physicalArea.innerHTML = `
-        <div style="font-family: Arial, sans-serif; text-align: center; font-size: 10pt; color: #000;">
-          <h2 style="margin: 0; font-size: 14pt;">AEROSKY PASSENGER BARCODE SHEET</h2>
-          <p style="margin: 2px 0 10px 0; font-size: 9pt;">Total Bookings Generated: ${passengerDatabase.length}</p>
-          <div style="border-bottom: 2px solid #000; margin-bottom: 10px;"></div>
-
+        <div style="width: 72mm; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 2px; padding: 0; background: #fff;">
           ${passengerDatabase.map(p => `
-            <div style="page-break-inside: avoid; border-bottom: 1px dashed #000; padding: 6px 0; margin-bottom: 6px; text-align: left;">
-              <div style="font-weight: bold; font-size: 11pt;">${p.name} (${p.pnr})</div>
-              <div style="font-size: 9pt;">FLIGHT: ${p.flightNo} &rarr; ${p.destination} | SEAT: ${p.seat}</div>
-              <div style="text-align: center; margin: 4px 0;">
-                <svg class="print-sheet-svg" data-pnr="${p.pnr}"></svg>
-              </div>
-              <div style="text-align: center; font-size: 9pt; font-weight: bold;">* ${p.pnr} *</div>
+            <div style="page-break-inside: avoid; text-align: center; padding: 1px 0; margin: 0;">
+              <svg class="print-sheet-svg" data-pnr="${p.pnr}"></svg>
             </div>
           `).join('')}
         </div>
@@ -836,9 +827,10 @@
             if (svgEl) {
               JsBarcode(svgEl, p.pnr, {
                 format: "CODE128",
-                width: 2.0,
-                height: 45,
-                displayValue: false
+                width: 1.1,
+                height: 22,
+                displayValue: false,
+                margin: 0
               });
             }
           } catch(e) {}
