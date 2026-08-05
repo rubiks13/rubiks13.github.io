@@ -534,6 +534,22 @@
       autoFocusInput();
     }
 
+    function runCommand(cmdText) {
+      const input = document.getElementById('terminal-input');
+      if (input) {
+        input.value = cmdText;
+        handleCommandSubmit();
+      }
+    }
+
+    function updateModeBadge(text, className) {
+      const badge = document.getElementById('terminal-mode-badge');
+      if (badge) {
+        badge.innerText = `MODE: ${text}`;
+        badge.className = `px-2 py-0.5 rounded border text-[10px] ${className}`;
+      }
+    }
+
     function processInputInState(inputStr) {
       const upper = inputStr.trim().toUpperCase();
 
@@ -545,7 +561,6 @@
         return;
       }
 
-      // Check for Boarding Complete / Audit Command while in boarding or CLI
       if (upper === 'BRD CMP' || upper === 'BRD COMP' || upper === 'BRD COMPLETE' || (terminalState === 'BOARDING_MODE' && upper === 'CMP')) {
         executeBoardingCompleteAudit();
         return;
@@ -564,48 +579,46 @@
         logTerminal(`DESTINATION SELECTED: [${destObj.code}] ${destObj.city}, ${destObj.country}`, 'success');
         
         terminalState = 'SCHDL_AIRCRAFT';
-        logTerminal(`--------------------------------------------------`, 'system');
         logTerminal(`STEP 2: SELECT AIRCRAFT TYPE:`, 'sky');
-        logTerminal(`Options: <span class="text-amber-300 font-bold">777</span> (Boeing 777), <span class="text-amber-300 font-bold">787</span> (Boeing 787), <span class="text-amber-300 font-bold">A350</span> (Airbus A350), <span class="text-amber-300 font-bold">737</span> (Boeing 737)`, 'system');
-        logTerminal(`Type 777, 787, A350, or 737:`, 'sky');
+        logTerminal(`Available: 777 (Boeing 777), 787 (Dreamliner), A350 (Airbus A350), 737 (Boeing 737)`, 'system');
+        logTerminal(`Type aircraft code (e.g. 777):`, 'sky');
         return;
       }
 
       if (terminalState === 'SCHDL_AIRCRAFT') {
         logTerminal(`> ${inputStr}`, 'cmd');
-        let matchedKey = null;
-        if (upper.includes('777')) matchedKey = '777';
-        else if (upper.includes('787')) matchedKey = '787';
-        else if (upper.includes('350') || upper.includes('A350')) matchedKey = 'A350';
-        else if (upper.includes('737')) matchedKey = '737';
-
-        if (!matchedKey) {
-          logTerminal(`INVALID AIRCRAFT TYPE. Please enter 777, 787, A350, or 737.`, 'error');
+        const craftKey = upper;
+        const craftObj = AIRCRAFT_TYPES[craftKey];
+        if (!craftObj) {
+          logTerminal(`INVALID AIRCRAFT CODE '${craftKey}'. Available: 777, 787, A350, 737.`, 'error');
           playErrorSound();
           return;
         }
 
-        schdlTempData.aircraft = AIRCRAFT_TYPES[matchedKey];
-        schdlTempData.aircraftKey = matchedKey;
-
-        executeFlightCreation();
+        schdlTempData.aircraft = craftObj;
+        logTerminal(`AIRCRAFT SELECTED: ${craftObj.name}`, 'success');
         terminalState = 'IDLE';
+        updateModeBadge('CHECK-IN CLI', 'bg-emerald-950/80 text-emerald-400 border-emerald-800');
+        executeFlightCreation();
         return;
       }
 
       if (terminalState === 'BRD_FLIGHT') {
         logTerminal(`> ${inputStr}`, 'cmd');
-        const fltCode = upper.replace(/[^A-Z0-9]/g, '');
-        
-        activeBoardingFlight = fltCode;
+        const flights = Array.from(new Set(passengerDatabase.map(p => p.flightNo.toUpperCase())));
+        if (!flights.includes(upper)) {
+          logTerminal(`FLIGHT '${upper}' NOT FOUND IN ROSTER. Available: ${flights.join(', ')}`, 'error');
+          playErrorSound();
+          return;
+        }
+
+        activeBoardingFlight = upper;
         terminalState = 'BOARDING_MODE';
-        
-        updateModeBadge(`BOARDING: ${fltCode}`, 'bg-amber-950 text-amber-400 border-amber-600 animate-pulse');
-        playChimeSound();
+        updateModeBadge(`BOARDING FLIGHT ${upper}`, 'bg-amber-950 text-amber-300 border-amber-700 animate-pulse');
         logTerminal(`==================================================`, 'warn');
-        logTerminal(`>>> BOARDING IN PROGRESS FOR FLIGHT [${fltCode}] <<<`, 'warn');
-        logTerminal(`Scan passenger boarding pass barcode (PDF417 / Pass Token / PNR) now.`, 'success');
-        logTerminal(`Type '<span class="text-amber-300 font-bold">brd cmp</span>' to audit unboarded passengers or 'exit' to end mode.`, 'system');
+        logTerminal(`BOARDING MODE ACTIVE FOR FLIGHT [${upper}] AT GATE C03.`, 'warn');
+        logTerminal(`Scan passenger barcode / token or type PNR/name to board.`, 'system');
+        logTerminal(`Type <span class="text-amber-300 font-bold">cmp</span> or <span class="text-amber-300 font-bold">brd cmp</span> to finish & audit.`, 'system');
         logTerminal(`==================================================`, 'warn');
         return;
       }
@@ -616,197 +629,83 @@
         return;
       }
 
-      runCommand(inputStr);
-    }
+      // Default IDLE CLI Commands
+      logTerminal(`> ${inputStr}`, 'cmd');
+      const parts = upper.split(' ');
+      const cmd = parts[0];
+      const arg = parts.slice(1).join(' ');
 
-    function updateModeBadge(text, classStr) {
-      const badge = document.getElementById('terminal-mode-badge');
-      if (badge) {
-        badge.innerText = `MODE: ${text}`;
-        badge.className = `px-2 py-0.5 rounded text-[10px] ${classStr}`;
-      }
-    }
-
-    function runCommand(commandString) {
-      logTerminal(`> ${commandString}`, 'cmd');
-      playKeyClickSound();
-
-      const parts = commandString.trim().toUpperCase().split(/\s+/);
-      const main = parts[0];
-      const arg1 = parts[1] || '';
-      const arg2 = parts[2] || '';
-
-      if (main === 'BRD' && (arg1 === 'CMP' || arg1 === 'COMP' || arg1 === 'COMPLETE')) {
-        executeBoardingCompleteAudit();
-        return;
-      }
-
-      switch (main) {
-        case 'CMD':
-        case 'HELP':
-        case 'MAN':
-          displayCommandManual();
-          break;
-
-        case 'SCHDL':
-        case 'SCHEDULE':
-        case 'NEWSCHED':
-          startSchedulingWizard();
-          break;
-
-        case 'BRD':
-        case 'BOARD':
-        case 'BOARDING':
-          if (arg1) {
-            activeBoardingFlight = arg1;
-            terminalState = 'BOARDING_MODE';
-            updateModeBadge(`BOARDING: ${arg1}`, 'bg-amber-950 text-amber-400 border-amber-600 animate-pulse');
-            logTerminal(`BOARDING MODE ACTIVE FOR FLIGHT ${arg1}. Type 'brd cmp' when finished.`, 'warn');
-          } else {
-            startBoardingMode();
-          }
-          break;
-
-        case 'PNR':
-        case 'SCAN':
-        case 'FIND':
-        case 'SCN':
-          if (!arg1) {
-            logTerminal('ERROR: PNR locator required. Usage: PNR 6X9K2P', 'error');
-            playErrorSound();
-          } else {
-            scanPassengerByCode(arg1);
-          }
-          break;
-
-        case 'ADDBG':
-        case 'ADD':
-        case 'BAG':
-        case 'AB':
-          if (!activePassenger) {
-            logTerminal('ERROR: No passenger loaded. Scan PNR first.', 'error');
-            playErrorSound();
-            break;
-          }
-          const weightInput = parseFloat(main === 'ADD' ? arg2 : arg1);
-          if (!isNaN(weightInput) && weightInput > 0) {
-            numpadValue = weightInput.toFixed(1);
-          } else {
-            numpadValue = '20.0';
-          }
-          updateNumpadDisplay();
+      if (cmd === 'HELP' || cmd === 'CMD') {
+        logTerminal('--- AEROSKY CUTE CLI COMMAND INDEX ---', 'system');
+        logTerminal('• <strong class="text-emerald-300">schdl</strong> : Schedule a new flight & generate manifest', 'info');
+        logTerminal('• <strong class="text-amber-300">brd</strong> : Enter active boarding gate scan mode', 'info');
+        logTerminal('• <strong class="text-amber-400">brd cmp</strong> : Complete boarding & audit missing passengers', 'info');
+        logTerminal('• <strong class="text-sky-300">pnr &lt;CODE&gt;</strong> : Look up passenger record (PNR, Token, Name)', 'info');
+        logTerminal('• <strong class="text-emerald-300">addbg &lt;KG&gt;</strong> : Add checked bag to loaded passenger', 'info');
+        logTerminal('• <strong class="text-sky-300">stmap</strong> : Open aircraft cabin seat map selection', 'info');
+        logTerminal('• <strong class="text-emerald-300">prtpass</strong> : Print IATA thermal boarding pass', 'info');
+        logTerminal('• <strong class="text-amber-300">prtbg</strong> : Print luggage tag with barcode', 'info');
+        logTerminal('• <strong class="text-sky-300">genbatch</strong> : Open batch barcode manifest sheet', 'info');
+        logTerminal('• <strong class="text-emerald-300">roster</strong> : Display full manifest passenger list', 'info');
+        logTerminal('• <strong class="text-rose-400">wipe</strong> : Clear and reset local database', 'info');
+      } else if (cmd === 'SCHED' || cmd === 'SCHDL') {
+        terminalState = 'SCHDL_DEST';
+        schdlTempData = { dest: null, aircraft: null };
+        updateModeBadge('SCHEDULE WIZARD', 'bg-sky-950 text-sky-300 border-sky-800');
+        logTerminal(`--------------------------------------------------`, 'system');
+        logTerminal(`STEP 1: SELECT FLIGHT DESTINATION:`, 'sky');
+        logTerminal(`Available destinations: LHR, JFK, LAX, CDG, HND, DXB`, 'system');
+        logTerminal(`Type 3-letter destination code:`, 'sky');
+      } else if (cmd === 'BRD' || cmd === 'BOARD') {
+        startBoardingMode();
+      } else if (cmd === 'PNR' || cmd === 'FIND' || cmd === 'SEARCH') {
+        if (!arg) {
+          logTerminal('ERROR: Provide PNR code or passenger name (e.g. PNR 6X9K2P).', 'error');
+          playErrorSound();
+        } else {
+          scanPassengerByCode(arg);
+        }
+      } else if (cmd === 'ADDBG' || cmd === 'BAG') {
+        if (!activePassenger) {
+          logTerminal('ERROR: No passenger loaded. Use "pnr <code>" first.', 'error');
+          playErrorSound();
+        } else {
+          const w = arg ? parseFloat(arg) : 23.0;
+          numpadValue = w.toString();
           document.getElementById('numpad-modal').classList.remove('hidden');
-          logTerminal('Baggage Scale Numpad opened. Confirm weight to print bag tag.', 'system');
-          break;
-
-        case 'SETST':
-        case 'SEAT':
-        case 'ST':
-          if (!activePassenger) {
-            logTerminal('ERROR: No passenger loaded.', 'error');
-            playErrorSound();
-            break;
-          }
-          if (!arg1) {
-            openSeatmapModal();
-          } else {
-            assignSeatToActivePassenger(arg1);
-          }
-          break;
-
-        case 'STMAP':
-        case 'SEATMAP':
-        case 'SM':
-        case 'MAP':
-          if (!activePassenger) {
-            logTerminal('ERROR: Load passenger before viewing seat map.', 'error');
-            playErrorSound();
-          } else {
-            openSeatmapModal();
-          }
-          break;
-
-        case 'PRTPASS':
-        case 'BP':
-        case 'PASS':
-          if (!activePassenger) {
-            logTerminal('ERROR: No passenger loaded.', 'error');
-            playErrorSound();
-            break;
-          }
+          updateNumpadDisplay();
+        }
+      } else if (cmd === 'STMAP' || cmd === 'SEAT') {
+        if (!activePassenger) {
+          logTerminal('ERROR: Load a passenger first using "pnr <code>".', 'error');
+          playErrorSound();
+        } else {
+          openSeatmapModal();
+        }
+      } else if (cmd === 'PRTPASS' || cmd === 'PASS') {
+        if (!activePassenger) {
+          logTerminal('ERROR: Load a passenger first.', 'error');
+          playErrorSound();
+        } else {
           printBoardingPassCLI();
-          break;
-
-        case 'PRTBG':
-        case 'BT':
-        case 'PRTBAG':
-          if (!activePassenger) {
-            logTerminal('ERROR: No passenger loaded.', 'error');
-            playErrorSound();
-            break;
-          }
+        }
+      } else if (cmd === 'PRTBG' || cmd === 'TAG') {
+        if (!activePassenger) {
+          logTerminal('ERROR: Load a passenger first.', 'error');
+          playErrorSound();
+        } else {
           printBagTagCLI();
-          break;
-
-        case 'DONE':
-        case 'COMPLETE':
-        case 'CMP':
-        case 'FIN':
-          completeCheckInCLI();
-          break;
-
-        case 'GENBATCH':
-        case 'GEN':
-        case 'BATCH':
-          openBatchModal(arg1 || null);
-          break;
-
-        case 'ROSTER':
-        case 'LIST':
-          displayRosterListCLI();
-          break;
-
-        case 'CLEAR':
-        case 'WIPE':
-        case 'PURGE':
-        case 'RESET':
-          resetLocalDatabaseCLI();
-          break;
-
-        default:
-          if (main.length >= 4 && main.length <= 12) {
-            scanPassengerByCode(main);
-          } else {
-            logTerminal(`Unrecognized command '${main}'. Type 'cmd' for manual.`, 'error');
-            playErrorSound();
-          }
-          break;
+        }
+      } else if (cmd === 'GENBATCH' || cmd === 'BATCH') {
+        openBatchModal();
+      } else if (cmd === 'ROSTER' || cmd === 'LIST') {
+        displayRosterListCLI();
+      } else if (cmd === 'WIPE' || cmd === 'CLEAR') {
+        resetLocalDatabaseCLI();
+      } else {
+        logTerminal(`UNKNOWN COMMAND '${inputStr}'. Type <span class="text-emerald-300 font-bold">help</span> for command list.`, 'error');
+        playErrorSound();
       }
-      autoFocusInput();
-    }
-
-    function displayCommandManual() {
-      logTerminal(`=== AEROSKY TERMINAL COMMAND MANUAL ===`, 'sky');
-      logTerminal(`  <span class="text-emerald-300 font-bold">SCHDL</span>         - Interactively schedule a flight & generate passenger manifest`, 'system');
-      logTerminal(`  <span class="text-amber-300 font-bold">BRD</span>           - Enter Gate Boarding Mode & scan barcode passes`, 'system');
-      logTerminal(`  <span class="text-amber-400 font-bold">BRD CMP</span>       - Complete gate boarding & perform unboarded audit`, 'system');
-      logTerminal(`  <span class="text-sky-300 font-bold">PNR [code]</span>    - Find and active-load passenger by PNR or name`, 'system');
-      logTerminal(`  <span class="text-emerald-300 font-bold">ADDBG [wt]</span>    - Weigh & add bag tag (e.g. ADDBG 23.0)`, 'system');
-      logTerminal(`  <span class="text-amber-300 font-bold">SETST [seat]</span>  - Assign seat (e.g. SETST 06A) or open seatmap`, 'system');
-      logTerminal(`  <span class="text-sky-300 font-bold">STMAP</span>         - Open interactive aircraft seat map`, 'system');
-      logTerminal(`  <span class="text-emerald-300 font-bold">PRTPASS</span>       - Print Boarding Pass with dynamic PDF417 barcode`, 'system');
-      logTerminal(`  <span class="text-amber-300 font-bold">PRTBG</span>         - Print IATA Luggage Tag with barcode`, 'system');
-      logTerminal(`  <span class="text-sky-300 font-bold">GENBATCH</span>      - Open thermal receipt batch barcode sheet`, 'system');
-      logTerminal(`  <span class="text-rose-400 font-bold">CLEAR / WIPE</span>  - Reset local system database`, 'system');
-    }
-
-    function startSchedulingWizard() {
-      terminalState = 'SCHDL_DEST';
-      schdlTempData = { dest: null, aircraft: null };
-      logTerminal(`--------------------------------------------------`, 'system');
-      logTerminal(`STEP 1: SELECT FLIGHT DESTINATION:`, 'sky');
-      logTerminal(`Available destinations: LHR, JFK, LAX, CDG, HND, DXB`, 'system');
-      logTerminal(`Type 3-letter destination code:`, 'sky');
     }
 
     function startBoardingMode() {
@@ -1081,7 +980,6 @@
 
       logTerminal(`==================================================`, 'warn');
 
-      // Exit Boarding Mode
       terminalState = 'IDLE';
       activeBoardingFlight = null;
       updateModeBadge('CHECK-IN CLI', 'bg-emerald-950/80 text-emerald-400 border-emerald-800');
@@ -1141,7 +1039,7 @@
           bags: []
         };
 
-        passengerDatabase.unshift(newP);
+        passengerDatabase.push(newP);
         createdPassengers.push(newP);
 
         if (seat) {
@@ -1170,8 +1068,10 @@
         autoAssignSeatIfNone();
       }
 
-      // Use current token for this specific physical printed boarding pass
-      const currentPassToken = activePassenger.securityToken || generateRandomToken();
+      if (!activePassenger.securityToken) {
+        activePassenger.securityToken = generateRandomToken();
+      }
+      const currentPassToken = activePassenger.securityToken;
 
       logTerminal(`PRINTING BOARDING PASS FOR ${activePassenger.name} [TOKEN: ${currentPassToken}]...`, 'warn');
       playChimeSound();
@@ -1345,18 +1245,16 @@
           window.print();
           clearPrintArea();
 
-          // ERASE AND REGENERATE FRESH SECURITY TOKEN FOR PASSENGER AFTER PRINTING
-          const newToken = generateRandomToken();
-          activePassenger.securityToken = newToken;
-          
           const idx = passengerDatabase.findIndex(p => p.pnr === activePassenger.pnr);
           if (idx !== -1) {
-            passengerDatabase[idx].securityToken = newToken;
+            passengerDatabase[idx].securityToken = currentPassToken;
+            passengerDatabase[idx].boarded = activePassenger.boarded;
+            passengerDatabase[idx].seat = activePassenger.seat;
           }
           saveStateToLocalStorage();
           updatePassengerPanelDisplay();
 
-          logTerminal(`[SECURITY] BOARDING PASS PRINTED FOR ${activePassenger.name}. PREVIOUS BARCODE ERASED. NEW TOKEN GENERATED: ${newToken}`, 'success');
+          logTerminal(`[SECURITY] BOARDING PASS PRINTED FOR ${activePassenger.name}. TOKEN STORED IN MANIFEST: ${currentPassToken}`, 'success');
         }, 180);
       }, 100);
     }
@@ -1447,7 +1345,6 @@
         ? (filteredPassengers[0] ? filteredPassengers[0].flightNo : 'AS-MANIFEST')
         : currentBatchFlightFilter;
 
-      // 80mm Narrow Receipt Paper Layout with 2-Column Side-by-Side Grid
       physicalArea.innerHTML = `
         <div style="width: 76mm; max-width: 76mm; margin: 0 auto; color: #000; font-family: Arial, sans-serif; background: #fff; padding: 2mm; box-sizing: border-box; text-align: center;">
           
@@ -1460,7 +1357,6 @@
             </div>
           </div>
 
-          <!-- DOUBLE COLUMN LAYOUT (TWO BARCODES SIDE BY SIDE) -->
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; row-gap: 6px;">
             ${filteredPassengers.map((p, idx) => `
               <div style="page-break-inside: avoid; border: 1px solid #000; padding: 3px 2px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; border-radius: 2px; background: #fff;">
@@ -1508,7 +1404,6 @@
       }, 100);
     }
 
-    /* REALISTIC FULL AIRCRAFT SEATMAP RENDERER */
     function openSeatmapModal() {
       if (!activePassenger) return;
       document.getElementById('seatmap-modal-title').innerText = `SEATMAP - ${activePassenger.flightNo} (${activePassenger.aircraft})`;
@@ -1527,7 +1422,6 @@
 
       let html = '';
 
-      /* FIRST CLASS SECTION (Rows 1-2) */
       html += `
         <div class="border border-amber-500/40 bg-amber-950/20 p-2.5 rounded-lg">
           <div class="text-[11px] font-bold text-amber-400 mb-2 text-center uppercase tracking-wider flex items-center justify-center gap-2">
@@ -1565,7 +1459,6 @@
       }
       html += `</div></div>`;
 
-      /* BUSINESS CLASS SECTION (Rows 3-5) */
       html += `
         <div class="border border-purple-500/40 bg-purple-950/20 p-2.5 rounded-lg">
           <div class="text-[11px] font-bold text-purple-300 mb-2 text-center uppercase tracking-wider flex items-center justify-center gap-2">
@@ -1603,7 +1496,6 @@
       }
       html += `</div></div>`;
 
-      /* ECONOMY CLASS SECTION */
       const econEndRow = is737 ? 30 : 22;
       html += `
         <div class="border border-slate-800 bg-slate-950/60 p-2.5 rounded-lg">
@@ -1668,7 +1560,6 @@
       autoFocusInput();
     }
 
-    /* Touchscreen Numpad Functions */
     function numpadAppend(val) {
       if (val === '.' && numpadValue.includes('.')) return;
       if (numpadValue === '0' && val !== '.') numpadValue = '';
@@ -1745,7 +1636,6 @@
 
     window.addEventListener('afterprint', clearPrintArea);
 
-    /* KEYBOARD, ENTER-KEY SUBMISSION & HARDWARE BARCODE LISTENERS */
     let barcodeBuffer = '';
     let barcodeTimeout = null;
 
@@ -1771,7 +1661,6 @@
       const activeElem = document.activeElement;
       const termInput = document.getElementById('terminal-input');
 
-      // Hardware Barcode Scanner Buffer Logic (scanners stream rapid keys ending with Enter)
       if (activeElem !== termInput) {
         if (e.key === 'Enter') {
           if (barcodeBuffer.length >= 4) {
@@ -1785,14 +1674,12 @@
         }
       }
 
-      // Command Input explicit Enter key trigger
       if (activeElem === termInput && e.key === 'Enter') {
         e.preventDefault();
         handleCommandSubmit();
       }
     });
 
-    // Clock display updater
     function updateLiveClock() {
       const clockEl = document.getElementById('time-display');
       if (clockEl) {
@@ -1800,7 +1687,6 @@
       }
     }
 
-    // Window Load Initialization
     window.onload = function() {
       loadStateFromLocalStorage();
       setInterval(updateLiveClock, 1000);
