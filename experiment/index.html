@@ -44,15 +44,15 @@
       text-shadow: 0 0 6px rgba(56, 189, 248, 0.6);
     }
 
-    /* Print Styles */
+    <!-- Print Styles -->
     #print-area {
       display: none;
     }
 
     @media print {
       @page {
-        size: auto;
-        margin: 0mm;
+        size: portrait;
+        margin: 5mm;
       }
       html, body {
         background: #ffffff !important;
@@ -1066,107 +1066,94 @@
       }
       const currentPassToken = activePassenger.securityToken;
 
-      logTerminal(`PRINTING BOARDING PASS FOR ${activePassenger.name} [TOKEN: ${currentPassToken}]...`, 'warn');
+      logTerminal(`PRINTING PORTRAIT BOARDING PASS FOR ${activePassenger.name} [TOKEN: ${currentPassToken}]...`, 'warn');
       playChimeSound();
 
       const printContainer = document.getElementById('printable-thermal-receipt');
       const pnr = activePassenger.pnr;
       const passClass = activePassenger.cabin || 'ECONOMY CLASS';
 
-      // DISTINCT BOARDING PASS DOCUMENT STRUCTURE (NOT A MANIFEST RECEIPT)
+      // PORTRAIT BOARDING PASS DOCUMENT STRUCTURE FOR THERMAL & STANDARD PRINTERS
       printContainer.innerHTML = `
-        <div class="print-single-page" style="width: 205mm; min-height: 90mm; margin: 0 auto; padding: 4mm; font-family: 'Inter', system-ui, sans-serif; background: #ffffff; color: #000000; box-sizing: border-box;">
-          <div style="border: 2px solid #0369a1; border-radius: 8px; overflow: hidden; background: #ffffff;">
+        <div class="print-single-page" style="width: 80mm; margin: 0 auto; padding: 2mm; font-family: 'Inter', system-ui, sans-serif; background: #ffffff; color: #000000; box-sizing: border-box;">
+          <div style="border: 2px solid #0369a1; border-radius: 6px; overflow: hidden; background: #ffffff;">
             
             <!-- Pass Header -->
-            <div style="background-color: #0369a1; color: #ffffff; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="background-color: #0369a1; color: #ffffff; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center;">
               <div>
-                <div style="font-size: 13pt; font-weight: 900; letter-spacing: 1px; text-transform: uppercase;">AEROSKY AIRLINES</div>
-                <div style="font-size: 7.5pt; font-weight: 700; opacity: 0.9;">OFFICIAL PASSENGER BOARDING PASS &bull; TKN: ${currentPassToken}</div>
+                <div style="font-size: 10pt; font-weight: 900; letter-spacing: 0.5px; text-transform: uppercase;">AEROSKY AIRLINES</div>
+                <div style="font-size: 6.5pt; font-weight: 700; opacity: 0.9;">BOARDING PASS &bull; TKN: ${currentPassToken}</div>
               </div>
               <div style="text-align: right;">
-                <div style="font-size: 12pt; font-weight: 900; text-transform: uppercase; color: #fde047;">${passClass}</div>
-                <div style="font-size: 8pt; font-weight: 700;">FLIGHT ${activePassenger.flightNo}</div>
+                <div style="font-size: 9pt; font-weight: 900; text-transform: uppercase; color: #fde047;">${passClass}</div>
+                <div style="font-size: 7.5pt; font-weight: 700;">FLT ${activePassenger.flightNo}</div>
               </div>
             </div>
 
-            <!-- Pass Body Grid -->
-            <div style="padding: 14px 18px; display: grid; grid-template-columns: 140px 1fr 140px; gap: 16px; align-items: center;">
+            <!-- Pass Body Stack (Portrait Optimized) -->
+            <div style="padding: 10px; display: flex; flex-direction: column; gap: 8px;">
               
-              <!-- PDF417 Barcode Column -->
-              <div style="text-align: center; border-right: 1px dashed #cbd5e1; padding-right: 14px;">
-                <canvas id="main-pdf417-canvas" style="display: block; margin: 0 auto;"></canvas>
-                <div style="font-size: 6.5pt; font-family: monospace; font-weight: 800; margin-top: 4px;">SECURE BARCODE</div>
+              <!-- Passenger Name -->
+              <div style="border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">
+                <span style="font-size: 6.5pt; color: #64748b; font-weight: 700; display: block; text-transform: uppercase;">Passenger Name</span>
+                <strong style="font-size: 11pt; font-weight: 900; text-transform: uppercase; color: #0f172a;">${activePassenger.name}</strong>
               </div>
 
-              <!-- Main Details Column -->
-              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
-                <div style="grid-column: span 3;">
-                  <span style="font-size: 7pt; color: #64748b; font-weight: 700; display: block; text-transform: uppercase;">Passenger Name</span>
-                  <strong style="font-size: 13pt; font-weight: 900; text-transform: uppercase; color: #0f172a;">${activePassenger.name}</strong>
-                </div>
-
+              <!-- Route Grid -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">
                 <div>
-                  <span style="font-size: 7pt; color: #64748b; font-weight: 700; display: block; text-transform: uppercase;">From</span>
-                  <strong style="font-size: 10pt; font-weight: 800; color: #0f172a;">${activePassenger.origin} (CHICAGO ORD)</strong>
+                  <span style="font-size: 6.5pt; color: #64748b; font-weight: 700; display: block; text-transform: uppercase;">From</span>
+                  <strong style="font-size: 9pt; font-weight: 800; color: #0f172a;">${activePassenger.origin} (CHICAGO ORD)</strong>
                 </div>
                 <div>
-                  <span style="font-size: 7pt; color: #64748b; font-weight: 700; display: block; text-transform: uppercase;">To</span>
-                  <strong style="font-size: 10pt; font-weight: 800; color: #0f172a;">${activePassenger.destination} (${activePassenger.destCity})</strong>
-                </div>
-                <div>
-                  <span style="font-size: 7pt; color: #64748b; font-weight: 700; display: block; text-transform: uppercase;">PNR / E-TKT</span>
-                  <strong style="font-size: 10pt; font-weight: 900; color: #0284c7;">${pnr}</strong>
-                </div>
-
-                <div>
-                  <span style="font-size: 7pt; color: #64748b; font-weight: 700; display: block; text-transform: uppercase;">Flight</span>
-                  <strong style="font-size: 11pt; font-weight: 900; color: #0284c7;">${activePassenger.flightNo}</strong>
-                </div>
-                <div>
-                  <span style="font-size: 7pt; color: #64748b; font-weight: 700; display: block; text-transform: uppercase;">Gate</span>
-                  <strong style="font-size: 12pt; font-weight: 900; color: #0369a1;">${activePassenger.gate}</strong>
-                </div>
-                <div>
-                  <span style="font-size: 7pt; color: #64748b; font-weight: 700; display: block; text-transform: uppercase;">Seat</span>
-                  <strong style="font-size: 14pt; font-weight: 900; color: #0369a1; background: #e0f2fe; padding: 2px 8px; border-radius: 4px; display: inline-block;">${activePassenger.seat}</strong>
-                </div>
-
-                <div>
-                  <span style="font-size: 7pt; color: #64748b; font-weight: 700; display: block; text-transform: uppercase;">Boarding Time</span>
-                  <strong style="font-size: 10pt; font-weight: 900;">${activePassenger.boardingTime}</strong>
-                </div>
-                <div>
-                  <span style="font-size: 7pt; color: #64748b; font-weight: 700; display: block; text-transform: uppercase;">Departure</span>
-                  <strong style="font-size: 10pt; font-weight: 900;">${activePassenger.flightTime}</strong>
-                </div>
-                <div>
-                  <span style="font-size: 7pt; color: #64748b; font-weight: 700; display: block; text-transform: uppercase;">Terminal</span>
-                  <strong style="font-size: 10pt; font-weight: 900;">${activePassenger.terminal}</strong>
+                  <span style="font-size: 6.5pt; color: #64748b; font-weight: 700; display: block; text-transform: uppercase;">To</span>
+                  <strong style="font-size: 9pt; font-weight: 800; color: #0f172a;">${activePassenger.destination} (${activePassenger.destCity})</strong>
                 </div>
               </div>
 
-              <!-- Flight Stub Column -->
-              <div style="border-left: 2px dashed #94a3b8; padding-left: 14px; display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+              <!-- Flight Details Grid -->
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; text-align: center;">
+                <div style="background: #f8fafc; padding: 4px; border-radius: 4px;">
+                  <span style="font-size: 6pt; color: #64748b; font-weight: 700; display: block; text-transform: uppercase;">Flight</span>
+                  <strong style="font-size: 9pt; font-weight: 900; color: #0284c7;">${activePassenger.flightNo}</strong>
+                </div>
+                <div style="background: #f8fafc; padding: 4px; border-radius: 4px;">
+                  <span style="font-size: 6pt; color: #64748b; font-weight: 700; display: block; text-transform: uppercase;">Gate</span>
+                  <strong style="font-size: 10pt; font-weight: 900; color: #0369a1;">${activePassenger.gate}</strong>
+                </div>
+                <div style="background: #e0f2fe; padding: 4px; border-radius: 4px;">
+                  <span style="font-size: 6pt; color: #0369a1; font-weight: 700; display: block; text-transform: uppercase;">Seat</span>
+                  <strong style="font-size: 11pt; font-weight: 900; color: #0369a1;">${activePassenger.seat}</strong>
+                </div>
+              </div>
+
+              <!-- Time & PNR Info Grid -->
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; font-size: 8pt;">
                 <div>
-                  <div style="font-size: 6.5pt; font-weight: 800; color: #64748b; text-transform: uppercase;">GATE STUB</div>
-                  <div style="font-size: 9pt; font-weight: 900; text-transform: uppercase; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${activePassenger.name}</div>
-                  <div style="font-size: 8pt; font-weight: 800; color: #0284c7; margin-top: 4px;">FLT: ${activePassenger.flightNo}</div>
-                  <div style="font-size: 8pt; font-weight: 800; margin-top: 2px;">SEAT: ${activePassenger.seat}</div>
-                  <div style="font-size: 8pt; font-weight: 800; margin-top: 2px;">GATE: ${activePassenger.gate}</div>
+                  <span style="font-size: 6pt; color: #64748b; font-weight: 700; display: block; text-transform: uppercase;">Boarding</span>
+                  <strong>${activePassenger.boardingTime}</strong>
                 </div>
-                <div style="margin-top: 10px; text-align: center;">
-                  <canvas id="stub-pdf417-canvas" style="display: block; margin: 0 auto;"></canvas>
+                <div>
+                  <span style="font-size: 6pt; color: #64748b; font-weight: 700; display: block; text-transform: uppercase;">Departure</span>
+                  <strong>${activePassenger.flightTime}</strong>
                 </div>
+                <div>
+                  <span style="font-size: 6pt; color: #64748b; font-weight: 700; display: block; text-transform: uppercase;">PNR / E-TKT</span>
+                  <strong style="color: #0284c7;">${pnr}</strong>
+                </div>
+              </div>
+
+              <!-- Barcode Section (Portrait Centered) -->
+              <div style="margin-top: 4px; padding-top: 6px; border-top: 1px dashed #cbd5e1; text-align: center;">
+                <canvas id="main-pdf417-canvas" style="display: block; margin: 0 auto; max-width: 100%;"></canvas>
+                <div style="font-size: 6.5pt; font-family: monospace; font-weight: 800; margin-top: 3px;">SECURE BARCODE TOKEN: ${currentPassToken}</div>
               </div>
 
             </div>
 
             <!-- Pass Footer -->
-            <div style="background-color: #f1f5f9; padding: 6px 18px; border-top: 1px solid #cbd5e1; display: flex; justify-content: space-between; font-size: 7.5pt; font-weight: 800; color: #334155;">
-              <span>SEQUENCE: #042 &bull; FREQUENT FLYER: ACTIVE</span>
-              <span>PLEASE PRESENT PASSPORT AND BOARDING PASS AT GATE</span>
-              <span>BOARDING CLOSES 15 MINS PRIOR TO DEPARTURE</span>
+            <div style="background-color: #f1f5f9; padding: 4px 10px; border-top: 1px solid #cbd5e1; text-align: center; font-size: 6.5pt; font-weight: 800; color: #334155;">
+              SEQUENCE: #042 &bull; PLEASE PRESENT PASSPORT & BOARDING PASS AT GATE
             </div>
 
           </div>
@@ -1178,16 +1165,8 @@
           bwipjs.toCanvas('main-pdf417-canvas', {
             bcid: 'pdf417',
             text: `${currentPassToken}`,
-            scale: 1.8,
-            height: 24,
-            rotate: 'R'
-          });
-
-          bwipjs.toCanvas('stub-pdf417-canvas', {
-            bcid: 'pdf417',
-            text: `${currentPassToken}`,
-            scale: 1.2,
-            height: 12
+            scale: 1.6,
+            height: 20
           });
         } catch(e) {
           console.error("PDF417 Render Error:", e);
@@ -1206,7 +1185,7 @@
           saveStateToLocalStorage();
           updatePassengerPanelDisplay();
 
-          logTerminal(`[SECURITY] BOARDING PASS PRINTED FOR ${activePassenger.name}. TOKEN STORED IN MANIFEST: ${currentPassToken}`, 'success');
+          logTerminal(`[SECURITY] PORTRAIT BOARDING PASS PRINTED FOR ${activePassenger.name}.`, 'success');
         }, 180);
       }, 100);
     }
