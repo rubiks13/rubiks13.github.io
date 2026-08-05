@@ -659,17 +659,13 @@ function openPrintWindow(title, bodyHtml, scriptBody){
   .row{ display:flex; justify-content:space-between; gap:4mm; font-size:16px; margin:1mm 0; }
   .row span:last-child{ text-align:right; }
   .grid{ display:flex; flex-direction:column; }
-  .bcgrid{ display:grid; grid-template-columns: 1fr 1fr; gap: 4mm 4mm; margin-top:2mm; width: 100%; }
-  .bccell{ text-align:center; padding: 2mm 1mm; overflow: hidden; }
+  .bcgrid{ display:grid; grid-template-columns:1fr 1fr; gap:2mm 2mm; margin-top:2mm; }
+  .bccell{ text-align:center; }
   .tag{ text-align:center; padding:2mm 0 3mm 0; margin-bottom:3mm; border-bottom:3px solid #000; }
   .tag:last-child{ border-bottom:none; }
-  canvas{ max-width:100%; height:auto; display:inline-block; image-rendering:pixelated; }
+  canvas{ max-width:100%; image-rendering:pixelated; }
   .small{ font-size:14px; font-weight:700; }
   .code{ font-size:15px; letter-spacing:2px; margin-top:1mm; font-weight:900; }
-  .closebtn{
-    margin-top:4mm; padding:8px 14px; font-family:inherit; font-size:14px;
-    cursor:pointer;
-  }
   .bp-header{
     background:#1a4fa0; color:#fff;
     display:flex; align-items:center; gap:3mm; padding:4mm 3mm 2mm 3mm;
@@ -697,9 +693,6 @@ function openPrintWindow(title, bodyHtml, scriptBody){
 </head>
 <body>
 ${bodyHtml}
-<div class="center no-print">
-  <button class="closebtn" onclick="window.close()">Close</button>
-</div>
 <script src="${BWIP_URL}"><\/script>
 <script>
 ${scriptBody}
