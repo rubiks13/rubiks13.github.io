@@ -745,6 +745,14 @@
         passengerDatabase[idx].seat = formattedSeat;
         passengerDatabase[idx].cabin = activePassenger.cabin;
       }
+
+      saveStateToLocalStorage();
+      playChimeSound();
+      logTerminal(`SEAT ASSIGNED: ${formattedSeat} (${activePassenger.cabin})`, 'success');
+      updatePassengerPanelDisplay();
+      closeModal('seatmap-modal');
+    }
+
     /* REALISTIC BOARDING PASS PRINT ENGINE (ROTATED LANDSCAPE FOR PORTRAIT PRINTING) */
     function printBoardingPassCLI() {
       if (!activePassenger) return;
