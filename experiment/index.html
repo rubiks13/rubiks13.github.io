@@ -524,13 +524,15 @@
             playErrorSound();
             break;
           }
-          const weightVal = parseFloat(main === 'ADD' ? arg2 : arg1);
-          if (isNaN(weightVal) || weightVal <= 0) {
-            document.getElementById('numpad-modal').classList.remove('hidden');
-            logTerminal('Opening Baggage Scale Numpad...', 'system');
+          const weightInput = parseFloat(main === 'ADD' ? arg2 : arg1);
+          if (!isNaN(weightInput) && weightInput > 0) {
+            numpadValue = weightInput.toFixed(1);
           } else {
-            addBagToActivePassenger(weightVal);
+            numpadValue = '20.0';
           }
+          updateNumpadDisplay();
+          document.getElementById('numpad-modal').classList.remove('hidden');
+          logTerminal('Baggage Scale Numpad opened. Press ENTER to confirm weight and print boarding pass.', 'system');
           break;
 
         case 'SETST':
@@ -1374,10 +1376,46 @@
       badge.innerHTML = num > 23.0 ? `<span class="text-rose-400 font-bold">HEAVY BAG (>23.0 KG)</span>` : `<span class="text-emerald-400">STANDARD ALLOWANCE</span>`;
     }
 
+    function autoAssignSeatIfNone() {
+      if (!activePassenger) return;
+      if (!activePassenger.seat || activePassenger.seat === 'NOT ASSIGNED') {
+        const flight = activePassenger.flightNo;
+        const occupied = occupiedSeatsByFlight[flight] || [];
+        let assigned = null;
+        const cols = ['A', 'B', 'C', 'D', 'E', 'F'];
+        for (let r = 7; r <= 18; r++) {
+          const rowStr = String(r).padStart(2, '0');
+          for (const c of cols) {
+            const s = `${rowStr}${c}`;
+            if (!occupied.includes(s)) {
+              assigned = s;
+              break;
+            }
+          }
+          if (assigned) break;
+        }
+        if (!assigned) assigned = '07A';
+        assignSeatToActivePassenger(assigned);
+      }
+    }
+
     function confirmNumpadWeight() {
+      if (!activePassenger) {
+        logTerminal('ERROR: No passenger loaded to add baggage.', 'error');
+        closeModal('numpad-modal');
+        return;
+      }
       const weight = Math.max(0.1, parseFloat(numpadValue || '0'));
       closeModal('numpad-modal');
+      
+      // 1. Add baggage to passenger
       addBagToActivePassenger(weight);
+      
+      // 2. Auto-assign a seat if passenger doesn't have one yet
+      autoAssignSeatIfNone();
+      
+      // 3. Automatically trigger Boarding Pass printing
+      printBoardingPassCLI();
     }
 
     function closeModal(id) {
@@ -1390,6 +1428,33 @@
     let barcodeTimeout = null;
 
     document.addEventListener('keydown', (e) => {
+      const numpadModal = document.getElementById('numpad-modal');
+      const isNumpadOpen = numpadModal && !numpadModal.classList.contains('hidden');
+
+      // Intercept keypresses when the Baggage Numpad Modal is visible
+      if (isNumpadOpen) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          confirmNumpadWeight();
+          return;
+        }
+        if (e.key === 'Backspace') {
+          e.preventDefault();
+          numpadBackspace();
+          return;
+        }
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          closeModal('numpad-modal');
+          return;
+        }
+        if (/^[0-9.]$/.test(e.key)) {
+          e.preventDefault();
+          numpadAppend(e.key);
+          return;
+        }
+      }
+
       const termInput = document.getElementById('terminal-input');
 
       // Command history traversal (Up/Down arrow keys)
