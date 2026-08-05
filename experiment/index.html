@@ -703,8 +703,17 @@
       } else if (cmd === 'WIPE' || cmd === 'CLEAR') {
         resetLocalDatabaseCLI();
       } else {
-        logTerminal(`UNKNOWN COMMAND '${inputStr}'. Type <span class="text-emerald-300 font-bold">help</span> for command list.`, 'error');
-        playErrorSound();
+        // Check if raw input matches a passenger token, PNR, or name directly in IDLE mode
+        const directMatch = passengerDatabase.find(p => p.securityToken === upper || p.pnr === upper || p.name.toUpperCase().includes(upper));
+        if (directMatch) {
+          activePassenger = directMatch;
+          updatePassengerPanelDisplay();
+          playChimeSound();
+          logTerminal(`LOADED PASSENGER RECORD: <strong class="text-white">${directMatch.name}</strong> [PNR: ${directMatch.pnr}] | FLIGHT: ${directMatch.flightNo}`, 'success');
+        } else {
+          logTerminal(`UNKNOWN COMMAND '${inputStr}'. Type <span class="text-emerald-300 font-bold">help</span> for command list.`, 'error');
+          playErrorSound();
+        }
       }
     }
 
