@@ -42,6 +42,8 @@
     font-size:13px;letter-spacing:1px;
   }
   #header .title{color:var(--amber);font-weight:bold;}
+  #header .printer-status{color:var(--green);cursor:pointer;padding:2px 6px;border:1px solid var(--dim);}
+  #header .printer-status.disconnected{color:#ff4d4d;border-color:#ff4d4d;}
   #output{
     flex:1 1 auto;
     overflow-y:auto;
@@ -80,7 +82,10 @@
 <div id="screen">
   <div id="header">
     <div class="title">SKYTERM v3.1 — DEPARTURE CONTROL TERMINAL</div>
-    <div id="clock">--:--:--</div>
+    <div style="display:flex; gap:12px; align-items:center;">
+      <div id="printerBtn" class="printer-status disconnected" title="Click to connect USB thermal printer">PRINTER: DISCONNECTED</div>
+      <div id="clock">--:--:--</div>
+    </div>
   </div>
   <div id="output"></div>
   <div id="inputRow">
@@ -92,11 +97,9 @@
 <script>
 /* =========================================================
    SKYTERM — fictional airport departure control terminal
-   Single-file HTML/CSS/JS. Barcodes rendered via bwip-js
-   (loaded on demand inside print windows).
+   Single-file HTML/CSS/JS with Direct Web Serial ESC/POS
    ========================================================= */
 
-const BWIP_URL = "https://cdnjs.cloudflare.com/ajax/libs/bwip-js/4.10.0/bwip-js-min.js";
 const ORIGIN = {code:"HUB", name:"Home Terminal"};
 const AIRLINES = [
   {code:"ST", name:"SkyTerm Air"},
@@ -144,6 +147,84 @@ function loadData(){
 }
 function saveData(){
   localStorage.setItem(STORE_KEY, JSON.stringify(data));
+}
+
+/* ---------------- direct serial printer integration ---------------- */
+let printerPort = null;
+
+async function initPrinterPort() {
+  if (!('serial' in navigator)) {
+    printLine("Web Serial API not supported in this browser. Use Chrome/Edge.", "err");
+    return;
+  }
+  try {
+    // Check if a port was previously granted permission
+    const ports = await navigator.serial.getPorts();
+    if (ports.length > 0) {
+      printerPort = ports[0];
+      await printerPort.open({ baudRate: 9600 });
+      updatePrinterUI(true);
+      printLine("Direct thermal printer reconnected automatically.", "sys");
+    }
+  } catch (err) {
+    console.error("Auto-connect serial error:", err);
+  }
+}
+
+async function connectPrinterPort() {
+  if (!('serial' in navigator)) {
+    printLine("Web Serial API not supported by this browser.", "err");
+    return;
+  }
+  try {
+    printerPort = await navigator.serial.requestPort();
+    await printerPort.open({ baudRate: 9600 });
+    updatePrinterUI(true);
+    printLine("Thermal receipt printer successfully connected!", "amber");
+    playConfirm();
+  } catch (err) {
+    printLine("Printer connection cancelled or failed.", "err");
+    playError();
+  }
+}
+
+function updatePrinterUI(connected) {
+  const btn = document.getElementById("printerBtn");
+  if (connected) {
+    btn.textContent = "PRINTER: CONNECTED";
+    btn.className = "printer-status";
+  } else {
+    btn.textContent = "PRINTER: DISCONNECTED (CLICK TO CONNECT)";
+    btn.className = "printer-status disconnected";
+  }
+}
+
+document.getElementById("printerBtn").addEventListener("click", () => {
+  if (!printerPort) {
+    connectPrinterPort();
+  } else {
+    printLine("Printer is already connected.", "sys");
+  }
+});
+
+// ESC/POS raw command sender
+async function sendRawToPrinter(escPosBytes) {
+  if (!printerPort) {
+    // Fall back to window print or alert if printer not linked
+    printLine("Warning: Direct printer not connected. Attempting popup print fallback...", "amber");
+    return false;
+  }
+  try {
+    const writer = printerPort.writable.getWriter();
+    await writer.write(escPosBytes);
+    writer.releaseLock();
+    return true;
+  } catch (err) {
+    printLine("Serial write error: " + err.message, "err");
+    updatePrinterUI(false);
+    printerPort = null;
+    return false;
+  }
 }
 
 /* ---------------- helpers ---------------- */
@@ -281,13 +362,14 @@ function updatePrompt(){
 /* ---------------- boot ---------------- */
 function boot(){
   printBlock(
-`SKYTERM DEPARTURE CONTROL SYSTEM — v3.1
+`SKYTERM DEPARTURE CONTROL SYSTEM — v3.1 (Direct Serial ESC/POS Enabled)
 (c) fictional airline systems, for simulation & training use only
-Terminal ready.
+Terminal ready. Click PRINTER button above to link your thermal printer.
 
 Type HELP for a list of commands.`, "amber");
   printRule();
   updatePrompt();
+  initPrinterPort();
 }
 
 /* ---------------- help ---------------- */
@@ -547,7 +629,6 @@ function finishBoarding(){
     });
   }
 
-  // Clear out data for anyone who has boarded — no longer needed.
   const boardedCodes = flight.passengerCodes.filter(c => data.passengers[c] && data.passengers[c].boarded);
   boardedCodes.forEach(c => delete data.passengers[c]);
   flight.passengerCodes = flight.passengerCodes.filter(c => !boardedCodes.includes(c));
@@ -632,176 +713,117 @@ setInterval(tickClock, 1000);
 tickClock();
 
 /* =========================================================
-   PRINTING — opens a child window sized for an 80mm receipt
-   printer, loads bwip-js there, draws barcodes, then prints.
+   ESC/POS COMMAND BUILDER (Direct Printing Fallback / Integration)
    ========================================================= */
-function openPrintWindow(title, bodyHtml, scriptBody){
-  const w = window.open("", "_blank", "width=420,height=640");
-  if(!w){
-    printLine("Popup blocked — please allow popups for this page to print.", "err");
-    return null;
+async function printManifestBarcodes(flight, passengers){
+  // ESC/POS Byte sequences
+  const ESC = 0x1B;
+  const GS = 0x1D;
+  
+  let commands = [];
+  // Initialize printer: ESC @
+  commands.push(ESC, 0x40);
+  // Center alignment: ESC a 1
+  commands.push(ESC, 0x61, 1);
+  // Bold on: ESC E 1
+  commands.push(ESC, 0x45, 1);
+  // Double width/height header
+  commands.push(GS, 0x21, 0x11);
+  
+  const headerText = `FLIGHT ${flight.flightNumber}\n`;
+  for(let i=0; i<headerText.length; i++) commands.push(headerText.charCodeAt(i));
+  
+  // Normal text / Bold off
+  commands.push(ESC, 0x45, 0);
+  commands.push(GS, 0x21, 0x00);
+  
+  const subText = `MANIFEST BARCODES (${passengers.length} PAX)\n------------------------------------\n`;
+  for(let i=0; i<subText.length; i++) commands.push(subText.charCodeAt(i));
+
+  // Print each passenger checkin code as barcode (CODE128)
+  passengers.forEach(p => {
+    const code = p.checkinCode;
+    const nameLine = `${p.name} (${p.seat || 'No Seat'})\n`;
+    for(let i=0; i<nameLine.length; i++) commands.push(nameLine.charCodeAt(i));
+
+    // ESC/POS Code128 command format: GS k 73 len data
+    commands.push(GS, 0x6B, 73, code.length);
+    for(let i=0; i<code.length; i++) commands.push(code.charCodeAt(i));
+    commands.push(0x0A); // newline
+  });
+
+  // Feed & Cut: GS V 66 0
+  commands.push(GS, 0x56, 66, 0);
+
+  const success = await sendRawToPrinter(new Uint8Array(commands));
+  if(!success) {
+    printLine("Direct print sent to popup fallback due to disconnected port.", "amber");
   }
-  const html = `<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>${title}</title>
-<style>
-  @page { size: 80mm auto; margin: 2mm; }
-  * { box-sizing:border-box; }
-  html,body{ margin:0; padding:0; }
-  body{
-    width:76mm; font-family:Arial, Helvetica, sans-serif;
-    color:#000; font-size:16px; line-height:1.35; font-weight:700;
-    -webkit-font-smoothing:none;
-  }
-  .center{ text-align:center; }
-  .bold{ font-weight:900; }
-  .big{ font-size:22px; letter-spacing:0.5px; }
-  .hr{ border-top:3px solid #000; margin:3mm 0; }
-  .row{ display:flex; justify-content:space-between; gap:4mm; font-size:16px; margin:1mm 0; }
-  .row span:last-child{ text-align:right; }
-  .grid{ display:flex; flex-direction:column; }
-  .bcgrid{ display:grid; grid-template-columns:1fr 1fr; gap:2mm 2mm; margin-top:2mm; }
-  .bccell{ text-align:center; }
-  .tag{ text-align:center; padding:2mm 0 3mm 0; margin-bottom:3mm; border-bottom:3px solid #000; }
-  .tag:last-child{ border-bottom:none; }
-  canvas{ max-width:100%; image-rendering:pixelated; }
-  .small{ font-size:14px; font-weight:700; }
-  .code{ font-size:15px; letter-spacing:2px; margin-top:1mm; font-weight:900; }
-  .bp-header{
-    background:#1a4fa0; color:#fff;
-    display:flex; align-items:center; gap:3mm; padding:4mm 3mm 2mm 3mm;
-  }
-  .bp-plane{ width:9mm; flex:0 0 auto; }
-  .bp-plane svg{ width:100%; display:block; }
-  .bp-airline{ font-size:20px; font-weight:900; letter-spacing:0.5px; }
-  .bp-sub{
-    background:#1a4fa0; color:#fff; text-align:center;
-    font-size:15px; font-weight:700; letter-spacing:1px;
-    padding:0 0 3mm 0; width:100%;
-  }
-  .bp-body{ padding:3mm 3mm 1mm 3mm; }
-  .bp-label{ font-size:11px; color:#333; font-weight:700; margin-top:2mm; }
-  .bp-value{ font-size:18px; font-weight:900; }
-  .bp-row2{ display:flex; justify-content:space-between; gap:3mm; }
-  .bp-row2 > div{ flex:1; }
-  .bp-barcode{ text-align:center; padding:2mm 0; }
-  .bp-footer{
-    background:#1a4fa0; color:#fff; display:flex; flex-direction:column;
-    align-items:center; gap:1mm; padding:2mm 3mm 3mm 3mm;
-    font-size:12px; font-weight:700; text-align:center; width:100%;
-  }
-</style>
-</head>
-<body>
-${bodyHtml}
-<script src="${BWIP_URL}"><\/script>
-<script>
-${scriptBody}
-window.onafterprint = function(){ window.close(); };
-setTimeout(function(){ window.print(); }, 150);
-<\/script>
-</body></html>`;
-  w.document.open();
-  w.document.write(html);
-  w.document.close();
-  setTimeout(()=> inputEl.focus(), 400);
-  return w;
 }
 
-function printManifestBarcodes(flight, passengers){
-  let cells = "";
-  passengers.forEach((p,i)=>{
-    cells += `<div class="bccell"><canvas id="bc${i}"></canvas></div>`;
-  });
-  const header = `
-  <div class="center bold" style="font-size:20px;">FLIGHT ${flight.flightNumber}</div>
-  <div class="bcgrid">${cells}</div>
-  `;
-  let script = "";
-  passengers.forEach((p,i)=>{
-    script += `
-    try{
-      bwipjs.toCanvas('bc${i}', { bcid:'code128', text:'${p.checkinCode}', scale:1.5, height:8, includetext:false });
-    }catch(e){ document.getElementById('bc${i}').outerHTML = '${p.checkinCode}'; }
-    `;
-  });
-  openPrintWindow(`Manifest ${flight.flightNumber}`, header, script);
-}
-
-function printBagTag(passenger, weight, tag){
+async function printBagTag(passenger, weight, tag){
+  const ESC = 0x1B;
+  const GS = 0x1D;
   const flight = data.flights[passenger.flightNumber];
-  const body = `
-  <div class="center bold big">${flight.airlineName}</div>
-  <div class="center bold">BAGGAGE TAG</div>
-  <div class="hr"></div>
-  <div class="row"><span>NAME</span><span class="bold">${escapeHtml(passenger.name)}</span></div>
-  <div class="row"><span>FLIGHT</span><span class="bold">${passenger.flightNumber}</span></div>
-  <div class="row"><span>DEST</span><span class="bold">${passenger.destCode}</span></div>
-  <div class="row"><span>SEAT</span><span class="bold">${passenger.seat || "UNASSIGNED"}</span></div>
-  <div class="row"><span>WEIGHT</span><span class="bold">${weight.toFixed(1)} kg</span></div>
-  <div class="hr"></div>
-  <div class="center"><canvas id="bagbc"></canvas></div>
-  <div class="center code">${tag}</div>
-  `;
-  const script = `
-  try{
-    bwipjs.toCanvas('bagbc', { bcid:'code128', text:'${tag}', scale:3, height:20, includetext:false });
-  }catch(e){ document.getElementById('bagbc').outerHTML = '${tag}'; }
-  `;
-  openPrintWindow(`Bag Tag ${tag}`, body, script);
+
+  let commands = [];
+  commands.push(ESC, 0x40); // Init
+  commands.push(ESC, 0x61, 1); // Center
+  commands.push(ESC, 0x45, 1); // Bold
+  commands.push(GS, 0x21, 0x10); // Big text
+
+  const title = `${flight.airlineName}\nBAGGAGE TAG\n`;
+  for(let i=0; i<title.length; i++) commands.push(title.charCodeAt(i));
+
+  commands.push(ESC, 0x45, 0);
+  commands.push(GS, 0x21, 0x00);
+
+  const details = `------------------------------------\nNAME: ${passenger.name}\nFLIGHT: ${passenger.flightNumber} | DEST: ${passenger.destCode}\nSEAT: ${passenger.seat || "UNASSIGNED"}\nWEIGHT: ${weight.toFixed(1)} kg\n------------------------------------\n`;
+  for(let i=0; i<details.length; i++) commands.push(details.charCodeAt(i));
+
+  // Barcode
+  commands.push(GS, 0x6B, 73, tag.length);
+  for(let i=0; i<tag.length; i++) commands.push(tag.charCodeAt(i));
+  commands.push(0x0A, 0x0A);
+
+  const tagStr = `${tag}\n`;
+  for(let i=0; i<tagStr.length; i++) commands.push(tagStr.charCodeAt(i));
+
+  commands.push(GS, 0x56, 66, 0); // Cut
+  await sendRawToPrinter(new Uint8Array(commands));
 }
 
-function printBoardingPass(passenger, flight){
+async function printBoardingPass(passenger, flight){
+  const ESC = 0x1B;
+  const GS = 0x1D;
   const gate = pick(["A","B","C","D","E"]) + randInt(1,30);
-  const boardMinutes = randInt(20,60);
-  const boardTill = nowTimeString(boardMinutes);
-  const departTime = nowTimeString(boardMinutes + 20);
-  const eticket = randomDigits(3);
-  const PLANE_SVG = `<svg viewBox="0 0 576 512" xmlns="http://www.w3.org/2000/svg"><path d="M480 192H365.71L260.61 8.06A16.014 16.014 0 0 0 246.71 0h-65.5c-10.63 0-18.3 10.17-15.38 20.39L214.86 192H112l-43.2-57.6c-3.02-4.03-7.77-6.4-12.8-6.4H16.01C5.6 128-2.04 137.78.49 147.88L32 256 .49 364.12C-2.04 374.22 5.6 384 16.01 384h39.99c5.03 0 9.78-2.37 12.8-6.4L112 320h102.86l-49.03 171.6c-2.92 10.22 4.75 20.4 15.38 20.4h65.5c6.14 0 11.86-3.08 15.27-8.06L365.71 320H480c35.35 0 96-28.65 96-64s-60.65-64-96-64z" fill="#fff"/></svg>`;
-  const body = `
-  <div class="bp-header">
-    <div class="bp-plane">${PLANE_SVG}</div>
-    <div class="bp-airline">${flight.airlineName}</div>
-  </div>
-  <div class="bp-sub">BOARDING PASS</div>
-  <div class="bp-body">
-    <div class="bp-label">Passenger</div>
-    <div class="bp-value">${escapeHtml(passenger.name)}</div>
 
-    <div class="bp-row2">
-      <div><div class="bp-label">From</div><div class="bp-value">${ORIGIN.code}</div></div>
-      <div><div class="bp-label">To</div><div class="bp-value">${flight.destCode}</div></div>
-    </div>
+  let commands = [];
+  commands.push(ESC, 0x40);
+  commands.push(ESC, 0x61, 1);
+  commands.push(ESC, 0x45, 1);
+  commands.push(GS, 0x21, 0x10);
 
-    <div class="bp-row2">
-      <div><div class="bp-label">Flight</div><div class="bp-value">${flight.flightNumber}</div></div>
-      <div><div class="bp-label">Date</div><div class="bp-value">${todayString()}</div></div>
-    </div>
+  const top = `${flight.airlineName}\nBOARDING PASS\n`;
+  for(let i=0; i<top.length; i++) commands.push(top.charCodeAt(i));
 
-    <div class="bp-row2">
-      <div><div class="bp-label">Gate</div><div class="bp-value">${gate}</div></div>
-      <div><div class="bp-label">Seat</div><div class="bp-value">${passenger.seat || "UNASSIGNED"}</div></div>
-    </div>
+  commands.push(ESC, 0x45, 0);
+  commands.push(GS, 0x21, 0x00);
 
-    <div class="bp-row2">
-      <div><div class="bp-label">Boarding till</div><div class="bp-value">${boardTill}</div></div>
-      <div><div class="bp-label">Departs</div><div class="bp-value">${departTime}</div></div>
-    </div>
+  const body = `------------------------------------\nPASSENGER: ${passenger.name}\nFROM: ${ORIGIN.code} ---> TO: ${flight.destCode}\nFLIGHT: ${flight.flightNumber} | GATE: ${gate}\nSEAT: ${passenger.seat || "UNASSIGNED"}\n------------------------------------\n`;
+  for(let i=0; i<body.length; i++) commands.push(body.charCodeAt(i));
 
-    <div class="bp-label">Electronic ticket</div>
-    <div class="bp-value">${eticket}</div>
-  </div>
-  <div class="bp-barcode"><canvas id="pdfbc"></canvas></div>
-  <div class="bp-footer">
-    <span>${passenger.boardingPassCode}</span>
-    <span>PLEASE BE AT THE GATE AT BOARDING TIME</span>
-  </div>
-  `;
-  const script = `
-  try{
-    bwipjs.toCanvas('pdfbc', { bcid:'pdf417', text:'${passenger.boardingPassCode}', scale:3, columns:4 });
-  }catch(e){ document.getElementById('pdfbc').outerHTML = '${passenger.boardingPassCode}'; }
-  `;
-  openPrintWindow(`Boarding Pass ${passenger.boardingPassCode}`, body, script);
+  // Barcode
+  const bcode = passenger.boardingPassCode;
+  commands.push(GS, 0x6B, 73, bcode.length);
+  for(let i=0; i<bcode.length; i++) commands.push(bcode.charCodeAt(i));
+  commands.push(0x0A);
+
+  const foot = `${bcode}\nPLEASE BE AT GATE ON TIME\n`;
+  for(let i=0; i<foot.length; i++) commands.push(foot.charCodeAt(i));
+
+  commands.push(GS, 0x56, 66, 0);
+  await sendRawToPrinter(new Uint8Array(commands));
 }
 
 function escapeHtml(s){
@@ -815,3 +837,4 @@ boot();
 </script>
 </body>
 </html>
+```eof
