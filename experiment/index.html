@@ -130,7 +130,7 @@
     <div id="terminal-console" class="flex-1 overflow-y-auto bg-slate-950/90 border border-emerald-900/80 rounded-lg p-4 space-y-2 text-xs md:text-sm font-mono leading-relaxed shadow-2xl">
       <div class="text-slate-500 text-[11px] border-b border-slate-900 pb-2 mb-3">
         AEROSKY AIRWAYS COMMAND INTERFACE & BOARDING CONTROL<br>
-        Commands: <span class="text-emerald-300 font-bold">schdl</span> (Schedule Flight), <span class="text-amber-300 font-bold">brd</span> (Boarding Mode), <span class="text-sky-300 font-bold">pnr</span>, <span class="text-emerald-300 font-bold">addbg</span>, <span class="text-amber-300 font-bold">setst</span>, <span class="text-sky-300 font-bold">stmap</span>, <span class="text-emerald-300 font-bold">prtpass</span>, <span class="text-amber-300 font-bold">prtbg</span>, <span class="text-sky-300 font-bold">genbatch</span>, <span class="text-rose-400 font-bold">clear/wipe</span>.<br>
+        Commands: <span class="text-emerald-300 font-bold">schdl</span> (Schedule Flight), <span class="text-amber-300 font-bold">brd</span> (Boarding Mode), <span class="text-amber-400 font-bold">brd cmp</span> (Boarding Audit / Complete), <span class="text-sky-300 font-bold">pnr</span>, <span class="text-emerald-300 font-bold">addbg</span>, <span class="text-amber-300 font-bold">setst</span>, <span class="text-sky-300 font-bold">stmap</span>, <span class="text-emerald-300 font-bold">prtpass</span>, <span class="text-amber-300 font-bold">prtbg</span>, <span class="text-sky-300 font-bold">genbatch</span>, <span class="text-rose-400 font-bold">clear/wipe</span>.<br>
         Type <span class="text-emerald-300 font-bold">cmd</span> or <span class="text-emerald-300 font-bold">help</span> for command list.
       </div>
 
@@ -216,16 +216,21 @@
   <div id="batch-modal" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-emerald-800 rounded-xl max-w-4xl w-full p-4 shadow-2xl space-y-3 max-h-[92vh] flex flex-col text-xs font-mono">
       <div class="flex items-center justify-between border-b border-emerald-900 pb-2">
-        <h3 class="font-bold text-emerald-400 text-sm"><i class="fa-solid fa-barcode mr-2"></i>PAPER-CONSERVING BATCH BARCODE MANIFEST</h3>
+        <h3 class="font-bold text-emerald-400 text-sm"><i class="fa-solid fa-barcode mr-2"></i>RECEIPT PRINTER BATCH BARCODE MANIFEST</h3>
         <button onclick="closeModal('batch-modal')" class="text-slate-400 hover:text-white text-base">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
 
-      <div class="flex items-center justify-between bg-slate-950 p-2.5 rounded border border-emerald-900">
-        <span class="text-slate-400">Click any row to load passenger instantly. Dense barcode sheet available for printing.</span>
-        <button onclick="printBatchBarcodeSheet()" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black rounded text-xs">
-          PRINT DENSE BARCODE LIST
+      <div class="flex flex-wrap items-center justify-between bg-slate-950 p-2.5 rounded border border-emerald-900 gap-2">
+        <div class="flex items-center gap-2">
+          <label class="text-slate-400 text-[11px] font-bold">FILTER FLIGHT:</label>
+          <select id="batch-flight-select" onchange="renderBatchBarcodeList(this.value)" class="bg-slate-900 text-emerald-300 border border-emerald-800 rounded px-2 py-1 text-xs focus:outline-none">
+            <!-- Dynamic flight options populated here -->
+          </select>
+        </div>
+        <button onclick="printBatchBarcodeSheet()" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black rounded text-xs shadow">
+          <i class="fa-solid fa-print mr-1"></i> PRINT 2-COLUMN THERMAL RECEIPT
         </button>
       </div>
 
@@ -335,12 +340,6 @@
       '737': { name: 'Boeing 737 MAX 9', classStr: '2-Class (Biz/Econ)' }
     };
 
-    const FLIGHT_ROSTERS = [
-      { flightNo: 'AS4321', aircraft: 'Boeing 777-300ER', gate: 'C03', boardingTime: '11:20', flightTime: '11:40', arrivalTime: '13:30', terminal: '2', dest: 'LHR', destCity: 'LONDON HEATHROW' },
-      { flightNo: 'AS892', aircraft: 'Airbus A350-900', gate: 'C12', boardingTime: '14:20', flightTime: '14:45', arrivalTime: '18:10', terminal: '1', dest: 'CDG', destCity: 'PARIS CDG' },
-      { flightNo: 'AS401', aircraft: 'Boeing 787-9', gate: 'C08', boardingTime: '16:05', flightTime: '16:30', arrivalTime: '20:15', terminal: '3', dest: 'HND', destCity: 'TOKYO HANEDA' }
-    ];
-
     const MOCK_FIRST_NAMES = ['JAMES', 'ELEANOR', 'MARCUS', 'SOPHIA', 'ALEXANDER', 'DANIEL', 'OLIVIA', 'LIAM', 'EMMA', 'NOAH', 'ISABELLA', 'ETHAN', 'CHARLOTTE', 'BENJAMIN', 'LUCAS', 'AVA'];
     const MOCK_LAST_NAMES = ['SMITH', 'VANCE', 'THORNE', 'CHEN', 'RIVERS', 'WRIGHT', 'ROSSI', 'SANTOS', 'KIM', 'PATEL', 'HUGHES', 'BENNETT', 'CARTER', 'MURPHY', 'FOSTER'];
 
@@ -355,6 +354,7 @@
     let terminalState = 'IDLE'; // IDLE, SCHDL_DEST, SCHDL_AIRCRAFT, BRD_FLIGHT, BOARDING_MODE
     let schdlTempData = { dest: null, aircraft: null };
     let activeBoardingFlight = null;
+    let currentBatchFlightFilter = 'ALL';
 
     let audioEnabled = true;
     let audioCtx = null;
@@ -545,6 +545,12 @@
         return;
       }
 
+      // Check for Boarding Complete / Audit Command while in boarding or CLI
+      if (upper === 'BRD CMP' || upper === 'BRD COMP' || upper === 'BRD COMPLETE' || (terminalState === 'BOARDING_MODE' && upper === 'CMP')) {
+        executeBoardingCompleteAudit();
+        return;
+      }
+
       if (terminalState === 'SCHDL_DEST') {
         logTerminal(`> ${inputStr}`, 'cmd');
         const destObj = AIRPORT_DESTINATIONS.find(d => d.code === upper || upper.includes(d.code));
@@ -599,7 +605,7 @@
         logTerminal(`==================================================`, 'warn');
         logTerminal(`>>> BOARDING IN PROGRESS FOR FLIGHT [${fltCode}] <<<`, 'warn');
         logTerminal(`Scan passenger boarding pass barcode (PDF417 / Pass Token / PNR) now.`, 'success');
-        logTerminal(`Type 'exit' to end boarding mode.`, 'system');
+        logTerminal(`Type '<span class="text-amber-300 font-bold">brd cmp</span>' to audit unboarded passengers or 'exit' to end mode.`, 'system');
         logTerminal(`==================================================`, 'warn');
         return;
       }
@@ -630,6 +636,11 @@
       const arg1 = parts[1] || '';
       const arg2 = parts[2] || '';
 
+      if (main === 'BRD' && (arg1 === 'CMP' || arg1 === 'COMP' || arg1 === 'COMPLETE')) {
+        executeBoardingCompleteAudit();
+        return;
+      }
+
       switch (main) {
         case 'CMD':
         case 'HELP':
@@ -646,7 +657,14 @@
         case 'BRD':
         case 'BOARD':
         case 'BOARDING':
-          startBoardingMode();
+          if (arg1) {
+            activeBoardingFlight = arg1;
+            terminalState = 'BOARDING_MODE';
+            updateModeBadge(`BOARDING: ${arg1}`, 'bg-amber-950 text-amber-400 border-amber-600 animate-pulse');
+            logTerminal(`BOARDING MODE ACTIVE FOR FLIGHT ${arg1}. Type 'brd cmp' when finished.`, 'warn');
+          } else {
+            startBoardingMode();
+          }
           break;
 
         case 'PNR':
@@ -740,7 +758,7 @@
         case 'GENBATCH':
         case 'GEN':
         case 'BATCH':
-          openBatchModal();
+          openBatchModal(arg1 || null);
           break;
 
         case 'ROSTER':
@@ -751,7 +769,6 @@
         case 'CLEAR':
         case 'WIPE':
         case 'PURGE':
-        case 'ELIMINATE':
         case 'RESET':
           resetLocalDatabaseCLI();
           break;
@@ -769,36 +786,305 @@
     }
 
     function displayCommandManual() {
-      logTerminal(`
-===== AEROSKY CLI MANUAL =====
-• <span class="text-emerald-300 font-bold">schdl</span> : Step-by-step Flight Scheduling Wizard
-• <span class="text-amber-300 font-bold">brd</span> : Initiate Gate Boarding Mode & Pass Scan
-• <span class="text-white font-bold">PNR &lt;code&gt;</span> : Load passenger by PNR code
-• <span class="text-white font-bold">ADDBG [weight]</span> : Add baggage & print tag
-• <span class="text-white font-bold">SETST &lt;seat&gt;</span> : Assign seat (e.g., 'SETST 01A', 'SETST 12C')
-• <span class="text-white font-bold">STMAP</span> : Interactive multi-cabin seat map
-• <span class="text-white font-bold">PRTPASS</span> : Print Boarding Pass with Security Barcode
-• <span class="text-white font-bold">PRTBG</span> : Print thermal baggage routing tag
-• <span class="text-white font-bold">GENBATCH</span> : Dense paper-conserving barcode manifest sheet
-• <span class="text-white font-bold">ROSTER</span> : List pending flight roster
-• <span class="text-rose-400 font-bold">CLEAR / WIPE / PURGE / ELIMINATE</span> : Wipe all localStorage & reboot system
-=========================================
-      `, 'system');
+      logTerminal(`=== AEROSKY TERMINAL COMMAND MANUAL ===`, 'sky');
+      logTerminal(`  <span class="text-emerald-300 font-bold">SCHDL</span>         - Interactively schedule a flight & generate passenger manifest`, 'system');
+      logTerminal(`  <span class="text-amber-300 font-bold">BRD</span>           - Enter Gate Boarding Mode & scan barcode passes`, 'system');
+      logTerminal(`  <span class="text-amber-400 font-bold">BRD CMP</span>       - Complete gate boarding & perform unboarded audit`, 'system');
+      logTerminal(`  <span class="text-sky-300 font-bold">PNR [code]</span>    - Find and active-load passenger by PNR or name`, 'system');
+      logTerminal(`  <span class="text-emerald-300 font-bold">ADDBG [wt]</span>    - Weigh & add bag tag (e.g. ADDBG 23.0)`, 'system');
+      logTerminal(`  <span class="text-amber-300 font-bold">SETST [seat]</span>  - Assign seat (e.g. SETST 06A) or open seatmap`, 'system');
+      logTerminal(`  <span class="text-sky-300 font-bold">STMAP</span>         - Open interactive aircraft seat map`, 'system');
+      logTerminal(`  <span class="text-emerald-300 font-bold">PRTPASS</span>       - Print Boarding Pass with dynamic PDF417 barcode`, 'system');
+      logTerminal(`  <span class="text-amber-300 font-bold">PRTBG</span>         - Print IATA Luggage Tag with barcode`, 'system');
+      logTerminal(`  <span class="text-sky-300 font-bold">GENBATCH</span>      - Open thermal receipt batch barcode sheet`, 'system');
+      logTerminal(`  <span class="text-rose-400 font-bold">CLEAR / WIPE</span>  - Reset local system database`, 'system');
     }
 
-    /* WIZARD 1: SCHEDULING WORKFLOW (`schdl`) */
     function startSchedulingWizard() {
       terminalState = 'SCHDL_DEST';
       schdlTempData = { dest: null, aircraft: null };
+      logTerminal(`--------------------------------------------------`, 'system');
+      logTerminal(`STEP 1: SELECT FLIGHT DESTINATION:`, 'sky');
+      logTerminal(`Available destinations: LHR, JFK, LAX, CDG, HND, DXB`, 'system');
+      logTerminal(`Type 3-letter destination code:`, 'sky');
+    }
+
+    function startBoardingMode() {
+      if (passengerDatabase.length === 0) {
+        logTerminal('ERROR: No flight manifests loaded in database.', 'error');
+        playErrorSound();
+        return;
+      }
+      terminalState = 'BRD_FLIGHT';
+      const availableFlights = Array.from(new Set(passengerDatabase.map(p => p.flightNo))).join(', ');
+      logTerminal(`--------------------------------------------------`, 'system');
+      logTerminal(`BOARDING MODE INITIATION:`, 'warn');
+      logTerminal(`Available flights in roster: <span class="text-emerald-300 font-bold">${availableFlights}</span>`, 'system');
+      logTerminal(`Enter Flight Number to board (e.g. ${passengerDatabase[0].flightNo}):`, 'warn');
+    }
+
+    function scanPassengerByCode(code) {
+      const target = code.trim().toUpperCase();
+      const match = passengerDatabase.find(p => p.pnr === target || p.securityToken === target || p.name.toUpperCase().includes(target));
+
+      if (match) {
+        activePassenger = match;
+        updatePassengerPanelDisplay();
+        playChimeSound();
+        logTerminal(`LOADED PASSENGER RECORD: <strong class="text-white">${match.name}</strong> [PNR: ${match.pnr}] | FLIGHT: ${match.flightNo}`, 'success');
+      } else {
+        logTerminal(`NO MATCH FOUND FOR '${target}'. Search by PNR, Security Token, or Name.`, 'error');
+        playErrorSound();
+      }
+    }
+
+    function processBoardingScan(scannedCode) {
+      const token = scannedCode.trim().toUpperCase();
+      const match = passengerDatabase.find(p => p.securityToken === token || p.pnr === token || p.name.toUpperCase().includes(token));
+
+      if (!match) {
+        logTerminal(`[BOARDING ERROR] INVALID OR UNRECOGNIZED PASS BARCODE [${token}]`, 'error');
+        playErrorSound();
+        return;
+      }
+
+      if (activeBoardingFlight && match.flightNo !== activeBoardingFlight) {
+        logTerminal(`[BOARDING REJECTED] PASSENGER IS ON FLIGHT ${match.flightNo}, BUT GATE IS BOARDING ${activeBoardingFlight}!`, 'error');
+        playErrorSound();
+        return;
+      }
+
+      if (match.boarded) {
+        logTerminal(`[WARNING] PASSENGER <strong class="text-white">${match.name}</strong> ALREADY BOARDED AT GATE!`, 'warn');
+        playErrorSound();
+        return;
+      }
+
+      match.boarded = true;
+      activePassenger = match;
+      saveStateToLocalStorage();
+      updatePassengerPanelDisplay();
+      playBoardingSuccessSound();
+
+      logTerminal(`>>> [BOARDED OK] ${match.name} | SEAT: ${match.seat || 'UNASSIGNED'} | CLASS: ${match.cabin} <<<`, 'success');
+    }
+
+    function updatePassengerPanelDisplay() {
+      if (!activePassenger) {
+        document.getElementById('pnr-panel-name').innerText = 'NO PASSENGER SCAN';
+        document.getElementById('pnr-panel-code').innerText = 'PNR: ------';
+        document.getElementById('pnr-panel-flight').innerText = '--';
+        document.getElementById('pnr-panel-route').innerText = 'ORD -> ---';
+        document.getElementById('pnr-panel-seat').innerText = 'NOT ASSIGNED';
+        document.getElementById('pnr-panel-cabin').innerText = 'Cabin: --';
+        document.getElementById('pnr-panel-bags').innerText = '0 BAGS (0.0 KG)';
+        document.getElementById('pnr-panel-status').innerText = 'CHECK-IN PENDING';
+        document.getElementById('pnr-panel-status').className = 'block text-[10px] text-rose-400 font-bold';
+        return;
+      }
+
+      document.getElementById('pnr-panel-name').innerText = activePassenger.name;
+      document.getElementById('pnr-panel-code').innerText = `PNR: ${activePassenger.pnr} • TKN: ${activePassenger.securityToken}`;
+      document.getElementById('pnr-panel-flight').innerText = activePassenger.flightNo;
+      document.getElementById('pnr-panel-route').innerText = `${activePassenger.origin || 'ORD'} -> ${activePassenger.destination}`;
+      document.getElementById('pnr-panel-seat').innerText = activePassenger.seat || 'NOT ASSIGNED';
+      document.getElementById('pnr-panel-cabin').innerText = `Cabin: ${activePassenger.cabin || 'Economy'}`;
+
+      const totalWeight = (activePassenger.bags || []).reduce((acc, b) => acc + (b.weight || 0), 0);
+      document.getElementById('pnr-panel-bags').innerText = `${(activePassenger.bags || []).length} BAGS (${totalWeight.toFixed(1)} KG)`;
+
+      if (activePassenger.boarded) {
+        document.getElementById('pnr-panel-status').innerText = 'BOARDED AT GATE';
+        document.getElementById('pnr-panel-status').className = 'block text-[10px] text-emerald-400 font-bold crt-glow';
+      } else if (activePassenger.seat) {
+        document.getElementById('pnr-panel-status').innerText = 'READY FOR BOARDING';
+        document.getElementById('pnr-panel-status').className = 'block text-[10px] text-sky-400 font-bold';
+      } else {
+        document.getElementById('pnr-panel-status').innerText = 'CHECK-IN PENDING';
+        document.getElementById('pnr-panel-status').className = 'block text-[10px] text-amber-400 font-bold';
+      }
+    }
+
+    function assignSeatToActivePassenger(seatCode) {
+      if (!activePassenger) return;
+
+      const upperSeat = seatCode.trim().toUpperCase();
+      const flt = activePassenger.flightNo;
+
+      if (!occupiedSeatsByFlight[flt]) occupiedSeatsByFlight[flt] = [];
+
+      if (occupiedSeatsByFlight[flt].includes(upperSeat) && activePassenger.seat !== upperSeat) {
+        logTerminal(`SEAT ${upperSeat} IS ALREADY OCCUPIED ON FLIGHT ${flt}.`, 'error');
+        playErrorSound();
+        return;
+      }
+
+      if (activePassenger.seat) {
+        occupiedSeatsByFlight[flt] = occupiedSeatsByFlight[flt].filter(s => s !== activePassenger.seat);
+      }
+
+      activePassenger.seat = upperSeat;
+      occupiedSeatsByFlight[flt].push(upperSeat);
+
+      saveStateToLocalStorage();
+      updatePassengerPanelDisplay();
+      closeModal('seatmap-modal');
+      playChimeSound();
+      logTerminal(`ASSIGNED SEAT [${upperSeat}] TO PASSENGER ${activePassenger.name}.`, 'success');
+    }
+
+    function addBagToActivePassenger(weight) {
+      if (!activePassenger) return;
+      if (!activePassenger.bags) activePassenger.bags = [];
+
+      const tagNumber = `AS-${Math.floor(100000 + Math.random() * 900000)}`;
+      activePassenger.bags.push({ tag: tagNumber, weight: weight });
+
+      saveStateToLocalStorage();
+      updatePassengerPanelDisplay();
+      logTerminal(`ADDED BAGGAGE TAG [${tagNumber}] (${weight.toFixed(1)} KG) TO PASSENGER RECORD.`, 'success');
+    }
+
+    function completeCheckInCLI() {
+      if (!activePassenger) {
+        logTerminal('ERROR: No passenger active.', 'error');
+        playErrorSound();
+        return;
+      }
+
+      autoAssignSeatIfNone();
+      saveStateToLocalStorage();
+      updatePassengerPanelDisplay();
+      playChimeSound();
+      logTerminal(`CHECK-IN COMPLETED FOR ${activePassenger.name}. SEAT: ${activePassenger.seat}`, 'success');
+    }
+
+    function printBagTagCLI() {
+      if (!activePassenger) return;
+
+      const bags = activePassenger.bags || [];
+      const lastBag = bags.length > 0 ? bags[bags.length - 1] : { tag: `AS-${Math.floor(100000 + Math.random() * 900000)}`, weight: 20.0 };
+
+      logTerminal(`PRINTING LUGGAGE TAG [${lastBag.tag}] FOR ${activePassenger.name}...`, 'warn');
+      playChimeSound();
+
+      const printContainer = document.getElementById('printable-thermal-receipt');
+      printContainer.innerHTML = `
+        <div class="print-single-page" style="width: 76mm; padding: 4mm; font-family: Arial, sans-serif; background: #fff; color: #000; text-align: center; border: 2px solid #000;">
+          <div style="font-size: 14pt; font-weight: 900;">AEROSKY BAGGAGE</div>
+          <div style="font-size: 8pt; font-weight: 800;">IATA STRIP TAG • ${lastBag.tag}</div>
+          <hr style="border: 1px solid #000; margin: 4px 0;">
+          <div style="font-size: 18pt; font-weight: 900;">${activePassenger.destination}</div>
+          <div style="font-size: 9pt; font-weight: 800;">FLIGHT: ${activePassenger.flightNo} • SEAT: ${activePassenger.seat || 'NO-SEAT'}</div>
+          <div style="font-size: 9pt; font-weight: 800; margin-top: 2px;">PASSENGER: ${activePassenger.name}</div>
+          <div style="font-size: 10pt; font-weight: 900; color: #000; margin: 4px 0;">WEIGHT: ${lastBag.weight.toFixed(1)} KG</div>
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 6px 0;">
+            <svg id="bagtag-barcode-svg"></svg>
+          </div>
+          <div style="font-size: 7pt; font-weight: 700;">ORD &rarr; ${activePassenger.destination}</div>
+        </div>
+      `;
+
+      setTimeout(() => {
+        try {
+          JsBarcode('#bagtag-barcode-svg', lastBag.tag, {
+            format: "CODE128",
+            width: 1.6,
+            height: 40,
+            displayValue: true
+          });
+        } catch(e) {}
+
+        setTimeout(() => {
+          window.print();
+          clearPrintArea();
+          logTerminal(`LUGGAGE TAG [${lastBag.tag}] PRINTED SUCCESSFULLY.`, 'success');
+        }, 150);
+      }, 80);
+    }
+
+    function generateBatchPassengers(count = 15, notify = true) {
+      const fltNum = 'AS4321';
+      for (let i = 0; i < count; i++) {
+        const firstName = MOCK_FIRST_NAMES[Math.floor(Math.random() * MOCK_FIRST_NAMES.length)];
+        const lastName = MOCK_LAST_NAMES[Math.floor(Math.random() * MOCK_LAST_NAMES.length)];
+        const pnr = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+        const seat = `${String(Math.floor(i / 6) + 1).padStart(2, '0')}${['A','B','C','D','E','F'][i % 6]}`;
+
+        passengerDatabase.push({
+          pnr: pnr,
+          securityToken: generateRandomToken(),
+          name: `${firstName} ${lastName}`,
+          flightNo: fltNum,
+          aircraft: 'Boeing 777-300ER',
+          gate: 'C03',
+          boardingTime: '11:20',
+          flightTime: '11:40',
+          arrivalTime: '13:30',
+          terminal: '2',
+          origin: 'ORD',
+          destination: 'LHR',
+          destCity: 'LONDON HEATHROW',
+          seat: seat,
+          cabin: i < 2 ? 'First Class' : (i < 6 ? 'Business Class' : 'Economy Class'),
+          ffStatus: 'AeroClub Member',
+          boarded: false,
+          bags: []
+        });
+
+        if (!occupiedSeatsByFlight[fltNum]) occupiedSeatsByFlight[fltNum] = [];
+        occupiedSeatsByFlight[fltNum].push(seat);
+      }
+
+      saveStateToLocalStorage();
+      if (notify) logTerminal(`GENERATED ${count} MOCK PASSENGER RECORDS FOR FLIGHT ${fltNum}.`, 'success');
+    }
+
+    function executeBoardingCompleteAudit() {
+      let targetFlight = activeBoardingFlight;
+
+      if (!targetFlight) {
+        if (activePassenger) {
+          targetFlight = activePassenger.flightNo;
+        } else if (passengerDatabase.length > 0) {
+          targetFlight = passengerDatabase[0].flightNo;
+        }
+      }
+
+      if (!targetFlight) {
+        logTerminal('ERROR: No active flight selected for boarding audit.', 'error');
+        playErrorSound();
+        return;
+      }
+
+      const flightPassengers = passengerDatabase.filter(p => p.flightNo === targetFlight);
+      const unboardedPassengers = flightPassengers.filter(p => !p.boarded);
+      const boardedPassengers = flightPassengers.filter(p => p.boarded);
 
       playChimeSound();
-      logTerminal(`==================================================`, 'sky');
-      logTerminal(`=== FLIGHT SCHEDULING WIZARD INITIALIZED ===`, 'sky');
-      logTerminal(`STEP 1: SELECT DESTINATION TERMINAL:`, 'sky');
-      AIRPORT_DESTINATIONS.forEach(d => {
-        logTerminal(`  • <span class="text-amber-300 font-bold">${d.code}</span> - ${d.city} (${d.country})`, 'system');
-      });
-      logTerminal(`Where would you like to schedule this flight? Type airport code (e.g. LHR):`, 'sky');
+      logTerminal(`==================================================`, 'warn');
+      logTerminal(`=== BOARDING AUDIT SUMMARY FOR FLIGHT [${targetFlight}] ===`, 'warn');
+      logTerminal(`TOTAL ROSTER PASSENGERS: ${flightPassengers.length}`, 'system');
+      logTerminal(`BOARDED & SCANNED: <span class="text-emerald-400 font-bold">${boardedPassengers.length}</span>`, 'success');
+      logTerminal(`CHECKED IN BUT NOT SCANNED (MISSING): <span class="text-rose-400 font-bold">${unboardedPassengers.length}</span>`, 'error');
+      logTerminal(`--------------------------------------------------`, 'system');
+
+      if (unboardedPassengers.length === 0) {
+        logTerminal(`ALL CHECKED-IN PASSENGERS HAVE BEEN SCANNED & BOARDED FOR FLIGHT ${targetFlight}!`, 'success');
+      } else {
+        logTerminal(`PASSENGERS NOT YET SCANNED ON BOARDING GATE:`, 'sky');
+        unboardedPassengers.forEach((p, idx) => {
+          logTerminal(`  ${idx + 1}. <strong class="text-white">${p.name}</strong> | PNR: <span class="text-amber-300 font-bold">${p.pnr}</span> | SEAT: <span class="text-emerald-300">${p.seat || 'UNASSIGNED'}</span> | CLASS: ${p.cabin}`, 'warn');
+        });
+      }
+
+      logTerminal(`==================================================`, 'warn');
+
+      // Exit Boarding Mode
+      terminalState = 'IDLE';
+      activeBoardingFlight = null;
+      updateModeBadge('CHECK-IN CLI', 'bg-emerald-950/80 text-emerald-400 border-emerald-800');
     }
 
     function executeFlightCreation() {
@@ -870,187 +1156,12 @@
       logTerminal(`==================================================`, 'success');
       logTerminal(`SUCCESS: FLIGHT [${fltNum}] SCHEDULED TO ${dest.code} (${dest.city})!`, 'success');
       logTerminal(`AIRCRAFT: ${aircraft.name} | GATE: ${gateNum} | DEPARTURE: ${flightTime}`, 'info');
-      logTerminal(`GENERATED ${count} PASSENGER RECORDS FOR FLIGHT ${fltNum}.`, 'info');
-      logTerminal(`Flight number ${fltNum} is stamped on all boarding barcodes & manifest receipts.`, 'system');
+      logTerminal(`GENERATED ${count} PASSENGER RECORDS EXCLUSIVELY FOR FLIGHT ${fltNum}.`, 'info');
       logTerminal(`==================================================`, 'success');
 
-      openBatchModal();
+      openBatchModal(fltNum);
     }
 
-    /* WIZARD 2: BOARDING MODE WORKFLOW (`brd`) */
-    function startBoardingMode() {
-      terminalState = 'BRD_FLIGHT';
-      playChimeSound();
-      logTerminal(`==================================================`, 'warn');
-      logTerminal(`=== GATE BOARDING CONTROL SYSTEM ===`, 'warn');
-      logTerminal(`PLEASE ENTER FLIGHT NUMBER (e.g., AS4321, AS892):`, 'warn');
-    }
-
-    function processBoardingScan(scanInput) {
-      const cleanInput = scanInput.replace(/[^A-Z0-9]/g, '');
-
-      const passenger = passengerDatabase.find(p => 
-        p.securityToken === cleanInput || 
-        p.pnr === cleanInput || 
-        cleanInput.includes(p.pnr) || 
-        cleanInput.includes(p.securityToken)
-      );
-
-      if (!passenger) {
-        logTerminal(`BOARDING REJECTED: INVALID BARCODE OR TOKEN [${cleanInput}].`, 'error');
-        playErrorSound();
-        return;
-      }
-
-      if (passenger.flightNo !== activeBoardingFlight) {
-        logTerminal(`WRONG FLIGHT! Passenger ${passenger.name} is scheduled on ${passenger.flightNo}, NOT ${activeBoardingFlight}!`, 'error');
-        playErrorSound();
-        return;
-      }
-
-      if (passenger.boarded) {
-        logTerminal(`DUPLICATE SCAN: PASSENGER ${passenger.name} HAS ALREADY BOARDED!`, 'warn');
-        playErrorSound();
-        return;
-      }
-
-      passenger.boarded = true;
-      const idx = passengerDatabase.findIndex(p => p.pnr === passenger.pnr);
-      if (idx !== -1) passengerDatabase[idx].boarded = true;
-      saveStateToLocalStorage();
-
-      playBoardingSuccessSound();
-      logTerminal(`BOARDED PASSENGER: ${passenger.name} | SEAT: ${passenger.seat || 'STANDBY'} | CLASS: ${passenger.cabin} [TOKEN: ${passenger.securityToken}]`, 'success');
-
-      if (activePassenger && activePassenger.pnr === passenger.pnr) {
-        activePassenger.boarded = true;
-        updatePassengerPanelDisplay();
-      }
-    }
-
-    function scanPassengerByCode(code) {
-      const clean = code.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-      const found = passengerDatabase.find(p => p.pnr === clean || clean.includes(p.pnr) || p.securityToken === clean);
-
-      if (!found) {
-        logTerminal(`PASSENGER [${clean}] NOT FOUND IN ROSTER. Run 'schdl' or 'genbatch'.`, 'error');
-        playErrorSound();
-        return;
-      }
-
-      activePassenger = JSON.parse(JSON.stringify(found));
-      playChimeSound();
-      logTerminal(`SUCCESS: LOADED PASSENGER ${activePassenger.name} [PNR: ${activePassenger.pnr}]`, 'success');
-      logTerminal(`FLIGHT: ${activePassenger.flightNo} (${activePassenger.origin} -> ${activePassenger.destination}) | CLASS: ${activePassenger.cabin} | PASS TOKEN: ${activePassenger.securityToken}`, 'info');
-
-      updatePassengerPanelDisplay();
-    }
-
-    function updatePassengerPanelDisplay() {
-      if (!activePassenger) {
-        document.getElementById('pnr-panel-name').innerText = 'NO PASSENGER SCAN';
-        document.getElementById('pnr-panel-code').innerText = 'PNR: ------';
-        document.getElementById('pnr-panel-flight').innerText = '--';
-        document.getElementById('pnr-panel-route').innerHTML = 'ORD &rarr; ---';
-        document.getElementById('pnr-panel-seat').innerText = 'NOT ASSIGNED';
-        document.getElementById('pnr-panel-cabin').innerText = 'Cabin: --';
-        document.getElementById('pnr-panel-bags').innerText = '0 BAGS (0.0 KG)';
-        document.getElementById('pnr-panel-status').innerText = 'CHECK-IN PENDING';
-        document.getElementById('pnr-panel-status').className = 'block text-[10px] text-rose-400 font-bold';
-        return;
-      }
-
-      document.getElementById('pnr-panel-name').innerText = activePassenger.name;
-      document.getElementById('pnr-panel-code').innerText = `PNR: ${activePassenger.pnr} | TKN: ${activePassenger.securityToken}`;
-      document.getElementById('pnr-panel-flight').innerText = activePassenger.flightNo;
-      document.getElementById('pnr-panel-route').innerHTML = `${activePassenger.origin} &rarr; ${activePassenger.destination} (${activePassenger.destCity})`;
-
-      const seatElem = document.getElementById('pnr-panel-seat');
-      seatElem.innerText = activePassenger.seat ? `${activePassenger.seat} (${activePassenger.cabin})` : 'NOT ASSIGNED';
-      seatElem.className = activePassenger.seat ? 'font-bold text-emerald-400 text-sm crt-glow' : 'font-bold text-amber-400 text-sm crt-amber-glow';
-
-      document.getElementById('pnr-panel-cabin').innerText = `Cabin: ${activePassenger.cabin}`;
-
-      const totalWeight = activePassenger.bags.reduce((sum, b) => sum + b.weight, 0);
-      document.getElementById('pnr-panel-bags').innerText = `${activePassenger.bags.length} BAGS (${totalWeight.toFixed(1)} KG)`;
-
-      const statusElem = document.getElementById('pnr-panel-status');
-      if (activePassenger.boarded) {
-        statusElem.innerText = 'PASSENGER BOARDED';
-        statusElem.className = 'block text-[10px] text-sky-300 font-bold crt-sky-glow';
-      } else {
-        const isReady = activePassenger.seat && activePassenger.seat !== 'NOT ASSIGNED';
-        statusElem.innerText = isReady ? 'READY TO BOARD / PRINT PASS' : 'SEAT ASSIGNMENT REQUIRED';
-        statusElem.className = isReady ? 'block text-[10px] text-emerald-400 font-bold crt-glow' : 'block text-[10px] text-amber-400 font-bold';
-      }
-    }
-
-    function addBagToActivePassenger(weightVal) {
-      if (!activePassenger) return;
-
-      const bagId = `BAG-${activePassenger.pnr}-${activePassenger.bags.length + 1}`;
-      const tagCode = `000${Math.floor(100000 + Math.random() * 899999)}`;
-      const bagObj = { id: bagId, weight: weightVal, tagCode: tagCode };
-
-      activePassenger.bags.push(bagObj);
-
-      const idx = passengerDatabase.findIndex(p => p.pnr === activePassenger.pnr);
-      if (idx !== -1) passengerDatabase[idx].bags = activePassenger.bags;
-
-      saveStateToLocalStorage();
-      playChimeSound();
-      logTerminal(`BAGGAGE ADDED: Bag #${activePassenger.bags.length} [Tag: ${tagCode}] Weight: ${weightVal.toFixed(1)} KG ${weightVal > 23.0 ? '(HEAVY)' : ''}`, 'success');
-      updatePassengerPanelDisplay();
-    }
-
-    function getCabinClassForSeat(seatCode) {
-      const rowNum = parseInt(seatCode.substring(0, 2), 10);
-      if (rowNum <= 2) return 'FIRST CLASS';
-      if (rowNum <= 5) return 'BUSINESS CLASS';
-      return 'ECONOMY CLASS';
-    }
-
-    function assignSeatToActivePassenger(seatCode) {
-      if (!activePassenger) return;
-
-      let formattedSeat = seatCode.toUpperCase().trim();
-      if (/^\d[A-F]$/.test(formattedSeat)) {
-        formattedSeat = '0' + formattedSeat;
-      }
-
-      const currentFlight = activePassenger.flightNo;
-      const occupiedList = occupiedSeatsByFlight[currentFlight] || [];
-
-      if (occupiedList.includes(formattedSeat) && activePassenger.seat !== formattedSeat) {
-        logTerminal(`ERROR: Seat ${formattedSeat} is already occupied on flight ${currentFlight}.`, 'error');
-        playErrorSound();
-        return;
-      }
-
-      if (activePassenger.seat && occupiedSeatsByFlight[currentFlight]) {
-        occupiedSeatsByFlight[currentFlight] = occupiedSeatsByFlight[currentFlight].filter(s => s !== activePassenger.seat);
-      }
-
-      if (!occupiedSeatsByFlight[currentFlight]) occupiedSeatsByFlight[currentFlight] = [];
-      occupiedSeatsByFlight[currentFlight].push(formattedSeat);
-
-      activePassenger.seat = formattedSeat;
-      activePassenger.cabin = getCabinClassForSeat(formattedSeat);
-
-      const idx = passengerDatabase.findIndex(p => p.pnr === activePassenger.pnr);
-      if (idx !== -1) {
-        passengerDatabase[idx].seat = formattedSeat;
-        passengerDatabase[idx].cabin = activePassenger.cabin;
-      }
-
-      saveStateToLocalStorage();
-      playChimeSound();
-      logTerminal(`SEAT ASSIGNED: ${formattedSeat} (${activePassenger.cabin})`, 'success');
-      updatePassengerPanelDisplay();
-      closeModal('seatmap-modal');
-    }
-
-    /* REALISTIC BOARDING PASS PRINT ENGINE */
     function printBoardingPassCLI() {
       if (!activePassenger) return;
 
@@ -1059,12 +1170,14 @@
         autoAssignSeatIfNone();
       }
 
-      logTerminal('GENERATING LANDSCAPE BOARDING PASS (PORTRAIT ROTATED)...', 'warn');
+      // Use current token for this specific physical printed boarding pass
+      const currentPassToken = activePassenger.securityToken || generateRandomToken();
+
+      logTerminal(`PRINTING BOARDING PASS FOR ${activePassenger.name} [TOKEN: ${currentPassToken}]...`, 'warn');
       playChimeSound();
 
       const printContainer = document.getElementById('printable-thermal-receipt');
       const pnr = activePassenger.pnr;
-      const secToken = activePassenger.securityToken || generateRandomToken();
       const passClass = activePassenger.cabin || 'ECONOMY CLASS';
 
       printContainer.innerHTML = `
@@ -1077,7 +1190,7 @@
                 <svg style="width: 20px; height: 20px; fill: #ffffff;" viewBox="0 0 24 24"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>
                 <div>
                   <div style="font-size: 11pt; font-weight: 900; letter-spacing: 1px; text-transform: uppercase;">AEROSKY AIRLINES</div>
-                  <div style="font-size: 6.5pt; font-weight: 600; opacity: 0.9;">FLIGHT: ${activePassenger.flightNo} • SECURITY TKN: ${secToken}</div>
+                  <div style="font-size: 6.5pt; font-weight: 600; opacity: 0.9;">FLIGHT: ${activePassenger.flightNo} • SECURITY TKN: ${currentPassToken}</div>
                 </div>
               </div>
 
@@ -1096,7 +1209,7 @@
               
               <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 110px; shrink: 0;">
                 <canvas id="main-pdf417-canvas"></canvas>
-                <div style="font-size: 6pt; font-weight: 800; letter-spacing: 1px; margin-top: 2px;">TKN: ${secToken}</div>
+                <div style="font-size: 6pt; font-weight: 800; letter-spacing: 1px; margin-top: 2px;">TKN: ${currentPassToken}</div>
               </div>
 
               <div style="flex: 1; display: grid; grid-template-columns: 1.8fr 1fr; gap: 8px; border-right: 2px dashed #94a3b8; padding-right: 10px;">
@@ -1201,7 +1314,7 @@
             <div style="background-color: #0369a1; color: #ffffff; padding: 4px 14px; display: flex; justify-content: space-between; align-items: center; font-size: 7.5pt; font-weight: 800; shrink: 0;">
               <span>FLIGHT: ${activePassenger.flightNo} • PNR: ${pnr}</span>
               <span style="letter-spacing: 0.5px;">PLEASE BE AT THE GATE AT BOARDING TIME</span>
-              <span>PASS TOKEN: ${secToken}</span>
+              <span>PASS TOKEN: ${currentPassToken}</span>
             </div>
 
           </div>
@@ -1212,7 +1325,7 @@
         try {
           bwipjs.toCanvas('main-pdf417-canvas', {
             bcid: 'pdf417',
-            text: `${secToken}`,
+            text: `${currentPassToken}`,
             scale: 1.8,
             height: 22,
             rotate: 'R'
@@ -1220,7 +1333,7 @@
 
           bwipjs.toCanvas('stub-pdf417-canvas', {
             bcid: 'pdf417',
-            text: `${secToken}`,
+            text: `${currentPassToken}`,
             scale: 1.2,
             height: 8
           });
@@ -1231,157 +1344,71 @@
         setTimeout(() => {
           window.print();
           clearPrintArea();
-          logTerminal(`BOARDING PASS PRINTED FOR ${activePassenger.name} [FLIGHT: ${activePassenger.flightNo}].`, 'success');
+
+          // ERASE AND REGENERATE FRESH SECURITY TOKEN FOR PASSENGER AFTER PRINTING
+          const newToken = generateRandomToken();
+          activePassenger.securityToken = newToken;
+          
+          const idx = passengerDatabase.findIndex(p => p.pnr === activePassenger.pnr);
+          if (idx !== -1) {
+            passengerDatabase[idx].securityToken = newToken;
+          }
+          saveStateToLocalStorage();
+          updatePassengerPanelDisplay();
+
+          logTerminal(`[SECURITY] BOARDING PASS PRINTED FOR ${activePassenger.name}. PREVIOUS BARCODE ERASED. NEW TOKEN GENERATED: ${newToken}`, 'success');
         }, 180);
       }, 100);
     }
 
-    /* BAGGAGE ROUTING TAG ENGINE */
-    function printBagTagCLI() {
-      if (!activePassenger) return;
-
-      if (activePassenger.bags.length === 0) {
-        logTerminal('ERROR: Passenger has 0 bags registered. Use command ADDBG <kg> first.', 'error');
-        playErrorSound();
-        return;
-      }
-
-      const bag = activePassenger.bags[activePassenger.bags.length - 1];
-      logTerminal(`PRINTING BAGGAGE ROUTING TAG [Tag ID: ${bag.tagCode}]...`, 'warn');
-      playChimeSound();
-
-      const printContainer = document.getElementById('printable-thermal-receipt');
-      const isHeavy = bag.weight > 23.0;
-
-      printContainer.innerHTML = `
-        <div class="print-single-page" style="font-family: Arial, Helvetica, sans-serif; color:#000; background:#fff; max-width: 76mm; width: 100%; margin: 0 auto; padding: 6px; text-align: center; box-sizing: border-box; border: 2px solid #000; border-radius: 4px;">
-          
-          <div style="background: #000; color: #fff; padding: 4px; margin-bottom: 6px; text-align: center;">
-            <div style="font-size: 11pt; font-weight: 900; letter-spacing: 1.5px; text-transform: uppercase;">AEROSKY AIRWAYS</div>
-            <div style="font-size: 7.5pt; font-weight: 700; letter-spacing: 0.5px; margin-top: 1px;">FLIGHT ${activePassenger.flightNo} • BAGGAGE TAG</div>
-          </div>
-
-          <div style="font-size: 48pt; font-weight: 900; line-height: 0.85; letter-spacing: 3px; margin: 6px 0 2px 0; color: #000;">${activePassenger.destination}</div>
-          <div style="font-size: 9.5pt; font-weight: 900; text-transform: uppercase; margin-bottom: 6px;">DEST: ${activePassenger.destCity}</div>
-
-          <div style="border-top: 2px solid #000; border-bottom: 2px solid #000; padding: 3px 0; margin: 4px 0; font-size: 9pt; font-weight: 900; letter-spacing: 1px; background: #f8fafc;">
-            ${activePassenger.origin} &rarr; ${activePassenger.destination} | FLT ${activePassenger.flightNo}
-          </div>
-
-          ${isHeavy ? `<div style="background:#000; color:#fff; font-size:10.5pt; font-weight:900; text-align:center; padding:4px; margin:4px 0; letter-spacing: 1px;">*** HEAVY / OVERWEIGHT BAG ***</div>` : ''}
-
-          <div style="text-align: left; font-size: 8.5pt; font-weight: 700; line-height: 1.4; border: 1px solid #000; padding: 5px; margin: 6px 0; background: #fff;">
-            <div>FLIGHT NO: <strong style="font-size: 10pt; font-weight: 900;">${activePassenger.flightNo}</strong></div>
-            <div>PASSENGER: <strong>${activePassenger.name}</strong></div>
-            <div>SEAT: <strong>${activePassenger.seat || 'UNASSIGNED'}</strong> | PNR: <strong>${activePassenger.pnr}</strong></div>
-            <div>WEIGHT: <strong>${bag.weight.toFixed(1)} KG</strong> | TAG: <strong>${bag.tagCode}</strong></div>
-          </div>
-
-          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 6px 0;">
-            <svg id="bag-tag-barcode-primary"></svg>
-            <div style="font-size: 10pt; font-weight: 900; letter-spacing: 2px; margin-top: 2px;">* ${bag.tagCode} *</div>
-          </div>
-
-          <div style="border-top: 2px dashed #000; margin: 10px 0 8px 0;"></div>
-
-          <div style="text-align: left; background: #fff; border: 1px solid #000; padding: 6px;">
-            <div style="background: #000; color: #fff; font-size: 8pt; font-weight: 900; text-align: center; padding: 2px; margin-bottom: 4px; letter-spacing: 1px;">PASSENGER CLAIM STUB - FLT ${activePassenger.flightNo}</div>
-            <div style="font-size: 8pt; font-weight: 700; line-height: 1.35;">
-              <div>PASSENGER: <strong>${activePassenger.name}</strong></div>
-              <div>ROUTING: <strong>${activePassenger.origin} &rarr; ${activePassenger.destination}</strong> (FLT ${activePassenger.flightNo})</div>
-              <div>CLAIM NO: <strong>${bag.tagCode}</strong> | PNR: <strong>${activePassenger.pnr}</strong></div>
-            </div>
-
-            <div style="display: flex; justify-content: center; margin-top: 4px;">
-              <svg id="bag-tag-barcode-stub"></svg>
-            </div>
-          </div>
-
-        </div>
-      `;
-
-      setTimeout(() => {
-        try {
-          JsBarcode("#bag-tag-barcode-primary", bag.tagCode, { format: "CODE128", width: 1.8, height: 42, displayValue: false });
-          JsBarcode("#bag-tag-barcode-stub", bag.tagCode, { format: "CODE128", width: 1.4, height: 26, displayValue: false });
-        } catch(e) {}
-
-        setTimeout(() => {
-          window.print();
-          clearPrintArea();
-          logTerminal(`BAGGAGE TAG [Tag: ${bag.tagCode}] SENT TO PRINTER.`, 'success');
-        }, 150);
-      }, 80);
-    }
-
-    function completeCheckInCLI() {
-      if (!activePassenger) {
-        logTerminal('No passenger currently loaded.', 'warn');
-        return;
-      }
-
-      const completedPNR = activePassenger.pnr;
-      const completedName = activePassenger.name;
-
-      activePassenger = null;
-      updatePassengerPanelDisplay();
-
-      playChimeSound();
-      logTerminal(`CHECK-IN COMPLETED FOR ${completedName} [PNR: ${completedPNR}]. WORKSPACE CLEARED.`, 'success');
-      logTerminal('TERMINAL IDLE. SCAN NEXT PASSENGER BARCODE OR TYPE COMMAND...', 'system');
-      autoFocusInput();
-    }
-
-    function openBatchModal() {
+    function openBatchModal(selectedFlight = null) {
+      populateBatchFlightDropdown(selectedFlight);
       document.getElementById('batch-modal').classList.remove('hidden');
-      renderBatchBarcodeList();
     }
 
-    function generateBatchPassengers(count = 20, openModal = true) {
-      passengerDatabase = [];
-      occupiedSeatsByFlight = {};
+    function populateBatchFlightDropdown(defaultFlight = null) {
+      const select = document.getElementById('batch-flight-select');
+      if (!select) return;
 
-      for (let i = 0; i < count; i++) {
-        const firstName = MOCK_FIRST_NAMES[Math.floor(Math.random() * MOCK_FIRST_NAMES.length)];
-        const lastName = MOCK_LAST_NAMES[Math.floor(Math.random() * MOCK_LAST_NAMES.length)];
-        const pnr = Math.random().toString(36).substring(2, 8).toUpperCase();
-        const randomToken = generateRandomToken();
+      const uniqueFlights = Array.from(new Set(passengerDatabase.map(p => p.flightNo)));
+      let html = '';
 
-        const destObj = AIRPORT_DESTINATIONS[Math.floor(Math.random() * AIRPORT_DESTINATIONS.length)];
-        const flightObj = FLIGHT_ROSTERS[Math.floor(Math.random() * FLIGHT_ROSTERS.length)];
-
-        passengerDatabase.push({
-          pnr: pnr,
-          securityToken: randomToken,
-          name: `${firstName} ${lastName}`,
-          flightNo: flightObj.flightNo,
-          aircraft: flightObj.aircraft,
-          gate: flightObj.gate,
-          boardingTime: flightObj.boardingTime,
-          flightTime: flightObj.flightTime,
-          arrivalTime: flightObj.arrivalTime,
-          terminal: flightObj.terminal,
-          origin: 'ORD',
-          destination: destObj.code,
-          destCity: destObj.city,
-          seat: i % 2 === 0 ? `0${(i%6)+1}A` : null,
-          cabin: i < 3 ? 'First Class' : (i < 8 ? 'Business Class' : 'Economy Class'),
-          ffStatus: 'AeroClub Member',
-          boarded: false,
-          bags: []
+      if (uniqueFlights.length === 0) {
+        html = `<option value="ALL">ALL FLIGHTS (0)</option>`;
+      } else {
+        uniqueFlights.forEach(f => {
+          const count = passengerDatabase.filter(p => p.flightNo === f).length;
+          html += `<option value="${f}">${f} (${count} PASSENGERS)</option>`;
         });
+        html += `<option value="ALL">ALL FLIGHTS (${passengerDatabase.length})</option>`;
       }
 
-      saveStateToLocalStorage();
-      if (openModal) openBatchModal();
-      logTerminal(`GENERATED ${count} PASSENGERS IN DATABASE ROSTER.`, 'success');
+      select.innerHTML = html;
+
+      if (defaultFlight && uniqueFlights.includes(defaultFlight)) {
+        select.value = defaultFlight;
+      } else if (uniqueFlights.length > 0) {
+        select.value = uniqueFlights[0];
+      }
+
+      renderBatchBarcodeList(select.value);
     }
 
-    function renderBatchBarcodeList() {
+    function renderBatchBarcodeList(flightFilter) {
+      currentBatchFlightFilter = flightFilter || 'ALL';
       const listContainer = document.getElementById('batch-barcode-list');
       if (!listContainer) return;
 
-      listContainer.innerHTML = passengerDatabase.map((p, idx) => `
+      const filteredPassengers = currentBatchFlightFilter === 'ALL' 
+        ? passengerDatabase 
+        : passengerDatabase.filter(p => p.flightNo === currentBatchFlightFilter);
+
+      if (filteredPassengers.length === 0) {
+        listContainer.innerHTML = `<div class="text-center py-6 text-slate-500">NO PASSENGERS FOUND FOR FLIGHT [${currentBatchFlightFilter}]</div>`;
+        return;
+      }
+
+      listContainer.innerHTML = filteredPassengers.map((p, idx) => `
         <div onclick="scanPassengerByCode('${p.pnr}'); closeModal('batch-modal');" 
           class="bg-slate-950 border ${p.boarded ? 'border-sky-700 bg-sky-950/20' : 'border-emerald-900/80 hover:border-emerald-400'} p-2.5 rounded cursor-pointer transition flex items-center justify-between gap-3 group">
           <div class="w-8 text-[11px] text-slate-500 font-bold shrink-0">#${idx + 1}</div>
@@ -1406,45 +1433,67 @@
     function printBatchBarcodeSheet() {
       closeModal('batch-modal');
       const physicalArea = document.getElementById('printable-thermal-receipt');
-      const allPassengers = passengerDatabase.length > 0 ? passengerDatabase : [];
-      const primaryFlightNo = allPassengers.length > 0 ? allPassengers[0].flightNo : 'AS4321';
 
+      const filteredPassengers = currentBatchFlightFilter === 'ALL' 
+        ? passengerDatabase 
+        : passengerDatabase.filter(p => p.flightNo === currentBatchFlightFilter);
+
+      if (filteredPassengers.length === 0) {
+        logTerminal('ERROR: No passengers found to print.', 'error');
+        return;
+      }
+
+      const displayFlight = currentBatchFlightFilter === 'ALL' 
+        ? (filteredPassengers[0] ? filteredPassengers[0].flightNo : 'AS-MANIFEST')
+        : currentBatchFlightFilter;
+
+      // 80mm Narrow Receipt Paper Layout with 2-Column Side-by-Side Grid
       physicalArea.innerHTML = `
-        <div style="width: 100%; max-width: 210mm; margin: 0 auto; color: #000; font-family: Arial, sans-serif; background: #fff; padding: 6mm;">
-          <div style="border-bottom: 2px solid #000; padding-bottom: 6px; margin-bottom: 10px; text-align: center;">
-            <div style="font-size: 18pt; font-weight: 900; letter-spacing: 2px; text-transform: uppercase;">
-              FLIGHT ${primaryFlightNo} • BOARDING BARCODE MANIFEST
+        <div style="width: 76mm; max-width: 76mm; margin: 0 auto; color: #000; font-family: Arial, sans-serif; background: #fff; padding: 2mm; box-sizing: border-box; text-align: center;">
+          
+          <div style="border-bottom: 2px solid #000; padding-bottom: 4px; margin-bottom: 6px;">
+            <div style="font-size: 11pt; font-weight: 900; letter-spacing: 1px; text-transform: uppercase;">
+              FLT ${displayFlight} BARCODES
             </div>
-            <div style="font-size: 8.5pt; font-weight: 700; color: #334155; margin-top: 2px;">
-              AEROSKY AIRWAYS • TOTAL MANIFEST PASSENGERS: ${allPassengers.length}
+            <div style="font-size: 7pt; font-weight: 700; color: #1e293b;">
+              RECEIPT MANIFEST • TOTAL: ${filteredPassengers.length} PASSENGERS
             </div>
           </div>
 
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; row-gap: 8px;">
-            ${allPassengers.map((p, idx) => `
-              <div style="page-break-inside: avoid; border: 1px solid #cbd5e1; padding: 5px 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; border-radius: 4px; background: #fff;">
-                <div style="font-size: 7.5pt; font-weight: 800; color: #0f172a; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                  #${idx + 1} ${p.name} (${p.pnr})
+          <!-- DOUBLE COLUMN LAYOUT (TWO BARCODES SIDE BY SIDE) -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; row-gap: 6px;">
+            ${filteredPassengers.map((p, idx) => `
+              <div style="page-break-inside: avoid; border: 1px solid #000; padding: 3px 2px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; border-radius: 2px; background: #fff;">
+                <div style="font-size: 6.5pt; font-weight: 900; color: #000; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: uppercase;">
+                  #${idx + 1} ${p.name.split(' ')[0]} ${p.name.split(' ')[1] ? p.name.split(' ')[1][0] + '.' : ''}
                 </div>
-                <div style="margin-top: 2px; display: flex; flex-direction: column; align-items: center;">
+                <div style="font-size: 6pt; font-weight: 800; color: #334155; margin-bottom: 2px;">
+                  ${p.seat || 'NO-ST'} | ${p.pnr}
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
                   <svg class="print-sheet-svg" data-token="${p.securityToken}"></svg>
-                  <div style="font-size: 6.5pt; font-family: monospace; font-weight: 800; margin-top: 1px; color: #334155;">TOKEN: ${p.securityToken}</div>
+                  <div style="font-size: 5.5pt; font-family: monospace; font-weight: 800; margin-top: 1px;">${p.securityToken}</div>
                 </div>
               </div>
             `).join('')}
           </div>
+
+          <div style="border-top: 1px dashed #000; margin-top: 8px; padding-top: 4px; font-size: 6.5pt; font-weight: 700;">
+            *** END OF MANIFEST RECEIPT ***
+          </div>
+
         </div>
       `;
 
       setTimeout(() => {
-        allPassengers.forEach(p => {
+        filteredPassengers.forEach(p => {
           try {
             const svgEl = physicalArea.querySelector(`.print-sheet-svg[data-token="${p.securityToken}"]`);
             if (svgEl) {
               JsBarcode(svgEl, p.securityToken, {
                 format: "CODE128",
-                width: 1.3,
-                height: 28,
+                width: 1.0,
+                height: 22,
                 displayValue: false,
                 margin: 0
               });
@@ -1454,7 +1503,7 @@
         setTimeout(() => {
           window.print();
           clearPrintArea();
-          logTerminal(`PRINTED DENSE PURE BARCODE SHEET FOR FLIGHT ${primaryFlightNo} (${allPassengers.length} BARCODES).`, 'success');
+          logTerminal(`PRINTED 2-COLUMN THERMAL RECEIPT FOR FLIGHT [${displayFlight}] (${filteredPassengers.length} PASSENGERS).`, 'success');
         }, 200);
       }, 100);
     }
