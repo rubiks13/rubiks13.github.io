@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<html lang="en" class="h-full bg-slate-950 text-slate-100 font-mono">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AeroSky Agent Terminal - Airport Check-In & Baggage System</title>
+  <title>AeroSky CUTE Agent Terminal (Command-Line System)</title>
   
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -11,34 +11,29 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <!-- QRCode JS Library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <!-- JsBarcode Library for standard 1D barcodes -->
+  <!-- JsBarcode Library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
 
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            aero: {
-              500: '#0284c7',
-              600: '#0369a1',
-              700: '#075985',
-            }
-          }
-        }
-      }
-    }
-  </script>
-
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap');
 
     body {
-      font-family: 'Inter', sans-serif;
+      font-family: 'JetBrains Mono', monospace;
     }
 
-    .font-mono-code {
-      font-family: 'JetBrains Mono', monospace;
+    /* Terminal Glow and Scanlines */
+    .crt-screen {
+      background: #020617;
+      background-image: radial-gradient(rgba(16, 185, 129, 0.08) 90%, rgba(0, 0, 0, 0.6) 100%);
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.9);
+    }
+
+    .crt-glow {
+      text-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+    }
+
+    .crt-amber-glow {
+      text-shadow: 0 0 6px rgba(245, 158, 11, 0.6);
     }
 
     /* Hide physical print container in screen view completely */
@@ -79,12 +74,7 @@
       #print-area * {
         visibility: visible !important;
       }
-      #print-area svg {
-        display: block !important;
-        margin: 0 auto !important;
-        max-width: 100% !important;
-      }
-      #print-area canvas, #print-area img {
+      #print-area svg, #print-area canvas, #print-area img {
         display: block !important;
         margin: 0 auto !important;
         max-width: 100% !important;
@@ -92,473 +82,222 @@
     }
 
     ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
+      width: 8px;
     }
     ::-webkit-scrollbar-track {
-      background: rgba(15, 23, 42, 0.6);
+      background: rgba(2, 6, 23, 0.9);
     }
     ::-webkit-scrollbar-thumb {
-      background: rgba(51, 65, 85, 0.8);
+      background: rgba(16, 185, 129, 0.3);
       border-radius: 4px;
     }
     ::-webkit-scrollbar-thumb:hover {
-      background: rgba(71, 85, 105, 1);
+      background: rgba(16, 185, 129, 0.6);
     }
   </style>
 </head>
-<body class="h-full flex flex-col bg-slate-950 text-slate-100 overflow-x-hidden select-none">
+<body class="h-full flex flex-col crt-screen text-emerald-400 overflow-hidden select-none">
 
-  <header class="bg-slate-900 border-b border-slate-800 px-4 py-3 flex items-center justify-between gap-4 sticky top-0 z-40 shadow-xl">
-    <div class="flex items-center space-x-3">
-      <div class="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20 flex items-center justify-center font-bold text-xl">
-        <i class="fa-solid fa-plane-departure"></i>
-      </div>
-      <div>
-        <div class="flex items-center gap-2">
-          <h1 class="font-extrabold text-base md:text-lg text-white leading-tight tracking-wide">AEROSKY AIRWAYS</h1>
-          <span class="text-[10px] uppercase font-mono-code bg-sky-500/20 text-sky-400 px-2 py-0.5 rounded border border-sky-500/30">TERMINAL #01 • JFK INTL</span>
-        </div>
-        <p class="text-xs text-slate-400 flex items-center gap-3">
-          <span><i class="fa-solid fa-user-gear text-slate-500 mr-1"></i> Agent: J. Vance (ID #8841)</span>
-          <span id="current-time-display" class="font-mono-code text-slate-400">00:00:00 AM</span>
-        </p>
-      </div>
+  <!-- TERMINAL TOP SYSTEM BAR -->
+  <header class="bg-slate-950 border-b border-emerald-900/60 px-4 py-2 flex flex-wrap items-center justify-between text-xs font-bold text-emerald-500 shadow-lg shrink-0">
+    <div class="flex items-center gap-3">
+      <span class="text-emerald-400 crt-glow font-black text-sm"><i class="fa-solid fa-terminal mr-2"></i>AEROSKY CUTE v4.02 [SABRE/SITA CONSOLE]</span>
+      <span class="bg-emerald-950/80 text-emerald-400 px-2 py-0.5 rounded border border-emerald-800 text-[10px]">HOST: JFK-GATE-B12</span>
     </div>
 
-    <!-- Header Actions & Navigation -->
-    <div class="flex items-center gap-2 sm:gap-3">
-      <div class="hidden md:flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800 text-xs">
-        <span class="relative flex h-2 w-2">
-          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-          <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-        </span>
-        <span class="text-slate-300 font-mono-code text-[11px]">SCANNER READY</span>
-      </div>
-
-      <button onclick="openBatchGeneratorModal()" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow" title="Generate & Print Barcode Sheet">
-        <i class="fa-solid fa-barcode"></i>
-        <span>GENERATE 50 BARCODES</span>
-      </button>
-
-      <button onclick="openRosterModal()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition flex items-center gap-1.5" title="View Pending Passengers in LocalStorage">
-        <i class="fa-solid fa-users text-sky-400"></i>
-        <span>Roster (<span id="pnr-count-badge">0</span>)</span>
-      </button>
-
-      <button onclick="resetSystemDatabase()" class="p-2 rounded-lg bg-slate-800 hover:bg-rose-900/50 text-slate-400 hover:text-rose-400 border border-slate-700 transition" title="Reset All Local Storage Data">
-        <i class="fa-solid fa-rotate-left text-xs"></i>
-      </button>
-
-      <button onclick="toggleAudio()" id="audio-toggle-btn" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" title="Toggle Terminal Audio">
-        <i class="fa-solid fa-volume-high text-xs"></i>
+    <div class="flex items-center gap-4 text-[11px]">
+      <span>STATUS: <strong class="text-emerald-300">ONLINE</strong></span>
+      <span>AGENT: <strong class="text-emerald-300">#8841 (J. VANCE)</strong></span>
+      <span id="time-display" class="text-emerald-400 font-bold">00:00:00 AM</span>
+      <button onclick="toggleAudio()" id="audio-btn" class="hover:text-emerald-300 text-slate-400" title="Toggle Terminal Sound">
+        <i class="fa-solid fa-volume-high"></i>
       </button>
     </div>
   </header>
 
-  <main class="flex-1 max-w-6xl w-full mx-auto p-3 md:p-6 flex flex-col overflow-hidden">
-
-    <!-- IDLE WORKSPACE STATE (When no passenger barcode has been scanned) -->
-    <div id="workspace-idle-card" class="flex-1 bg-slate-900 border border-slate-800 rounded-3xl p-8 flex flex-col items-center justify-center text-center space-y-6 shadow-2xl my-auto">
-      <div class="relative">
-        <div class="w-24 h-24 rounded-3xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400 text-5xl animate-pulse">
-          <i class="fa-solid fa-barcode"></i>
-        </div>
-        <div class="absolute -top-2 -right-2 bg-emerald-500 text-slate-950 p-2 rounded-full text-xs font-bold shadow-lg">
-          <i class="fa-solid fa-wifi"></i>
-        </div>
+  <!-- MAIN TERMINAL SCREEN -->
+  <main class="flex-1 p-3 md:p-4 flex flex-col min-h-0 overflow-hidden">
+    
+    <!-- TERMINAL CONSOLE LOG DISPLAY WINDOW -->
+    <div id="terminal-console" class="flex-1 overflow-y-auto bg-slate-950/90 border border-emerald-900/80 rounded-lg p-4 space-y-2 text-xs md:text-sm font-mono leading-relaxed shadow-2xl">
+      <div class="text-slate-500 text-[11px] border-b border-slate-900 pb-2 mb-3">
+        AEROSKY AIRWAYS AGENT TERMINAL CLI [SYSTEM BUILD 2026.8]<br>
+        Type <span class="text-emerald-300 font-bold">cmd</span> or <span class="text-emerald-300 font-bold">help</span> for full command reference manual.<br>
+        Point handheld 2D/1D scanner anywhere to scan passenger ticket barcode instantly.
       </div>
 
-      <div class="space-y-2 max-w-md">
-        <h2 class="text-2xl md:text-3xl font-extrabold text-white tracking-wide">PLEASE SCAN A PASSENGER BARCODE</h2>
-        <p class="text-xs md:text-sm text-slate-400">
-          Point standard 2D/1D hand scanner at ticket barcode or click below to pick from pending generated passenger manifest.
-        </p>
-      </div>
-
-      <!-- Quick Manual Barcode / PNR Lookup Input -->
-      <div class="w-full max-w-md space-y-3 pt-2">
-        <div class="flex items-center gap-2 bg-slate-950 p-2 rounded-2xl border border-slate-800 focus-within:border-sky-500 transition">
-          <i class="fa-solid fa-keyboard text-slate-500 ml-3 text-sm"></i>
-          <input type="text" id="manual-scan-input" placeholder="Enter PNR or Tag Code (e.g. 6X9K2P)..." onkeydown="if(event.key==='Enter') manualScanSubmit()" class="w-full bg-transparent border-none text-sm text-white font-mono-code focus:outline-none uppercase px-2">
-          <button onclick="manualScanSubmit()" class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-bold transition">
-            SCAN
-          </button>
-        </div>
-
-        <div class="flex flex-wrap items-center justify-center gap-2 pt-2">
-          <button onclick="openBatchGeneratorModal()" class="px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-xl text-xs font-bold transition flex items-center gap-2">
-            <i class="fa-solid fa-wand-magic-sparkles"></i>
-            <span>Generate 50 Passenger Barcodes</span>
-          </button>
-          <button onclick="openRosterModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-2">
-            <i class="fa-solid fa-list text-sky-400"></i>
-            <span>Select From Roster</span>
-          </button>
-        </div>
+      <div id="terminal-log" class="space-y-1.5">
+        <!-- Log lines output here dynamically -->
       </div>
     </div>
 
-    <!-- ACTIVE PASSENGER WORKSPACE CARD (Visible when a passenger is active) -->
-    <div id="workspace-active-card" class="hidden flex-1 bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl flex flex-col overflow-hidden">
-      
-      <div class="p-4 md:p-5 border-b border-slate-800 bg-slate-900/90 flex flex-wrap items-center justify-between gap-4">
-        <div class="flex items-center space-x-4 flex-1 min-w-[280px]">
-          <div class="w-12 h-12 rounded-2xl bg-sky-500/10 text-sky-400 border border-sky-500/30 flex items-center justify-center font-bold text-2xl shrink-0">
-            <i class="fa-solid fa-passport"></i>
-          </div>
-          <div class="flex-1 space-y-1">
-            <div class="flex flex-wrap items-center gap-2">
-              <span id="active-passenger-name" class="text-lg font-extrabold text-white uppercase font-mono-code">ELEANOR VANCE</span>
-              <span id="active-passenger-pnr" class="text-xs font-mono-code font-bold bg-sky-500/20 text-sky-400 px-2 py-0.5 rounded border border-sky-500/30">PNR: 6X9K2P</span>
-            </div>
-            <div class="flex flex-wrap items-center gap-3 text-xs text-slate-400 font-mono-code">
-              <span>FLIGHT: <strong id="active-flight-no" class="text-white">AS-892</strong></span>
-              <span>•</span>
-              <span>ROUTE: <strong id="active-route" class="text-sky-400">JFK &rarr; LHR</strong> (<span id="active-dest-city">LONDON</span>)</span>
-              <span>•</span>
-              <span>AIRCRAFT: <strong id="active-aircraft-type" class="text-amber-400">Boeing 777-300ER</strong></span>
-            </div>
-          </div>
-        </div>
-
-        <div class="flex items-center gap-2">
-          <button onclick="unloadActivePassenger()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold border border-slate-700 transition flex items-center gap-1.5">
-            <i class="fa-solid fa-xmark"></i>
-            <span>Cancel / Eject</span>
-          </button>
-        </div>
+    <!-- PASSENGER CONFLICT/ACTIVE WORKSPACE MONITOR PANEL -->
+    <div id="pnr-status-panel" class="mt-3 bg-slate-950 border border-emerald-800/80 rounded-lg p-3 text-xs grid grid-cols-1 md:grid-cols-4 gap-3 shrink-0 shadow-lg">
+      <div class="border-r border-emerald-900/60 pr-2">
+        <span class="text-slate-500 block text-[10px] font-bold">LOADED PASSENGER</span>
+        <span id="pnr-panel-name" class="font-bold text-white crt-glow uppercase text-sm">NO PASSENGER SCAN</span>
+        <span id="pnr-panel-code" class="block text-[10px] text-emerald-500">PNR: ------</span>
       </div>
 
-      <div class="flex-1 p-4 md:p-6 space-y-6 overflow-y-auto max-h-[calc(100vh-220px)]">
-        
-        <!-- Cabin Class & Flight Info Summary -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-950 p-4 rounded-2xl border border-slate-800 text-xs font-mono-code">
-          <div>
-            <span class="text-slate-500 block text-[10px] uppercase">CABIN CLASS</span>
-            <span id="detail-cabin" class="font-bold text-emerald-400 text-sm">Business Class</span>
-          </div>
-          <div>
-            <span class="text-slate-500 block text-[10px] uppercase">BOARDING GROUP</span>
-            <span id="detail-group" class="font-bold text-sky-400 text-sm">Group 2</span>
-          </div>
-          <div>
-            <span class="text-slate-500 block text-[10px] uppercase">GATE / TIME</span>
-            <span id="detail-gate-time" class="font-bold text-amber-400 text-sm">GATE B12 / 14:20</span>
-          </div>
-          <div>
-            <span class="text-slate-500 block text-[10px] uppercase">FREQUENT FLYER</span>
-            <span id="detail-ff-status" class="font-bold text-amber-300 text-sm">AeroGold Elite</span>
-          </div>
-        </div>
-
-        <!-- Interactive Seat Selection Card -->
-        <div class="bg-slate-950/80 p-5 rounded-2xl border border-slate-800 flex flex-wrap items-center justify-between gap-4">
-          <div class="flex items-center space-x-3">
-            <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold text-lg">
-              <i class="fa-solid fa-chair"></i>
-            </div>
-            <div>
-              <div class="flex items-center gap-2">
-                <span class="text-xs uppercase font-bold text-slate-400">ASSIGNED SEAT:</span>
-                <span id="active-seat-display" class="font-mono-code font-black text-xl text-white">12A</span>
-              </div>
-              <p class="text-xs text-slate-500">Live seat allocation map saved per flight roster</p>
-            </div>
-          </div>
-
-          <button onclick="openSeatMapModal()" class="px-4 py-2.5 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-lg">
-            <i class="fa-solid fa-map-location-dot"></i>
-            <span>OPEN AIRCRAFT SEAT MAP</span>
-          </button>
-        </div>
-
-        <div class="bg-slate-950/80 p-5 rounded-2xl border border-slate-800 space-y-4">
-          <div class="flex items-center justify-between">
-            <div>
-              <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
-                <i class="fa-solid fa-suitcase-rolling text-amber-400"></i> Checked Baggage Scale & Bag Tagging
-              </h3>
-              <p class="text-[11px] text-slate-400">Select a specific bag below before printing tag. Max standard allowance: 23.0 kg.</p>
-            </div>
-            <button onclick="addBagToActivePassenger()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-sky-400 rounded-xl text-xs font-bold border border-slate-700 transition flex items-center gap-1.5 shadow">
-              <i class="fa-solid fa-plus text-xs"></i> Add Bag
-            </button>
-          </div>
-
-          <!-- Bags list container -->
-          <div id="bags-list-container" class="space-y-2">
-            <!-- Dynamically populated checked bag items -->
-          </div>
-        </div>
-
+      <div class="border-r border-emerald-900/60 pr-2">
+        <span class="text-slate-500 block text-[10px] font-bold">FLIGHT & ROUTE</span>
+        <span id="pnr-panel-flight" class="font-bold text-emerald-300">--</span>
+        <span id="pnr-panel-route" class="block text-[10px] text-slate-400">JFK &rarr; ---</span>
       </div>
 
-      <div class="p-4 border-t border-slate-800 bg-slate-950 grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <button onclick="previewAndPrintSelectedBagTag()" class="px-4 py-3 bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-bold rounded-xl transition shadow-lg flex items-center justify-center gap-2 text-xs">
-          <i class="fa-solid fa-barcode text-sm"></i>
-          <span>PRINT SELECTED BAG TAG (DOUBLE-LENGTH)</span>
-        </button>
+      <div class="border-r border-emerald-900/60 pr-2">
+        <span class="text-slate-500 block text-[10px] font-bold">ASSIGNED SEAT</span>
+        <span id="pnr-panel-seat" class="font-bold text-amber-400 text-sm crt-amber-glow">NOT ASSIGNED</span>
+        <span id="pnr-panel-cabin" class="block text-[10px] text-slate-400">Cabin: --</span>
+      </div>
 
-        <button onclick="previewAndPrintBoardingPass()" class="px-4 py-3 bg-sky-600 hover:bg-sky-500 active:scale-95 text-white font-bold rounded-xl transition shadow-lg flex items-center justify-center gap-2 text-xs">
-          <i class="fa-solid fa-ticket text-sm"></i>
-          <span>PRINT 80mm BOARDING PASS</span>
-        </button>
+      <div>
+        <span class="text-slate-500 block text-[10px] font-bold">CHECKED BAGGAGE</span>
+        <span id="pnr-panel-bags" class="font-bold text-emerald-300">0 BAGS (0.0 KG)</span>
+        <span id="pnr-panel-status" class="block text-[10px] text-rose-400 font-bold">CHECK-IN PENDING</span>
+      </div>
+    </div>
 
-        <button onclick="completeCheckInProcess()" class="px-4 py-3 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold rounded-xl transition shadow-lg flex items-center justify-center gap-2 text-xs">
-          <i class="fa-solid fa-circle-check text-sm"></i>
-          <span>COMPLETE CHECK-IN & CLEAR</span>
+    <!-- TERMINAL INPUT COMMAND LINE -->
+    <div class="mt-3 flex items-center bg-slate-950 border-2 border-emerald-600 rounded-lg p-2 shadow-2xl focus-within:border-emerald-400 shrink-0">
+      <span class="text-emerald-400 font-bold text-sm crt-glow mr-2">&gt;</span>
+      <input type="text" id="terminal-input" placeholder="Type command (e.g. 'cmd', 'scan PNR', 'add bag', 'set seat 12A', 'prt pass')..." 
+        class="w-full bg-transparent border-none text-emerald-300 font-mono text-sm focus:outline-none uppercase placeholder:text-emerald-900"
+        autocomplete="off" spellcheck="false">
+      <button onclick="handleCommandSubmit()" class="px-4 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-slate-950 font-black rounded text-xs transition shadow shrink-0">
+        EXECUTE
+      </button>
+    </div>
+
+    <!-- QUICK TOUCH / ACTION COMMAND BUTTONS -->
+    <div class="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs shrink-0">
+      <div class="flex flex-wrap items-center gap-1.5">
+        <button onclick="runCommand('cmd')" class="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-emerald-800 text-emerald-400 rounded">
+          <i class="fa-solid fa-code"></i> cmd
+        </button>
+        <button onclick="runCommand('gen batch')" class="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-emerald-800 text-emerald-400 rounded">
+          <i class="fa-solid fa-barcode"></i> gen batch
+        </button>
+        <button onclick="runCommand('add bag')" class="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-emerald-800 text-amber-400 rounded">
+          <i class="fa-solid fa-suitcase"></i> add bag
+        </button>
+        <button onclick="runCommand('seatmap')" class="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-emerald-800 text-sky-400 rounded">
+          <i class="fa-solid fa-chair"></i> seatmap
+        </button>
+        <button onclick="runCommand('prt bag')" class="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-emerald-800 text-emerald-300 rounded">
+          <i class="fa-solid fa-print"></i> prt bag
+        </button>
+        <button onclick="runCommand('prt pass')" class="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-emerald-800 text-emerald-300 rounded">
+          <i class="fa-solid fa-ticket"></i> prt pass
+        </button>
+        <button onclick="runCommand('complete')" class="px-2.5 py-1 bg-emerald-950 hover:bg-emerald-900 border border-emerald-600 text-emerald-300 rounded font-bold">
+          <i class="fa-solid fa-check"></i> complete
         </button>
       </div>
 
+      <div class="flex items-center gap-2 text-[11px] text-slate-500">
+        <span>PENDING ROSTER: <strong id="roster-count-badge" class="text-emerald-400">0</strong></span>
+        <span>•</span>
+        <button onclick="runCommand('reset')" class="hover:text-rose-400">reset db</button>
+      </div>
     </div>
 
   </main>
 
-
-  <!-- MODAL 1: 50-PASSENGER BATCH BARCODE GENERATOR & PRINT SHEET -->
-  <div id="batch-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-4xl w-full p-5 shadow-2xl space-y-4 max-h-[92vh] flex flex-col">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-        <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
-            <i class="fa-solid fa-barcode"></i>
-          </div>
-          <div>
-            <h3 class="font-bold text-white text-base">Batch Barcode Generator & Paper-Saving Sheet</h3>
-            <p class="text-xs text-slate-400">Generate 50 passengers with single-column paper-saving barcodes</p>
-          </div>
-        </div>
-        <button onclick="closeModal('batch-modal')" class="text-slate-400 hover:text-white text-lg">
+  <!-- MODAL 1: 50-PASSENGER BATCH BARCODE SHEET MODAL -->
+  <div id="batch-modal" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-emerald-800 rounded-xl max-w-4xl w-full p-4 shadow-2xl space-y-3 max-h-[92vh] flex flex-col text-xs font-mono">
+      <div class="flex items-center justify-between border-b border-emerald-900 pb-2">
+        <h3 class="font-bold text-emerald-400 text-sm"><i class="fa-solid fa-barcode mr-2"></i>BATCH BARCODE MANIFEST GENERATOR</h3>
+        <button onclick="closeModal('batch-modal')" class="text-slate-400 hover:text-white text-base">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
 
-      <!-- Generator controls -->
-      <div class="flex flex-wrap items-center justify-between gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
-        <div class="flex items-center gap-3">
-          <label class="text-xs font-semibold text-slate-400">Count:</label>
-          <select id="batch-gen-count" class="bg-slate-900 border border-slate-800 text-xs font-mono-code text-white rounded-lg px-3 py-1.5 focus:outline-none">
-            <option value="10">10 Passengers</option>
-            <option value="25">25 Passengers</option>
-            <option value="50" selected>50 Passengers</option>
-          </select>
-          <button onclick="generateBatchPassengers()" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-xs transition shadow">
-            Generate New Batch
-          </button>
-        </div>
-
-        <div class="text-xs font-mono-code text-slate-400">
-          Click any row to simulate scanning it immediately.
-        </div>
+      <div class="flex items-center justify-between bg-slate-950 p-2.5 rounded border border-emerald-900">
+        <span class="text-slate-400">50 Passengers generated in local storage database. Scan barcodes with handheld scanner or click any row.</span>
+        <button onclick="printBatchBarcodeSheet()" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black rounded text-xs">
+          PRINT 1-COLUMN SHEET
+        </button>
       </div>
 
-      <!-- Printable / Scrollable Barcode Sheet -->
-      <div class="flex-1 overflow-y-auto bg-slate-950 p-4 rounded-xl border border-slate-800">
-        <div id="batch-barcode-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+      <div class="flex-1 overflow-y-auto bg-slate-950 p-3 rounded border border-emerald-900">
+        <div id="batch-barcode-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
           <!-- Dynamically populated barcode card tiles -->
         </div>
       </div>
-
-      <div class="flex justify-end gap-3 border-t border-slate-800 pt-3">
-        <button onclick="closeModal('batch-modal')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold">
-          Close
-        </button>
-        <button onclick="printBatchBarcodeSheet()" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-lg">
-          <i class="fa-solid fa-print"></i>
-          <span>PRINT BARCODE SHEET (1-COLUMN)</span>
-        </button>
-      </div>
     </div>
   </div>
 
-  <!-- MODAL 2: INTERACTIVE AIRCRAFT SEAT MAP MODAL -->
-  <div id="seatmap-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-3xl w-full p-5 shadow-2xl space-y-4 max-h-[92vh] flex flex-col">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-        <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-lg bg-sky-500/10 text-sky-400 flex items-center justify-center">
-            <i class="fa-solid fa-plane"></i>
-          </div>
-          <div>
-            <h3 id="seatmap-modal-title" class="font-bold text-white text-base">Aircraft Seat Map - Boeing 777</h3>
-            <p id="seatmap-modal-subtitle" class="text-xs text-slate-400">Select an available seat for passenger</p>
-          </div>
-        </div>
-        <button onclick="closeModal('seatmap-modal')" class="text-slate-400 hover:text-white text-lg">
+  <!-- MODAL 2: AIRCRAFT SEAT MAP MODAL -->
+  <div id="seatmap-modal" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-emerald-800 rounded-xl max-w-2xl w-full p-4 shadow-2xl space-y-3 max-h-[92vh] flex flex-col text-xs font-mono">
+      <div class="flex items-center justify-between border-b border-emerald-900 pb-2">
+        <h3 id="seatmap-modal-title" class="font-bold text-emerald-400 text-sm"><i class="fa-solid fa-plane mr-2"></i>AIRCRAFT SEATMAP SELECTION</h3>
+        <button onclick="closeModal('seatmap-modal')" class="text-slate-400 hover:text-white text-base">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
 
-      <!-- Seat Map Legend -->
-      <div class="flex items-center justify-center gap-6 bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-xs font-mono-code">
-        <div class="flex items-center gap-2">
-          <div class="w-4 h-4 rounded bg-sky-600 border border-sky-400"></div>
-          <span class="text-slate-300">Selected</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <div class="w-4 h-4 rounded bg-slate-800 border border-slate-700"></div>
-          <span class="text-slate-300">Available</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <div class="w-4 h-4 rounded bg-rose-900/60 border border-rose-700/80"></div>
-          <span class="text-rose-400">Occupied</span>
-        </div>
+      <div class="flex items-center justify-center gap-6 bg-slate-950 p-2 rounded border border-emerald-900 text-[11px]">
+        <div class="flex items-center gap-1.5"><div class="w-3.5 h-3.5 rounded bg-emerald-600"></div><span>Selected</span></div>
+        <div class="flex items-center gap-1.5"><div class="w-3.5 h-3.5 rounded bg-slate-800 border border-slate-700"></div><span>Available</span></div>
+        <div class="flex items-center gap-1.5"><div class="w-3.5 h-3.5 rounded bg-rose-950 border border-rose-800"></div><span class="text-rose-400">Taken</span></div>
       </div>
 
-      <!-- Aircraft Cabin Seating Grid -->
-      <div class="flex-1 overflow-y-auto bg-slate-950 p-4 rounded-xl border border-slate-800 flex justify-center">
-        <div id="seatmap-grid-container" class="space-y-4 w-full max-w-lg font-mono-code">
-          <!-- Aircraft rows rendered dynamically -->
+      <div class="flex-1 overflow-y-auto bg-slate-950 p-4 rounded border border-emerald-900 flex justify-center">
+        <div id="seatmap-grid-container" class="space-y-2 w-full max-w-md">
+          <!-- Aircraft seat map rendered here -->
         </div>
-      </div>
-
-      <div class="flex justify-end gap-3 border-t border-slate-800 pt-3">
-        <button onclick="closeModal('seatmap-modal')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold">
-          Confirm Seat Selection
-        </button>
       </div>
     </div>
   </div>
 
-  <!-- MODAL 3: PENDING PASSENGER ROSTER OVERVIEW MODAL -->
-  <div id="roster-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-5 shadow-2xl space-y-4 max-h-[85vh] flex flex-col">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-        <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-lg bg-sky-500/10 text-sky-400 flex items-center justify-center">
-            <i class="fa-solid fa-users"></i>
-          </div>
-          <div>
-            <h3 class="font-bold text-white text-base">Saved Passenger Roster</h3>
-            <p class="text-xs text-slate-400">Active queue stored in LocalStorage</p>
-          </div>
-        </div>
-        <button onclick="closeModal('roster-modal')" class="text-slate-400 hover:text-white text-lg">
+  <!-- MODAL 3: TOUCHSCREEN NUMPAD FOR BAGGAGE WEIGHT -->
+  <div id="numpad-modal" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-emerald-800 rounded-xl max-w-xs w-full p-4 shadow-2xl space-y-3 font-mono">
+      <div class="flex items-center justify-between border-b border-emerald-900 pb-2">
+        <h3 class="font-bold text-emerald-400 text-xs"><i class="fa-solid fa-calculator mr-2"></i>BAGGAGE SCALE NUMPAD</h3>
+        <button onclick="closeModal('numpad-modal')" class="text-slate-400 hover:text-white text-sm">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
 
-      <!-- Filter search -->
-      <input type="text" id="roster-search-input" placeholder="Search passenger name or PNR..." onkeyup="renderRosterListModal()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono-code text-white focus:outline-none focus:border-sky-500">
-
-      <div class="flex-1 overflow-y-auto space-y-2 pr-1" id="roster-modal-list">
-        <!-- Dynamically rendered roster items -->
+      <div class="bg-slate-950 p-3 rounded border border-emerald-900 text-center">
+        <span class="text-[10px] text-slate-500 block uppercase">SCALE WEIGHT READOUT</span>
+        <div class="text-2xl font-black text-amber-400 crt-amber-glow"><span id="numpad-display">20.0</span> KG</div>
+        <div id="numpad-status-badge" class="pt-1 text-[10px]"></div>
       </div>
 
-      <div class="flex justify-end gap-2 border-t border-slate-800 pt-3">
-        <button onclick="closeModal('roster-modal')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold">
-          Close
-        </button>
+      <!-- Keypad Grid -->
+      <div class="grid grid-cols-3 gap-1.5 text-xs">
+        <button onclick="numpadPreset('15.0')" class="py-1 bg-slate-800 text-sky-400 rounded">15kg</button>
+        <button onclick="numpadPreset('20.0')" class="py-1 bg-slate-800 text-sky-400 rounded">20kg</button>
+        <button onclick="numpadPreset('23.0')" class="py-1 bg-slate-800 text-emerald-400 font-bold rounded">23kg</button>
       </div>
+
+      <div class="grid grid-cols-3 gap-1.5 font-bold text-base">
+        <button onclick="numpadAppend('7')" class="p-2.5 bg-slate-800 text-white rounded border border-slate-700">7</button>
+        <button onclick="numpadAppend('8')" class="p-2.5 bg-slate-800 text-white rounded border border-slate-700">8</button>
+        <button onclick="numpadAppend('9')" class="p-2.5 bg-slate-800 text-white rounded border border-slate-700">9</button>
+        <button onclick="numpadAppend('4')" class="p-2.5 bg-slate-800 text-white rounded border border-slate-700">4</button>
+        <button onclick="numpadAppend('5')" class="p-2.5 bg-slate-800 text-white rounded border border-slate-700">5</button>
+        <button onclick="numpadAppend('6')" class="p-2.5 bg-slate-800 text-white rounded border border-slate-700">6</button>
+        <button onclick="numpadAppend('1')" class="p-2.5 bg-slate-800 text-white rounded border border-slate-700">1</button>
+        <button onclick="numpadAppend('2')" class="p-2.5 bg-slate-800 text-white rounded border border-slate-700">2</button>
+        <button onclick="numpadAppend('3')" class="p-2.5 bg-slate-800 text-white rounded border border-slate-700">3</button>
+        <button onclick="numpadAppend('.')" class="p-2.5 bg-slate-800 text-amber-400 rounded border border-slate-700">.</button>
+        <button onclick="numpadAppend('0')" class="p-2.5 bg-slate-800 text-white rounded border border-slate-700">0</button>
+        <button onclick="numpadBackspace()" class="p-2.5 bg-rose-950 text-rose-400 rounded border border-rose-800"><i class="fa-solid fa-delete-left"></i></button>
+      </div>
+
+      <button onclick="confirmNumpadWeight()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black rounded text-xs">
+        CONFIRM BAG WEIGHT
+      </button>
     </div>
   </div>
 
-  <!-- MODAL 4: 80mm THERMAL PRINT PREVIEW MODAL -->
-  <div id="print-preview-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-5 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-        <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center">
-            <i class="fa-solid fa-print"></i>
-          </div>
-          <div>
-            <h3 id="preview-modal-title" class="font-bold text-white text-base">80mm Thermal Print Preview</h3>
-            <p class="text-xs text-slate-400">Verify thermal formatting before output</p>
-          </div>
-        </div>
-        <button onclick="closeModal('print-preview-modal')" class="text-slate-400 hover:text-white text-lg">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
-
-      <!-- Scrollable Receipt Paper Simulator -->
-      <div class="flex-1 overflow-y-auto bg-slate-950 p-4 rounded-xl border border-slate-800 flex justify-center">
-        <div id="screen-receipt-preview" class="w-[72mm] bg-white text-black p-3 rounded shadow-2xl font-sans text-xs">
-          <!-- Live thermal preview content -->
-        </div>
-      </div>
-
-      <div class="flex justify-end gap-3 border-t border-slate-800 pt-3">
-        <button onclick="closeModal('print-preview-modal')" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold">
-          Cancel
-        </button>
-        <button onclick="triggerPhysicalThermalPrint()" class="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs flex items-center gap-2 shadow-lg">
-          <i class="fa-solid fa-print text-sm"></i>
-          <span>SEND TO 80mm PRINTER</span>
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL 5: TOUCHSCREEN NUMPAD FOR BAGGAGE WEIGHT -->
-  <div id="numpad-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-        <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center">
-            <i class="fa-solid fa-calculator"></i>
-          </div>
-          <div>
-            <h3 class="font-bold text-white text-base">Baggage Scale Numpad</h3>
-            <p class="text-xs text-slate-400">Touchscreen Weight Entry (KG)</p>
-          </div>
-        </div>
-        <button onclick="closeModal('numpad-modal')" class="text-slate-400 hover:text-white text-lg">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
-
-      <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 text-center space-y-1">
-        <span class="text-[10px] text-slate-500 font-mono-code uppercase block">SCALE READOUT</span>
-        <div class="flex items-center justify-center gap-2">
-          <span id="numpad-display" class="font-mono-code font-black text-3xl text-amber-400">20.0</span>
-          <span class="font-mono-code font-bold text-lg text-slate-400">KG</span>
-        </div>
-        <div id="numpad-status-badge" class="pt-1"></div>
-      </div>
-
-      <!-- Quick Weight Presets -->
-      <div class="grid grid-cols-3 gap-1.5 text-xs font-mono-code">
-        <button onclick="numpadPreset('15.0')" class="py-1.5 bg-slate-800 hover:bg-slate-700 text-sky-400 rounded-lg border border-slate-700">15 kg</button>
-        <button onclick="numpadPreset('18.0')" class="py-1.5 bg-slate-800 hover:bg-slate-700 text-sky-400 rounded-lg border border-slate-700">18 kg</button>
-        <button onclick="numpadPreset('20.0')" class="py-1.5 bg-slate-800 hover:bg-slate-700 text-sky-400 rounded-lg border border-slate-700">20 kg</button>
-        <button onclick="numpadPreset('23.0')" class="py-1.5 bg-slate-800 hover:bg-slate-700 text-emerald-400 rounded-lg border border-slate-700 font-bold">23 kg (Max)</button>
-        <button onclick="numpadPreset('25.0')" class="py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-lg border border-slate-700">25 kg</button>
-        <button onclick="numpadPreset('30.0')" class="py-1.5 bg-slate-800 hover:bg-slate-700 text-rose-400 rounded-lg border border-slate-700">30 kg</button>
-      </div>
-
-      <!-- Keypad Touch Grid -->
-      <div class="grid grid-cols-3 gap-2 font-mono-code text-lg font-bold">
-        <button onclick="numpadAppend('7')" class="p-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700 active:scale-95 shadow">7</button>
-        <button onclick="numpadAppend('8')" class="p-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700 active:scale-95 shadow">8</button>
-        <button onclick="numpadAppend('9')" class="p-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700 active:scale-95 shadow">9</button>
-        
-        <button onclick="numpadAppend('4')" class="p-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700 active:scale-95 shadow">4</button>
-        <button onclick="numpadAppend('5')" class="p-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700 active:scale-95 shadow">5</button>
-        <button onclick="numpadAppend('6')" class="p-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700 active:scale-95 shadow">6</button>
-
-        <button onclick="numpadAppend('1')" class="p-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700 active:scale-95 shadow">1</button>
-        <button onclick="numpadAppend('2')" class="p-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700 active:scale-95 shadow">2</button>
-        <button onclick="numpadAppend('3')" class="p-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700 active:scale-95 shadow">3</button>
-
-        <button onclick="numpadAppend('.')" class="p-3 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-xl border border-slate-700 active:scale-95 shadow font-black">.</button>
-        <button onclick="numpadAppend('0')" class="p-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-700 active:scale-95 shadow">0</button>
-        <button onclick="numpadBackspace()" class="p-3 bg-rose-500/20 text-rose-400 rounded-xl border border-rose-500/30 active:scale-95 shadow flex items-center justify-center">
-          <i class="fa-solid fa-delete-left text-lg"></i>
-        </button>
-      </div>
-
-      <div class="flex items-center gap-2 border-t border-slate-800 pt-3">
-        <button onclick="numpadClear()" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold border border-slate-700">Clear</button>
-        <button onclick="confirmNumpadWeight()" class="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-xl text-xs shadow-lg flex items-center justify-center gap-2">
-          <i class="fa-solid fa-check"></i> CONFIRM WEIGHT
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- PHYSICAL THERMAL PRINTING TARGET AREA -->
+  <!-- PHYSICAL THERMAL PRINTING CONTAINER -->
   <div id="print-area">
     <div id="printable-thermal-receipt"></div>
   </div>
@@ -567,9 +306,8 @@
     /* ==========================================================================
        LOCALSTORAGE STATE & DATA DICTIONARIES
        ========================================================================== */
-    const LOCALSTORAGE_KEY = 'aerosky_terminal_db_v3';
+    const LOCALSTORAGE_KEY = 'aerosky_cute_cli_db_v4';
 
-    // Multiple airport destinations database
     const AIRPORT_DESTINATIONS = [
       { code: 'LHR', city: 'LONDON HEATHROW', country: 'UNITED KINGDOM' },
       { code: 'HND', city: 'TOKYO HANEDA', country: 'JAPAN' },
@@ -578,9 +316,7 @@
       { code: 'SYD', city: 'SYDNEY KINGSFORD', country: 'AUSTRALIA' },
       { code: 'LAX', city: 'LOS ANGELES INTL', country: 'UNITED STATES' },
       { code: 'FRA', city: 'FRANKFURT MAIN', country: 'GERMANY' },
-      { code: 'SIN', city: 'SINGAPORE CHANGI', country: 'SINGAPORE' },
-      { code: 'ORD', city: 'CHICAGO O\'HARE', country: 'UNITED STATES' },
-      { code: 'MIA', city: 'MIAMI INTL', country: 'UNITED STATES' }
+      { code: 'SIN', city: 'SINGAPORE CHANGI', country: 'SINGAPORE' }
     ];
 
     const FLIGHT_ROSTERS = [
@@ -589,21 +325,18 @@
       { flightNo: 'AS-202', aircraft: 'Airbus A350-900', gate: 'A15', boardingTime: '18:45' }
     ];
 
-    const MOCK_FIRST_NAMES = ['ELEANOR', 'MARCUS', 'SOPHIA', 'ALEXANDER', 'DANIEL', 'OLIVIA', 'LIAM', 'EMMA', 'NOAH', 'ISABELLA', 'ETHAN', 'MIA', 'LUCAS', 'AVA', 'HENRY', 'CHARLOTTE', 'BENJAMIN', 'AMELIA', 'JAMES', 'HARPER'];
-    const MOCK_LAST_NAMES = ['VANCE', 'THORNE', 'CHEN', 'RIVERS', 'WRIGHT', 'ROSSI', 'SANTOS', 'KIM', 'PATEL', 'HUGHES', 'BENNETT', 'FOSTER', 'HAYES', 'SULLIVAN', 'MURPHY', 'WALSH', 'REID', 'BROOKS', 'COLE', 'GRAHAM'];
+    const MOCK_FIRST_NAMES = ['ELEANOR', 'MARCUS', 'SOPHIA', 'ALEXANDER', 'DANIEL', 'OLIVIA', 'LIAM', 'EMMA', 'NOAH', 'ISABELLA', 'ETHAN', 'MIA', 'LUCAS', 'AVA', 'HENRY'];
+    const MOCK_LAST_NAMES = ['VANCE', 'THORNE', 'CHEN', 'RIVERS', 'WRIGHT', 'ROSSI', 'SANTOS', 'KIM', 'PATEL', 'HUGHES', 'BENNETT', 'FOSTER', 'HAYES', 'SULLIVAN', 'MURPHY'];
 
-    /* App Engine State */
-    let passengerDatabase = []; // Array of passenger objects saved in LocalStorage
-    let occupiedSeatsByFlight = {}; // Map of flightNo -> Array of seat strings (e.g. {'AS-892': ['12A', '04F']})
-    let activePassenger = null; // Currently scanned/loaded passenger
-    let selectedBagId = null; // Currently selected bag ID for printing tag
+    /* Terminal App Engine State */
+    let passengerDatabase = [];
+    let occupiedSeatsByFlight = {};
+    let activePassenger = null;
+    let commandHistory = [];
+    let historyIndex = -1;
 
     let audioEnabled = true;
     let audioCtx = null;
-    let currentPreparedHTML = '';
-
-    /* Touchscreen Numpad State Variables */
-    let numpadTargetBagId = null; // null for new bag, string ID for editing
     let numpadValue = '20.0';
 
     function loadStateFromLocalStorage() {
@@ -613,97 +346,74 @@
           const parsed = JSON.parse(stored);
           passengerDatabase = parsed.passengers || [];
           occupiedSeatsByFlight = parsed.occupiedSeats || {};
-        } else {
-          passengerDatabase = [];
-          occupiedSeatsByFlight = {};
         }
-      } catch (e) {
-        passengerDatabase = [];
-        occupiedSeatsByFlight = {};
+      } catch (e) {}
+
+      if (passengerDatabase.length === 0) {
+        generateBatchPassengers(50, false);
       }
       updateHeaderBadgeCount();
     }
 
     function saveStateToLocalStorage() {
       try {
-        const dataToStore = {
+        localStorage.setItem(LOCALSTORAGE_KEY, JSON.stringify({
           passengers: passengerDatabase,
           occupiedSeats: occupiedSeatsByFlight
-        };
-        localStorage.setItem(LOCALSTORAGE_KEY, JSON.stringify(dataToStore));
+        }));
       } catch (e) {}
       updateHeaderBadgeCount();
     }
 
     function updateHeaderBadgeCount() {
-      const badge = document.getElementById('pnr-count-badge');
-      if (badge) {
-        badge.innerText = passengerDatabase.length;
-      }
-    }
-
-    function resetSystemDatabase() {
-      if (confirm("Reset local storage? This will clear all generated passengers and occupied seat maps.")) {
-        localStorage.removeItem(LOCALSTORAGE_KEY);
-        passengerDatabase = [];
-        occupiedSeatsByFlight = {};
-        activePassenger = null;
-        saveStateToLocalStorage();
-        unloadActivePassenger();
-        playBeepSound(800, 0.1);
-      }
+      const badge = document.getElementById('roster-count-badge');
+      if (badge) badge.innerText = passengerDatabase.length;
     }
 
     function initAudio() {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      }
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
 
     function toggleAudio() {
       audioEnabled = !audioEnabled;
-      const btn = document.getElementById('audio-toggle-btn');
-      if (audioEnabled) {
-        btn.innerHTML = `<i class="fa-solid fa-volume-high text-xs"></i>`;
-        playBeepSound(1200, 0.04);
-      } else {
-        btn.innerHTML = `<i class="fa-solid fa-volume-xmark text-xs text-slate-500"></i>`;
-      }
+      const btn = document.getElementById('audio-btn');
+      btn.innerHTML = audioEnabled ? `<i class="fa-solid fa-volume-high"></i>` : `<i class="fa-solid fa-volume-xmark text-slate-600"></i>`;
+      if (audioEnabled) playKeyClickSound();
     }
 
-    function playBeepSound(freq = 1400, duration = 0.05) {
+    function playKeyClickSound() {
       if (!audioEnabled) return;
       initAudio();
       try {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.02);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.start();
-        osc.stop(audioCtx.currentTime + duration);
+        osc.stop(audioCtx.currentTime + 0.02);
       } catch(e) {}
     }
 
-    function playGateAccessChime() {
+    function playChimeSound() {
       if (!audioEnabled) return;
       initAudio();
       try {
         const now = audioCtx.currentTime;
-        const osc1 = audioCtx.createOscillator();
-        const gain1 = audioCtx.createGain();
-        osc1.type = 'triangle';
-        osc1.frequency.setValueAtTime(880, now);
-        osc1.frequency.setValueAtTime(1318.51, now + 0.1);
-        gain1.gain.setValueAtTime(0.2, now);
-        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
-        osc1.connect(gain1);
-        gain1.connect(audioCtx.destination);
-        osc1.start(now);
-        osc1.stop(now + 0.4);
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(880, now);
+        osc.frequency.setValueAtTime(1318.51, now + 0.08);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.3);
       } catch(e) {}
     }
 
@@ -715,104 +425,486 @@
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(300, now);
-        osc.frequency.setValueAtTime(180, now + 0.1);
-        gain.gain.setValueAtTime(0.2, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        osc.frequency.setValueAtTime(220, now);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.start(now);
-        osc.stop(now + 0.3);
+        osc.stop(now + 0.25);
       } catch(e) {}
     }
 
-    /**
-     * CORE SCANNER ENGINE: Looks up passenger by PNR or Tag Code
-     * Clears modals, populates active workspace, and plays audio chime.
-     */
-    function scanAndLoadPassenger(queryCode) {
-      if (!queryCode) return;
-      const cleanCode = queryCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    /* Terminal Console Logger */
+    function logTerminal(message, type = 'info') {
+      const container = document.getElementById('terminal-log');
+      if (!container) return;
 
-      if (cleanCode.length === 0) return;
+      let colorStyle = 'text-emerald-400';
+      if (type === 'cmd') colorStyle = 'text-white font-bold';
+      if (type === 'warn') colorStyle = 'text-amber-400';
+      if (type === 'error') colorStyle = 'text-rose-400 font-bold';
+      if (type === 'success') colorStyle = 'text-emerald-300 font-bold crt-glow';
+      if (type === 'system') colorStyle = 'text-slate-400';
 
-      // Look up in passengerDatabase by PNR or Bag Tag Code or PASS format
-      let found = passengerDatabase.find(p => 
-        p.pnr.toUpperCase() === cleanCode || 
-        cleanCode.includes(p.pnr.toUpperCase()) ||
-        p.bags.some(b => b.tagCode === cleanCode || cleanCode.includes(b.tagCode))
-      );
+      const timeStr = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const line = document.createElement('div');
+      line.className = `${colorStyle} border-l-2 ${type === 'cmd' ? 'border-sky-500 pl-2' : 'border-transparent pl-1'}`;
+      line.innerHTML = `<span class="text-slate-600 text-[10px] mr-2">[${timeStr}]</span>${message}`;
+
+      container.appendChild(line);
+
+      // Auto-scroll to bottom
+      const consoleBox = document.getElementById('terminal-console');
+      consoleBox.scrollTop = consoleBox.scrollHeight;
+    }
+
+    /* COMMAND PARSER & EXECUTOR */
+    function handleCommandSubmit() {
+      const input = document.getElementById('terminal-input');
+      if (!input || !input.value.trim()) return;
+
+      const rawCmd = input.value.trim();
+      input.value = '';
+
+      commandHistory.push(rawCmd);
+      historyIndex = commandHistory.length;
+
+      runCommand(rawCmd);
+    }
+
+    function runCommand(commandString) {
+      logTerminal(`> ${commandString}`, 'cmd');
+      playKeyClickSound();
+
+      const parts = commandString.trim().toUpperCase().split(/\s+/);
+      const main = parts[0];
+      const arg1 = parts[1] || '';
+      const arg2 = parts[2] || '';
+
+      switch (main) {
+        case 'CMD':
+        case 'HELP':
+        case 'MAN':
+          displayCommandManual();
+          break;
+
+        case 'SCAN':
+        case 'FIND':
+        case 'PNR':
+        case 'LOOKUP':
+          if (!arg1) {
+            logTerminal('ERROR: PNR or Barcode code required. Example: SCAN 6X9K2P', 'error');
+            playErrorSound();
+          } else {
+            scanPassengerByCode(arg1);
+          }
+          break;
+
+        case 'ADD':
+        case 'BAG':
+        case 'BAGGAGE':
+          if (main === 'ADD' && arg1 !== 'BAG') {
+            logTerminal(`ERROR: Unknown ADD command '${arg1}'. Did you mean 'ADD BAG'?`, 'error');
+            break;
+          }
+          if (!activePassenger) {
+            logTerminal('ERROR: No passenger currently loaded. Please SCAN a passenger first.', 'error');
+            playErrorSound();
+            break;
+          }
+          const weightVal = parseFloat(main === 'ADD' ? arg2 : arg1);
+          if (isNaN(weightVal) || weightVal <= 0) {
+            // Open Touchscreen Numpad
+            document.getElementById('numpad-modal').classList.remove('hidden');
+            logTerminal('Opening Baggage Scale Numpad...', 'system');
+          } else {
+            addBagToActivePassenger(weightVal);
+          }
+          break;
+
+        case 'SEAT':
+        case 'SET':
+        case 'ASSIGN':
+          if (!activePassenger) {
+            logTerminal('ERROR: No passenger currently loaded. Please SCAN a passenger first.', 'error');
+            playErrorSound();
+            break;
+          }
+          const seatTarget = main === 'SEAT' ? arg1 : arg2;
+          if (!seatTarget) {
+            openSeatmapModal();
+          } else {
+            assignSeatToActivePassenger(seatTarget);
+          }
+          break;
+
+        case 'SEATMAP':
+        case 'MAP':
+          if (!activePassenger) {
+            logTerminal('ERROR: No passenger currently loaded. Please SCAN a passenger first.', 'error');
+            playErrorSound();
+          } else {
+            openSeatmapModal();
+          }
+          break;
+
+        case 'PRT':
+        case 'PRINT':
+          if (!activePassenger) {
+            logTerminal('ERROR: No passenger loaded. Scan passenger before printing.', 'error');
+            playErrorSound();
+            break;
+          }
+          if (arg1 === 'PASS' || arg1 === 'BOARDING' || arg1 === 'TICKET') {
+            printBoardingPassCLI();
+          } else if (arg1 === 'BAG' || arg1 === 'TAG' || arg1 === 'BAGGAGE') {
+            printBagTagCLI();
+          } else {
+            logTerminal('Specify document to print: PRT PASS or PRT BAG', 'warn');
+          }
+          break;
+
+        case 'COMPLETE':
+        case 'DONE':
+        case 'CLEAR':
+        case 'EJECT':
+          completeCheckInCLI();
+          break;
+
+        case 'GEN':
+        case 'BATCH':
+          openBatchModal();
+          break;
+
+        case 'ROSTER':
+        case 'LIST':
+          displayRosterListCLI();
+          break;
+
+        case 'RESET':
+          resetLocalDatabaseCLI();
+          break;
+
+        default:
+          // Check if user scanned/typed a direct PNR code
+          if (main.length >= 4 && main.length <= 12) {
+            scanPassengerByCode(main);
+          } else {
+            logTerminal(`Unrecognized command '${main}'. Type 'cmd' for command list.`, 'error');
+            playErrorSound();
+          }
+          break;
+      }
+    }
+
+    function displayCommandManual() {
+      logTerminal(`
+===== AEROSKY COMMAND-LINE TERMINAL MANUAL =====
+• <span class="text-white font-bold">SCAN &lt;PNR&gt;</span> : Scan/load passenger by PNR locator code
+• <span class="text-white font-bold">ADD BAG [weight]</span> : Add bag (e.g. 'ADD BAG 21.5' or 'ADD BAG' for numpad)
+• <span class="text-white font-bold">SEAT &lt;code&gt;</span> : Assign seat (e.g. 'SEAT 12A')
+• <span class="text-white font-bold">SEATMAP</span> : Open interactive aircraft seating chart
+• <span class="text-white font-bold">PRT PASS</span> : Print 80mm thermal boarding pass receipt
+• <span class="text-white font-bold">PRT BAG</span> : Print double-length 80mm thermal bag tag
+• <span class="text-white font-bold">COMPLETE</span> : Finalize check-in and clear terminal workspace
+• <span class="text-white font-bold">GEN BATCH</span> : Generate 50-passenger manifest and 1-column barcode sheet
+• <span class="text-white font-bold">ROSTER</span> : List pending passengers in local database
+• <span class="text-white font-bold">RESET</span> : Clear local storage database
+===============================================
+      `, 'system');
+    }
+
+    function scanPassengerByCode(code) {
+      const clean = code.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const found = passengerDatabase.find(p => p.pnr === clean || clean.includes(p.pnr));
 
       if (!found) {
+        logTerminal(`PASSENGER RECORD [${clean}] NOT FOUND IN ROSTER. Run 'GEN BATCH' or 'ROSTER'.`, 'error');
         playErrorSound();
-        alert(`Passenger or Bag Tag [${cleanCode}] not found in roster. Please generate a batch or select from roster.`);
         return;
       }
 
-      playGateAccessChime();
-      activePassenger = JSON.parse(JSON.stringify(found)); // deep copy active
-      selectedBagId = activePassenger.bags.length > 0 ? activePassenger.bags[0].id : null;
+      activePassenger = JSON.parse(JSON.stringify(found));
+      playChimeSound();
+      logTerminal(`SUCCESS: LOADED PASSENGER ${activePassenger.name} [PNR: ${activePassenger.pnr}]`, 'success');
+      logTerminal(`FLIGHT: ${activePassenger.flightNo} (${activePassenger.origin} -> ${activePassenger.destination}) | CABIN: ${activePassenger.cabin}`, 'info');
 
-      // Close open modals
-      closeModal('batch-modal');
-      closeModal('roster-modal');
-      closeModal('seatmap-modal');
-
-      renderActivePassengerWorkspace();
+      updatePassengerPanelDisplay();
     }
 
-    function manualScanSubmit() {
-      const input = document.getElementById('manual-scan-input');
-      if (input && input.value) {
-        scanAndLoadPassenger(input.value);
-        input.value = '';
+    function updatePassengerPanelDisplay() {
+      if (!activePassenger) {
+        document.getElementById('pnr-panel-name').innerText = 'NO PASSENGER SCAN';
+        document.getElementById('pnr-panel-code').innerText = 'PNR: ------';
+        document.getElementById('pnr-panel-flight').innerText = '--';
+        document.getElementById('pnr-panel-route').innerHTML = 'JFK &rarr; ---';
+        document.getElementById('pnr-panel-seat').innerText = 'NOT ASSIGNED';
+        document.getElementById('pnr-panel-cabin').innerText = 'Cabin: --';
+        document.getElementById('pnr-panel-bags').innerText = '0 BAGS (0.0 KG)';
+        document.getElementById('pnr-panel-status').innerText = 'CHECK-IN PENDING';
+        document.getElementById('pnr-panel-status').className = 'block text-[10px] text-rose-400 font-bold';
+        return;
       }
+
+      document.getElementById('pnr-panel-name').innerText = activePassenger.name;
+      document.getElementById('pnr-panel-code').innerText = `PNR: ${activePassenger.pnr}`;
+      document.getElementById('pnr-panel-flight').innerText = activePassenger.flightNo;
+      document.getElementById('pnr-panel-route').innerHTML = `${activePassenger.origin} &rarr; ${activePassenger.destination} (${activePassenger.destCity})`;
+
+      const seatElem = document.getElementById('pnr-panel-seat');
+      seatElem.innerText = activePassenger.seat || 'NOT ASSIGNED';
+      seatElem.className = activePassenger.seat ? 'font-bold text-emerald-400 text-sm crt-glow' : 'font-bold text-amber-400 text-sm crt-amber-glow';
+
+      document.getElementById('pnr-panel-cabin').innerText = `Cabin: ${activePassenger.cabin}`;
+
+      const totalWeight = activePassenger.bags.reduce((sum, b) => sum + b.weight, 0);
+      document.getElementById('pnr-panel-bags').innerText = `${activePassenger.bags.length} BAGS (${totalWeight.toFixed(1)} KG)`;
+
+      const isReady = activePassenger.seat && activePassenger.seat !== 'NOT ASSIGNED';
+      const statusElem = document.getElementById('pnr-panel-status');
+      statusElem.innerText = isReady ? 'READY TO PRINT TICKET' : 'SEAT ASSIGNMENT REQUIRED';
+      statusElem.className = isReady ? 'block text-[10px] text-emerald-400 font-bold crt-glow' : 'block text-[10px] text-amber-400 font-bold';
     }
 
-    function renderActivePassengerWorkspace() {
+    function addBagToActivePassenger(weightVal) {
       if (!activePassenger) return;
 
-      document.getElementById('workspace-idle-card').classList.add('hidden');
-      document.getElementById('workspace-active-card').classList.remove('hidden');
+      const bagId = `BAG-${activePassenger.pnr}-${activePassenger.bags.length + 1}`;
+      const tagCode = `000${Math.floor(100000 + Math.random() * 899999)}`;
+      const bagObj = { id: bagId, weight: weightVal, tagCode: tagCode };
 
-      // Populate passenger fields
-      document.getElementById('active-passenger-name').innerText = activePassenger.name;
-      document.getElementById('active-passenger-pnr').innerText = `PNR: ${activePassenger.pnr}`;
-      document.getElementById('active-flight-no').innerText = activePassenger.flightNo;
-      document.getElementById('active-route').innerHTML = `${activePassenger.origin} &rarr; ${activePassenger.destination}`;
-      document.getElementById('active-dest-city').innerText = activePassenger.destCity;
-      document.getElementById('active-aircraft-type').innerText = activePassenger.aircraft;
+      activePassenger.bags.push(bagObj);
 
-      document.getElementById('detail-cabin').innerText = activePassenger.cabin;
-      document.getElementById('detail-group').innerText = activePassenger.group;
-      document.getElementById('detail-gate-time').innerText = `GATE ${activePassenger.gate} / ${activePassenger.boardingTime}`;
-      document.getElementById('detail-ff-status').innerText = activePassenger.ffStatus || 'AeroClub Member';
+      // Sync to main DB
+      const idx = passengerDatabase.findIndex(p => p.pnr === activePassenger.pnr);
+      if (idx !== -1) passengerDatabase[idx].bags = activePassenger.bags;
 
-      document.getElementById('active-seat-display').innerText = activePassenger.seat;
-
-      renderBagsList();
+      saveStateToLocalStorage();
+      playChimeSound();
+      logTerminal(`BAGGAGE ADDED: Bag #${activePassenger.bags.length} [Tag: ${tagCode}] Weight: ${weightVal.toFixed(1)} KG ${weightVal > 23.0 ? '(HEAVY)' : ''}`, 'success');
+      updatePassengerPanelDisplay();
     }
 
-    function unloadActivePassenger() {
-      activePassenger = null;
-      selectedBagId = null;
-      document.getElementById('workspace-active-card').classList.add('hidden');
-      document.getElementById('workspace-idle-card').classList.remove('hidden');
-      playBeepSound(600, 0.05);
-    }
+    function assignSeatToActivePassenger(seatCode) {
+      if (!activePassenger) return;
 
-    function openBatchGeneratorModal() {
-      playBeepSound(1100, 0.04);
-      if (passengerDatabase.length === 0) {
-        generateBatchPassengers();
-      } else {
-        renderBatchBarcodeGrid();
+      const currentFlight = activePassenger.flightNo;
+      const occupiedList = occupiedSeatsByFlight[currentFlight] || [];
+
+      if (occupiedList.includes(seatCode) && activePassenger.seat !== seatCode) {
+        logTerminal(`ERROR: Seat ${seatCode} is already occupied on flight ${currentFlight}. Choose another.`, 'error');
+        playErrorSound();
+        return;
       }
-      document.getElementById('batch-modal').classList.remove('hidden');
+
+      if (activePassenger.seat && occupiedSeatsByFlight[currentFlight]) {
+        occupiedSeatsByFlight[currentFlight] = occupiedSeatsByFlight[currentFlight].filter(s => s !== activePassenger.seat);
+      }
+
+      if (!occupiedSeatsByFlight[currentFlight]) occupiedSeatsByFlight[currentFlight] = [];
+      occupiedSeatsByFlight[currentFlight].push(seatCode);
+
+      activePassenger.seat = seatCode;
+
+      const idx = passengerDatabase.findIndex(p => p.pnr === activePassenger.pnr);
+      if (idx !== -1) passengerDatabase[idx].seat = seatCode;
+
+      saveStateToLocalStorage();
+      playChimeSound();
+      logTerminal(`SEAT ASSIGNED: Seat ${seatCode} confirmed for ${activePassenger.name}`, 'success');
+      updatePassengerPanelDisplay();
+      closeModal('seatmap-modal');
     }
 
-    function generateBatchPassengers() {
-      const count = parseInt(document.getElementById('batch-gen-count').value || '50');
+    /* REALISTIC 80mm BOARDING PASS PRINT ENGINE */
+    function printBoardingPassCLI() {
+      if (!activePassenger) return;
+
+      if (!activePassenger.seat || activePassenger.seat === 'NOT ASSIGNED') {
+        logTerminal('WARNING: Seat not assigned! Use command "SEAT <code>" or "SEATMAP" before printing pass.', 'warn');
+        playErrorSound();
+        return;
+      }
+
+      logTerminal('PRINTING BOARDING PASS... PLEASE WAIT...', 'warn');
+      playChimeSound();
+
+      const printContainer = document.getElementById('printable-thermal-receipt');
+      printContainer.innerHTML = `
+        <div style="font-family: Arial, sans-serif; color:#000; background:#fff; width:72mm; margin:0 auto; padding-bottom:15px; text-align:center;">
+          
+          <div style="font-size: 15pt; font-weight: 900; letter-spacing: 1px; border-bottom: 3px solid #000; padding-bottom: 4px; margin-bottom: 6px;">
+            AEROSKY BOARDING PASS
+          </div>
+
+          <div style="text-align: left; font-size: 10pt; font-weight: bold; line-height: 1.4;">
+            <div>PASSENGER NAME:</div>
+            <div style="font-size: 16pt; font-weight: 900; text-transform: uppercase;">${activePassenger.name}</div>
+            <div>PNR: <strong style="font-size: 13pt;">${activePassenger.pnr}</strong> &nbsp;|&nbsp; CLASS: <strong>${activePassenger.cabin}</strong></div>
+          </div>
+
+          <div style="border-bottom: 2px solid #000; margin: 8px 0;"></div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; text-align: center; margin-bottom: 8px;">
+            <div style="border: 2px solid #000; padding: 4px;">
+              <span style="font-size: 8pt; display: block; font-weight: bold;">FLIGHT</span>
+              <span style="font-size: 16pt; font-weight: 900;">${activePassenger.flightNo}</span>
+            </div>
+            <div style="border: 2px solid #000; padding: 4px; background-color: #000; color: #fff;">
+              <span style="font-size: 8pt; display: block; font-weight: bold;">SEAT</span>
+              <span style="font-size: 18pt; font-weight: 900;">${activePassenger.seat}</span>
+            </div>
+            <div style="border: 2px solid #000; padding: 4px;">
+              <span style="font-size: 8pt; display: block; font-weight: bold;">GATE</span>
+              <span style="font-size: 14pt; font-weight: 900;">${activePassenger.gate}</span>
+            </div>
+            <div style="border: 2px solid #000; padding: 4px;">
+              <span style="font-size: 8pt; display: block; font-weight: bold;">BOARDING TIME</span>
+              <span style="font-size: 14pt; font-weight: 900;">${activePassenger.boardingTime}</span>
+            </div>
+          </div>
+
+          <div style="text-align: left; font-size: 10pt; font-weight: bold;">
+            <div>ROUTE: <strong>${activePassenger.origin} &rarr; ${activePassenger.destination} (${activePassenger.destCity})</strong></div>
+            <div>AIRCRAFT: ${activePassenger.aircraft}</div>
+            <div>FF STATUS: ${activePassenger.ffStatus || 'AeroClub Member'}</div>
+          </div>
+
+          <div style="border-bottom: 2px solid #000; margin: 8px 0;"></div>
+
+          <div style="display: flex; justify-content: center; margin: 10px 0;">
+            <div id="bp-qr-code"></div>
+          </div>
+
+          <div style="font-size: 10pt; font-weight: 900; letter-spacing: 1px;">* TICKET ID: ${activePassenger.pnr}-${activePassenger.seat} *</div>
+        </div>
+      `;
+
+      setTimeout(() => {
+        const qrTarget = document.getElementById('bp-qr-code');
+        if (qrTarget) {
+          qrTarget.innerHTML = '';
+          new QRCode(qrTarget, {
+            text: `PASS:${activePassenger.pnr}:${activePassenger.flightNo}:${activePassenger.seat}`,
+            width: 120,
+            height: 120,
+            colorDark: "#000000",
+            colorLight: "#ffffff"
+          });
+        }
+
+        setTimeout(() => {
+          window.print();
+          logTerminal('BOARDING PASS SENT TO SYSTEM PRINTER PRINT QUEUE.', 'success');
+        }, 150);
+      }, 80);
+    }
+
+    /* DOUBLE-LENGTH 80mm BAGGAGE ROUTING TAG ENGINE */
+    function printBagTagCLI() {
+      if (!activePassenger) return;
+
+      if (activePassenger.bags.length === 0) {
+        logTerminal('ERROR: Passenger has 0 bags registered. Use command "ADD BAG <kg>" first.', 'error');
+        playErrorSound();
+        return;
+      }
+
+      const bag = activePassenger.bags[activePassenger.bags.length - 1]; // Print latest bag
+      logTerminal(`PRINTING DOUBLE-LENGTH 80mm BAG TAG [Tag ID: ${bag.tagCode}]...`, 'warn');
+      playChimeSound();
+
+      const printContainer = document.getElementById('printable-thermal-receipt');
+      const isHeavy = bag.weight > 23.0;
+
+      printContainer.innerHTML = `
+        <div style="font-family: Arial, sans-serif; color:#000; background:#fff; width:72mm; margin:0 auto; padding-bottom:20px; text-align:center;">
+          
+          <div style="border: 4px solid #000; padding: 6px; margin-bottom: 10px;">
+            <div style="font-size: 14pt; font-weight: 900; letter-spacing: 2px;">AEROSKY AIRWAYS</div>
+            <div style="font-size: 9pt; font-weight: bold; border-top: 2px solid #000; margin-top: 4px; padding-top: 4px;">AUTOMATED BAGGAGE ROUTING TAG</div>
+          </div>
+
+          <!-- HUGE DOUBLE-LENGTH DESTINATION IATA CODE -->
+          <div style="font-size: 64pt; font-weight: 900; line-height: 0.95; letter-spacing: 3px; margin: 12px 0;">${activePassenger.destination}</div>
+          <div style="font-size: 13pt; font-weight: 900; text-transform: uppercase;">DEST: ${activePassenger.destCity}</div>
+
+          ${isHeavy ? `<div style="background:#000; color:#fff; font-size:16pt; font-weight:900; text-align:center; padding:6px; margin:10px 0; letter-spacing:2px;">HEAVY / OVERWEIGHT BAG</div>` : ''}
+
+          <div style="border-bottom: 3px solid #000; margin: 12px 0;"></div>
+
+          <div style="text-align: left; font-size: 11pt; font-weight: bold; line-height: 1.5;">
+            <div>PASSENGER: <span style="font-size: 14pt; font-weight: 900;">${activePassenger.name}</span></div>
+            <div>FLIGHT: <span style="font-size: 14pt; font-weight: 900;">${activePassenger.flightNo}</span> &nbsp;|&nbsp; SEAT: <span style="font-size: 14pt; font-weight: 900;">${activePassenger.seat || 'UNASSIGNED'}</span></div>
+            <div>PNR LOCATOR: <span style="font-size: 13pt; font-weight: 900;">${activePassenger.pnr}</span></div>
+            <div>WEIGHT: <span style="font-size: 14pt; font-weight: 900;">${bag.weight.toFixed(1)} KG</span></div>
+            <div>TAG CODE: <span style="font-size: 12pt; font-weight: 900;">${bag.tagCode}</span></div>
+          </div>
+
+          <div style="border-bottom: 3px solid #000; margin: 12px 0;"></div>
+
+          <div style="display: flex; justify-content: center; margin: 12px 0;">
+            <svg id="bag-tag-barcode-primary"></svg>
+          </div>
+
+          <div style="font-size: 12pt; font-weight: 900; letter-spacing: 2px;">* ${bag.tagCode} *</div>
+
+          <!-- SECONDARY DETACHABLE CLAIM STUB -->
+          <div style="border-top: 4px dashed #000; margin-top: 24px; padding-top: 15px; text-align: left;">
+            <div style="font-size: 12pt; font-weight: 900; text-align: center; margin-bottom: 6px;">BAGGAGE CLAIM PASSENGER STUB</div>
+            <div style="font-size: 10pt; font-weight: bold;">PASSENGER: ${activePassenger.name}</div>
+            <div style="font-size: 10pt; font-weight: bold;">FLIGHT: ${activePassenger.flightNo} &rarr; ${activePassenger.destination}</div>
+            <div style="font-size: 10pt; font-weight: bold;">BAG TAG ID: ${bag.tagCode}</div>
+
+            <div style="display: flex; justify-content: center; margin: 8px 0;">
+              <svg id="bag-tag-barcode-stub"></svg>
+            </div>
+            <div style="text-align: center; font-size: 9pt; font-weight: bold;">RETAIN FOR BAGGAGE MATCH AT DESTINATION</div>
+          </div>
+
+        </div>
+      `;
+
+      setTimeout(() => {
+        try {
+          JsBarcode("#bag-tag-barcode-primary", bag.tagCode, { format: "CODE128", width: 2.2, height: 60, displayValue: false });
+          JsBarcode("#bag-tag-barcode-stub", bag.tagCode, { format: "CODE128", width: 1.8, height: 40, displayValue: false });
+        } catch(e) {}
+
+        setTimeout(() => {
+          window.print();
+          logTerminal(`DOUBLE-LENGTH BAG TAG [Tag: ${bag.tagCode}] SENT TO SYSTEM PRINTER.`, 'success');
+        }, 150);
+      }, 80);
+    }
+
+    function completeCheckInCLI() {
+      if (!activePassenger) {
+        logTerminal('No passenger currently loaded.', 'warn');
+        return;
+      }
+
+      const completedPNR = activePassenger.pnr;
+      const completedName = activePassenger.name;
+
+      passengerDatabase = passengerDatabase.filter(p => p.pnr !== completedPNR);
+      saveStateToLocalStorage();
+
+      activePassenger = null;
+      updatePassengerPanelDisplay();
+
+      playChimeSound();
+      logTerminal(`CHECK-IN COMPLETED FOR ${completedName} [PNR: ${completedPNR}]. WORKSPACE CLEARED.`, 'success');
+      logTerminal('TERMINAL IDLE. SCAN NEXT PASSENGER BARCODE OR TYPE COMMAND...', 'system');
+    }
+
+    function openBatchModal() {
+      document.getElementById('batch-modal').classList.remove('hidden');
+      renderBatchBarcodeGrid();
+    }
+
+    function generateBatchPassengers(count = 50, openModal = true) {
       passengerDatabase = [];
       occupiedSeatsByFlight = {};
 
@@ -820,24 +912,9 @@
         const firstName = MOCK_FIRST_NAMES[Math.floor(Math.random() * MOCK_FIRST_NAMES.length)];
         const lastName = MOCK_LAST_NAMES[Math.floor(Math.random() * MOCK_LAST_NAMES.length)];
         const pnr = Math.random().toString(36).substring(2, 8).toUpperCase();
-        
+
         const destObj = AIRPORT_DESTINATIONS[Math.floor(Math.random() * AIRPORT_DESTINATIONS.length)];
         const flightObj = FLIGHT_ROSTERS[Math.floor(Math.random() * FLIGHT_ROSTERS.length)];
-
-        // Generate random seat e.g. 05A, 18F, 24C
-        const rowNum = String(Math.floor(Math.random() * 30) + 1).padStart(2, '0');
-        const seatLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'J', 'K'];
-        const seatLetter = seatLetters[Math.floor(Math.random() * seatLetters.length)];
-        const seat = `${rowNum}${seatLetter}`;
-
-        // Reserve occupied seat
-        if (!occupiedSeatsByFlight[flightObj.flightNo]) {
-          occupiedSeatsByFlight[flightObj.flightNo] = [];
-        }
-        occupiedSeatsByFlight[flightObj.flightNo].push(seat);
-
-        const cabins = ['Business Class', 'Economy Class', 'First Class'];
-        const cabin = cabins[Math.floor(Math.random() * cabins.length)];
 
         passengerDatabase.push({
           pnr: pnr,
@@ -849,20 +926,16 @@
           origin: 'JFK',
           destination: destObj.code,
           destCity: destObj.city,
-          seat: seat,
-          group: cabin.includes('First') ? 'Group 1' : cabin.includes('Business') ? 'Group 2' : 'Group 3',
-          cabin: cabin,
+          seat: null, // STARTS UNASSIGNED
+          cabin: Math.random() > 0.7 ? 'Business Class' : 'Economy Class',
           ffStatus: 'AeroClub Member',
-          checkedIn: false,
-          bags: [
-            { id: `BAG-${pnr}-1`, weight: Math.round((18 + Math.random() * 8) * 10) / 10, tagCode: `000${Math.floor(100000 + Math.random() * 899999)}` }
-          ]
+          bags: [] // STARTS WITH ZERO BAGS
         });
       }
 
       saveStateToLocalStorage();
-      renderBatchBarcodeGrid();
-      playBeepSound(1500, 0.08);
+      if (openModal) openBatchModal();
+      logTerminal(`GENERATED ${count} PASSENGERS IN LOCAL DATABASE ROSTER.`, 'success');
     }
 
     function renderBatchBarcodeGrid() {
@@ -870,35 +943,31 @@
       if (!grid) return;
 
       grid.innerHTML = passengerDatabase.map((p, idx) => `
-        <div onclick="scanAndLoadPassenger('${p.pnr}')" class="bg-slate-900 border border-slate-800 hover:border-emerald-500/60 p-3 rounded-xl cursor-pointer active:scale-95 transition flex flex-col items-center justify-between text-center space-y-2 group">
-          <div class="w-full flex items-center justify-between text-[10px] font-mono-code text-slate-400">
+        <div onclick="scanPassengerByCode('${p.pnr}'); closeModal('batch-modal');" class="bg-slate-950 border border-emerald-900 hover:border-emerald-400 p-2.5 rounded cursor-pointer transition flex flex-col items-center justify-between text-center space-y-1 group">
+          <div class="w-full flex items-center justify-between text-[10px] text-slate-500">
             <span>#${idx + 1}</span>
-            <span class="text-sky-400 font-bold">${p.flightNo} (${p.destination})</span>
+            <span class="text-emerald-400 font-bold">${p.flightNo} (${p.destination})</span>
           </div>
 
-          <div class="text-xs font-extrabold text-white group-hover:text-emerald-400 transition font-mono-code uppercase truncate max-w-full">
+          <div class="text-xs font-bold text-white group-hover:text-emerald-300 font-mono uppercase truncate max-w-full">
             ${p.name}
           </div>
 
-          <!-- 1D Barcode SVG Canvas -->
-          <div class="bg-white p-2 rounded w-full flex items-center justify-center">
+          <div class="bg-white p-1.5 rounded w-full flex items-center justify-center">
             <svg id="batch-barcode-svg-${p.pnr}"></svg>
           </div>
 
-          <div class="text-[11px] font-mono-code font-extrabold text-slate-300">
-            PNR: <span class="text-amber-400">${p.pnr}</span> | SEAT: ${p.seat}
-          </div>
+          <div class="text-[10px] text-slate-400">PNR: <strong class="text-amber-400">${p.pnr}</strong></div>
         </div>
       `).join('');
 
-      // Generate 1D barcode SVGs using JsBarcode
       setTimeout(() => {
         passengerDatabase.forEach(p => {
           try {
             JsBarcode(`#batch-barcode-svg-${p.pnr}`, p.pnr, {
               format: "CODE128",
-              width: 1.6,
-              height: 35,
+              width: 1.5,
+              height: 32,
               displayValue: false,
               margin: 0
             });
@@ -907,14 +976,10 @@
       }, 50);
     }
 
-    /**
-     * SINGLE COLUMN PAPER-SAVING 80mm THERMAL BARCODE SHEET PRINTING
-     * Prints 50 barcodes vertically down 80mm paper in one easy-to-scan column.
-     */
     function printBatchBarcodeSheet() {
       closeModal('batch-modal');
       const physicalArea = document.getElementById('printable-thermal-receipt');
-      
+
       physicalArea.innerHTML = `
         <div style="width: 72mm; margin: 0 auto; color: #000; font-family: Arial, sans-serif; text-align: center; background: #fff; padding-bottom: 20px;">
           <div style="font-size: 11pt; font-weight: 900; letter-spacing: 1px; border-bottom: 2px solid #000; padding-bottom: 4px; margin-bottom: 8px;">
@@ -931,7 +996,7 @@
                   #${idx + 1} | PNR: <strong style="font-size: 10pt;">${p.pnr}</strong> | ${p.name}
                 </div>
                 <div style="font-size: 8pt; font-weight: bold;">
-                  FLIGHT: ${p.flightNo} &rarr; ${p.destination} (${p.destCity}) | SEAT: ${p.seat}
+                  FLIGHT: ${p.flightNo} &rarr; ${p.destination} (${p.destCity})
                 </div>
                 <div style="display: flex; justify-content: center; margin: 4px 0;">
                   <svg class="print-sheet-svg" data-pnr="${p.pnr}"></svg>
@@ -963,13 +1028,9 @@
       }, 100);
     }
 
-    function openSeatMapModal() {
+    function openSeatmapModal() {
       if (!activePassenger) return;
-      playBeepSound(1100, 0.04);
-
-      document.getElementById('seatmap-modal-title').innerText = `Aircraft Seat Map - ${activePassenger.aircraft}`;
-      document.getElementById('seatmap-modal-subtitle').innerText = `Flight ${activePassenger.flightNo} to ${activePassenger.destination}`;
-
+      document.getElementById('seatmap-modal-title').innerText = `SEATMAP - ${activePassenger.flightNo} (${activePassenger.aircraft})`;
       renderSeatMap();
       document.getElementById('seatmap-modal').classList.remove('hidden');
     }
@@ -981,485 +1042,133 @@
       const currentFlight = activePassenger.flightNo;
       const occupiedList = occupiedSeatsByFlight[currentFlight] || [];
 
-      // Determine layout based on aircraft
-      const isNarrow = activePassenger.aircraft.includes('737');
-      const cols = isNarrow ? ['A', 'B', 'C', 'AISLE', 'D', 'E', 'F'] : ['A', 'B', 'C', 'AISLE', 'D', 'E', 'F', 'G', 'AISLE', 'H', 'J', 'K'];
+      const cols = ['A', 'B', 'C', 'AISLE', 'D', 'E', 'F'];
+      let html = '';
 
-      let rowsHTML = '';
-      for (let r = 1; r <= 20; r++) {
+      for (let r = 1; r <= 15; r++) {
         const rowStr = String(r).padStart(2, '0');
-        
-        rowsHTML += `<div class="flex items-center justify-center gap-1 sm:gap-2">`;
-        rowsHTML += `<span class="w-6 text-[10px] text-slate-500 font-bold text-center">${rowStr}</span>`;
+        html += `<div class="flex items-center justify-center gap-1.5">`;
+        html += `<span class="w-6 text-[10px] text-slate-500 text-center font-bold">${rowStr}</span>`;
 
         cols.forEach(col => {
           if (col === 'AISLE') {
-            rowsHTML += `<div class="w-4 sm:w-6 text-center text-slate-600 font-extrabold text-[10px]">|</div>`;
+            html += `<div class="w-4 text-center text-slate-700 font-bold">|</div>`;
           } else {
             const seatCode = `${rowStr}${col}`;
             const isSelected = activePassenger.seat === seatCode;
             const isOccupied = occupiedList.includes(seatCode) && !isSelected;
 
-            let btnStyle = "bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700";
-            if (isSelected) {
-              btnStyle = "bg-sky-600 text-white font-black border-sky-400 ring-2 ring-sky-400/50 shadow-lg";
-            } else if (isOccupied) {
-              btnStyle = "bg-rose-950/80 text-rose-500 border-rose-800/80 cursor-not-allowed opacity-60";
-            }
+            let btnStyle = "bg-slate-800 text-slate-200 border-slate-700";
+            if (isSelected) btnStyle = "bg-emerald-600 text-white font-bold border-emerald-400";
+            else if (isOccupied) btnStyle = "bg-rose-950 text-rose-500 border-rose-800 cursor-not-allowed opacity-60";
 
-            rowsHTML += `
-              <button ${isOccupied ? 'disabled' : `onclick="selectSeat('${seatCode}')"`} 
-                class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border text-[10px] font-bold transition flex items-center justify-center active:scale-95 ${btnStyle}">
+            html += `
+              <button ${isOccupied ? 'disabled' : `onclick="assignSeatToActivePassenger('${seatCode}')"`} 
+                class="w-7 h-7 rounded border text-[10px] font-bold transition flex items-center justify-center ${btnStyle}">
                 ${col}
               </button>
             `;
           }
         });
 
-        rowsHTML += `</div>`;
+        html += `</div>`;
       }
 
-      container.innerHTML = rowsHTML;
+      container.innerHTML = html;
     }
 
-    function selectSeat(seatCode) {
-      if (!activePassenger) return;
-
-      const oldSeat = activePassenger.seat;
-      const currentFlight = activePassenger.flightNo;
-
-      // Update occupied map
-      if (occupiedSeatsByFlight[currentFlight]) {
-        occupiedSeatsByFlight[currentFlight] = occupiedSeatsByFlight[currentFlight].filter(s => s !== oldSeat);
-        occupiedSeatsByFlight[currentFlight].push(seatCode);
+    function displayRosterListCLI() {
+      logTerminal(`=== PENDING ROSTER LIST (${passengerDatabase.length} PASSENGERS) ===`, 'system');
+      passengerDatabase.slice(0, 10).forEach((p, idx) => {
+        logTerminal(`#${idx + 1} | PNR: <strong class="text-white">${p.pnr}</strong> | ${p.name} | FLIGHT: ${p.flightNo} (${p.destination}) | SEAT: ${p.seat || 'UNASSIGNED'}`, 'info');
+      });
+      if (passengerDatabase.length > 10) {
+        logTerminal(`... and ${passengerDatabase.length - 10} more passengers in local storage database.`, 'system');
       }
+    }
 
-      activePassenger.seat = seatCode;
-      document.getElementById('active-seat-display').innerText = seatCode;
-
-      // Update in main database
-      const mainIdx = passengerDatabase.findIndex(p => p.pnr === activePassenger.pnr);
-      if (mainIdx !== -1) {
-        passengerDatabase[mainIdx].seat = seatCode;
+    function resetLocalDatabaseCLI() {
+      if (confirm("Reset local database? This will regenerate 50 fresh passengers.")) {
+        localStorage.removeItem(LOCALSTORAGE_KEY);
+        generateBatchPassengers(50, false);
+        activePassenger = null;
+        updatePassengerPanelDisplay();
+        logTerminal('DATABASE RESET COMPLETE. FRESH 50 PASSENGERS GENERATED.', 'success');
       }
-
-      saveStateToLocalStorage();
-      renderSeatMap();
-      playBeepSound(1400, 0.04);
     }
 
-    function renderBagsList() {
-      const container = document.getElementById('bags-list-container');
-      if (!container || !activePassenger) return;
-
-      if (activePassenger.bags.length === 0) {
-        container.innerHTML = `<div class="p-4 bg-slate-950 border border-slate-800 rounded-xl text-center text-xs text-slate-500">No bags registered. Click "+ Add Bag" above.</div>`;
-        return;
-      }
-
-      container.innerHTML = activePassenger.bags.map((bag, idx) => {
-        const isSelected = selectedBagId === bag.id;
-        const isHeavy = bag.weight > 23.0;
-
-        return `
-          <div onclick="selectBag('${bag.id}')" class="p-3 bg-slate-950 border ${isSelected ? 'border-amber-500 ring-2 ring-amber-500/20' : 'border-slate-800 hover:border-slate-700'} rounded-2xl cursor-pointer transition flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-              <div class="w-8 h-8 rounded-xl ${isSelected ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-800 text-slate-400'} flex items-center justify-center font-bold text-sm">
-                <i class="fa-solid fa-suitcase"></i>
-              </div>
-              <div>
-                <div class="flex items-center gap-2">
-                  <span class="text-xs font-bold text-white uppercase">Bag #${idx + 1}</span>
-                  <span class="text-[10px] font-mono-code text-slate-400">TAG: ${bag.tagCode}</span>
-                  ${isHeavy ? `<span class="text-[9px] font-mono-code font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30 px-1.5 py-0.2 rounded">HEAVY</span>` : ''}
-                </div>
-                <span class="text-[11px] font-mono-code text-slate-400">Status: Automated Conveyor Ready</span>
-              </div>
-            </div>
-
-            <div class="flex items-center space-x-3">
-              <button onclick="event.stopPropagation(); openNumpadForBag('${bag.id}')" class="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-amber-400 rounded-xl font-mono-code font-bold text-xs flex items-center gap-1.5">
-                <i class="fa-solid fa-weight-hanging"></i>
-                <span>${bag.weight.toFixed(1)} KG</span>
-              </button>
-
-              <button onclick="event.stopPropagation(); removeBag('${bag.id}')" class="text-slate-500 hover:text-rose-400 text-sm p-1">
-                <i class="fa-solid fa-trash-can"></i>
-              </button>
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    function selectBag(bagId) {
-      selectedBagId = bagId;
-      renderBagsList();
-      playBeepSound(1200, 0.03);
-    }
-
-    function addBagToActivePassenger() {
-      if (!activePassenger) return;
-      numpadTargetBagId = null; // null means create new bag
-      numpadValue = '20.0';
-      updateNumpadDisplay();
-      document.getElementById('numpad-modal').classList.remove('hidden');
-    }
-
-    function openNumpadForBag(bagId) {
-      if (!activePassenger) return;
-      const bag = activePassenger.bags.find(b => b.id === bagId);
-      if (!bag) return;
-
-      numpadTargetBagId = bagId;
-      numpadValue = bag.weight.toFixed(1);
-      updateNumpadDisplay();
-      document.getElementById('numpad-modal').classList.remove('hidden');
-    }
-
+    /* Touchscreen Numpad Functions */
     function numpadAppend(val) {
       if (val === '.' && numpadValue.includes('.')) return;
       if (numpadValue === '0' && val !== '.') numpadValue = '';
       if (numpadValue.length >= 5) return;
       numpadValue += val;
       updateNumpadDisplay();
-      playBeepSound(1600, 0.02);
+      playKeyClickSound();
     }
 
     function numpadBackspace() {
       numpadValue = numpadValue.slice(0, -1);
-      if (numpadValue === '' || numpadValue === '.') numpadValue = '0';
-      updateNumpadDisplay();
-      playBeepSound(1000, 0.02);
-    }
-
-    function numpadClear() {
-      numpadValue = '0';
+      if (!numpadValue) numpadValue = '0';
       updateNumpadDisplay();
     }
 
-    function numpadPreset(wt) {
-      numpadValue = wt;
+    function numpadPreset(val) {
+      numpadValue = val;
       updateNumpadDisplay();
-      playBeepSound(1400, 0.03);
     }
 
     function updateNumpadDisplay() {
-      document.getElementById('numpad-display').innerText = numpadValue || '0';
-      const numeric = parseFloat(numpadValue || '0');
+      document.getElementById('numpad-display').innerText = numpadValue;
+      const num = parseFloat(numpadValue || '0');
       const badge = document.getElementById('numpad-status-badge');
-
-      if (numeric > 23.0) {
-        badge.innerHTML = `<span class="text-[10px] font-mono-code font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30 px-2 py-0.5 rounded">HEAVY BAG FEE APPLIES (> 23.0 KG)</span>`;
-      } else {
-        badge.innerHTML = `<span class="text-[10px] font-mono-code font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded">STANDARD ALLOWANCE</span>`;
-      }
+      badge.innerHTML = num > 23.0 ? `<span class="text-rose-400 font-bold">HEAVY BAG (>23.0 KG)</span>` : `<span class="text-emerald-400">STANDARD ALLOWANCE</span>`;
     }
 
     function confirmNumpadWeight() {
-      if (!activePassenger) return;
       const weight = Math.max(0.1, parseFloat(numpadValue || '0'));
-
-      if (numpadTargetBagId) {
-        // Edit existing
-        const bag = activePassenger.bags.find(b => b.id === numpadTargetBagId);
-        if (bag) bag.weight = weight;
-      } else {
-        // Add new bag
-        const newBagId = `BAG-${activePassenger.pnr}-${activePassenger.bags.length + 1}`;
-        const newTagCode = `000${Math.floor(100000 + Math.random() * 899999)}`;
-        activePassenger.bags.push({
-          id: newBagId,
-          weight: weight,
-          tagCode: newTagCode
-        });
-        selectedBagId = newBagId;
-      }
-
-      // Sync database
-      const mainIdx = passengerDatabase.findIndex(p => p.pnr === activePassenger.pnr);
-      if (mainIdx !== -1) {
-        passengerDatabase[mainIdx].bags = activePassenger.bags;
-      }
-
-      saveStateToLocalStorage();
       closeModal('numpad-modal');
-      renderBagsList();
-      playBeepSound(1800, 0.05);
+      addBagToActivePassenger(weight);
     }
 
-    function removeBag(bagId) {
-      if (!activePassenger) return;
-      activePassenger.bags = activePassenger.bags.filter(b => b.id !== bagId);
-      if (selectedBagId === bagId) {
-        selectedBagId = activePassenger.bags.length > 0 ? activePassenger.bags[0].id : null;
-      }
-
-      const mainIdx = passengerDatabase.findIndex(p => p.pnr === activePassenger.pnr);
-      if (mainIdx !== -1) {
-        passengerDatabase[mainIdx].bags = activePassenger.bags;
-      }
-
-      saveStateToLocalStorage();
-      renderBagsList();
-      playBeepSound(900, 0.04);
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
     }
 
-    function generateDoubleLengthBagTagHTML(passenger, bag) {
-      const isHeavy = bag.weight > 23.0;
-      const heavyBadge = isHeavy ? `<div style="background:#000; color:#fff; font-size:16pt; font-weight:900; text-align:center; padding:6px; margin:8px 0; letter-spacing:2px;">HEAVY / OVERWEIGHT BAG</div>` : '';
-
-      return `
-        <div style="text-align: center; font-family: Arial, sans-serif; padding-bottom: 20px; color: #000; background: #fff; width: 72mm; margin: 0 auto;">
-          
-          <!-- TOP ATTACHMENT LOOP HEADER -->
-          <div style="border: 4px solid #000; padding: 6px; margin-bottom: 10px;">
-            <div style="font-size: 14pt; font-weight: 900; letter-spacing: 2px;">AEROSKY AIRWAYS</div>
-            <div style="font-size: 9pt; font-weight: bold; border-top: 2px solid #000; margin-top: 4px; padding-top: 4px;">AUTOMATED BAGGAGE ROUTING TAG</div>
-          </div>
-
-          <!-- HUGE DESTINATION IATA CODE FOR HIGH VISIBILITY (2X HEIGHT FORMAT) -->
-          <div style="font-size: 64pt; font-weight: 900; line-height: 0.95; letter-spacing: 3px; margin: 10px 0;">${passenger.destination}</div>
-          <div style="font-size: 13pt; font-weight: 900; text-transform: uppercase;">DEST: ${passenger.destCity}</div>
-
-          ${heavyBadge}
-
-          <div style="border-bottom: 3px solid #000; margin: 12px 0;"></div>
-
-          <!-- PASSENGER DETAILS -->
-          <div style="text-align: left; font-size: 11pt; font-weight: bold; line-height: 1.5;">
-            <div>PASSENGER: <span style="font-size: 14pt; font-weight: 900;">${passenger.name}</span></div>
-            <div>FLIGHT: <span style="font-size: 14pt; font-weight: 900;">${passenger.flightNo}</span> &nbsp;|&nbsp; SEAT: <span style="font-size: 14pt; font-weight: 900;">${passenger.seat}</span></div>
-            <div>PNR LOCATOR: <span style="font-size: 13pt; font-weight: 900;">${passenger.pnr}</span></div>
-            <div>WEIGHT: <span style="font-size: 14pt; font-weight: 900;">${bag.weight.toFixed(1)} KG</span></div>
-            <div>TAG CODE: <span style="font-size: 12pt; font-weight: 900;">${bag.tagCode}</span></div>
-          </div>
-
-          <div style="border-bottom: 3px solid #000; margin: 12px 0;"></div>
-
-          <!-- PRIMARY 1D SORTING BARCODE -->
-          <div style="display: flex; justify-content: center; margin: 12px 0;">
-            <svg class="bag-tag-primary-svg"></svg>
-          </div>
-
-          <div style="font-size: 12pt; font-weight: 900; letter-spacing: 2px;">* ${bag.tagCode} *</div>
-
-          <!-- SECONDARY / DUPLICATE CLAIM STUB PORTION -->
-          <div style="border-top: 4px dashed #000; margin-top: 20px; padding-top: 15px; text-align: left;">
-            <div style="font-size: 12pt; font-weight: 900; text-align: center; margin-bottom: 6px;">BAGGAGE CLAIM PASSENGER STUB</div>
-            <div style="font-size: 10pt; font-weight: bold;">PASSENGER: ${passenger.name}</div>
-            <div style="font-size: 10pt; font-weight: bold;">FLIGHT: ${passenger.flightNo} &rarr; ${passenger.destination}</div>
-            <div style="font-size: 10pt; font-weight: bold;">BAG TAG ID: ${bag.tagCode}</div>
-
-            <div style="display: flex; justify-content: center; margin: 8px 0;">
-              <svg class="bag-tag-stub-svg"></svg>
-            </div>
-            <div style="text-align: center; font-size: 9pt; font-weight: bold;">RETAIN FOR BAGGAGE MATCH AT DESTINATION</div>
-          </div>
-
-        </div>
-      `;
-    }
-
-    function previewAndPrintSelectedBagTag() {
-      if (!activePassenger) return;
-
-      if (!selectedBagId) {
-        alert("Please select a specific bag from the baggage scale list before printing a tag.");
-        return;
-      }
-
-      const bag = activePassenger.bags.find(b => b.id === selectedBagId);
-      if (!bag) {
-        alert("Selected bag not found.");
-        return;
-      }
-
-      currentPreparedHTML = generateDoubleLengthBagTagHTML(activePassenger, bag);
-      const previewContainer = document.getElementById('screen-receipt-preview');
-      previewContainer.innerHTML = currentPreparedHTML;
-
-      setTimeout(() => {
-        try {
-          const primarySvg = previewContainer.querySelector('.bag-tag-primary-svg');
-          const stubSvg = previewContainer.querySelector('.bag-tag-stub-svg');
-          if (primarySvg) JsBarcode(primarySvg, bag.tagCode, { format: "CODE128", width: 2.2, height: 60, displayValue: false });
-          if (stubSvg) JsBarcode(stubSvg, bag.tagCode, { format: "CODE128", width: 1.8, height: 40, displayValue: false });
-        } catch(e) {}
-      }, 80);
-
-      document.getElementById('preview-modal-title').innerText = 'Double-Length Thermal Bag Tag Preview';
-      document.getElementById('print-preview-modal').classList.remove('hidden');
-    }
-
-    function previewAndPrintBoardingPass() {
-      if (!activePassenger) return;
-
-      currentPreparedHTML = `
-        <div style="text-align: center; font-family: Arial, sans-serif; padding-bottom: 10px; color: #000; background: #fff;">
-          <div style="font-size: 16pt; font-weight: 900; letter-spacing: 1px; border-bottom: 3px solid #000; padding-bottom: 4px;">AEROSKY BOARDING PASS</div>
-          <div style="font-size: 10pt; font-weight: bold; margin: 3px 0;">SYSTEM CHECK-IN RECEIPT</div>
-          <div style="border-bottom: 2px solid #000; margin: 6px 0;"></div>
-
-          <div style="text-align: left; margin-bottom: 8px;">
-            <div style="font-size: 10pt; font-weight: bold; text-transform: uppercase;">PASSENGER NAME:</div>
-            <div style="font-size: 16pt; font-weight: 900; text-transform: uppercase; margin-bottom: 4px;">${activePassenger.name}</div>
-            <div style="font-size: 11pt; font-weight: bold;">PNR: <strong style="font-size: 13pt;">${activePassenger.pnr}</strong> &nbsp;|&nbsp; CLASS: <strong>${activePassenger.cabin}</strong></div>
-          </div>
-
-          <div style="border-bottom: 2px solid #000; margin: 6px 0;"></div>
-
-          <div style="display: grid; grid-template-columns: 1fr 1fr; text-align: left; gap: 6px; font-size: 12pt; font-weight: 900;">
-            <div style="border: 2px solid #000; padding: 4px; text-align: center;">
-              <span style="font-size: 8pt; display: block; font-weight: bold;">FLIGHT</span>
-              <span style="font-size: 16pt;">${activePassenger.flightNo}</span>
-            </div>
-            <div style="border: 2px solid #000; padding: 4px; text-align: center; background-color: #000; color: #fff;">
-              <span style="font-size: 8pt; display: block; font-weight: bold;">SEAT</span>
-              <span style="font-size: 18pt;">${activePassenger.seat}</span>
-            </div>
-            <div style="border: 2px solid #000; padding: 4px; text-align: center;">
-              <span style="font-size: 8pt; display: block; font-weight: bold;">GATE</span>
-              <span style="font-size: 14pt;">${activePassenger.gate}</span>
-            </div>
-            <div style="border: 2px solid #000; padding: 4px; text-align: center;">
-              <span style="font-size: 8pt; display: block; font-weight: bold;">BOARDING</span>
-              <span style="font-size: 14pt;">${activePassenger.boardingTime}</span>
-            </div>
-          </div>
-
-          <div style="text-align: left; margin-top: 8px; font-size: 11pt; font-weight: bold;">
-            <div>ROUTE: <strong>${activePassenger.origin} &rarr; ${activePassenger.destination} (${activePassenger.destCity})</strong></div>
-          </div>
-
-          <div style="border-bottom: 2px solid #000; margin: 8px 0;"></div>
-
-          <!-- 2D QR CODE -->
-          <div style="display: flex; justify-content: center; margin: 10px 0;">
-            <div class="bp-qr-target"></div>
-          </div>
-
-          <div style="font-size: 11pt; font-weight: 900; letter-spacing: 1px;">* PASS ID: ${activePassenger.pnr}-${activePassenger.seat} *</div>
-        </div>
-      `;
-
-      const previewContainer = document.getElementById('screen-receipt-preview');
-      previewContainer.innerHTML = currentPreparedHTML;
-
-      setTimeout(() => {
-        const target = previewContainer.querySelector('.bp-qr-target');
-        if (target) {
-          target.innerHTML = '';
-          new QRCode(target, {
-            text: `PASS:${activePassenger.pnr}:${activePassenger.flightNo}:${activePassenger.seat}`,
-            width: 130,
-            height: 130,
-            colorDark: "#000000",
-            colorLight: "#ffffff"
-          });
-        }
-      }, 80);
-
-      document.getElementById('preview-modal-title').innerText = '80mm Boarding Pass Preview';
-      document.getElementById('print-preview-modal').classList.remove('hidden');
-    }
-
-    function triggerPhysicalThermalPrint() {
-      closeModal('print-preview-modal');
-      playGateAccessChime();
-
-      const physicalPrintArea = document.getElementById('printable-thermal-receipt');
-      physicalPrintArea.innerHTML = currentPreparedHTML;
-
-      setTimeout(() => {
-        if (activePassenger && selectedBagId) {
-          const bag = activePassenger.bags.find(b => b.id === selectedBagId);
-          if (bag) {
-            try {
-              const primarySvg = physicalPrintArea.querySelector('.bag-tag-primary-svg');
-              const stubSvg = physicalPrintArea.querySelector('.bag-tag-stub-svg');
-              if (primarySvg) JsBarcode(primarySvg, bag.tagCode, { format: "CODE128", width: 2.2, height: 60, displayValue: false });
-              if (stubSvg) JsBarcode(stubSvg, bag.tagCode, { format: "CODE128", width: 1.8, height: 40, displayValue: false });
-            } catch(e) {}
-          }
-        }
-
-        const target = physicalPrintArea.querySelector('.bp-qr-target');
-        if (target && activePassenger) {
-          target.innerHTML = '';
-          new QRCode(target, {
-            text: `PASS:${activePassenger.pnr}:${activePassenger.flightNo}:${activePassenger.seat}`,
-            width: 130,
-            height: 130,
-            colorDark: "#000000",
-            colorLight: "#ffffff"
-          });
-        }
-
-        setTimeout(() => { window.print(); }, 200);
-      }, 100);
-    }
-
-    function completeCheckInProcess() {
-      if (!activePassenger) return;
-
-      const pnrToRemove = activePassenger.pnr;
-      playGateAccessChime();
-
-      // Delete/archive passenger from pending local storage database
-      passengerDatabase = passengerDatabase.filter(p => p.pnr !== pnrToRemove);
-      saveStateToLocalStorage();
-
-      // Reset workspace to idle screen
-      unloadActivePassenger();
-    }
-
-    function openRosterModal() {
-      playBeepSound(1000, 0.04);
-      renderRosterListModal();
-      document.getElementById('roster-modal').classList.remove('hidden');
-    }
-
-    function renderRosterListModal() {
-      const container = document.getElementById('roster-modal-list');
-      const query = (document.getElementById('roster-search-input')?.value || '').toLowerCase();
-
-      const filtered = passengerDatabase.filter(p => p.name.toLowerCase().includes(query) || p.pnr.toLowerCase().includes(query));
-
-      if (filtered.length === 0) {
-        container.innerHTML = `<div class="py-8 text-center text-slate-500 font-mono-code text-xs">No pending passengers found in local storage database.</div>`;
-        return;
-      }
-
-      container.innerHTML = filtered.map(p => `
-        <div onclick="scanAndLoadPassenger('${p.pnr}')" class="p-3 bg-slate-950 border border-slate-800 hover:border-sky-500 rounded-xl cursor-pointer transition flex items-center justify-between font-mono-code text-xs">
-          <div>
-            <div class="font-extrabold text-white">${p.name}</div>
-            <div class="text-[10px] text-slate-400">PNR: <strong class="text-sky-400">${p.pnr}</strong> | FLIGHT: ${p.flightNo} (${p.destination})</div>
-          </div>
-          <div class="text-right">
-            <span class="block text-slate-200 font-bold">${p.seat}</span>
-            <span class="text-[10px] text-slate-500">${p.bags.length} Bag(s)</span>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    function closeModal(modalId) {
-      document.getElementById(modalId).classList.add('hidden');
-    }
-
+    /* KEYBOARD & SCANNER LISTENERS */
     let barcodeBuffer = '';
     let barcodeTimeout = null;
 
     document.addEventListener('keydown', (e) => {
-      const manualInput = document.getElementById('manual-scan-input');
-      const rosterSearch = document.getElementById('roster-search-input');
-      if (document.activeElement === manualInput || document.activeElement === rosterSearch) return;
+      const termInput = document.getElementById('terminal-input');
 
+      // Command history traversal (Up/Down arrow keys)
+      if (document.activeElement === termInput) {
+        if (e.key === 'ArrowUp') {
+          if (historyIndex > 0) {
+            historyIndex--;
+            termInput.value = commandHistory[historyIndex];
+          }
+          return;
+        } else if (e.key === 'ArrowDown') {
+          if (historyIndex < commandHistory.length - 1) {
+            historyIndex++;
+            termInput.value = commandHistory[historyIndex];
+          } else {
+            historyIndex = commandHistory.length;
+            termInput.value = '';
+          }
+          return;
+        } else if (e.key === 'Enter') {
+          handleCommandSubmit();
+          return;
+        }
+      }
+
+      // Global Hardware Barcode Scanner Listener
       if (e.key === 'Enter') {
         if (barcodeBuffer.length >= 3) {
-          scanAndLoadPassenger(barcodeBuffer.trim());
+          scanPassengerByCode(barcodeBuffer.trim());
           barcodeBuffer = '';
         }
       } else if (e.key.length === 1) {
@@ -1471,9 +1180,11 @@
 
     window.onload = function() {
       loadStateFromLocalStorage();
+      logTerminal('SYSTEM INITIALIZED. SCANNER ONLINE. READY FOR INPUT.', 'success');
+      logTerminal('Type "cmd" or "help" for command manual.', 'system');
 
       setInterval(() => {
-        document.getElementById('current-time-display').innerText = new Date().toLocaleTimeString();
+        document.getElementById('time-display').innerText = new Date().toLocaleTimeString();
       }, 1000);
     };
   </script>
