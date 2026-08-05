@@ -9,19 +9,23 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- FontAwesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- QRCode JS Library -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <!-- JsBarcode Library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
+  <!-- BWIP-JS Library for Real IATA PDF417 & Code128 Barcodes -->
+  <script src="https://cdn.jsdelivr.net/npm/bwip-js@3.0.4/dist/bwip-js-min.js"></script>
 
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Inter:wght@400;600;700;800;900&display=swap');
 
     body {
       font-family: 'JetBrains Mono', monospace;
     }
 
-    /* Terminal Glow and Scanlines */
+    .font-sans-pass {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    /* Terminal Glow Effect */
     .crt-screen {
       background: #020617;
       background-image: radial-gradient(rgba(16, 185, 129, 0.08) 90%, rgba(0, 0, 0, 0.6) 100%);
@@ -36,17 +40,17 @@
       text-shadow: 0 0 6px rgba(245, 158, 11, 0.6);
     }
 
-    /* Hide physical print container in screen view completely */
+    /* Screen view hides print element */
     @media screen {
       #print-area {
         display: none !important;
       }
     }
 
-    /* Thermal paper styling engineered for 80mm continuous thermal printers */
+    /* REALISTIC LANDSCAPE PRINT STYLES FOR BOARDING PASS & BAGGAGE TAGS */
     @media print {
       @page {
-        size: 80mm auto;
+        size: landscape;
         margin: 0mm;
       }
       html, body {
@@ -54,7 +58,8 @@
         color: #000000 !important;
         margin: 0 !important;
         padding: 0 !important;
-        width: 80mm !important;
+        width: 100% !important;
+        height: auto !important;
       }
       body > *:not(#print-area) {
         display: none !important;
@@ -64,25 +69,28 @@
         position: absolute !important;
         left: 0 !important;
         top: 0 !important;
-        width: 72mm !important;
-        margin: 0 4mm !important;
-        padding: 2mm 0 !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
         background: #ffffff !important;
         color: #000000 !important;
-        font-family: Arial, Helvetica, sans-serif !important;
       }
       #print-area * {
         visibility: visible !important;
       }
       #print-area svg, #print-area canvas, #print-area img {
         display: block !important;
-        margin: 0 auto !important;
         max-width: 100% !important;
+      }
+      .page-break {
+        page-break-after: always;
+        break-after: page;
       }
     }
 
     ::-webkit-scrollbar {
-      width: 8px;
+      width: 6px;
+      height: 6px;
     }
     ::-webkit-scrollbar-track {
       background: rgba(2, 6, 23, 0.9);
@@ -101,13 +109,13 @@
   <!-- TERMINAL TOP SYSTEM BAR -->
   <header class="bg-slate-950 border-b border-emerald-900/60 px-4 py-2 flex flex-wrap items-center justify-between text-xs font-bold text-emerald-500 shadow-lg shrink-0">
     <div class="flex items-center gap-3">
-      <span class="text-emerald-400 crt-glow font-black text-sm"><i class="fa-solid fa-terminal mr-2"></i>AEROSKY CUTE v4.02 [SABRE/SITA CONSOLE]</span>
-      <span class="bg-emerald-950/80 text-emerald-400 px-2 py-0.5 rounded border border-emerald-800 text-[10px]">HOST: JFK-GATE-B12</span>
+      <span class="text-emerald-400 crt-glow font-black text-sm"><i class="fa-solid fa-terminal mr-2"></i>AEROSKY CUTE v4.10 [SABRE CONSOLE]</span>
+      <span class="bg-emerald-950/80 text-emerald-400 px-2 py-0.5 rounded border border-emerald-800 text-[10px]">HOST: ORD-GATE-C03</span>
     </div>
 
     <div class="flex items-center gap-4 text-[11px]">
       <span>STATUS: <strong class="text-emerald-300">ONLINE</strong></span>
-      <span>AGENT: <strong class="text-emerald-300">#8841 (J. VANCE)</strong></span>
+      <span>AGENT: <strong class="text-emerald-300">#8841 (J. SMITH)</strong></span>
       <span id="time-display" class="text-emerald-400 font-bold">00:00:00 AM</span>
       <button onclick="toggleAudio()" id="audio-btn" class="hover:text-emerald-300 text-slate-400" title="Toggle Terminal Sound">
         <i class="fa-solid fa-volume-high"></i>
@@ -121,13 +129,13 @@
     <!-- TERMINAL CONSOLE LOG DISPLAY WINDOW -->
     <div id="terminal-console" class="flex-1 overflow-y-auto bg-slate-950/90 border border-emerald-900/80 rounded-lg p-4 space-y-2 text-xs md:text-sm font-mono leading-relaxed shadow-2xl">
       <div class="text-slate-500 text-[11px] border-b border-slate-900 pb-2 mb-3">
-        AEROSKY AIRWAYS AGENT TERMINAL CLI [SYSTEM BUILD 2026.8]<br>
-        Type <span class="text-emerald-300 font-bold">cmd</span> or <span class="text-emerald-300 font-bold">help</span> for full command reference manual.<br>
-        Point handheld 2D/1D scanner anywhere to scan passenger ticket barcode instantly.
+        AEROSKY AIRWAYS AGENT TERMINAL CLI [SHORTENED COMMAND SYSTEM]<br>
+        Type <span class="text-emerald-300 font-bold">cmd</span> or <span class="text-emerald-300 font-bold">help</span> for command list.<br>
+        Short commands: <span class="text-amber-300 font-bold">pnr</span>, <span class="text-amber-300 font-bold">addbg</span>, <span class="text-amber-300 font-bold">setst</span>, <span class="text-amber-300 font-bold">stmap</span>, <span class="text-amber-300 font-bold">prtpass</span>, <span class="text-amber-300 font-bold">prtbg</span>, <span class="text-amber-300 font-bold">genbatch</span>, <span class="text-amber-300 font-bold">done</span>.
       </div>
 
       <div id="terminal-log" class="space-y-1.5">
-        <!-- Log lines output here dynamically -->
+        <!-- Dynamic terminal logs output here -->
       </div>
     </div>
 
@@ -142,11 +150,11 @@
       <div class="border-r border-emerald-900/60 pr-2">
         <span class="text-slate-500 block text-[10px] font-bold">FLIGHT & ROUTE</span>
         <span id="pnr-panel-flight" class="font-bold text-emerald-300">--</span>
-        <span id="pnr-panel-route" class="block text-[10px] text-slate-400">JFK &rarr; ---</span>
+        <span id="pnr-panel-route" class="block text-[10px] text-slate-400">ORD &rarr; ---</span>
       </div>
 
       <div class="border-r border-emerald-900/60 pr-2">
-        <span class="text-slate-500 block text-[10px] font-bold">ASSIGNED SEAT</span>
+        <span class="text-slate-500 block text-[10px] font-bold">ASSIGNED SEAT & CLASS</span>
         <span id="pnr-panel-seat" class="font-bold text-amber-400 text-sm crt-amber-glow">NOT ASSIGNED</span>
         <span id="pnr-panel-cabin" class="block text-[10px] text-slate-400">Cabin: --</span>
       </div>
@@ -161,7 +169,7 @@
     <!-- TERMINAL INPUT COMMAND LINE -->
     <div class="mt-3 flex items-center bg-slate-950 border-2 border-emerald-600 rounded-lg p-2 shadow-2xl focus-within:border-emerald-400 shrink-0">
       <span class="text-emerald-400 font-bold text-sm crt-glow mr-2">&gt;</span>
-      <input type="text" id="terminal-input" placeholder="Type command (e.g. 'cmd', 'scan PNR', 'add bag', 'set seat 12A', 'prt pass')..." 
+      <input type="text" id="terminal-input" placeholder="Type command (e.g. 'cmd', 'pnr 6X9K2P', 'addbg 23', 'setst 02A', 'prtpass')..." 
         class="w-full bg-transparent border-none text-emerald-300 font-mono text-sm focus:outline-none uppercase placeholder:text-emerald-900"
         autocomplete="off" spellcheck="false">
       <button onclick="handleCommandSubmit()" class="px-4 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-slate-950 font-black rounded text-xs transition shadow shrink-0">
@@ -175,23 +183,23 @@
         <button onclick="runCommand('cmd')" class="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-emerald-800 text-emerald-400 rounded">
           <i class="fa-solid fa-code"></i> cmd
         </button>
-        <button onclick="runCommand('gen batch')" class="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-emerald-800 text-emerald-400 rounded">
-          <i class="fa-solid fa-barcode"></i> gen batch
+        <button onclick="runCommand('genbatch')" class="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-emerald-800 text-emerald-400 rounded">
+          <i class="fa-solid fa-barcode"></i> genbatch
         </button>
-        <button onclick="runCommand('add bag')" class="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-emerald-800 text-amber-400 rounded">
-          <i class="fa-solid fa-suitcase"></i> add bag
+        <button onclick="runCommand('addbg')" class="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-emerald-800 text-amber-400 rounded">
+          <i class="fa-solid fa-suitcase"></i> addbg
         </button>
-        <button onclick="runCommand('seatmap')" class="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-emerald-800 text-sky-400 rounded">
-          <i class="fa-solid fa-chair"></i> seatmap
+        <button onclick="runCommand('stmap')" class="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-emerald-800 text-sky-400 rounded">
+          <i class="fa-solid fa-chair"></i> stmap
         </button>
-        <button onclick="runCommand('prt bag')" class="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-emerald-800 text-emerald-300 rounded">
-          <i class="fa-solid fa-print"></i> prt bag
+        <button onclick="runCommand('prtpass')" class="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-emerald-800 text-emerald-300 rounded font-bold">
+          <i class="fa-solid fa-ticket"></i> prtpass
         </button>
-        <button onclick="runCommand('prt pass')" class="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-emerald-800 text-emerald-300 rounded">
-          <i class="fa-solid fa-ticket"></i> prt pass
+        <button onclick="runCommand('prtbg')" class="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-emerald-800 text-amber-300 rounded">
+          <i class="fa-solid fa-print"></i> prtbg
         </button>
-        <button onclick="runCommand('complete')" class="px-2.5 py-1 bg-emerald-950 hover:bg-emerald-900 border border-emerald-600 text-emerald-300 rounded font-bold">
-          <i class="fa-solid fa-check"></i> complete
+        <button onclick="runCommand('done')" class="px-2.5 py-1 bg-emerald-950 hover:bg-emerald-900 border border-emerald-600 text-emerald-300 rounded font-bold">
+          <i class="fa-solid fa-check"></i> done
         </button>
       </div>
 
@@ -204,34 +212,34 @@
 
   </main>
 
-  <!-- MODAL 1: 50-PASSENGER BATCH BARCODE SHEET MODAL -->
+  <!-- MODAL 1: 50-PASSENGER BATCH PAPER-CONSERVING BARCODE LIST -->
   <div id="batch-modal" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-emerald-800 rounded-xl max-w-4xl w-full p-4 shadow-2xl space-y-3 max-h-[92vh] flex flex-col text-xs font-mono">
       <div class="flex items-center justify-between border-b border-emerald-900 pb-2">
-        <h3 class="font-bold text-emerald-400 text-sm"><i class="fa-solid fa-barcode mr-2"></i>BATCH BARCODE MANIFEST GENERATOR</h3>
+        <h3 class="font-bold text-emerald-400 text-sm"><i class="fa-solid fa-barcode mr-2"></i>PAPER-CONSERVING BATCH BARCODE MANIFEST</h3>
         <button onclick="closeModal('batch-modal')" class="text-slate-400 hover:text-white text-base">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
 
       <div class="flex items-center justify-between bg-slate-950 p-2.5 rounded border border-emerald-900">
-        <span class="text-slate-400">50 Passengers generated in local storage database. Scan barcodes with handheld scanner or click any row.</span>
+        <span class="text-slate-400">Dense 1D barcode layout designed to minimize paper usage. Click row to scan passenger instantly.</span>
         <button onclick="printBatchBarcodeSheet()" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black rounded text-xs">
-          PRINT 1-COLUMN SHEET
+          PRINT DENSE BARCODE LIST
         </button>
       </div>
 
       <div class="flex-1 overflow-y-auto bg-slate-950 p-3 rounded border border-emerald-900">
-        <div id="batch-barcode-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-          <!-- Dynamically populated barcode card tiles -->
+        <div id="batch-barcode-list" class="space-y-1.5">
+          <!-- Dynamically populated compact barcode list -->
         </div>
       </div>
     </div>
   </div>
 
-  <!-- MODAL 2: AIRCRAFT SEAT MAP MODAL -->
+  <!-- MODAL 2: AIRCRAFT SEAT MAP MODAL (3 CABIN CLASSES: FIRST, BUSINESS, ECONOMY) -->
   <div id="seatmap-modal" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-emerald-800 rounded-xl max-w-2xl w-full p-4 shadow-2xl space-y-3 max-h-[92vh] flex flex-col text-xs font-mono">
+    <div class="bg-slate-900 border border-emerald-800 rounded-xl max-w-3xl w-full p-4 shadow-2xl space-y-3 max-h-[92vh] flex flex-col text-xs font-mono">
       <div class="flex items-center justify-between border-b border-emerald-900 pb-2">
         <h3 id="seatmap-modal-title" class="font-bold text-emerald-400 text-sm"><i class="fa-solid fa-plane mr-2"></i>AIRCRAFT SEATMAP SELECTION</h3>
         <button onclick="closeModal('seatmap-modal')" class="text-slate-400 hover:text-white text-base">
@@ -239,14 +247,17 @@
         </button>
       </div>
 
-      <div class="flex items-center justify-center gap-6 bg-slate-950 p-2 rounded border border-emerald-900 text-[11px]">
+      <!-- Class Legend -->
+      <div class="flex flex-wrap items-center justify-center gap-4 bg-slate-950 p-2 rounded border border-emerald-900 text-[11px]">
+        <div class="flex items-center gap-1.5"><div class="w-3.5 h-3.5 rounded bg-amber-500 border border-amber-300"></div><span class="text-amber-300 font-bold">First Class</span></div>
+        <div class="flex items-center gap-1.5"><div class="w-3.5 h-3.5 rounded bg-purple-600 border border-purple-400"></div><span class="text-purple-300 font-bold">Business Class</span></div>
+        <div class="flex items-center gap-1.5"><div class="w-3.5 h-3.5 rounded bg-slate-800 border border-slate-600"></div><span>Economy Class</span></div>
         <div class="flex items-center gap-1.5"><div class="w-3.5 h-3.5 rounded bg-emerald-600"></div><span>Selected</span></div>
-        <div class="flex items-center gap-1.5"><div class="w-3.5 h-3.5 rounded bg-slate-800 border border-slate-700"></div><span>Available</span></div>
-        <div class="flex items-center gap-1.5"><div class="w-3.5 h-3.5 rounded bg-rose-950 border border-rose-800"></div><span class="text-rose-400">Taken</span></div>
+        <div class="flex items-center gap-1.5"><div class="w-3.5 h-3.5 rounded bg-rose-950 border border-rose-800"></div><span class="text-rose-400">Occupied</span></div>
       </div>
 
       <div class="flex-1 overflow-y-auto bg-slate-950 p-4 rounded border border-emerald-900 flex justify-center">
-        <div id="seatmap-grid-container" class="space-y-2 w-full max-w-md">
+        <div id="seatmap-grid-container" class="space-y-3 w-full max-w-lg">
           <!-- Aircraft seat map rendered here -->
         </div>
       </div>
@@ -297,38 +308,37 @@
     </div>
   </div>
 
-  <!-- PHYSICAL THERMAL PRINTING CONTAINER -->
+  <!-- PHYSICAL THERMAL/BOARDING PASS PRINTING CONTAINER -->
   <div id="print-area">
     <div id="printable-thermal-receipt"></div>
   </div>
 
   <script>
     /* ==========================================================================
-       LOCALSTORAGE STATE & DATA DICTIONARIES
+       LOCALSTORAGE STATE & AIRLINE DATA
        ========================================================================== */
-    const LOCALSTORAGE_KEY = 'aerosky_cute_cli_db_v4';
+    const LOCALSTORAGE_KEY = 'aerosky_cute_cli_db_v4_1';
 
     const AIRPORT_DESTINATIONS = [
+      { code: 'ORD', city: 'CHICAGO ORD', country: 'UNITED STATES' },
+      { code: 'JFK', city: 'NEW YORK JFK', country: 'UNITED STATES' },
+      { code: 'LAX', city: 'LOS ANGELES', country: 'UNITED STATES' },
       { code: 'LHR', city: 'LONDON HEATHROW', country: 'UNITED KINGDOM' },
+      { code: 'CDG', city: 'PARIS CDG', country: 'FRANCE' },
       { code: 'HND', city: 'TOKYO HANEDA', country: 'JAPAN' },
-      { code: 'CDG', city: 'PARIS CHARLES DE GAULLE', country: 'FRANCE' },
-      { code: 'DXB', city: 'DUBAI INTL', country: 'UNITED ARAB EMIRATES' },
-      { code: 'SYD', city: 'SYDNEY KINGSFORD', country: 'AUSTRALIA' },
-      { code: 'LAX', city: 'LOS ANGELES INTL', country: 'UNITED STATES' },
-      { code: 'FRA', city: 'FRANKFURT MAIN', country: 'GERMANY' },
-      { code: 'SIN', city: 'SINGAPORE CHANGI', country: 'SINGAPORE' }
+      { code: 'DXB', city: 'DUBAI INTL', country: 'UNITED ARAB EMIRATES' }
     ];
 
     const FLIGHT_ROSTERS = [
-      { flightNo: 'AS-892', aircraft: 'Boeing 777-300ER', gate: 'B12', boardingTime: '14:20' },
-      { flightNo: 'AS-401', aircraft: 'Boeing 737-800', gate: 'C08', boardingTime: '16:05' },
-      { flightNo: 'AS-202', aircraft: 'Airbus A350-900', gate: 'A15', boardingTime: '18:45' }
+      { flightNo: 'NA4321', aircraft: 'Boeing 777-300ER (3-Class)', gate: '03', boardingTime: '11:20', flightTime: '11:40', arrivalTime: '13:30', terminal: '2' },
+      { flightNo: 'AS892', aircraft: 'Airbus A350-900 (3-Class)', gate: '12', boardingTime: '14:20', flightTime: '14:45', arrivalTime: '18:10', terminal: '1' },
+      { flightNo: 'AS401', aircraft: 'Boeing 787-9 (3-Class)', gate: '08', boardingTime: '16:05', flightTime: '16:30', arrivalTime: '20:15', terminal: '3' }
     ];
 
-    const MOCK_FIRST_NAMES = ['ELEANOR', 'MARCUS', 'SOPHIA', 'ALEXANDER', 'DANIEL', 'OLIVIA', 'LIAM', 'EMMA', 'NOAH', 'ISABELLA', 'ETHAN', 'MIA', 'LUCAS', 'AVA', 'HENRY'];
-    const MOCK_LAST_NAMES = ['VANCE', 'THORNE', 'CHEN', 'RIVERS', 'WRIGHT', 'ROSSI', 'SANTOS', 'KIM', 'PATEL', 'HUGHES', 'BENNETT', 'FOSTER', 'HAYES', 'SULLIVAN', 'MURPHY'];
+    const MOCK_FIRST_NAMES = ['JAMES', 'ELEANOR', 'MARCUS', 'SOPHIA', 'ALEXANDER', 'DANIEL', 'OLIVIA', 'LIAM', 'EMMA', 'NOAH', 'ISABELLA', 'ETHAN'];
+    const MOCK_LAST_NAMES = ['SMITH', 'VANCE', 'THORNE', 'CHEN', 'RIVERS', 'WRIGHT', 'ROSSI', 'SANTOS', 'KIM', 'PATEL', 'HUGHES', 'BENNETT'];
 
-    /* Terminal App Engine State */
+    /* App Engine State */
     let passengerDatabase = [];
     let occupiedSeatsByFlight = {};
     let activePassenger = null;
@@ -338,6 +348,14 @@
     let audioEnabled = true;
     let audioCtx = null;
     let numpadValue = '20.0';
+
+    /* Helper: Ensure input box is focused immediately */
+    function autoFocusInput() {
+      setTimeout(() => {
+        const input = document.getElementById('terminal-input');
+        if (input) input.focus();
+      }, 50);
+    }
 
     function loadStateFromLocalStorage() {
       try {
@@ -353,6 +371,7 @@
         generateBatchPassengers(50, false);
       }
       updateHeaderBadgeCount();
+      autoFocusInput();
     }
 
     function saveStateToLocalStorage() {
@@ -370,6 +389,7 @@
       if (badge) badge.innerText = passengerDatabase.length;
     }
 
+    /* Sound Effects Engine */
     function initAudio() {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
@@ -379,6 +399,7 @@
       const btn = document.getElementById('audio-btn');
       btn.innerHTML = audioEnabled ? `<i class="fa-solid fa-volume-high"></i>` : `<i class="fa-solid fa-volume-xmark text-slate-600"></i>`;
       if (audioEnabled) playKeyClickSound();
+      autoFocusInput();
     }
 
     function playKeyClickSound() {
@@ -389,7 +410,7 @@
         const gain = audioCtx.createGain();
         osc.type = 'sine';
         osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.02);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
@@ -408,7 +429,7 @@
         osc.type = 'triangle';
         osc.frequency.setValueAtTime(880, now);
         osc.frequency.setValueAtTime(1318.51, now + 0.08);
-        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.setValueAtTime(0.12, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
@@ -426,7 +447,7 @@
         const gain = audioCtx.createGain();
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(220, now);
-        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.setValueAtTime(0.12, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
@@ -454,7 +475,6 @@
 
       container.appendChild(line);
 
-      // Auto-scroll to bottom
       const consoleBox = document.getElementById('terminal-console');
       consoleBox.scrollTop = consoleBox.scrollHeight;
     }
@@ -471,6 +491,7 @@
       historyIndex = commandHistory.length;
 
       runCommand(rawCmd);
+      autoFocusInput();
     }
 
     function runCommand(commandString) {
@@ -489,33 +510,29 @@
           displayCommandManual();
           break;
 
+        case 'PNR':
         case 'SCAN':
         case 'FIND':
-        case 'PNR':
-        case 'LOOKUP':
+        case 'SCN':
           if (!arg1) {
-            logTerminal('ERROR: PNR or Barcode code required. Example: SCAN 6X9K2P', 'error');
+            logTerminal('ERROR: PNR locator required. Usage: PNR 6X9K2P', 'error');
             playErrorSound();
           } else {
             scanPassengerByCode(arg1);
           }
           break;
 
+        case 'ADDBG':
         case 'ADD':
         case 'BAG':
-        case 'BAGGAGE':
-          if (main === 'ADD' && arg1 !== 'BAG') {
-            logTerminal(`ERROR: Unknown ADD command '${arg1}'. Did you mean 'ADD BAG'?`, 'error');
-            break;
-          }
+        case 'AB':
           if (!activePassenger) {
-            logTerminal('ERROR: No passenger currently loaded. Please SCAN a passenger first.', 'error');
+            logTerminal('ERROR: No passenger currently loaded. Load passenger first using PNR <codeAlias>.', 'error');
             playErrorSound();
             break;
           }
           const weightVal = parseFloat(main === 'ADD' ? arg2 : arg1);
           if (isNaN(weightVal) || weightVal <= 0) {
-            // Open Touchscreen Numpad
             document.getElementById('numpad-modal').classList.remove('hidden');
             logTerminal('Opening Baggage Scale Numpad...', 'system');
           } else {
@@ -523,55 +540,63 @@
           }
           break;
 
+        case 'SETST':
         case 'SEAT':
-        case 'SET':
-        case 'ASSIGN':
+        case 'ST':
           if (!activePassenger) {
-            logTerminal('ERROR: No passenger currently loaded. Please SCAN a passenger first.', 'error');
+            logTerminal('ERROR: No passenger currently loaded. Load passenger first.', 'error');
             playErrorSound();
             break;
           }
-          const seatTarget = main === 'SEAT' ? arg1 : arg2;
-          if (!seatTarget) {
+          if (!arg1) {
             openSeatmapModal();
           } else {
-            assignSeatToActivePassenger(seatTarget);
+            assignSeatToActivePassenger(arg1);
           }
           break;
 
+        case 'STMAP':
         case 'SEATMAP':
+        case 'SM':
         case 'MAP':
           if (!activePassenger) {
-            logTerminal('ERROR: No passenger currently loaded. Please SCAN a passenger first.', 'error');
+            logTerminal('ERROR: Load passenger before viewing seat map.', 'error');
             playErrorSound();
           } else {
             openSeatmapModal();
           }
           break;
 
-        case 'PRT':
-        case 'PRINT':
+        case 'PRTPASS':
+        case 'BP':
+        case 'PASS':
           if (!activePassenger) {
-            logTerminal('ERROR: No passenger loaded. Scan passenger before printing.', 'error');
+            logTerminal('ERROR: No passenger loaded. Scan passenger first.', 'error');
             playErrorSound();
             break;
           }
-          if (arg1 === 'PASS' || arg1 === 'BOARDING' || arg1 === 'TICKET') {
-            printBoardingPassCLI();
-          } else if (arg1 === 'BAG' || arg1 === 'TAG' || arg1 === 'BAGGAGE') {
-            printBagTagCLI();
-          } else {
-            logTerminal('Specify document to print: PRT PASS or PRT BAG', 'warn');
-          }
+          printBoardingPassCLI();
           break;
 
-        case 'COMPLETE':
+        case 'PRTBG':
+        case 'BT':
+        case 'PRTBAG':
+          if (!activePassenger) {
+            logTerminal('ERROR: No passenger loaded.', 'error');
+            playErrorSound();
+            break;
+          }
+          printBagTagCLI();
+          break;
+
         case 'DONE':
-        case 'CLEAR':
-        case 'EJECT':
+        case 'COMPLETE':
+        case 'CMP':
+        case 'FIN':
           completeCheckInCLI();
           break;
 
+        case 'GENBATCH':
         case 'GEN':
         case 'BATCH':
           openBatchModal();
@@ -587,31 +612,30 @@
           break;
 
         default:
-          // Check if user scanned/typed a direct PNR code
           if (main.length >= 4 && main.length <= 12) {
             scanPassengerByCode(main);
           } else {
-            logTerminal(`Unrecognized command '${main}'. Type 'cmd' for command list.`, 'error');
+            logTerminal(`Unrecognized command '${main}'. Type 'cmd' for manual.`, 'error');
             playErrorSound();
           }
           break;
       }
+      autoFocusInput();
     }
 
     function displayCommandManual() {
       logTerminal(`
-===== AEROSKY COMMAND-LINE TERMINAL MANUAL =====
-• <span class="text-white font-bold">SCAN &lt;PNR&gt;</span> : Scan/load passenger by PNR locator code
-• <span class="text-white font-bold">ADD BAG [weight]</span> : Add bag (e.g. 'ADD BAG 21.5' or 'ADD BAG' for numpad)
-• <span class="text-white font-bold">SEAT &lt;code&gt;</span> : Assign seat (e.g. 'SEAT 12A')
-• <span class="text-white font-bold">SEATMAP</span> : Open interactive aircraft seating chart
-• <span class="text-white font-bold">PRT PASS</span> : Print 80mm thermal boarding pass receipt
-• <span class="text-white font-bold">PRT BAG</span> : Print double-length 80mm thermal bag tag
-• <span class="text-white font-bold">COMPLETE</span> : Finalize check-in and clear terminal workspace
-• <span class="text-white font-bold">GEN BATCH</span> : Generate 50-passenger manifest and 1-column barcode sheet
-• <span class="text-white font-bold">ROSTER</span> : List pending passengers in local database
-• <span class="text-white font-bold">RESET</span> : Clear local storage database
-===============================================
+===== AEROSKY SHORTENED CLI MANUAL =====
+• <span class="text-white font-bold">PNR &lt;code&gt;</span> : Load passenger by PNR code
+• <span class="text-white font-bold">ADDBG [weight]</span> : Add baggage (e.g. 'ADDBG 23' or 'ADDBG' for numpad)
+• <span class="text-white font-bold">SETST &lt;seat&gt;</span> : Assign seat (e.g. 'SETST 01A', 'SETST 04B', 'SETST 12C')
+• <span class="text-white font-bold">STMAP</span> : Open multi-cabin interactive seating map
+• <span class="text-white font-bold">PRTPASS</span> : Print authentic two-stub PDF417 boarding pass (Landscape)
+• <span class="text-white font-bold">PRTBG</span> : Print single-page compact thermal baggage routing tag
+• <span class="text-white font-bold">GENBATCH</span> : Open paper-conserving dense barcode list
+• <span class="text-white font-bold">DONE</span> : Finalize check-in and reset terminal
+• <span class="text-white font-bold">ROSTER</span> : List pending passengers in local roster
+=========================================
       `, 'system');
     }
 
@@ -620,7 +644,7 @@
       const found = passengerDatabase.find(p => p.pnr === clean || clean.includes(p.pnr));
 
       if (!found) {
-        logTerminal(`PASSENGER RECORD [${clean}] NOT FOUND IN ROSTER. Run 'GEN BATCH' or 'ROSTER'.`, 'error');
+        logTerminal(`PASSENGER [${clean}] NOT FOUND IN ROSTER. Run 'GENBATCH' or 'ROSTER'.`, 'error');
         playErrorSound();
         return;
       }
@@ -628,7 +652,7 @@
       activePassenger = JSON.parse(JSON.stringify(found));
       playChimeSound();
       logTerminal(`SUCCESS: LOADED PASSENGER ${activePassenger.name} [PNR: ${activePassenger.pnr}]`, 'success');
-      logTerminal(`FLIGHT: ${activePassenger.flightNo} (${activePassenger.origin} -> ${activePassenger.destination}) | CABIN: ${activePassenger.cabin}`, 'info');
+      logTerminal(`FLIGHT: ${activePassenger.flightNo} (${activePassenger.origin} -> ${activePassenger.destination}) | CLASS: ${activePassenger.cabin}`, 'info');
 
       updatePassengerPanelDisplay();
     }
@@ -638,7 +662,7 @@
         document.getElementById('pnr-panel-name').innerText = 'NO PASSENGER SCAN';
         document.getElementById('pnr-panel-code').innerText = 'PNR: ------';
         document.getElementById('pnr-panel-flight').innerText = '--';
-        document.getElementById('pnr-panel-route').innerHTML = 'JFK &rarr; ---';
+        document.getElementById('pnr-panel-route').innerHTML = 'ORD &rarr; ---';
         document.getElementById('pnr-panel-seat').innerText = 'NOT ASSIGNED';
         document.getElementById('pnr-panel-cabin').innerText = 'Cabin: --';
         document.getElementById('pnr-panel-bags').innerText = '0 BAGS (0.0 KG)';
@@ -653,7 +677,7 @@
       document.getElementById('pnr-panel-route').innerHTML = `${activePassenger.origin} &rarr; ${activePassenger.destination} (${activePassenger.destCity})`;
 
       const seatElem = document.getElementById('pnr-panel-seat');
-      seatElem.innerText = activePassenger.seat || 'NOT ASSIGNED';
+      seatElem.innerText = activePassenger.seat ? `${activePassenger.seat} (${activePassenger.cabin})` : 'NOT ASSIGNED';
       seatElem.className = activePassenger.seat ? 'font-bold text-emerald-400 text-sm crt-glow' : 'font-bold text-amber-400 text-sm crt-amber-glow';
 
       document.getElementById('pnr-panel-cabin').innerText = `Cabin: ${activePassenger.cabin}`;
@@ -663,7 +687,7 @@
 
       const isReady = activePassenger.seat && activePassenger.seat !== 'NOT ASSIGNED';
       const statusElem = document.getElementById('pnr-panel-status');
-      statusElem.innerText = isReady ? 'READY TO PRINT TICKET' : 'SEAT ASSIGNMENT REQUIRED';
+      statusElem.innerText = isReady ? 'READY TO PRINT BOARDING PASS' : 'SEAT ASSIGNMENT REQUIRED';
       statusElem.className = isReady ? 'block text-[10px] text-emerald-400 font-bold crt-glow' : 'block text-[10px] text-amber-400 font-bold';
     }
 
@@ -676,7 +700,6 @@
 
       activePassenger.bags.push(bagObj);
 
-      // Sync to main DB
       const idx = passengerDatabase.findIndex(p => p.pnr === activePassenger.pnr);
       if (idx !== -1) passengerDatabase[idx].bags = activePassenger.bags;
 
@@ -686,14 +709,27 @@
       updatePassengerPanelDisplay();
     }
 
+    function getCabinClassForSeat(seatCode) {
+      const rowNum = parseInt(seatCode.substring(0, 2), 10);
+      if (rowNum <= 2) return 'FIRST CLASS';
+      if (rowNum <= 6) return 'BUSINESS CLASS';
+      return 'ECONOMY CLASS';
+    }
+
     function assignSeatToActivePassenger(seatCode) {
       if (!activePassenger) return;
+
+      // Format seat code to 2-digit row (e.g., 1A -> 01A)
+      let formattedSeat = seatCode.toUpperCase().trim();
+      if (/^\d[A-F]$/.test(formattedSeat)) {
+        formattedSeat = '0' + formattedSeat;
+      }
 
       const currentFlight = activePassenger.flightNo;
       const occupiedList = occupiedSeatsByFlight[currentFlight] || [];
 
-      if (occupiedList.includes(seatCode) && activePassenger.seat !== seatCode) {
-        logTerminal(`ERROR: Seat ${seatCode} is already occupied on flight ${currentFlight}. Choose another.`, 'error');
+      if (occupiedList.includes(formattedSeat) && activePassenger.seat !== formattedSeat) {
+        logTerminal(`ERROR: Seat ${formattedSeat} is already occupied on flight ${currentFlight}.`, 'error');
         playErrorSound();
         return;
       }
@@ -703,164 +739,186 @@
       }
 
       if (!occupiedSeatsByFlight[currentFlight]) occupiedSeatsByFlight[currentFlight] = [];
-      occupiedSeatsByFlight[currentFlight].push(seatCode);
+      occupiedSeatsByFlight[currentFlight].push(formattedSeat);
 
-      activePassenger.seat = seatCode;
+      activePassenger.seat = formattedSeat;
+      activePassenger.cabin = getCabinClassForSeat(formattedSeat);
 
       const idx = passengerDatabase.findIndex(p => p.pnr === activePassenger.pnr);
-      if (idx !== -1) passengerDatabase[idx].seat = seatCode;
+      if (idx !== -1) {
+        passengerDatabase[idx].seat = formattedSeat;
+        passengerDatabase[idx].cabin = activePassenger.cabin;
+      }
 
       saveStateToLocalStorage();
       playChimeSound();
-      logTerminal(`SEAT ASSIGNED: Seat ${seatCode} confirmed for ${activePassenger.name}`, 'success');
+      logTerminal(`SEAT ASSIGNED: ${formattedSeat} (${activePassenger.cabin}) for ${activePassenger.name}`, 'success');
       updatePassengerPanelDisplay();
       closeModal('seatmap-modal');
     }
 
-    /* REALISTIC 80mm BOARDING PASS PRINT ENGINE */
+    /* REALISTIC BOARDING PASS PRINT ENGINE (MATCHES ATTACHED IMAGE) */
     function printBoardingPassCLI() {
       if (!activePassenger) return;
 
       if (!activePassenger.seat || activePassenger.seat === 'NOT ASSIGNED') {
-        logTerminal('WARNING: Seat not assigned! Use command "SEAT <code>" or "SEATMAP" before printing pass.', 'warn');
+        logTerminal('WARNING: Seat not assigned! Assign seat using SETST <seat> or STMAP first.', 'warn');
         playErrorSound();
         return;
       }
 
-      logTerminal('PRINTING BOARDING PASS... PLEASE WAIT...', 'warn');
+      logTerminal('GENERATING REALISTIC IATA PDF417 BOARDING PASS...', 'warn');
       playChimeSound();
 
       const printContainer = document.getElementById('printable-thermal-receipt');
-      printContainer.innerHTML = `
-        <div style="font-family: Arial, sans-serif; color:#000; background:#fff; width:72mm; margin:0 auto; padding-bottom:15px; text-align:center;">
-          
-          <div style="font-size: 15pt; font-weight: 900; letter-spacing: 1px; border-bottom: 3px solid #000; padding-bottom: 4px; margin-bottom: 6px;">
-            AEROSKY BOARDING PASS
-          </div>
-
-          <div style="text-align: left; font-size: 10pt; font-weight: bold; line-height: 1.4;">
-            <div>PASSENGER NAME:</div>
-            <div style="font-size: 16pt; font-weight: 900; text-transform: uppercase;">${activePassenger.name}</div>
-            <div>PNR: <strong style="font-size: 13pt;">${activePassenger.pnr}</strong> &nbsp;|&nbsp; CLASS: <strong>${activePassenger.cabin}</strong></div>
-          </div>
-
-          <div style="border-bottom: 2px solid #000; margin: 8px 0;"></div>
-
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; text-align: center; margin-bottom: 8px;">
-            <div style="border: 2px solid #000; padding: 4px;">
-              <span style="font-size: 8pt; display: block; font-weight: bold;">FLIGHT</span>
-              <span style="font-size: 16pt; font-weight: 900;">${activePassenger.flightNo}</span>
-            </div>
-            <div style="border: 2px solid #000; padding: 4px; background-color: #000; color: #fff;">
-              <span style="font-size: 8pt; display: block; font-weight: bold;">SEAT</span>
-              <span style="font-size: 18pt; font-weight: 900;">${activePassenger.seat}</span>
-            </div>
-            <div style="border: 2px solid #000; padding: 4px;">
-              <span style="font-size: 8pt; display: block; font-weight: bold;">GATE</span>
-              <span style="font-size: 14pt; font-weight: 900;">${activePassenger.gate}</span>
-            </div>
-            <div style="border: 2px solid #000; padding: 4px;">
-              <span style="font-size: 8pt; display: block; font-weight: bold;">BOARDING TIME</span>
-              <span style="font-size: 14pt; font-weight: 900;">${activePassenger.boardingTime}</span>
-            </div>
-          </div>
-
-          <div style="text-align: left; font-size: 10pt; font-weight: bold;">
-            <div>ROUTE: <strong>${activePassenger.origin} &rarr; ${activePassenger.destination} (${activePassenger.destCity})</strong></div>
-            <div>AIRCRAFT: ${activePassenger.aircraft}</div>
-            <div>FF STATUS: ${activePassenger.ffStatus || 'AeroClub Member'}</div>
-          </div>
-
-          <div style="border-bottom: 2px solid #000; margin: 8px 0;"></div>
-
-          <div style="display: flex; justify-content: center; margin: 10px 0;">
-            <div id="bp-qr-code"></div>
-          </div>
-
-          <div style="font-size: 10pt; font-weight: 900; letter-spacing: 1px;">* TICKET ID: ${activePassenger.pnr}-${activePassenger.seat} *</div>
-        </div>
-      `;
-
-      setTimeout(() => {
-        const qrTarget = document.getElementById('bp-qr-code');
-        if (qrTarget) {
-          qrTarget.innerHTML = '';
-          new QRCode(qrTarget, {
-            text: `PASS:${activePassenger.pnr}:${activePassenger.flightNo}:${activePassenger.seat}`,
-            width: 120,
-            height: 120,
-            colorDark: "#000000",
-            colorLight: "#ffffff"
-          });
-        }
-
-        setTimeout(() => {
-          window.print();
-          logTerminal('BOARDING PASS SENT TO SYSTEM PRINTER PRINT QUEUE.', 'success');
-        }, 150);
-      }, 80);
-    }
-
-    /* DOUBLE-LENGTH 80mm BAGGAGE ROUTING TAG ENGINE */
-    function printBagTagCLI() {
-      if (!activePassenger) return;
-
-      if (activePassenger.bags.length === 0) {
-        logTerminal('ERROR: Passenger has 0 bags registered. Use command "ADD BAG <kg>" first.', 'error');
-        playErrorSound();
-        return;
-      }
-
-      const bag = activePassenger.bags[activePassenger.bags.length - 1]; // Print latest bag
-      logTerminal(`PRINTING DOUBLE-LENGTH 80mm BAG TAG [Tag ID: ${bag.tagCode}]...`, 'warn');
-      playChimeSound();
-
-      const printContainer = document.getElementById('printable-thermal-receipt');
-      const isHeavy = bag.weight > 23.0;
+      const pnr = activePassenger.pnr;
+      const passClass = activePassenger.cabin || 'ECONOMY CLASS';
 
       printContainer.innerHTML = `
-        <div style="font-family: Arial, sans-serif; color:#000; background:#fff; width:72mm; margin:0 auto; padding-bottom:20px; text-align:center;">
+        <div class="font-sans-pass" style="width: 250mm; margin: 10px auto; background: #ffffff; color: #000000; font-size: 11pt; border-radius: 8px; overflow: hidden; border: 1px solid #0284c7; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
           
-          <div style="border: 4px solid #000; padding: 6px; margin-bottom: 10px;">
-            <div style="font-size: 14pt; font-weight: 900; letter-spacing: 2px;">AEROSKY AIRWAYS</div>
-            <div style="font-size: 9pt; font-weight: bold; border-top: 2px solid #000; margin-top: 4px; padding-top: 4px;">AUTOMATED BAGGAGE ROUTING TAG</div>
-          </div>
-
-          <!-- HUGE DOUBLE-LENGTH DESTINATION IATA CODE -->
-          <div style="font-size: 64pt; font-weight: 900; line-height: 0.95; letter-spacing: 3px; margin: 12px 0;">${activePassenger.destination}</div>
-          <div style="font-size: 13pt; font-weight: 900; text-transform: uppercase;">DEST: ${activePassenger.destCity}</div>
-
-          ${isHeavy ? `<div style="background:#000; color:#fff; font-size:16pt; font-weight:900; text-align:center; padding:6px; margin:10px 0; letter-spacing:2px;">HEAVY / OVERWEIGHT BAG</div>` : ''}
-
-          <div style="border-bottom: 3px solid #000; margin: 12px 0;"></div>
-
-          <div style="text-align: left; font-size: 11pt; font-weight: bold; line-height: 1.5;">
-            <div>PASSENGER: <span style="font-size: 14pt; font-weight: 900;">${activePassenger.name}</span></div>
-            <div>FLIGHT: <span style="font-size: 14pt; font-weight: 900;">${activePassenger.flightNo}</span> &nbsp;|&nbsp; SEAT: <span style="font-size: 14pt; font-weight: 900;">${activePassenger.seat || 'UNASSIGNED'}</span></div>
-            <div>PNR LOCATOR: <span style="font-size: 13pt; font-weight: 900;">${activePassenger.pnr}</span></div>
-            <div>WEIGHT: <span style="font-size: 14pt; font-weight: 900;">${bag.weight.toFixed(1)} KG</span></div>
-            <div>TAG CODE: <span style="font-size: 12pt; font-weight: 900;">${bag.tagCode}</span></div>
-          </div>
-
-          <div style="border-bottom: 3px solid #000; margin: 12px 0;"></div>
-
-          <div style="display: flex; justify-content: center; margin: 12px 0;">
-            <svg id="bag-tag-barcode-primary"></svg>
-          </div>
-
-          <div style="font-size: 12pt; font-weight: 900; letter-spacing: 2px;">* ${bag.tagCode} *</div>
-
-          <!-- SECONDARY DETACHABLE CLAIM STUB -->
-          <div style="border-top: 4px dashed #000; margin-top: 24px; padding-top: 15px; text-align: left;">
-            <div style="font-size: 12pt; font-weight: 900; text-align: center; margin-bottom: 6px;">BAGGAGE CLAIM PASSENGER STUB</div>
-            <div style="font-size: 10pt; font-weight: bold;">PASSENGER: ${activePassenger.name}</div>
-            <div style="font-size: 10pt; font-weight: bold;">FLIGHT: ${activePassenger.flightNo} &rarr; ${activePassenger.destination}</div>
-            <div style="font-size: 10pt; font-weight: bold;">BAG TAG ID: ${bag.tagCode}</div>
-
-            <div style="display: flex; justify-content: center; margin: 8px 0;">
-              <svg id="bag-tag-barcode-stub"></svg>
+          <!-- TOP BLUE HEADER BAR -->
+          <div style="background-color: #0369a1; color: #ffffff; padding: 10px 18px; display: flex; justify-content: space-between; items-center: center;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <svg style="width: 24px; height: 24px; fill: #ffffff;" viewBox="0 0 24 24"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>
+              <div>
+                <div style="font-size: 14pt; font-weight: 900; letter-spacing: 1px; text-transform: uppercase;">AEROSKY AIRLINES</div>
+                <div style="font-size: 7.5pt; font-weight: 600; opacity: 0.9; letter-spacing: 0.5px;">PASSENGER TICKET AND BAGGAGE CHECK</div>
+              </div>
             </div>
-            <div style="text-align: center; font-size: 9pt; font-weight: bold;">RETAIN FOR BAGGAGE MATCH AT DESTINATION</div>
+
+            <div style="text-align: center;">
+              <div style="font-size: 16pt; font-weight: 900; letter-spacing: 2px;">BOARDING PASS</div>
+              <div style="font-size: 9pt; font-weight: 700; color: #fde047; text-transform: uppercase;">${passClass}</div>
+            </div>
+
+            <!-- RIGHT STUB HEADER -->
+            <div style="text-align: right; border-left: 2px dashed rgba(255,255,255,0.4); padding-left: 15px;">
+              <div style="font-size: 10pt; font-weight: 800; text-transform: uppercase;">AEROSKY AIRLINES</div>
+              <div style="font-size: 8pt; font-weight: 700; color: #fde047; text-transform: uppercase;">${passClass}</div>
+            </div>
+          </div>
+
+          <!-- MAIN BODY SECTION -->
+          <div style="display: flex; padding: 12px 18px; gap: 15px; background: #ffffff;">
+            
+            <!-- LEFT VERTICAL PDF417 BARCODE CONTAINER -->
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 140px; shrink: 0;">
+              <canvas id="main-pdf417-canvas"></canvas>
+            </div>
+
+            <!-- CENTER MAIN PASS DETAILS -->
+            <div style="flex: 1; grid-template-columns: 2fr 1fr; display: grid; gap: 10px; border-right: 2px dashed #94a3b8; padding-right: 15px;">
+              
+              <div>
+                <div style="margin-bottom: 10px;">
+                  <span style="font-size: 8pt; color: #64748b; font-weight: 700; display: block;">Passenger</span>
+                  <strong style="font-size: 14pt; font-weight: 900; text-transform: uppercase; color: #0f172a;">${activePassenger.name}</strong>
+                </div>
+
+                <div style="margin-bottom: 10px;">
+                  <span style="font-size: 8pt; color: #64748b; font-weight: 700; display: block;">From:</span>
+                  <strong style="font-size: 12pt; font-weight: 800; color: #0f172a;">${activePassenger.origin} (CHICAGO ORD)</strong>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px;">
+                  <div>
+                    <span style="font-size: 7.5pt; color: #64748b; font-weight: 700; display: block;">Flight</span>
+                    <strong style="font-size: 11pt; font-weight: 900;">${activePassenger.flightNo}</strong>
+                  </div>
+                  <div>
+                    <span style="font-size: 7.5pt; color: #64748b; font-weight: 700; display: block;">Date</span>
+                    <strong style="font-size: 10pt; font-weight: 800;">06 DEC 26</strong>
+                  </div>
+                  <div>
+                    <span style="font-size: 7.5pt; color: #64748b; font-weight: 700; display: block;">Time</span>
+                    <strong style="font-size: 11pt; font-weight: 900;">${activePassenger.flightTime}</strong>
+                  </div>
+                  <div>
+                    <span style="font-size: 7.5pt; color: #64748b; font-weight: 700; display: block;">Gate</span>
+                    <strong style="font-size: 12pt; font-weight: 900; color: #0284c7;">${activePassenger.gate}</strong>
+                  </div>
+                  <div>
+                    <span style="font-size: 7.5pt; color: #64748b; font-weight: 700; display: block;">Boarding till:</span>
+                    <strong style="font-size: 11pt; font-weight: 900;">${activePassenger.boardingTime}</strong>
+                  </div>
+                  <div>
+                    <span style="font-size: 7.5pt; color: #64748b; font-weight: 700; display: block;">Seat</span>
+                    <strong style="font-size: 14pt; font-weight: 900; color: #0369a1;">${activePassenger.seat}</strong>
+                  </div>
+                </div>
+
+                <div style="margin-top: 8px; font-size: 8pt; color: #64748b;">
+                  Electronic ticket: <strong>629-${pnr}</strong>
+                </div>
+              </div>
+
+              <div style="padding-left: 10px; border-left: 1px solid #e2e8f0;">
+                <div style="margin-bottom: 12px;">
+                  <span style="font-size: 8pt; color: #64748b; font-weight: 700; display: block;">To:</span>
+                  <strong style="font-size: 12pt; font-weight: 800; color: #0f172a;">${activePassenger.destCity} (${activePassenger.destination})</strong>
+                </div>
+                <div style="margin-bottom: 8px;">
+                  <span style="font-size: 8pt; color: #64748b; font-weight: 700; display: block;">Arrival time:</span>
+                  <strong style="font-size: 11pt; font-weight: 900;">${activePassenger.arrivalTime}</strong>
+                </div>
+                <div>
+                  <span style="font-size: 8pt; color: #64748b; font-weight: 700; display: block;">Terminal:</span>
+                  <strong style="font-size: 12pt; font-weight: 900;">${activePassenger.terminal}</strong>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- RIGHT STUB / PASSENGER COUPON -->
+            <div style="width: 200px; shrink: 0; display: flex; flex-direction: column; justify-content: space-between;">
+              <div>
+                <div style="margin-bottom: 6px;">
+                  <span style="font-size: 7pt; color: #64748b; font-weight: 700; display: block;">Passenger</span>
+                  <strong style="font-size: 11pt; font-weight: 900; text-transform: uppercase;">${activePassenger.name}</strong>
+                </div>
+                <div style="margin-bottom: 4px;">
+                  <span style="font-size: 7pt; color: #64748b; font-weight: 700; display: block;">From / To:</span>
+                  <strong style="font-size: 8.5pt; font-weight: 800;">${activePassenger.origin} &rarr; ${activePassenger.destination}</strong>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 6px;">
+                  <div>
+                    <span style="font-size: 6.5pt; color: #64748b; display: block;">Flight</span>
+                    <strong style="font-size: 8.5pt;">${activePassenger.flightNo}</strong>
+                  </div>
+                  <div>
+                    <span style="font-size: 6.5pt; color: #64748b; display: block;">Date</span>
+                    <strong style="font-size: 8.5pt;">06DEC</strong>
+                  </div>
+                  <div>
+                    <span style="font-size: 6.5pt; color: #64748b; display: block;">Time</span>
+                    <strong style="font-size: 8.5pt;">${activePassenger.flightTime}</strong>
+                  </div>
+                  <div>
+                    <span style="font-size: 6.5pt; color: #64748b; display: block;">Gate</span>
+                    <strong style="font-size: 9pt; color: #0284c7;">${activePassenger.gate}</strong>
+                  </div>
+                  <div style="grid-column: span 2;">
+                    <span style="font-size: 6.5pt; color: #64748b; display: block;">Seat</span>
+                    <strong style="font-size: 11pt; color: #0369a1;">${activePassenger.seat}</strong>
+                  </div>
+                </div>
+              </div>
+
+              <!-- STUB BARCODE -->
+              <div style="margin-top: 8px; text-align: center;">
+                <canvas id="stub-pdf417-canvas"></canvas>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- BOTTOM BLUE FOOTER BAR -->
+          <div style="background-color: #0369a1; color: #ffffff; padding: 6px 18px; display: flex; justify-content: space-between; align-items: center; font-size: 8.5pt; font-weight: 800;">
+            <span>${pnr}</span>
+            <span style="letter-spacing: 1px;">PLEASE BE AT THE GATE AT BOARDING TIME</span>
+            <span>${pnr}</span>
           </div>
 
         </div>
@@ -868,13 +926,101 @@
 
       setTimeout(() => {
         try {
-          JsBarcode("#bag-tag-barcode-primary", bag.tagCode, { format: "CODE128", width: 2.2, height: 60, displayValue: false });
-          JsBarcode("#bag-tag-barcode-stub", bag.tagCode, { format: "CODE128", width: 1.8, height: 40, displayValue: false });
+          // Render Authentic IATA PDF417 Barcodes using BWIP-JS
+          bwipjs.toCanvas('main-pdf417-canvas', {
+            bcid: 'pdf417',
+            text: `M1${activePassenger.name.replace(' ', '/')}/E ${pnr} ${activePassenger.origin}${activePassenger.destination}${activePassenger.flightNo} 340Y${activePassenger.seat}`,
+            scale: 2,
+            height: 28,
+            rotate: 'R' // Vertical orientation on left side
+          });
+
+          bwipjs.toCanvas('stub-pdf417-canvas', {
+            bcid: 'pdf417',
+            text: `M1${activePassenger.name.replace(' ', '/')}/E ${pnr}`,
+            scale: 1.5,
+            height: 12
+          });
+        } catch(e) {
+          console.error("PDF417 Render Error:", e);
+        }
+
+        setTimeout(() => {
+          window.print();
+          logTerminal('BOARDING PASS SENT TO LANDSCAPE SYSTEM PRINTER QUEUE.', 'success');
+        }, 180);
+      }, 100);
+    }
+
+    /* COMPACT SINGLE-PAGE BAGGAGE TAG ENGINE */
+    function printBagTagCLI() {
+      if (!activePassenger) return;
+
+      if (activePassenger.bags.length === 0) {
+        logTerminal('ERROR: Passenger has 0 bags registered. Use command ADDBG <kg> first.', 'error');
+        playErrorSound();
+        return;
+      }
+
+      const bag = activePassenger.bags[activePassenger.bags.length - 1];
+      logTerminal(`PRINTING COMPACT BAGGAGE ROUTING TAG [Tag ID: ${bag.tagCode}]...`, 'warn');
+      playChimeSound();
+
+      const printContainer = document.getElementById('printable-thermal-receipt');
+      const isHeavy = bag.weight > 23.0;
+
+      printContainer.innerHTML = `
+        <div style="font-family: Arial, sans-serif; color:#000; background:#fff; width: 72mm; margin: 0 auto; padding: 4mm; text-align: center; box-sizing: border-box;">
+          
+          <div style="border: 3px solid #000; padding: 4px; margin-bottom: 6px;">
+            <div style="font-size: 12pt; font-weight: 900; letter-spacing: 1px;">AEROSKY AIRWAYS</div>
+            <div style="font-size: 8pt; font-weight: bold; border-top: 1.5px solid #000; margin-top: 2px; padding-top: 2px;">AUTOMATED BAGGAGE TAG</div>
+          </div>
+
+          <div style="font-size: 48pt; font-weight: 900; line-height: 0.9; letter-spacing: 2px; margin: 6px 0;">${activePassenger.destination}</div>
+          <div style="font-size: 10pt; font-weight: 900; text-transform: uppercase;">DEST: ${activePassenger.destCity}</div>
+
+          ${isHeavy ? `<div style="background:#000; color:#fff; font-size:12pt; font-weight:900; text-align:center; padding:4px; margin:6px 0;">HEAVY / OVERWEIGHT BAG</div>` : ''}
+
+          <div style="border-bottom: 2px solid #000; margin: 6px 0;"></div>
+
+          <div style="text-align: left; font-size: 9.5pt; font-weight: bold; line-height: 1.4;">
+            <div>PASSENGER: <span style="font-size: 11pt; font-weight: 900;">${activePassenger.name}</span></div>
+            <div>FLIGHT: <strong>${activePassenger.flightNo}</strong> | SEAT: <strong>${activePassenger.seat || 'UNASSIGNED'}</strong></div>
+            <div>PNR: <strong>${activePassenger.pnr}</strong> | WEIGHT: <strong>${bag.weight.toFixed(1)} KG</strong></div>
+            <div>TAG CODE: <strong>${bag.tagCode}</strong></div>
+          </div>
+
+          <div style="display: flex; justify-content: center; margin: 8px 0;">
+            <svg id="bag-tag-barcode-primary"></svg>
+          </div>
+
+          <div style="font-size: 10pt; font-weight: 900;">* ${bag.tagCode} *</div>
+
+          <!-- DETACHABLE CLAIM STUB -->
+          <div style="border-top: 2px dashed #000; margin-top: 10px; padding-top: 8px; text-align: left;">
+            <div style="font-size: 9pt; font-weight: 900; text-align: center; margin-bottom: 4px;">PASSENGER CLAIM STUB</div>
+            <div style="font-size: 8.5pt; font-weight: bold;">PASSENGER: ${activePassenger.name}</div>
+            <div style="font-size: 8.5pt; font-weight: bold;">FLIGHT: ${activePassenger.flightNo} &rarr; ${activePassenger.destination}</div>
+            <div style="font-size: 8.5pt; font-weight: bold;">TAG CODE: ${bag.tagCode}</div>
+
+            <div style="display: flex; justify-content: center; margin: 4px 0;">
+              <svg id="bag-tag-barcode-stub"></svg>
+            </div>
+          </div>
+
+        </div>
+      `;
+
+      setTimeout(() => {
+        try {
+          JsBarcode("#bag-tag-barcode-primary", bag.tagCode, { format: "CODE128", width: 2.0, height: 45, displayValue: false });
+          JsBarcode("#bag-tag-barcode-stub", bag.tagCode, { format: "CODE128", width: 1.6, height: 30, displayValue: false });
         } catch(e) {}
 
         setTimeout(() => {
           window.print();
-          logTerminal(`DOUBLE-LENGTH BAG TAG [Tag: ${bag.tagCode}] SENT TO SYSTEM PRINTER.`, 'success');
+          logTerminal(`BAGGAGE TAG [Tag: ${bag.tagCode}] SENT TO PRINTER.`, 'success');
         }, 150);
       }, 80);
     }
@@ -897,11 +1043,12 @@
       playChimeSound();
       logTerminal(`CHECK-IN COMPLETED FOR ${completedName} [PNR: ${completedPNR}]. WORKSPACE CLEARED.`, 'success');
       logTerminal('TERMINAL IDLE. SCAN NEXT PASSENGER BARCODE OR TYPE COMMAND...', 'system');
+      autoFocusInput();
     }
 
     function openBatchModal() {
       document.getElementById('batch-modal').classList.remove('hidden');
-      renderBatchBarcodeGrid();
+      renderBatchBarcodeList();
     }
 
     function generateBatchPassengers(count = 50, openModal = true) {
@@ -923,41 +1070,47 @@
           aircraft: flightObj.aircraft,
           gate: flightObj.gate,
           boardingTime: flightObj.boardingTime,
-          origin: 'JFK',
+          flightTime: flightObj.flightTime,
+          arrivalTime: flightObj.arrivalTime,
+          terminal: flightObj.terminal,
+          origin: 'ORD',
           destination: destObj.code,
           destCity: destObj.city,
-          seat: null, // STARTS UNASSIGNED
-          cabin: Math.random() > 0.7 ? 'Business Class' : 'Economy Class',
+          seat: null,
+          cabin: 'Economy Class',
           ffStatus: 'AeroClub Member',
-          bags: [] // STARTS WITH ZERO BAGS
+          bags: []
         });
       }
 
       saveStateToLocalStorage();
       if (openModal) openBatchModal();
-      logTerminal(`GENERATED ${count} PASSENGERS IN LOCAL DATABASE ROSTER.`, 'success');
+      logTerminal(`GENERATED ${count} PASSENGERS IN DATABASE ROSTER.`, 'success');
     }
 
-    function renderBatchBarcodeGrid() {
-      const grid = document.getElementById('batch-barcode-grid');
-      if (!grid) return;
+    /* DENSE PAPER-CONSERVING 1D BARCODE LIST */
+    function renderBatchBarcodeList() {
+      const listContainer = document.getElementById('batch-barcode-list');
+      if (!listContainer) return;
 
-      grid.innerHTML = passengerDatabase.map((p, idx) => `
-        <div onclick="scanPassengerByCode('${p.pnr}'); closeModal('batch-modal');" class="bg-slate-950 border border-emerald-900 hover:border-emerald-400 p-2.5 rounded cursor-pointer transition flex flex-col items-center justify-between text-center space-y-1 group">
-          <div class="w-full flex items-center justify-between text-[10px] text-slate-500">
-            <span>#${idx + 1}</span>
-            <span class="text-emerald-400 font-bold">${p.flightNo} (${p.destination})</span>
+      listContainer.innerHTML = passengerDatabase.map((p, idx) => `
+        <div onclick="scanPassengerByCode('${p.pnr}'); closeModal('batch-modal');" 
+          class="bg-slate-950 border border-emerald-900/80 hover:border-emerald-400 p-2 rounded cursor-pointer transition flex items-center justify-between gap-3 group">
+          
+          <div class="w-10 text-[11px] text-slate-500 font-bold shrink-0">#${idx + 1}</div>
+
+          <div class="flex-1 min-w-0">
+            <div class="text-xs font-bold text-white group-hover:text-emerald-300 font-mono uppercase truncate">
+              ${p.name}
+            </div>
+            <div class="text-[10px] text-slate-400">
+              PNR: <strong class="text-amber-400 font-mono">${p.pnr}</strong> | FLIGHT: <strong class="text-emerald-400">${p.flightNo}</strong> (${p.destination})
+            </div>
           </div>
 
-          <div class="text-xs font-bold text-white group-hover:text-emerald-300 font-mono uppercase truncate max-w-full">
-            ${p.name}
-          </div>
-
-          <div class="bg-white p-1.5 rounded w-full flex items-center justify-center">
+          <div class="bg-white px-2 py-1 rounded shrink-0 flex items-center justify-center">
             <svg id="batch-barcode-svg-${p.pnr}"></svg>
           </div>
-
-          <div class="text-[10px] text-slate-400">PNR: <strong class="text-amber-400">${p.pnr}</strong></div>
         </div>
       `).join('');
 
@@ -966,8 +1119,8 @@
           try {
             JsBarcode(`#batch-barcode-svg-${p.pnr}`, p.pnr, {
               format: "CODE128",
-              width: 1.5,
-              height: 32,
+              width: 1.4,
+              height: 26,
               displayValue: false,
               margin: 0
             });
@@ -981,24 +1134,20 @@
       const physicalArea = document.getElementById('printable-thermal-receipt');
 
       physicalArea.innerHTML = `
-        <div style="width: 72mm; margin: 0 auto; color: #000; font-family: Arial, sans-serif; text-align: center; background: #fff; padding-bottom: 20px;">
-          <div style="font-size: 11pt; font-weight: 900; letter-spacing: 1px; border-bottom: 2px solid #000; padding-bottom: 4px; margin-bottom: 8px;">
-            AEROSKY PASSENGER MANIFEST
-          </div>
-          <div style="font-size: 8pt; font-weight: bold; margin-bottom: 10px;">
-            BATCH SIZE: ${passengerDatabase.length} PASSENGERS (SINGLE COLUMN)
+        <div style="width: 100%; color: #000; font-family: Arial, sans-serif; background: #fff; padding: 10px;">
+          <div style="font-size: 13pt; font-weight: 900; letter-spacing: 1px; border-bottom: 2px solid #000; padding-bottom: 4px; margin-bottom: 8px; text-align: center;">
+            AEROSKY PASSENGER DENSE BARCODE MANIFEST (${passengerDatabase.length} PASSENGERS)
           </div>
 
-          <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px;">
             ${passengerDatabase.map((p, idx) => `
-              <div style="page-break-inside: avoid; border-bottom: 1px dashed #000; padding-bottom: 6px; text-align: center;">
-                <div style="font-size: 8pt; font-weight: bold; text-transform: uppercase;">
-                  #${idx + 1} | PNR: <strong style="font-size: 10pt;">${p.pnr}</strong> | ${p.name}
+              <div style="page-break-inside: avoid; border: 1px solid #000; padding: 4px; display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                  <div style="font-size: 8pt; font-weight: 900;">#${idx + 1} | PNR: ${p.pnr}</div>
+                  <div style="font-size: 8.5pt; font-weight: bold; text-transform: uppercase;">${p.name}</div>
+                  <div style="font-size: 7.5pt; color: #333;">${p.flightNo} &rarr; ${p.destination} (${p.destCity})</div>
                 </div>
-                <div style="font-size: 8pt; font-weight: bold;">
-                  FLIGHT: ${p.flightNo} &rarr; ${p.destination} (${p.destCity})
-                </div>
-                <div style="display: flex; justify-content: center; margin: 4px 0;">
+                <div>
                   <svg class="print-sheet-svg" data-pnr="${p.pnr}"></svg>
                 </div>
               </div>
@@ -1014,12 +1163,11 @@
             if (svgEl) {
               JsBarcode(svgEl, p.pnr, {
                 format: "CODE128",
-                width: 1.8,
-                height: 40,
+                width: 1.4,
+                height: 28,
                 displayValue: true,
-                fontSize: 14,
-                fontOptions: "bold",
-                margin: 4
+                fontSize: 10,
+                margin: 2
               });
             }
           } catch(e) {}
@@ -1035,6 +1183,7 @@
       document.getElementById('seatmap-modal').classList.remove('hidden');
     }
 
+    /* MULTI-CABIN SEATMAP RENDERER (FIRST CLASS, BUSINESS CLASS, ECONOMY) */
     function renderSeatMap() {
       const container = document.getElementById('seatmap-grid-container');
       if (!container || !activePassenger) return;
@@ -1042,15 +1191,99 @@
       const currentFlight = activePassenger.flightNo;
       const occupiedList = occupiedSeatsByFlight[currentFlight] || [];
 
-      const cols = ['A', 'B', 'C', 'AISLE', 'D', 'E', 'F'];
       let html = '';
 
-      for (let r = 1; r <= 15; r++) {
+      /* FIRST CLASS SECTION (Rows 1-2) */
+      html += `
+        <div class="border border-amber-500/40 bg-amber-950/20 p-2.5 rounded-lg">
+          <div class="text-[11px] font-bold text-amber-400 mb-2 text-center uppercase tracking-wider flex items-center justify-center gap-2">
+            <i class="fa-solid fa-crown text-amber-400"></i> FIRST CLASS CABIN (2-2 LAYOUT)
+          </div>
+          <div class="space-y-1.5">
+      `;
+
+      for (let r = 1; r <= 2; r++) {
+        const rowStr = String(r).padStart(2, '0');
+        html += `<div class="flex items-center justify-center gap-2">`;
+        html += `<span class="w-6 text-[10px] text-amber-400 font-bold text-center">${rowStr}</span>`;
+
+        ['A', 'B', 'AISLE', 'C', 'D'].forEach(col => {
+          if (col === 'AISLE') {
+            html += `<div class="w-6 text-center text-slate-700 font-bold">||</div>`;
+          } else {
+            const seatCode = `${rowStr}${col}`;
+            const isSelected = activePassenger.seat === seatCode;
+            const isOccupied = occupiedList.includes(seatCode) && !isSelected;
+
+            let btnStyle = "bg-amber-950/80 text-amber-200 border-amber-600/80 hover:bg-amber-600 hover:text-slate-950";
+            if (isSelected) btnStyle = "bg-emerald-600 text-white font-bold border-emerald-400";
+            else if (isOccupied) btnStyle = "bg-rose-950 text-rose-500 border-rose-800 cursor-not-allowed opacity-60";
+
+            html += `
+              <button ${isOccupied ? 'disabled' : `onclick="assignSeatToActivePassenger('${seatCode}')"`} 
+                class="w-8 h-8 rounded border text-xs font-bold transition flex items-center justify-center ${btnStyle}">
+                ${col}
+              </button>
+            `;
+          }
+        });
+        html += `</div>`;
+      }
+      html += `</div></div>`;
+
+      /* BUSINESS CLASS SECTION (Rows 3-6) */
+      html += `
+        <div class="border border-purple-500/40 bg-purple-950/20 p-2.5 rounded-lg">
+          <div class="text-[11px] font-bold text-purple-300 mb-2 text-center uppercase tracking-wider flex items-center justify-center gap-2">
+            <i class="fa-solid fa-gem text-purple-400"></i> BUSINESS CLASS CABIN (2-2 LAYOUT)
+          </div>
+          <div class="space-y-1.5">
+      `;
+
+      for (let r = 3; r <= 6; r++) {
+        const rowStr = String(r).padStart(2, '0');
+        html += `<div class="flex items-center justify-center gap-2">`;
+        html += `<span class="w-6 text-[10px] text-purple-300 font-bold text-center">${rowStr}</span>`;
+
+        ['A', 'B', 'AISLE', 'C', 'D'].forEach(col => {
+          if (col === 'AISLE') {
+            html += `<div class="w-6 text-center text-slate-700 font-bold">||</div>`;
+          } else {
+            const seatCode = `${rowStr}${col}`;
+            const isSelected = activePassenger.seat === seatCode;
+            const isOccupied = occupiedList.includes(seatCode) && !isSelected;
+
+            let btnStyle = "bg-purple-950/80 text-purple-200 border-purple-600/80 hover:bg-purple-600 hover:text-white";
+            if (isSelected) btnStyle = "bg-emerald-600 text-white font-bold border-emerald-400";
+            else if (isOccupied) btnStyle = "bg-rose-950 text-rose-500 border-rose-800 cursor-not-allowed opacity-60";
+
+            html += `
+              <button ${isOccupied ? 'disabled' : `onclick="assignSeatToActivePassenger('${seatCode}')"`} 
+                class="w-8 h-8 rounded border text-xs font-bold transition flex items-center justify-center ${btnStyle}">
+                ${col}
+              </button>
+            `;
+          }
+        });
+        html += `</div>`;
+      }
+      html += `</div></div>`;
+
+      /* ECONOMY CLASS SECTION (Rows 7-18) */
+      html += `
+        <div class="border border-slate-800 bg-slate-950/60 p-2.5 rounded-lg">
+          <div class="text-[11px] font-bold text-slate-400 mb-2 text-center uppercase tracking-wider flex items-center justify-center gap-2">
+            <i class="fa-solid fa-users text-slate-500"></i> ECONOMY CLASS CABIN (3-3 LAYOUT)
+          </div>
+          <div class="space-y-1.5">
+      `;
+
+      for (let r = 7; r <= 18; r++) {
         const rowStr = String(r).padStart(2, '0');
         html += `<div class="flex items-center justify-center gap-1.5">`;
         html += `<span class="w-6 text-[10px] text-slate-500 text-center font-bold">${rowStr}</span>`;
 
-        cols.forEach(col => {
+        ['A', 'B', 'C', 'AISLE', 'D', 'E', 'F'].forEach(col => {
           if (col === 'AISLE') {
             html += `<div class="w-4 text-center text-slate-700 font-bold">|</div>`;
           } else {
@@ -1058,7 +1291,7 @@
             const isSelected = activePassenger.seat === seatCode;
             const isOccupied = occupiedList.includes(seatCode) && !isSelected;
 
-            let btnStyle = "bg-slate-800 text-slate-200 border-slate-700";
+            let btnStyle = "bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700";
             if (isSelected) btnStyle = "bg-emerald-600 text-white font-bold border-emerald-400";
             else if (isOccupied) btnStyle = "bg-rose-950 text-rose-500 border-rose-800 cursor-not-allowed opacity-60";
 
@@ -1070,9 +1303,9 @@
             `;
           }
         });
-
         html += `</div>`;
       }
+      html += `</div></div>`;
 
       container.innerHTML = html;
     }
@@ -1085,6 +1318,7 @@
       if (passengerDatabase.length > 10) {
         logTerminal(`... and ${passengerDatabase.length - 10} more passengers in local storage database.`, 'system');
       }
+      autoFocusInput();
     }
 
     function resetLocalDatabaseCLI() {
@@ -1095,6 +1329,7 @@
         updatePassengerPanelDisplay();
         logTerminal('DATABASE RESET COMPLETE. FRESH 50 PASSENGERS GENERATED.', 'success');
       }
+      autoFocusInput();
     }
 
     /* Touchscreen Numpad Functions */
@@ -1133,9 +1368,10 @@
 
     function closeModal(id) {
       document.getElementById(id).classList.add('hidden');
+      autoFocusInput();
     }
 
-    /* KEYBOARD & SCANNER LISTENERS */
+    /* KEYBOARD & HARDWARE SCANNER LISTENERS */
     let barcodeBuffer = '';
     let barcodeTimeout = null;
 
@@ -1165,7 +1401,7 @@
         }
       }
 
-      // Global Hardware Barcode Scanner Listener
+      // Global Handheld Scanner Listener
       if (e.key === 'Enter') {
         if (barcodeBuffer.length >= 3) {
           scanPassengerByCode(barcodeBuffer.trim());
@@ -1180,8 +1416,8 @@
 
     window.onload = function() {
       loadStateFromLocalStorage();
-      logTerminal('SYSTEM INITIALIZED. SCANNER ONLINE. READY FOR INPUT.', 'success');
-      logTerminal('Type "cmd" or "help" for command manual.', 'system');
+      logTerminal('SYSTEM INITIALIZED. SCANNER ONLINE. SHORT COMMANDS ENABLED.', 'success');
+      logTerminal('Type "cmd" or "help" for command reference list.', 'system');
 
       setInterval(() => {
         document.getElementById('time-display').innerText = new Date().toLocaleTimeString();
