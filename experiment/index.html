@@ -166,16 +166,16 @@
       </div>
     </div>
 
-    <!-- TERMINAL INPUT COMMAND LINE -->
-    <div class="mt-3 flex items-center bg-slate-950 border-2 border-emerald-600 rounded-lg p-2 shadow-2xl focus-within:border-emerald-400 shrink-0">
+    <!-- TERMINAL INPUT COMMAND LINE (FORM WITH ENTER-KEY TRIGGER) -->
+    <form id="terminal-form" onsubmit="event.preventDefault(); handleCommandSubmit();" class="mt-3 flex items-center bg-slate-950 border-2 border-emerald-600 rounded-lg p-2 shadow-2xl focus-within:border-emerald-400 shrink-0">
       <span id="terminal-prompt-symbol" class="text-emerald-400 font-bold text-sm crt-glow mr-2">&gt;</span>
       <input type="text" id="terminal-input" placeholder="Type command (e.g. 'schdl', 'brd', 'pnr 6X9K2P', 'addbg 23', 'prtpass')..." 
         class="w-full bg-transparent border-none text-emerald-300 font-mono text-sm focus:outline-none uppercase placeholder:text-emerald-900"
         autocomplete="off" spellcheck="false">
-      <button onclick="handleCommandSubmit()" class="px-4 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-slate-950 font-black rounded text-xs transition shadow shrink-0">
+      <button type="submit" id="btn-execute" class="px-4 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-slate-950 font-black rounded text-xs transition shadow shrink-0">
         EXECUTE
       </button>
-    </div>
+    </form>
 
     <!-- QUICK TOUCH / ACTION COMMAND BUTTONS -->
     <div class="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs shrink-0">
@@ -384,7 +384,6 @@
       if (passengerDatabase.length === 0) {
         generateBatchPassengers(20, false);
       } else {
-        // Ensure all existing records have securityToken & boarded flag
         passengerDatabase.forEach(p => {
           if (!p.securityToken) p.securityToken = generateRandomToken();
           if (p.boarded === undefined) p.boarded = false;
@@ -538,7 +537,6 @@
     function processInputInState(inputStr) {
       const upper = inputStr.trim().toUpperCase();
 
-      // Cancel/exit interactive state if user types EXIT or CANCEL
       if (upper === 'EXIT' || upper === 'CANCEL') {
         terminalState = 'IDLE';
         activeBoardingFlight = null;
@@ -547,7 +545,6 @@
         return;
       }
 
-      // STATE: SCHEDULING FLIGHT STEP 1 (Destination)
       if (terminalState === 'SCHDL_DEST') {
         logTerminal(`> ${inputStr}`, 'cmd');
         const destObj = AIRPORT_DESTINATIONS.find(d => d.code === upper || upper.includes(d.code));
@@ -568,7 +565,6 @@
         return;
       }
 
-      // STATE: SCHEDULING FLIGHT STEP 2 (Aircraft Selection)
       if (terminalState === 'SCHDL_AIRCRAFT') {
         logTerminal(`> ${inputStr}`, 'cmd');
         let matchedKey = null;
@@ -586,19 +582,14 @@
         schdlTempData.aircraft = AIRCRAFT_TYPES[matchedKey];
         schdlTempData.aircraftKey = matchedKey;
 
-        // Process scheduled flight generation
         executeFlightCreation();
         terminalState = 'IDLE';
         return;
       }
 
-      // STATE: BOARDING MODE STEP 1 (Enter Flight Number)
       if (terminalState === 'BRD_FLIGHT') {
         logTerminal(`> ${inputStr}`, 'cmd');
         const fltCode = upper.replace(/[^A-Z0-9]/g, '');
-        
-        // Find if passengers exist for this flight or create flight roster
-        const flightPassengers = passengerDatabase.filter(p => p.flightNo === fltCode);
         
         activeBoardingFlight = fltCode;
         terminalState = 'BOARDING_MODE';
@@ -607,21 +598,18 @@
         playChimeSound();
         logTerminal(`==================================================`, 'warn');
         logTerminal(`>>> BOARDING IN PROGRESS FOR FLIGHT [${fltCode}] <<<`, 'warn');
-        logTerminal(`Scan passenger boarding pass barcode (PDF417 / Random Pass Token / PNR) now.`, 'success');
-        logTerminal(`Note: Passengers CANNOT be removed until their boarding pass is scanned.`, 'system');
+        logTerminal(`Scan passenger boarding pass barcode (PDF417 / Pass Token / PNR) now.`, 'success');
         logTerminal(`Type 'exit' to end boarding mode.`, 'system');
         logTerminal(`==================================================`, 'warn');
         return;
       }
 
-      // STATE: BOARDING MODE ACTIVE (Scanning boarding passes)
       if (terminalState === 'BOARDING_MODE') {
         logTerminal(`> ${inputStr}`, 'cmd');
         processBoardingScan(upper);
         return;
       }
 
-      // STANDARD COMMAND PARSER (IDLE STATE)
       runCommand(inputStr);
     }
 
@@ -816,16 +804,13 @@
     function executeFlightCreation() {
       const dest = schdlTempData.dest;
       const aircraft = schdlTempData.aircraft;
-      const aircraftKey = schdlTempData.aircraftKey;
 
-      // Generate random flight number, e.g. AS7721
       const fltNum = `AS${Math.floor(1000 + Math.random() * 8999)}`;
       const gateNum = `C${String(Math.floor(1 + Math.random() * 20)).padStart(2, '0')}`;
       const boardingTime = `${Math.floor(8 + Math.random() * 12)}:${Math.random() < 0.5 ? '15' : '45'}`;
       const flightTime = `${parseInt(boardingTime) + 1}:10`;
       const arrivalTime = `${parseInt(flightTime) + 4}:30`;
 
-      // Generate 15 passengers for this newly scheduled flight
       const count = 15;
       const createdPassengers = [];
 
@@ -838,7 +823,6 @@
         let cabinClass = 'Economy Class';
         let seat = null;
 
-        // Assign class and seats to SOME passengers, leave others unassigned
         if (i < 2) {
           cabinClass = 'First Class';
           seat = `0${i + 1}A`;
@@ -890,7 +874,6 @@
       logTerminal(`Flight number ${fltNum} is stamped on all boarding barcodes & manifest receipts.`, 'system');
       logTerminal(`==================================================`, 'success');
 
-      // Open batch barcode manifest for immediate barcode sheet preview/print
       openBatchModal();
     }
 
@@ -906,7 +889,6 @@
     function processBoardingScan(scanInput) {
       const cleanInput = scanInput.replace(/[^A-Z0-9]/g, '');
 
-      // Search for passenger by Security Token, PNR, or Name match
       const passenger = passengerDatabase.find(p => 
         p.securityToken === cleanInput || 
         p.pnr === cleanInput || 
@@ -932,7 +914,6 @@
         return;
       }
 
-      // Mark passenger as BOARDED
       passenger.boarded = true;
       const idx = passengerDatabase.findIndex(p => p.pnr === passenger.pnr);
       if (idx !== -1) passengerDatabase[idx].boarded = true;
@@ -941,7 +922,6 @@
       playBoardingSuccessSound();
       logTerminal(`BOARDED PASSENGER: ${passenger.name} | SEAT: ${passenger.seat || 'STANDBY'} | CLASS: ${passenger.cabin} [TOKEN: ${passenger.securityToken}]`, 'success');
 
-      // Update loaded workspace if active
       if (activePassenger && activePassenger.pnr === passenger.pnr) {
         activePassenger.boarded = true;
         updatePassengerPanelDisplay();
@@ -1070,7 +1050,7 @@
       closeModal('seatmap-modal');
     }
 
-    /* REALISTIC BOARDING PASS PRINT ENGINE (ROTATED LANDSCAPE WITH RANDOM PASS TOKEN BARCODE) */
+    /* REALISTIC BOARDING PASS PRINT ENGINE */
     function printBoardingPassCLI() {
       if (!activePassenger) return;
 
@@ -1090,10 +1070,8 @@
       printContainer.innerHTML = `
         <div class="print-single-page" style="width: 85mm; height: 215mm; overflow: visible; position: relative; margin: 0 auto; padding: 0; box-sizing: border-box;">
           
-          <!-- ROTATED LANDSCAPE BOARDING PASS CONTAINER -->
           <div style="width: 205mm; height: 80mm; transform: rotate(90deg) translateY(-100%); transform-origin: top left; background: #ffffff; color: #000000; font-family: 'Inter', system-ui, -apple-system, sans-serif; border: 2px solid #0369a1; border-radius: 6px; box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between;">
             
-            <!-- TOP BLUE HEADER BAR -->
             <div style="background-color: #0369a1; color: #ffffff; padding: 6px 14px; display: flex; justify-content: space-between; align-items: center; shrink: 0;">
               <div style="display: flex; align-items: center; gap: 8px;">
                 <svg style="width: 20px; height: 20px; fill: #ffffff;" viewBox="0 0 24 24"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>
@@ -1114,16 +1092,13 @@
               </div>
             </div>
 
-            <!-- MAIN BODY SECTION -->
             <div style="flex: 1; display: flex; padding: 8px 12px; gap: 10px; background: #ffffff; align-items: center;">
               
-              <!-- LEFT PDF417 BARCODE CONTAINER ENCODING RANDOM TOKEN NUMBER -->
               <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 110px; shrink: 0;">
                 <canvas id="main-pdf417-canvas"></canvas>
                 <div style="font-size: 6pt; font-weight: 800; letter-spacing: 1px; margin-top: 2px;">TKN: ${secToken}</div>
               </div>
 
-              <!-- CENTER MAIN PASS DETAILS -->
               <div style="flex: 1; display: grid; grid-template-columns: 1.8fr 1fr; gap: 8px; border-right: 2px dashed #94a3b8; padding-right: 10px;">
                 
                 <div>
@@ -1185,7 +1160,6 @@
 
               </div>
 
-              <!-- RIGHT PASSENGER STUB -->
               <div style="width: 140px; shrink: 0; display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
                 <div>
                   <div style="margin-bottom: 3px;">
@@ -1217,7 +1191,6 @@
                   </div>
                 </div>
 
-                <!-- STUB BARCODE ENCODING RANDOM TOKEN NUMBER -->
                 <div style="margin-top: 2px; text-align: center;">
                   <canvas id="stub-pdf417-canvas"></canvas>
                 </div>
@@ -1225,7 +1198,6 @@
 
             </div>
 
-            <!-- BOTTOM BLUE FOOTER BAR -->
             <div style="background-color: #0369a1; color: #ffffff; padding: 4px 14px; display: flex; justify-content: space-between; align-items: center; font-size: 7.5pt; font-weight: 800; shrink: 0;">
               <span>FLIGHT: ${activePassenger.flightNo} • PNR: ${pnr}</span>
               <span style="letter-spacing: 0.5px;">PLEASE BE AT THE GATE AT BOARDING TIME</span>
@@ -1238,7 +1210,6 @@
 
       setTimeout(() => {
         try {
-          // Main barcode encodes random security token number for secure scan verification
           bwipjs.toCanvas('main-pdf417-canvas', {
             bcid: 'pdf417',
             text: `${secToken}`,
@@ -1406,7 +1377,6 @@
       logTerminal(`GENERATED ${count} PASSENGERS IN DATABASE ROSTER.`, 'success');
     }
 
-    /* DENSE PAPER-CONSERVING BARCODE LIST WITH RANDOM BOARDING TOKEN BARCODES */
     function renderBatchBarcodeList() {
       const listContainer = document.getElementById('batch-barcode-list');
       if (!listContainer) return;
@@ -1433,8 +1403,6 @@
       `).join('');
     }
 
-    /* DENSE PAPER-CONSERVING BARCODE MANIFEST PRINT ENGINE (FLIGHT NUMBER PROMINENT AT TOP) */
-    /* DENSE PAPER-CONSERVING BARCODE MANIFEST PRINT ENGINE (FLIGHT NUMBER PROMINENT AT TOP, ONLY BARCODES) */
     function printBatchBarcodeSheet() {
       closeModal('batch-modal');
       const physicalArea = document.getElementById('printable-thermal-receipt');
@@ -1443,8 +1411,6 @@
 
       physicalArea.innerHTML = `
         <div style="width: 100%; max-width: 210mm; margin: 0 auto; color: #000; font-family: Arial, sans-serif; background: #fff; padding: 6mm;">
-          
-          <!-- PROMINENT FLIGHT NUMBER HEADER AT TOP -->
           <div style="border-bottom: 2px solid #000; padding-bottom: 6px; margin-bottom: 10px; text-align: center;">
             <div style="font-size: 18pt; font-weight: 900; letter-spacing: 2px; text-transform: uppercase;">
               FLIGHT ${primaryFlightNo} • BOARDING BARCODE MANIFEST
@@ -1454,7 +1420,6 @@
             </div>
           </div>
 
-          <!-- DENSE 3-COLUMN PURE BARCODE GRID (UP TO 30+ PER PAGE) -->
           <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; row-gap: 8px;">
             ${allPassengers.map((p, idx) => `
               <div style="page-break-inside: avoid; border: 1px solid #cbd5e1; padding: 5px 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; border-radius: 4px; background: #fff;">
@@ -1493,7 +1458,15 @@
         }, 200);
       }, 100);
     }
-    /* REALISTIC FULL AIRCRAFT SEATMAP RENDERER (UP TO 172+ SEATS FOR 737) */
+
+    /* REALISTIC FULL AIRCRAFT SEATMAP RENDERER */
+    function openSeatmapModal() {
+      if (!activePassenger) return;
+      document.getElementById('seatmap-modal-title').innerText = `SEATMAP - ${activePassenger.flightNo} (${activePassenger.aircraft})`;
+      renderSeatMap();
+      document.getElementById('seatmap-modal').classList.remove('hidden');
+    }
+
     function renderSeatMap() {
       const container = document.getElementById('seatmap-grid-container');
       if (!container || !activePassenger) return;
@@ -1581,8 +1554,8 @@
       }
       html += `</div></div>`;
 
-      /* EXPANDED ECONOMY CLASS SECTION (Rows 6 to 30 for 737 MAX 9 = 170+ total seats) */
-      const econEndRow = is737 ? 30 : 32;
+      /* ECONOMY CLASS SECTION */
+      const econEndRow = is737 ? 30 : 22;
       html += `
         <div class="border border-slate-800 bg-slate-950/60 p-2.5 rounded-lg">
           <div class="text-[11px] font-bold text-slate-400 mb-2 text-center uppercase tracking-wider flex items-center justify-center gap-2">
@@ -1643,164 +1616,6 @@
       updatePassengerPanelDisplay();
       playChimeSound();
       logTerminal('LOCAL STORAGE DATA ELIMINATED & SYSTEM REBOOTED TO CLEAN STATE.', 'success');
-      autoFocusInput();
-    }
-
-    window.addEventListener('afterprint', clearPrintArea);
-
-    function openSeatmapModal() {
-      if (!activePassenger) return;
-      document.getElementById('seatmap-modal-title').innerText = `SEATMAP - ${activePassenger.flightNo} (${activePassenger.aircraft})`;
-      renderSeatMap();
-      document.getElementById('seatmap-modal').classList.remove('hidden');
-    }
-
-    /* MULTI-CABIN SEATMAP RENDERER */
-    function renderSeatMap() {
-      const container = document.getElementById('seatmap-grid-container');
-      if (!container || !activePassenger) return;
-
-      const currentFlight = activePassenger.flightNo;
-      const occupiedList = occupiedSeatsByFlight[currentFlight] || [];
-
-      let html = '';
-
-      /* FIRST CLASS SECTION */
-      html += `
-        <div class="border border-amber-500/40 bg-amber-950/20 p-2.5 rounded-lg">
-          <div class="text-[11px] font-bold text-amber-400 mb-2 text-center uppercase tracking-wider flex items-center justify-center gap-2">
-            <i class="fa-solid fa-crown text-amber-400"></i> FIRST CLASS CABIN (2-2 LAYOUT)
-          </div>
-          <div class="space-y-1.5">
-      `;
-
-      for (let r = 1; r <= 2; r++) {
-        const rowStr = String(r).padStart(2, '0');
-        html += `<div class="flex items-center justify-center gap-2">`;
-        html += `<span class="w-6 text-[10px] text-amber-400 font-bold text-center">${rowStr}</span>`;
-
-        ['A', 'B', 'AISLE', 'C', 'D'].forEach(col => {
-          if (col === 'AISLE') {
-            html += `<div class="w-6 text-center text-slate-700 font-bold">||</div>`;
-          } else {
-            const seatCode = `${rowStr}${col}`;
-            const isSelected = activePassenger.seat === seatCode;
-            const isOccupied = occupiedList.includes(seatCode) && !isSelected;
-
-            let btnStyle = "bg-amber-950/80 text-amber-200 border-amber-600/80 hover:bg-amber-600 hover:text-slate-950";
-            if (isSelected) btnStyle = "bg-emerald-600 text-white font-bold border-emerald-400";
-            else if (isOccupied) btnStyle = "bg-rose-950 text-rose-500 border-rose-800 cursor-not-allowed opacity-60";
-
-            html += `
-              <button ${isOccupied ? 'disabled' : `onclick="assignSeatToActivePassenger('${seatCode}')"`} 
-                class="w-8 h-8 rounded border text-xs font-bold transition flex items-center justify-center ${btnStyle}">
-                ${col}
-              </button>
-            `;
-          }
-        });
-        html += `</div>`;
-      }
-      html += `</div></div>`;
-
-      /* BUSINESS CLASS SECTION */
-      html += `
-        <div class="border border-purple-500/40 bg-purple-950/20 p-2.5 rounded-lg">
-          <div class="text-[11px] font-bold text-purple-300 mb-2 text-center uppercase tracking-wider flex items-center justify-center gap-2">
-            <i class="fa-solid fa-gem text-purple-400"></i> BUSINESS CLASS CABIN (2-2 LAYOUT)
-          </div>
-          <div class="space-y-1.5">
-      `;
-
-      for (let r = 3; r <= 6; r++) {
-        const rowStr = String(r).padStart(2, '0');
-        html += `<div class="flex items-center justify-center gap-2">`;
-        html += `<span class="w-6 text-[10px] text-purple-300 font-bold text-center">${rowStr}</span>`;
-
-        ['A', 'B', 'AISLE', 'C', 'D'].forEach(col => {
-          if (col === 'AISLE') {
-            html += `<div class="w-6 text-center text-slate-700 font-bold">||</div>`;
-          } else {
-            const seatCode = `${rowStr}${col}`;
-            const isSelected = activePassenger.seat === seatCode;
-            const isOccupied = occupiedList.includes(seatCode) && !isSelected;
-
-            let btnStyle = "bg-purple-950/80 text-purple-200 border-purple-600/80 hover:bg-purple-600 hover:text-white";
-            if (isSelected) btnStyle = "bg-emerald-600 text-white font-bold border-emerald-400";
-            else if (isOccupied) btnStyle = "bg-rose-950 text-rose-500 border-rose-800 cursor-not-allowed opacity-60";
-
-            html += `
-              <button ${isOccupied ? 'disabled' : `onclick="assignSeatToActivePassenger('${seatCode}')"`} 
-                class="w-8 h-8 rounded border text-xs font-bold transition flex items-center justify-center ${btnStyle}">
-                ${col}
-              </button>
-            `;
-          }
-        });
-        html += `</div>`;
-      }
-      html += `</div></div>`;
-
-      /* ECONOMY CLASS SECTION */
-      html += `
-        <div class="border border-slate-800 bg-slate-950/60 p-2.5 rounded-lg">
-          <div class="text-[11px] font-bold text-slate-400 mb-2 text-center uppercase tracking-wider flex items-center justify-center gap-2">
-            <i class="fa-solid fa-users text-slate-500"></i> ECONOMY CLASS CABIN (3-3 LAYOUT)
-          </div>
-          <div class="space-y-1.5">
-      `;
-
-      for (let r = 7; r <= 18; r++) {
-        const rowStr = String(r).padStart(2, '0');
-        html += `<div class="flex items-center justify-center gap-1.5">`;
-        html += `<span class="w-6 text-[10px] text-slate-500 text-center font-bold">${rowStr}</span>`;
-
-        ['A', 'B', 'C', 'AISLE', 'D', 'E', 'F'].forEach(col => {
-          if (col === 'AISLE') {
-            html += `<div class="w-4 text-center text-slate-700 font-bold">|</div>`;
-          } else {
-            const seatCode = `${rowStr}${col}`;
-            const isSelected = activePassenger.seat === seatCode;
-            const isOccupied = occupiedList.includes(seatCode) && !isSelected;
-
-            let btnStyle = "bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700";
-            if (isSelected) btnStyle = "bg-emerald-600 text-white font-bold border-emerald-400";
-            else if (isOccupied) btnStyle = "bg-rose-950 text-rose-500 border-rose-800 cursor-not-allowed opacity-60";
-
-            html += `
-              <button ${isOccupied ? 'disabled' : `onclick="assignSeatToActivePassenger('${seatCode}')"`} 
-                class="w-7 h-7 rounded border text-[10px] font-bold transition flex items-center justify-center ${btnStyle}">
-                ${col}
-              </button>
-            `;
-          }
-        });
-        html += `</div>`;
-      }
-      html += `</div></div>`;
-
-      container.innerHTML = html;
-    }
-
-    function displayRosterListCLI() {
-      logTerminal(`=== ACTIVE ROSTER LIST (${passengerDatabase.length} PASSENGERS) ===`, 'system');
-      passengerDatabase.slice(0, 10).forEach((p, idx) => {
-        logTerminal(`#${idx + 1} | FLT: <strong class="text-sky-300">${p.flightNo}</strong> | PNR: <strong class="text-white">${p.pnr}</strong> | ${p.name} | SEAT: ${p.seat || 'UNASSIGNED'} | ${p.boarded ? '<span class="text-sky-300">BOARDED</span>' : '<span class="text-slate-500">PENDING</span>'}`, 'info');
-      });
-      if (passengerDatabase.length > 10) {
-        logTerminal(`... and ${passengerDatabase.length - 10} more passengers in roster.`, 'system');
-      }
-      autoFocusInput();
-    }
-
-    function resetLocalDatabaseCLI() {
-      if (confirm("Reset local database? This will generate a fresh 20-passenger roster.")) {
-        localStorage.removeItem(LOCALSTORAGE_KEY);
-        generateBatchPassengers(20, false);
-        activePassenger = null;
-        updatePassengerPanelDisplay();
-        logTerminal('DATABASE RESET COMPLETE.', 'success');
-      }
       autoFocusInput();
     }
 
@@ -1874,7 +1689,14 @@
       autoFocusInput();
     }
 
-    /* KEYBOARD & HARDWARE BARCODE SCANNER LISTENERS */
+    function clearPrintArea() {
+      const area = document.getElementById('printable-thermal-receipt');
+      if (area) area.innerHTML = '';
+    }
+
+    window.addEventListener('afterprint', clearPrintArea);
+
+    /* KEYBOARD, ENTER-KEY SUBMISSION & HARDWARE BARCODE LISTENERS */
     let barcodeBuffer = '';
     let barcodeTimeout = null;
 
@@ -1883,73 +1705,61 @@
       const isNumpadOpen = numpadModal && !numpadModal.classList.contains('hidden');
 
       if (isNumpadOpen) {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          confirmNumpadWeight();
-          return;
-        }
-        if (e.key === 'Backspace') {
-          e.preventDefault();
-          numpadBackspace();
-          return;
-        }
-        if (e.key === 'Escape') {
-          e.preventDefault();
-          closeModal('numpad-modal');
-          return;
-        }
-        if (/^[0-9.]$/.test(e.key)) {
-          e.preventDefault();
+        if (e.key >= '0' && e.key <= '9') {
           numpadAppend(e.key);
-          return;
+        } else if (e.key === '.') {
+          numpadAppend('.');
+        } else if (e.key === 'Backspace') {
+          numpadBackspace();
+        } else if (e.key === 'Enter') {
+          confirmNumpadWeight();
+        } else if (e.key === 'Escape') {
+          closeModal('numpad-modal');
         }
+        return;
       }
 
+      const activeElem = document.activeElement;
       const termInput = document.getElementById('terminal-input');
 
-      if (document.activeElement === termInput) {
-        if (e.key === 'ArrowUp') {
-          if (historyIndex > 0) {
-            historyIndex--;
-            termInput.value = commandHistory[historyIndex];
+      // Hardware Barcode Scanner Buffer Logic (scanners stream rapid keys ending with Enter)
+      if (activeElem !== termInput) {
+        if (e.key === 'Enter') {
+          if (barcodeBuffer.length >= 4) {
+            processInputInState(barcodeBuffer);
+            barcodeBuffer = '';
           }
-          return;
-        } else if (e.key === 'ArrowDown') {
-          if (historyIndex < commandHistory.length - 1) {
-            historyIndex++;
-            termInput.value = commandHistory[historyIndex];
-          } else {
-            historyIndex = commandHistory.length;
-            termInput.value = '';
-          }
-          return;
-        } else if (e.key === 'Enter') {
-          handleCommandSubmit();
-          return;
+        } else if (e.key.length === 1) {
+          barcodeBuffer += e.key;
+          clearTimeout(barcodeTimeout);
+          barcodeTimeout = setTimeout(() => { barcodeBuffer = ''; }, 200);
         }
       }
 
-      // Global Scanner Hardware Listener
-      if (e.key === 'Enter') {
-        if (barcodeBuffer.length >= 3) {
-          processInputInState(barcodeBuffer.trim());
-          barcodeBuffer = '';
-        }
-      } else if (e.key.length === 1) {
-        barcodeBuffer += e.key;
-        clearTimeout(barcodeTimeout);
-        barcodeTimeout = setTimeout(() => { barcodeBuffer = ''; }, 250);
+      // Command Input explicit Enter key trigger
+      if (activeElem === termInput && e.key === 'Enter') {
+        e.preventDefault();
+        handleCommandSubmit();
       }
     });
 
+    // Clock display updater
+    function updateLiveClock() {
+      const clockEl = document.getElementById('time-display');
+      if (clockEl) {
+        clockEl.innerText = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      }
+    }
+
+    // Window Load Initialization
     window.onload = function() {
       loadStateFromLocalStorage();
-      logTerminal('AEROSKY SYSTEM INITIALIZED. CHECK-IN & BOARDING ONLINE.', 'success');
-      logTerminal('Type "schdl" to schedule flights or "brd" for gate boarding.', 'sky');
+      setInterval(updateLiveClock, 1000);
+      updateLiveClock();
 
-      setInterval(() => {
-        document.getElementById('time-display').innerText = new Date().toLocaleTimeString();
-      }, 1000);
+      logTerminal('AEROSKY CUTE AGENT TERMINAL INITIALIZED [v5.0 READY]', 'success');
+      logTerminal('System ready. Enter command or press Enter on input box to execute.', 'system');
+      autoFocusInput();
     };
   </script>
 </body>
