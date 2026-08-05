@@ -532,7 +532,7 @@
           }
           updateNumpadDisplay();
           document.getElementById('numpad-modal').classList.remove('hidden');
-          logTerminal('Baggage Scale Numpad opened. Press ENTER to confirm weight and print boarding pass.', 'system');
+          logTerminal('Baggage Scale Numpad opened. Press ENTER to confirm weight and print baggage tag.', 'system');
           break;
 
         case 'SETST':
@@ -1414,8 +1414,8 @@
       // 2. Auto-assign a seat if passenger doesn't have one yet
       autoAssignSeatIfNone();
       
-      // 3. Automatically trigger Boarding Pass printing
-      printBoardingPassCLI();
+      // 3. Automatically trigger Baggage Tag printing
+      printBagTagCLI();
     }
 
     function closeModal(id) {
