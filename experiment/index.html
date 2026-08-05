@@ -659,11 +659,11 @@ function openPrintWindow(title, bodyHtml, scriptBody){
   .row{ display:flex; justify-content:space-between; gap:4mm; font-size:16px; margin:1mm 0; }
   .row span:last-child{ text-align:right; }
   .grid{ display:flex; flex-direction:column; }
-  .bcgrid{ display:grid; grid-template-columns:1fr 1fr; gap:2mm 2mm; margin-top:2mm; }
-  .bccell{ text-align:center; }
+  .bcgrid{ display:grid; grid-template-columns: 1fr 1fr; gap: 4mm 4mm; margin-top:2mm; width: 100%; }
+  .bccell{ text-align:center; padding: 2mm 1mm; overflow: hidden; }
   .tag{ text-align:center; padding:2mm 0 3mm 0; margin-bottom:3mm; border-bottom:3px solid #000; }
   .tag:last-child{ border-bottom:none; }
-  canvas{ max-width:100%; image-rendering:pixelated; }
+  canvas{ max-width:100%; height:auto; display:inline-block; image-rendering:pixelated; }
   .small{ font-size:14px; font-weight:700; }
   .code{ font-size:15px; letter-spacing:2px; margin-top:1mm; font-weight:900; }
   .closebtn{
@@ -727,7 +727,7 @@ function printManifestBarcodes(flight, passengers){
   passengers.forEach((p,i)=>{
     script += `
     try{
-      bwipjs.toCanvas('bc${i}', { bcid:'code128', text:'${p.checkinCode}', scale:2, height:9, includetext:false });
+      bwipjs.toCanvas('bc${i}', { bcid:'code128', text:'${p.checkinCode}', scale:1.5, height:8, includetext:false });
     }catch(e){ document.getElementById('bc${i}').outerHTML = '${p.checkinCode}'; }
     `;
   });
