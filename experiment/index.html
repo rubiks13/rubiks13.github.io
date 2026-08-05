@@ -130,7 +130,7 @@
     <div id="terminal-console" class="flex-1 overflow-y-auto bg-slate-950/90 border border-emerald-900/80 rounded-lg p-4 space-y-2 text-xs md:text-sm font-mono leading-relaxed shadow-2xl">
       <div class="text-slate-500 text-[11px] border-b border-slate-900 pb-2 mb-3">
         AEROSKY AIRWAYS COMMAND INTERFACE & BOARDING CONTROL<br>
-        Commands: <span class="text-emerald-300 font-bold">schdl</span> (Schedule Flight), <span class="text-amber-300 font-bold">brd</span> (Boarding Mode), <span class="text-sky-300 font-bold">pnr</span>, <span class="text-emerald-300 font-bold">addbg</span>, <span class="text-amber-300 font-bold">setst</span>, <span class="text-sky-300 font-bold">stmap</span>, <span class="text-emerald-300 font-bold">prtpass</span>, <span class="text-amber-300 font-bold">prtbg</span>, <span class="text-sky-300 font-bold">genbatch</span>.<br>
+        Commands: <span class="text-emerald-300 font-bold">schdl</span> (Schedule Flight), <span class="text-amber-300 font-bold">brd</span> (Boarding Mode), <span class="text-sky-300 font-bold">pnr</span>, <span class="text-emerald-300 font-bold">addbg</span>, <span class="text-amber-300 font-bold">setst</span>, <span class="text-sky-300 font-bold">stmap</span>, <span class="text-emerald-300 font-bold">prtpass</span>, <span class="text-amber-300 font-bold">prtbg</span>, <span class="text-sky-300 font-bold">genbatch</span>, <span class="text-rose-400 font-bold">clear/wipe</span>.<br>
         Type <span class="text-emerald-300 font-bold">cmd</span> or <span class="text-emerald-300 font-bold">help</span> for command list.
       </div>
 
@@ -206,7 +206,7 @@
       <div class="flex items-center gap-2 text-[11px] text-slate-500">
         <span>MANIFEST ROSTER: <strong id="roster-count-badge" class="text-emerald-400">0</strong></span>
         <span>•</span>
-        <button onclick="runCommand('reset')" class="hover:text-rose-400">reset db</button>
+        <button onclick="runCommand('wipe')" class="hover:text-rose-400 font-bold text-rose-500/80">clear/wipe db</button>
       </div>
     </div>
 
@@ -760,6 +760,10 @@
           displayRosterListCLI();
           break;
 
+        case 'CLEAR':
+        case 'WIPE':
+        case 'PURGE':
+        case 'ELIMINATE':
         case 'RESET':
           resetLocalDatabaseCLI();
           break;
@@ -785,10 +789,11 @@
 • <span class="text-white font-bold">ADDBG [weight]</span> : Add baggage & print tag
 • <span class="text-white font-bold">SETST &lt;seat&gt;</span> : Assign seat (e.g., 'SETST 01A', 'SETST 12C')
 • <span class="text-white font-bold">STMAP</span> : Interactive multi-cabin seat map
-• <span class="text-white font-bold">PRTPASS</span> : Print PDF417 Boarding Pass with Random Security Barcode
+• <span class="text-white font-bold">PRTPASS</span> : Print Boarding Pass with Security Barcode
 • <span class="text-white font-bold">PRTBG</span> : Print thermal baggage routing tag
 • <span class="text-white font-bold">GENBATCH</span> : Dense paper-conserving barcode manifest sheet
 • <span class="text-white font-bold">ROSTER</span> : List pending flight roster
+• <span class="text-rose-400 font-bold">CLEAR / WIPE / PURGE / ELIMINATE</span> : Wipe all localStorage & reboot system
 =========================================
       `, 'system');
     }
@@ -1021,7 +1026,7 @@
     function getCabinClassForSeat(seatCode) {
       const rowNum = parseInt(seatCode.substring(0, 2), 10);
       if (rowNum <= 2) return 'FIRST CLASS';
-      if (rowNum <= 6) return 'BUSINESS CLASS';
+      if (rowNum <= 5) return 'BUSINESS CLASS';
       return 'ECONOMY CLASS';
     }
 
@@ -1429,37 +1434,36 @@
     }
 
     /* DENSE PAPER-CONSERVING BARCODE MANIFEST PRINT ENGINE (FLIGHT NUMBER PROMINENT AT TOP) */
+    /* DENSE PAPER-CONSERVING BARCODE MANIFEST PRINT ENGINE (FLIGHT NUMBER PROMINENT AT TOP, ONLY BARCODES) */
     function printBatchBarcodeSheet() {
       closeModal('batch-modal');
       const physicalArea = document.getElementById('printable-thermal-receipt');
-      const batch25 = passengerDatabase.slice(0, 25);
-      const primaryFlightNo = batch25.length > 0 ? batch25[0].flightNo : 'AS4321';
+      const allPassengers = passengerDatabase.length > 0 ? passengerDatabase : [];
+      const primaryFlightNo = allPassengers.length > 0 ? allPassengers[0].flightNo : 'AS4321';
 
       physicalArea.innerHTML = `
-        <div style="width: 100%; max-width: 210mm; margin: 0 auto; color: #000; font-family: Arial, sans-serif; background: #fff; padding: 8px;">
+        <div style="width: 100%; max-width: 210mm; margin: 0 auto; color: #000; font-family: Arial, sans-serif; background: #fff; padding: 6mm;">
           
           <!-- PROMINENT FLIGHT NUMBER HEADER AT TOP -->
-          <div style="border: 2px solid #000; background: #f8fafc; padding: 8px; margin-bottom: 12px; text-align: center; border-radius: 4px;">
+          <div style="border-bottom: 2px solid #000; padding-bottom: 6px; margin-bottom: 10px; text-align: center;">
             <div style="font-size: 18pt; font-weight: 900; letter-spacing: 2px; text-transform: uppercase;">
-              AEROSKY FLIGHT MANIFEST • FLIGHT ${primaryFlightNo}
+              FLIGHT ${primaryFlightNo} • BOARDING BARCODE MANIFEST
             </div>
-            <div style="font-size: 9pt; font-weight: 800; color: #334155; margin-top: 2px;">
-              SECURITY BOARDING BARCODE MANIFEST (${batch25.length} PASSENGERS)
+            <div style="font-size: 8.5pt; font-weight: 700; color: #334155; margin-top: 2px;">
+              AEROSKY AIRWAYS • TOTAL MANIFEST PASSENGERS: ${allPassengers.length}
             </div>
           </div>
 
-          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
-            ${batch25.map((p, idx) => `
-              <div style="page-break-inside: avoid; border: 1.5px solid #000; padding: 8px 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; border-radius: 4px; background: #fff;">
-                <div style="font-size: 8pt; font-weight: 900; background: #000; color: #fff; width: 100%; padding: 2px 0; margin-bottom: 4px; letter-spacing: 1px;">
-                  FLIGHT ${p.flightNo} • #${idx + 1} ${p.name}
+          <!-- DENSE 3-COLUMN PURE BARCODE GRID (UP TO 30+ PER PAGE) -->
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; row-gap: 8px;">
+            ${allPassengers.map((p, idx) => `
+              <div style="page-break-inside: avoid; border: 1px solid #cbd5e1; padding: 5px 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; border-radius: 4px; background: #fff;">
+                <div style="font-size: 7.5pt; font-weight: 800; color: #0f172a; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                  #${idx + 1} ${p.name} (${p.pnr})
                 </div>
-                <div style="font-size: 7.5pt; font-weight: bold; color: #1e293b;">
-                  PNR: ${p.pnr} | SEAT: ${p.seat || 'UNASSIGNED'} | CLASS: ${p.cabin}
-                </div>
-                <div style="margin-top: 4px; display: flex; flex-direction: column; align-items: center;">
+                <div style="margin-top: 2px; display: flex; flex-direction: column; align-items: center;">
                   <svg class="print-sheet-svg" data-token="${p.securityToken}"></svg>
-                  <div style="font-size: 6.5pt; font-weight: 800; margin-top: 1px;">TOKEN: ${p.securityToken}</div>
+                  <div style="font-size: 6.5pt; font-family: monospace; font-weight: 800; margin-top: 1px; color: #334155;">TOKEN: ${p.securityToken}</div>
                 </div>
               </div>
             `).join('')}
@@ -1468,16 +1472,16 @@
       `;
 
       setTimeout(() => {
-        batch25.forEach(p => {
+        allPassengers.forEach(p => {
           try {
             const svgEl = physicalArea.querySelector(`.print-sheet-svg[data-token="${p.securityToken}"]`);
             if (svgEl) {
               JsBarcode(svgEl, p.securityToken, {
                 format: "CODE128",
-                width: 1.5,
-                height: 36,
+                width: 1.3,
+                height: 28,
                 displayValue: false,
-                margin: 2
+                margin: 0
               });
             }
           } catch(e) {}
@@ -1485,15 +1489,160 @@
         setTimeout(() => {
           window.print();
           clearPrintArea();
+          logTerminal(`PRINTED DENSE PURE BARCODE SHEET FOR FLIGHT ${primaryFlightNo} (${allPassengers.length} BARCODES).`, 'success');
         }, 200);
       }, 100);
     }
+    /* REALISTIC FULL AIRCRAFT SEATMAP RENDERER (UP TO 172+ SEATS FOR 737) */
+    function renderSeatMap() {
+      const container = document.getElementById('seatmap-grid-container');
+      if (!container || !activePassenger) return;
 
-    function clearPrintArea() {
-      const printContainer = document.getElementById('printable-thermal-receipt');
-      if (printContainer) {
-        printContainer.innerHTML = '';
+      const currentFlight = activePassenger.flightNo;
+      const occupiedList = occupiedSeatsByFlight[currentFlight] || [];
+      const aircraft = activePassenger.aircraft || '';
+      const is737 = aircraft.includes('737');
+
+      let html = '';
+
+      /* FIRST CLASS SECTION (Rows 1-2) */
+      html += `
+        <div class="border border-amber-500/40 bg-amber-950/20 p-2.5 rounded-lg">
+          <div class="text-[11px] font-bold text-amber-400 mb-2 text-center uppercase tracking-wider flex items-center justify-center gap-2">
+            <i class="fa-solid fa-crown text-amber-400"></i> FIRST CLASS CABIN (2-2 LAYOUT)
+          </div>
+          <div class="space-y-1.5">
+      `;
+
+      for (let r = 1; r <= 2; r++) {
+        const rowStr = String(r).padStart(2, '0');
+        html += `<div class="flex items-center justify-center gap-2">`;
+        html += `<span class="w-6 text-[10px] text-amber-400 font-bold text-center">${rowStr}</span>`;
+
+        ['A', 'B', 'AISLE', 'C', 'D'].forEach(col => {
+          if (col === 'AISLE') {
+            html += `<div class="w-6 text-center text-slate-700 font-bold">||</div>`;
+          } else {
+            const seatCode = `${rowStr}${col}`;
+            const isSelected = activePassenger.seat === seatCode;
+            const isOccupied = occupiedList.includes(seatCode) && !isSelected;
+
+            let btnStyle = "bg-amber-950/80 text-amber-200 border-amber-600/80 hover:bg-amber-600 hover:text-slate-950";
+            if (isSelected) btnStyle = "bg-emerald-600 text-white font-bold border-emerald-400";
+            else if (isOccupied) btnStyle = "bg-rose-950 text-rose-500 border-rose-800 cursor-not-allowed opacity-60";
+
+            html += `
+              <button ${isOccupied ? 'disabled' : `onclick="assignSeatToActivePassenger('${seatCode}')"`} 
+                class="w-8 h-8 rounded border text-xs font-bold transition flex items-center justify-center ${btnStyle}">
+                ${col}
+              </button>
+            `;
+          }
+        });
+        html += `</div>`;
       }
+      html += `</div></div>`;
+
+      /* BUSINESS CLASS SECTION (Rows 3-5) */
+      html += `
+        <div class="border border-purple-500/40 bg-purple-950/20 p-2.5 rounded-lg">
+          <div class="text-[11px] font-bold text-purple-300 mb-2 text-center uppercase tracking-wider flex items-center justify-center gap-2">
+            <i class="fa-solid fa-gem text-purple-400"></i> BUSINESS CLASS CABIN (2-2 LAYOUT)
+          </div>
+          <div class="space-y-1.5">
+      `;
+
+      for (let r = 3; r <= 5; r++) {
+        const rowStr = String(r).padStart(2, '0');
+        html += `<div class="flex items-center justify-center gap-2">`;
+        html += `<span class="w-6 text-[10px] text-purple-300 font-bold text-center">${rowStr}</span>`;
+
+        ['A', 'B', 'AISLE', 'C', 'D'].forEach(col => {
+          if (col === 'AISLE') {
+            html += `<div class="w-6 text-center text-slate-700 font-bold">||</div>`;
+          } else {
+            const seatCode = `${rowStr}${col}`;
+            const isSelected = activePassenger.seat === seatCode;
+            const isOccupied = occupiedList.includes(seatCode) && !isSelected;
+
+            let btnStyle = "bg-purple-950/80 text-purple-200 border-purple-600/80 hover:bg-purple-600 hover:text-white";
+            if (isSelected) btnStyle = "bg-emerald-600 text-white font-bold border-emerald-400";
+            else if (isOccupied) btnStyle = "bg-rose-950 text-rose-500 border-rose-800 cursor-not-allowed opacity-60";
+
+            html += `
+              <button ${isOccupied ? 'disabled' : `onclick="assignSeatToActivePassenger('${seatCode}')"`} 
+                class="w-8 h-8 rounded border text-xs font-bold transition flex items-center justify-center ${btnStyle}">
+                ${col}
+              </button>
+            `;
+          }
+        });
+        html += `</div>`;
+      }
+      html += `</div></div>`;
+
+      /* EXPANDED ECONOMY CLASS SECTION (Rows 6 to 30 for 737 MAX 9 = 170+ total seats) */
+      const econEndRow = is737 ? 30 : 32;
+      html += `
+        <div class="border border-slate-800 bg-slate-950/60 p-2.5 rounded-lg">
+          <div class="text-[11px] font-bold text-slate-400 mb-2 text-center uppercase tracking-wider flex items-center justify-center gap-2">
+            <i class="fa-solid fa-users text-slate-500"></i> ECONOMY CABIN (3-3 LAYOUT - ROWS 06 TO ${econEndRow})
+          </div>
+          <div class="space-y-1.5">
+      `;
+
+      for (let r = 6; r <= econEndRow; r++) {
+        const rowStr = String(r).padStart(2, '0');
+        html += `<div class="flex items-center justify-center gap-1.5">`;
+        html += `<span class="w-6 text-[10px] text-slate-500 text-center font-bold">${rowStr}</span>`;
+
+        ['A', 'B', 'C', 'AISLE', 'D', 'E', 'F'].forEach(col => {
+          if (col === 'AISLE') {
+            html += `<div class="w-4 text-center text-slate-700 font-bold">|</div>`;
+          } else {
+            const seatCode = `${rowStr}${col}`;
+            const isSelected = activePassenger.seat === seatCode;
+            const isOccupied = occupiedList.includes(seatCode) && !isSelected;
+
+            let btnStyle = "bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700";
+            if (isSelected) btnStyle = "bg-emerald-600 text-white font-bold border-emerald-400";
+            else if (isOccupied) btnStyle = "bg-rose-950 text-rose-500 border-rose-800 cursor-not-allowed opacity-60";
+
+            html += `
+              <button ${isOccupied ? 'disabled' : `onclick="assignSeatToActivePassenger('${seatCode}')"`} 
+                class="w-7 h-7 rounded border text-[10px] font-bold transition flex items-center justify-center ${btnStyle}">
+                ${col}
+              </button>
+            `;
+          }
+        });
+        html += `</div>`;
+      }
+      html += `</div></div>`;
+
+      container.innerHTML = html;
+    }
+
+    function displayRosterListCLI() {
+      logTerminal(`=== ACTIVE ROSTER LIST (${passengerDatabase.length} PASSENGERS) ===`, 'system');
+      passengerDatabase.slice(0, 10).forEach((p, idx) => {
+        logTerminal(`#${idx + 1} | FLT: <strong class="text-sky-300">${p.flightNo}</strong> | PNR: <strong class="text-white">${p.pnr}</strong> | ${p.name} | SEAT: ${p.seat || 'UNASSIGNED'} | ${p.boarded ? '<span class="text-sky-300">BOARDED</span>' : '<span class="text-slate-500">PENDING</span>'}`, 'info');
+      });
+      if (passengerDatabase.length > 10) {
+        logTerminal(`... and ${passengerDatabase.length - 10} more passengers in roster.`, 'system');
+      }
+      autoFocusInput();
+    }
+
+    function resetLocalDatabaseCLI() {
+      localStorage.removeItem(LOCALSTORAGE_KEY);
+      passengerDatabase = [];
+      occupiedSeatsByFlight = {};
+      activePassenger = null;
+      generateBatchPassengers(20, false);
+      updatePassengerPanelDisplay();
+      playChimeSound();
+      logTerminal('LOCAL STORAGE DATA ELIMINATED & SYSTEM REBOOTED TO CLEAN STATE.', 'success');
       autoFocusInput();
     }
 
@@ -1690,7 +1839,7 @@
         const occupied = occupiedSeatsByFlight[flight] || [];
         let assigned = null;
         const cols = ['A', 'B', 'C', 'D', 'E', 'F'];
-        for (let r = 7; r <= 18; r++) {
+        for (let r = 6; r <= 30; r++) {
           const rowStr = String(r).padStart(2, '0');
           for (const c of cols) {
             const s = `${rowStr}${c}`;
@@ -1701,7 +1850,7 @@
           }
           if (assigned) break;
         }
-        if (!assigned) assigned = '07A';
+        if (!assigned) assigned = '06A';
         assignSeatToActivePassenger(assigned);
       }
     }
