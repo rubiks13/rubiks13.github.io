@@ -60,6 +60,37 @@
   .dim{color:var(--dim);}
   .echo{color:#fff;}
   .rule{color:var(--dim);}
+  .btn-bar{
+    display:flex;
+    gap:8px;
+    padding:6px 16px;
+    background:#0a140b;
+    border-top:1px solid var(--dim);
+    flex-wrap:wrap;
+  }
+  .term-btn{
+    background:transparent;
+    border:1px solid var(--dim);
+    color:var(--green);
+    font-family:inherit;
+    font-size:12px;
+    padding:4px 10px;
+    cursor:pointer;
+    border-radius:3px;
+    transition:all 0.15s ease;
+  }
+  .term-btn:hover{
+    background:var(--dim);
+    color:#fff;
+  }
+  .term-btn.highlight{
+    border-color:var(--amber);
+    color:var(--amber);
+  }
+  .term-btn.highlight:hover{
+    background:var(--amber);
+    color:#000;
+  }
   #inputRow{
     flex:0 0 auto;
     display:flex;align-items:center;
@@ -79,8 +110,15 @@
 <body>
 <div id="screen">
   <div id="header">
-    <div class="title">SKYTERM v3.1 — DEPARTURE CONTROL TERMINAL</div>
+    <div class="title">SKYTERM v3.2 — DEPARTURE CONTROL TERMINAL</div>
     <div id="clock">--:--:--</div>
+  </div>
+  <div class="btn-bar">
+    <button class="term-btn highlight" onclick="connectMunbynPrinter()">⚡ CONNECT MUNBYN (WebUSB)</button>
+    <button class="term-btn" onclick="toggleFallbackMode()">🖨️ PRINTER MODE: <span id="modeStatus">POPUP / DRIVER</span></button>
+    <button class="term-btn" onclick="handleInput('help')">? HELP</button>
+    <button class="term-btn" onclick="handleInput('schdl')">+ SCHDL</button>
+    <button class="term-btn" onclick="handleInput('brd')">✈️ BOARD</button>
   </div>
   <div id="output"></div>
   <div id="inputRow">
@@ -92,8 +130,7 @@
 <script>
 /* =========================================================
    SKYTERM — fictional airport departure control terminal
-   Single-file HTML/CSS/JS. Barcodes rendered via bwip-js
-   (loaded on demand inside print windows or sent directly via ESC/POS).
+   Single-file HTML/CSS/JS with improved printer error handling
    ========================================================= */
 
 const BWIP_URL = "https://cdnjs.cloudflare.com/ajax/libs/bwip-js/4.10.0/bwip-js-min.js";
@@ -136,25 +173,34 @@ let usbPrinterDevice = null;
 let printerInterfaceNumber = null;
 let printerEndpointOut = null;
 let directPrintEnabled = false;
+let forcePopupPrintMode = true; // Default to web popup mode for reliable out-of-box printing
+
+function toggleFallbackMode() {
+  forcePopupPrintMode = !forcePopupPrintMode;
+  const statusEl = document.getElementById("modeStatus");
+  if (forcePopupPrintMode) {
+    statusEl.textContent = "POPUP / DRIVER";
+    printLine("Printer Mode set to OS Driver Popup Window (works with standard installed MUNBYN Windows/Mac drivers).", "amber");
+  } else {
+    statusEl.textContent = "DIRECT ESC/POS (USB)";
+    printLine("Printer Mode set to Direct WebUSB raw ESC/POS commands.", "amber");
+  }
+  playConfirm();
+}
 
 async function connectMunbynPrinter() {
   if (!navigator.usb) {
-    printLine("WebUSB is not supported in this browser. Use Chrome/Edge over HTTPS.", "err");
+    printLine("WebUSB is not supported in this browser. Please use Chrome, Edge, or Opera.", "err");
     playError();
     return;
   }
   try {
-    // MUNBYN POS-80 or standard USB receipt printers typically use printer class (class 7)
-    // Or we can prompt for any device and let the user pick.
+    printLine("Requesting USB device selection...", "dim");
     usbPrinterDevice = await navigator.usb.requestDevice({
-      filters: [
-        { classCode: 7 }, // Printer device class
-        { vendorId: 0x0483 }, // Common STMicroelectronics / thermal printer chipsets
-        { vendorId: 0x0416 }, // Winbond / Posiflex / Munbyn chipsets
-        { vendorId: 0x6868 }, // Often used by thermal printers
-        { vendorId: 0x0493 }  // Compucorp/other POS
-      ]
+      filters: [] // Empty filter so user can select any connected printer device
     });
+    
+    printLine(`Device selected: ${usbPrinterDevice.productName || 'USB Printer'} (Vendor ID: 0x${usbPrinterDevice.vendorId.toString(16)})`, "sys");
     
     await usbPrinterDevice.open();
     if (usbPrinterDevice.configuration === null) {
@@ -178,17 +224,29 @@ async function connectMunbynPrinter() {
       if (found) break;
     }
 
-    if (!printerInterfaceNumber && usbPrinterDevice.configurations[0].interfaces[0]) {
+    if (printerInterfaceNumber === null && usbPrinterDevice.configurations[0]?.interfaces[0]) {
       printerInterfaceNumber = usbPrinterDevice.configurations[0].interfaces[0].interfaceNumber;
       printerEndpointOut = 1; // Fallback default endpoint
     }
 
     await usbPrinterDevice.claimInterface(printerInterfaceNumber);
     directPrintEnabled = true;
-    printLine(`MUNBYN POS-80 Printer connected successfully via USB! (${usbPrinterDevice.productName || 'Thermal Printer'})`, "amber");
+    forcePopupPrintMode = false;
+    document.getElementById("modeStatus").textContent = "DIRECT ESC/POS (USB)";
+    printLine(`SUCCESS! Connected directly to ${usbPrinterDevice.productName || 'Thermal Printer'}!`, "amber");
     playConfirm();
   } catch (err) {
-    printLine(`Printer connection cancelled or failed: ${err.message}`, "err");
+    if (err.name === "SecurityError" || err.message.includes("Access denied")) {
+      printRule();
+      printLine("⚠️ ACCESS DENIED ERROR DETECTED", "err");
+      printLine("Your Operating System (Windows/Mac) has locked this USB printer because the official printer driver is running.", "sys");
+      printLine("HOW TO FIX THIS:", "amber");
+      printLine("  Option 1 (Easiest): Use 'POPUP / DRIVER' mode! The app will open standard print dialogs that print directly using your installed MUNBYN driver.", "sys");
+      printLine("  Option 2 (Raw WebUSB Direct): On Windows, open Zadig (zadig.akeo.ie) and swap the driver for your printer to WinUSB.", "sys");
+      printRule();
+    } else {
+      printLine(`Printer connection issue: ${err.message}`, "err");
+    }
     playError();
   }
 }
@@ -752,8 +810,8 @@ tickClock();
    with fallback popup window for standard system printers.
    ========================================================= */
 async function openPrintWindow(title, bodyHtml, scriptBody, textLinesForEscPos){
-  // Try direct ESC/POS printing first if MUNBYN POS-80 is connected
-  if(directPrintEnabled && textLinesForEscPos) {
+  // Try direct ESC/POS printing first if WebUSB is active and popup mode is not forced
+  if(!forcePopupPrintMode && directPrintEnabled && textLinesForEscPos) {
     const rawBytes = buildEscPosText(textLinesForEscPos);
     const success = await sendRawToPrinter(rawBytes);
     if(success) {
@@ -762,10 +820,10 @@ async function openPrintWindow(title, bodyHtml, scriptBody, textLinesForEscPos){
     }
   }
 
-  // Fallback to browser print window popup
+  // Standard OS print dialog fallback
   const w = window.open("", "_blank", "width=420,height=640");
   if(!w){
-    printLine("Popup blocked — please allow popups for this page to print, or type PRINTER to connect WebUSB.", "err");
+    printLine("Popup window was blocked by browser. Click the popup icon in your address bar to allow printing.", "err");
     return null;
   }
   const html = `<!DOCTYPE html>
