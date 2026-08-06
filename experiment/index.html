@@ -266,7 +266,7 @@ async function sendRawToPrinter(uint8Array) {
 }
 
 /* Helper to build robust ESC/POS byte commands for MUNBYN POS-80 including native hardware barcodes */
-function buildEscPosText(textLines, barcodeString, barcodeType = 'code128') {
+function buildEscPosText(textLines, barcodesArray = []) {
   let bytes = [];
   // Initialize printer ESC @
   bytes.push(0x1B, 0x40);
@@ -294,35 +294,26 @@ function buildEscPosText(textLines, barcodeString, barcodeType = 'code128') {
     bytes.push(0x0A); // Newline
   }
 
-  // If a native hardware barcode is requested, print it using printer ESC/POS command GS k
-  if (barcodeString) {
+  // If multiple barcodes are provided, print each one as a native hardware barcode
+  for (let bc of barcodesArray) {
     bytes.push(0x0A);
-    // Set HRI characters printing position (0 = not printed, 2 = below barcode)
+    // Set HRI characters printing position (2 = below barcode)
     bytes.push(0x1D, 0x48, 0x02);
-    // Set barcode height (e.g. 80 dots)
+    // Set barcode height (80 dots)
     bytes.push(0x1D, 0x68, 0x50);
-    // Set barcode width multiplier (3)
-    bytes.push(0x1D, 0x77, 0x03);
+    // Set barcode width multiplier (2)
+    bytes.push(0x1D, 0x77, 0x02);
 
-    if (barcodeType === 'code128') {
-      // ESC/POS Code 128 command: GS k 73 len data (73 is Code 128 system ID)
-      bytes.push(0x1D, 0x6B, 0x49, barcodeString.length + 2, 0x7B, 0x42); // {B selector for ASCII chars
-      for (let i = 0; i < barcodeString.length; i++) {
-        bytes.push(barcodeString.charCodeAt(i) & 0xFF);
-      }
-    } else {
-      // Fallback code 39
-      bytes.push(0x1D, 0x6B, 0x04);
-      for (let i = 0; i < barcodeString.length; i++) {
-        bytes.push(barcodeString.charCodeAt(i) & 0xFF);
-      }
-      bytes.push(0x00); // Null terminator for code 39
+    // ESC/POS Code 128 command: GS k 73 len data
+    bytes.push(0x1D, 0x6B, 0x49, bc.length + 2, 0x7B, 0x42);
+    for (let i = 0; i < bc.length; i++) {
+      bytes.push(bc.charCodeAt(i) & 0xFF);
     }
-    bytes.push(0x0A);
+    bytes.push(0x0A, 0x0A);
   }
 
   // Controlled paper feed & single clean cut command
-  bytes.push(0x0A, 0x0A, 0x0A);
+  bytes.push(0x0A, 0x0A);
   bytes.push(0x1D, 0x56, 0x42, 0x00); // Partial cut
   return new Uint8Array(bytes);
 }
@@ -833,18 +824,18 @@ tickClock();
    PRINTING — supports direct WebUSB ESC/POS (MUNBYN POS-80) 
    with fallback popup window for standard system printers.
    ========================================================= */
-async function openPrintWindow(title, bodyHtml, scriptBody, textLinesForEscPos){
+async function openPrintWindow(title, bodyHtml, scriptBody, textLinesForEscPos, barcodesArray){
   // Try direct ESC/POS printing first if WebUSB is active and popup mode is not forced
   if(!forcePopupPrintMode && directPrintEnabled && textLinesForEscPos) {
-    const rawBytes = buildEscPosText(textLinesForEscPos);
+    const rawBytes = buildEscPosText(textLinesForEscPos, barcodesArray || []);
     const success = await sendRawToPrinter(rawBytes);
     if(success) {
-      printLine(`[MUNBYN POS-80] Printed ${title} directly!`, "sys");
-      return;
+      printLine(`[MUNBYN POS-80] Printed ${title} directly with hardware barcodes!`, "sys");
+      return; // Skip popup window entirely when direct printing succeeds to prevent duplicates
     }
   }
 
-  // Standard OS print dialog fallback with robust CDN script fallbacks for barcodes
+  // Standard OS print dialog fallback
   const w = window.open("", "_blank", "width=420,height=640");
   if(!w){
     printLine("Popup window was blocked by browser. Click the popup icon in your address bar to allow printing.", "err");
@@ -867,7 +858,7 @@ async function openPrintWindow(title, bodyHtml, scriptBody, textLinesForEscPos){
   .hr{ border-top:2px dashed #000; margin:2mm 0; }
   .row{ display:flex; justify-content:space-between; gap:2mm; font-size:15px; margin:1mm 0; }
   .row span:last-child{ text-align:right; }
-  .bcgrid{ display:grid; grid-template-columns:1fr 1fr; gap:4mm 2mm; margin-top:2mm; }
+  .bcgrid{ display:flex; flex-direction:column; gap:3mm; margin-top:2mm; }
   .bccell{ text-align:center; padding: 2mm 0; background:#f9f9f9; border:1px solid #ddd; border-radius:2px; }
   canvas{ max-width:100%; height:auto; image-rendering:pixelated; display:inline-block; }
   .code{ font-size:14px; letter-spacing:1px; margin-top:1mm; font-weight:900; }
@@ -920,7 +911,7 @@ window.onload = function() {
 function printManifestBarcodes(flight, passengers){
   let cells = "";
   passengers.forEach((p,i)=>{
-    cells += `<div class="bccell"><canvas id="bc${i}"></canvas><div class="code">${p.checkinCode}</div><div style="font-size:11px;">${p.name.split(" ")[1]||p.name} (${p.seat||'N/A'})</div></div>`;
+    cells += `<div class="bccell"><div style="font-size:12px; font-weight:bold;">${escapeHtml(p.name)} (Seat: ${p.seat||'N/A'})</div><canvas id="bc${i}"></canvas><div class="code">${p.checkinCode}</div></div>`;
   });
   const header = `
   <div class="center bold" style="font-size:18px;">FLIGHT MANIFEST: ${flight.flightNumber}</div>
@@ -939,27 +930,20 @@ function printManifestBarcodes(flight, passengers){
     `;
   });
   
-  // For direct ESC/POS print, we pass the first passenger's barcode or a summary
   const escLines = [
     { text: `FLIGHT MANIFEST: ${flight.flightNumber}`, bold: true, size: 'big' },
     { text: `${flight.airlineName} -> ${flight.destCode}`, bold: false, size: 'med' },
     { text: `Total Passengers: ${passengers.length}`, bold: false, size: 'normal' },
     { text: `--------------------------------`, bold: false, size: 'normal' }
   ];
+  
+  const allCodes = [];
   passengers.forEach(p => {
-    escLines.push({ text: `${p.name} | Seat: ${p.seat||'N/A'}`, bold: false, size: 'normal' });
-    escLines.push({ text: `Code: ${p.checkinCode}`, bold: true, size: 'normal' });
+    escLines.push({ text: `${p.name} | Seat: ${p.seat||'N/A'}`, bold: true, size: 'normal' });
+    allCodes.push(p.checkinCode);
   });
 
-  // If direct mode is enabled, print the manifest with the last passenger code as hardware barcode
-  if (!forcePopupPrintMode && directPrintEnabled && passengers.length > 0) {
-    const rawBytes = buildEscPosText(escLines, passengers[0].checkinCode, 'code128');
-    sendRawToPrinter(rawBytes).then(success => {
-      if(success) printLine(`[MUNBYN POS-80] Printed Manifest ${flight.flightNumber} with hardware barcodes directly!`, "sys");
-    });
-  }
-
-  openPrintWindow(`Manifest ${flight.flightNumber}`, header, script, escLines);
+  openPrintWindow(`Manifest ${flight.flightNumber}`, header, script, escLines, allCodes);
 }
 
 function printBagTag(passenger, weight, tag){
@@ -992,18 +976,10 @@ function printBagTag(passenger, weight, tag){
     { text: `PASSENGER: ${passenger.name}`, bold: true, size: 'normal' },
     { text: `FLIGHT: ${passenger.flightNumber}   DEST: ${passenger.destCode}`, bold: false, size: 'normal' },
     { text: `SEAT: ${passenger.seat || 'UNASSIGNED'}   WT: ${weight.toFixed(1)}kg`, bold: false, size: 'normal' },
-    { text: `--------------------------------`, bold: false, size: 'normal' },
-    { text: `TAG ID: ${tag}`, bold: true, size: 'med' }
+    { text: `--------------------------------`, bold: false, size: 'normal' }
   ];
 
-  if (!forcePopupPrintMode && directPrintEnabled) {
-    const rawBytes = buildEscPosText(escLines, tag, 'code128');
-    sendRawToPrinter(rawBytes).then(success => {
-      if(success) printLine(`[MUNBYN POS-80] Printed Bag Tag ${tag} with native hardware barcode directly!`, "sys");
-    });
-  }
-
-  openPrintWindow(`Bag Tag ${tag}`, body, script, escLines);
+  openPrintWindow(`Bag Tag ${tag}`, body, script, escLines, [tag]);
 }
 
 function printBoardingPass(passenger, flight){
@@ -1073,14 +1049,7 @@ function printBoardingPass(passenger, flight){
     { text: `--------------------------------`, bold: false, size: 'normal' }
   ];
 
-  if (!forcePopupPrintMode && directPrintEnabled) {
-    const rawBytes = buildEscPosText(escLines, passenger.boardingPassCode, 'code128');
-    sendRawToPrinter(rawBytes).then(success => {
-      if(success) printLine(`[MUNBYN POS-80] Printed Boarding Pass ${passenger.boardingPassCode} with native hardware barcode directly!`, "sys");
-    });
-  }
-
-  openPrintWindow(`Boarding Pass ${passenger.boardingPassCode}`, body, script, escLines);
+  openPrintWindow(`Boarding Pass ${passenger.boardingPassCode}`, body, script, escLines, [passenger.boardingPassCode]);
 }
 
 function escapeHtml(s){
