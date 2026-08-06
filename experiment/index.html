@@ -835,8 +835,8 @@ async function openPrintWindow(title, bodyHtml, scriptBody, textLinesForEscPos, 
     }
   }
 
-  // Standard OS print dialog fallback
-  const w = window.open("", "_blank", "width=420,height=640");
+  // Standard OS print dialog fallback with premium thermal ticket styling
+  const w = window.open("", "_blank", "width=420,height=680");
   if(!w){
     printLine("Popup window was blocked by browser. Click the popup icon in your address bar to allow printing.", "err");
     return null;
@@ -849,41 +849,97 @@ async function openPrintWindow(title, bodyHtml, scriptBody, textLinesForEscPos, 
   html,body{ margin:0; padding:0; }
   body{
     width:76mm; font-family:'Courier New', Courier, monospace;
-    color:#000; font-size:15px; line-height:1.25; font-weight:700;
+    color:#000; font-size:14px; line-height:1.2; font-weight:700;
     -webkit-font-smoothing:none; background:#fff;
   }
   .center{ text-align:center; }
   .bold{ font-weight:900; }
   .big{ font-size:20px; letter-spacing:0.5px; }
   .hr{ border-top:2px dashed #000; margin:2mm 0; }
-  .row{ display:flex; justify-content:space-between; gap:2mm; font-size:15px; margin:1mm 0; }
+  .hr-solid{ border-top:2px solid #000; margin:2mm 0; }
+  .row{ display:flex; justify-content:space-between; gap:2mm; font-size:14px; margin:1mm 0; }
   .row span:last-child{ text-align:right; }
   .bcgrid{ display:flex; flex-direction:column; gap:3mm; margin-top:2mm; }
   .bccell{ text-align:center; padding: 2mm 0; background:#f9f9f9; border:1px solid #ddd; border-radius:2px; }
   canvas{ max-width:100%; height:auto; image-rendering:pixelated; display:inline-block; }
   .code{ font-size:14px; letter-spacing:1px; margin-top:1mm; font-weight:900; }
-  .bp-header{
-    background:#000; color:#fff;
-    display:flex; align-items:center; gap:3mm; padding:3mm;
+
+  /* Professional Airline Ticket & Baggage Tag Styling */
+  .ticket-box {
+    border: 2px solid #000;
+    border-radius: 4px;
+    padding: 3mm;
+    margin-bottom: 2mm;
+    background: #fff;
   }
-  .bp-plane{ width:8mm; flex:0 0 auto; }
-  .bp-plane svg{ width:100%; display:block; fill:#fff; }
-  .bp-airline{ font-size:18px; font-weight:900; letter-spacing:1px; }
-  .bp-sub{
-    background:#000; color:#fff; text-align:center;
-    font-size:13px; font-weight:700; letter-spacing:2px;
-    padding:0 0 2mm 0; width:100%;
+  .ticket-header {
+    background: #000;
+    color: #fff;
+    padding: 2mm 3mm;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 900;
+    letter-spacing: 1px;
   }
-  .bp-body{ padding:2mm 2mm 1mm 2mm; }
-  .bp-label{ font-size:10px; color:#444; font-weight:700; margin-top:1.5mm; text-transform:uppercase; }
-  .bp-value{ font-size:16px; font-weight:900; }
-  .bp-row2{ display:flex; justify-content:space-between; gap:2mm; }
-  .bp-row2 > div{ flex:1; }
-  .bp-barcode{ text-align:center; padding:2mm 0; background:#fff; }
-  .bp-footer{
-    background:#000; color:#fff; display:flex; flex-direction:column;
-    align-items:center; gap:1mm; padding:2mm;
-    font-size:11px; font-weight:700; text-align:center; width:100%; letter-spacing:1px;
+  .ticket-title {
+    font-size: 15px;
+  }
+  .airline-badge {
+    font-size: 12px;
+    background: #fff;
+    color: #000;
+    padding: 1px 4px;
+    border-radius: 2px;
+  }
+  .grid-2 {
+    display: flex;
+    justify-content: space-between;
+    gap: 2mm;
+    margin: 1.5mm 0;
+  }
+  .grid-2 > div {
+    flex: 1;
+    background: #f4f4f4;
+    padding: 1.5mm 2mm;
+    border: 1px solid #ccc;
+    border-radius: 2px;
+  }
+  .field-label {
+    font-size: 9px;
+    color: #333;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+  .field-val {
+    font-size: 16px;
+    font-weight: 900;
+    margin-top: 0.5mm;
+  }
+  .field-val-lg {
+    font-size: 22px;
+    font-weight: 900;
+    letter-spacing: 1px;
+  }
+  .bag-tag-main {
+    border: 3px solid #000;
+    padding: 3mm;
+    text-align: center;
+    background: #fff;
+  }
+  .bag-dest-box {
+    border: 4px solid #000;
+    background: #000;
+    color: #fff;
+    padding: 2mm;
+    margin: 2mm 0;
+  }
+  .bag-dest-code {
+    font-size: 42px;
+    font-weight: 900;
+    letter-spacing: 3px;
+    line-height: 1;
   }
 </style>
 </head>
@@ -949,21 +1005,48 @@ function printManifestBarcodes(flight, passengers){
 function printBagTag(passenger, weight, tag){
   const flight = data.flights[passenger.flightNumber];
   const body = `
-  <div class="center bold big">${flight.airlineName}</div>
-  <div class="center bold" style="font-size:14px; letter-spacing:1px;">OFFICIAL BAGGAGE TAG</div>
-  <div class="hr"></div>
-  <div class="row"><span>PASSENGER</span><span class="bold">${escapeHtml(passenger.name)}</span></div>
-  <div class="row"><span>FLIGHT</span><span class="bold">${passenger.flightNumber}</span></div>
-  <div class="row"><span>DESTINATION</span><span class="bold">${passenger.destCode}</span></div>
-  <div class="row"><span>SEAT</span><span class="bold">${passenger.seat || "UNASSIGNED"}</span></div>
-  <div class="row"><span>SCALE WEIGHT</span><span class="bold">${weight.toFixed(1)} kg</span></div>
-  <div class="hr"></div>
-  <div class="center"><canvas id="bagbc"></canvas></div>
-  <div class="center code">${tag}</div>
+  <div class="bag-tag-main">
+    <div style="font-size:12px; font-weight:900; letter-spacing:1px;">SKYTERM AIR // INTERLINE BAGGAGE</div>
+    <div class="hr-solid"></div>
+    <div style="font-size:11px; text-align:left;">PASSENGER NAME:</div>
+    <div style="font-size:18px; font-weight:900; text-align:left; text-transform:uppercase; margin-bottom:2mm;">${escapeHtml(passenger.name)}</div>
+    
+    <div class="bag-dest-box">
+      <div style="font-size:10px; letter-spacing:1px; margin-bottom:1mm;">FINAL DESTINATION</div>
+      <div class="bag-dest-code">${passenger.destCode}</div>
+      <div style="font-size:11px; margin-top:1mm; font-weight:700;">${flight.destName}</div>
+    </div>
+
+    <div class="grid-2">
+      <div>
+        <div class="field-label">FLIGHT</div>
+        <div class="field-val">${passenger.flightNumber}</div>
+      </div>
+      <div>
+        <div class="field-label">SCALE WT</div>
+        <div class="field-val">${weight.toFixed(1)} KG</div>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div>
+        <div class="field-label">SEAT</div>
+        <div class="field-val">${passenger.seat || 'STANDBY'}</div>
+      </div>
+      <div>
+        <div class="field-label">DATE</div>
+        <div class="field-val">${todayString()}</div>
+      </div>
+    </div>
+
+    <div class="hr"></div>
+    <div style="margin:2mm 0;"><canvas id="bagbc"></canvas></div>
+    <div class="code">${tag}</div>
+    <div style="font-size:10px; margin-top:1mm;">MANDATORY SECURITY BAG IDENTIFIER</div>
+  </div>
   `;
   const script = `
   try {
-    bwipjs.toCanvas('bagbc', { bcid:'code128', text:'${tag}', scale:2, height:18, includetext:false });
+    bwipjs.toCanvas('bagbc', { bcid:'code128', text:'${tag}', scale:2, height:16, includetext:false });
   } catch(e) {
     document.getElementById('bagbc').outerHTML = '<div class="code">${tag}</div>';
   }
@@ -971,11 +1054,11 @@ function printBagTag(passenger, weight, tag){
   
   const escLines = [
     { text: `${flight.airlineName}`, bold: true, size: 'big' },
-    { text: `BAGGAGE TAG`, bold: true, size: 'med' },
+    { text: `BAGGAGE TAG // ${tag}`, bold: true, size: 'med' },
     { text: `--------------------------------`, bold: false, size: 'normal' },
     { text: `PASSENGER: ${passenger.name}`, bold: true, size: 'normal' },
-    { text: `FLIGHT: ${passenger.flightNumber}   DEST: ${passenger.destCode}`, bold: false, size: 'normal' },
-    { text: `SEAT: ${passenger.seat || 'UNASSIGNED'}   WT: ${weight.toFixed(1)}kg`, bold: false, size: 'normal' },
+    { text: `DEST: ${passenger.destCode} | FLT: ${passenger.flightNumber}`, bold: true, size: 'normal' },
+    { text: `WEIGHT: ${weight.toFixed(1)}kg | SEAT: ${passenger.seat || 'STANDBY'}`, bold: false, size: 'normal' },
     { text: `--------------------------------`, bold: false, size: 'normal' }
   ];
 
@@ -988,50 +1071,76 @@ function printBoardingPass(passenger, flight){
   const boardTill = nowTimeString(boardMinutes);
   const departTime = nowTimeString(boardMinutes + 20);
   const eticket = randomDigits(3);
-  const PLANE_SVG = `<svg viewBox="0 0 576 512" xmlns="http://www.w3.org/2000/svg"><path d="M480 192H365.71L260.61 8.06A16.014 16.014 0 0 0 246.71 0h-65.5c-10.63 0-18.3 10.17-15.38 20.39L214.86 192H112l-43.2-57.6c-3.02-4.03-7.77-6.4-12.8-6.4H16.01C5.6 128-2.04 137.78.49 147.88L32 256 .49 364.12C-2.04 374.22 5.6 384 16.01 384h39.99c5.03 0 9.78-2.37 12.8-6.4L112 320h102.86l-49.03 171.6c-2.92 10.22 4.75 20.4 15.38 20.4h65.5c6.14 0 11.86-3.08 15.27-8.06L365.71 320H480c35.35 0 96-28.65 96-64s-60.65-64-96-64z"/></svg>`;
+  
   const body = `
-  <div class="bp-header">
-    <div class="bp-plane">${PLANE_SVG}</div>
-    <div class="bp-airline">${flight.airlineName}</div>
-  </div>
-  <div class="bp-sub">BOARDING PASS</div>
-  <div class="bp-body">
-    <div class="bp-label">Passenger Name</div>
-    <div class="bp-value">${escapeHtml(passenger.name)}</div>
-
-    <div class="bp-row2" style="margin-top:2mm;">
-      <div><div class="bp-label">From</div><div class="bp-value">${ORIGIN.code}</div></div>
-      <div><div class="bp-label">To</div><div class="bp-value">${flight.destCode}</div></div>
+  <div class="ticket-box">
+    <div class="ticket-header">
+      <span class="ticket-title">PASSENGER BOARDING PASS</span>
+      <span class="airline-badge">${flight.airlineName}</span>
     </div>
 
-    <div class="bp-row2">
-      <div><div class="bp-label">Flight</div><div class="bp-value">${flight.flightNumber}</div></div>
-      <div><div class="bp-label">Date</div><div class="bp-value">${todayString()}</div></div>
+    <div style="padding: 2mm 0;">
+      <div class="field-label">PASSENGER NAME</div>
+      <div style="font-size:18px; font-weight:900; text-transform:uppercase; margin-bottom:2mm;">${escapeHtml(passenger.name)}</div>
+
+      <div class="grid-2">
+        <div>
+          <div class="field-label">ORIGIN</div>
+          <div class="field-val">${ORIGIN.code}</div>
+        </div>
+        <div>
+          <div class="field-label">DESTINATION</div>
+          <div class="field-val-lg">${flight.destCode}</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div>
+          <div class="field-label">FLIGHT</div>
+          <div class="field-val">${flight.flightNumber}</div>
+        </div>
+        <div>
+          <div class="field-label">DATE</div>
+          <div class="field-val" style="font-size:13px; padding-top:2px;">${todayString()}</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div>
+          <div class="field-label">GATE</div>
+          <div class="field-val">${gate}</div>
+        </div>
+        <div>
+          <div class="field-label">SEAT</div>
+          <div class="field-val" style="color:#000; text-decoration:underline;">${passenger.seat || 'OPEN'}</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div>
+          <div class="field-label">BOARDING TILL</div>
+          <div class="field-val" style="font-size:14px;">${boardTill}</div>
+        </div>
+        <div>
+          <div class="field-label">DEPARTS</div>
+          <div class="field-val" style="font-size:14px;">${departTime}</div>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; margin-top:2mm; font-size:11px;">
+        <span>ETKT: ${eticket}</span>
+        <span>CLASS: ECONOMY / ST</span>
+      </div>
     </div>
 
-    <div class="bp-row2">
-      <div><div class="bp-label">Gate</div><div class="bp-value">${gate}</div></div>
-      <div><div class="bp-label">Seat</div><div class="bp-value" style="font-size:20px; text-decoration:underline;">${passenger.seat || "UNASSIGNED"}</div></div>
-    </div>
-
-    <div class="bp-row2">
-      <div><div class="bp-label">Boarding Till</div><div class="bp-value">${boardTill}</div></div>
-      <div><div class="bp-label">Departs</div><div class="bp-value">${departTime}</div></div>
-    </div>
-
-    <div class="bp-label">Electronic Ticket Ref</div>
-    <div class="bp-value">${eticket}</div>
-  </div>
-  <div class="hr" style="margin:1mm 0;"></div>
-  <div class="bp-barcode"><canvas id="pdfbc"></canvas></div>
-  <div class="bp-footer">
-    <span>BARCODE: ${passenger.boardingPassCode}</span>
-    <span>PLEASE BE AT GATE BY ${boardTill}</span>
+    <div class="hr"></div>
+    <div class="center" style="margin-top:1mm;"><canvas id="pdfbc"></canvas></div>
+    <div class="center code">${passenger.boardingPassCode}</div>
   </div>
   `;
   const script = `
   try {
-    bwipjs.toCanvas('pdfbc', { bcid:'code128', text:'${passenger.boardingPassCode}', scale:2, height:14, includetext:true });
+    bwipjs.toCanvas('pdfbc', { bcid:'code128', text:'${passenger.boardingPassCode}', scale:2, height:14, includetext:false });
   } catch(e) {
     document.getElementById('pdfbc').outerHTML = '<div class="code">${passenger.boardingPassCode}</div>';
   }
@@ -1044,7 +1153,7 @@ function printBoardingPass(passenger, flight){
     { text: `PASSENGER: ${passenger.name}`, bold: true, size: 'normal' },
     { text: `FLIGHT: ${flight.flightNumber}   GATE: ${gate}`, bold: false, size: 'normal' },
     { text: `FROM: ${ORIGIN.code}      TO: ${flight.destCode}`, bold: false, size: 'normal' },
-    { text: `SEAT: ${passenger.seat || 'UNASSIGNED'}`, bold: true, size: 'med' },
+    { text: `SEAT: ${passenger.seat || 'OPEN'}`, bold: true, size: 'med' },
     { text: `BOARDING TILL: ${boardTill}`, bold: false, size: 'normal' },
     { text: `--------------------------------`, bold: false, size: 'normal' }
   ];
