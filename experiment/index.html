@@ -257,9 +257,7 @@ async function sendRawToPrinter(uint8Array) {
   }
   try {
     await usbPrinterDevice.transferOut(printerEndpointOut, uint8Array);
-    // Send cutter command ESC m or GS V
-    const cutterCmd = new Uint8Array([0x1D, 0x56, 0x42, 0x00]); // Partial cut
-    await usbPrinterDevice.transferOut(printerEndpointOut, cutterCmd);
+    // REMOVED extra blank cut command here that was causing the tiny blank slip
     return true;
   } catch (err) {
     printLine(`Direct print transmission error: ${err.message}`, "err");
@@ -297,9 +295,9 @@ function buildEscPosText(textLines) {
     bytes.push(0x0A); // Newline
   }
 
-  // Feed and cut
-  bytes.push(0x0A, 0x0A, 0x0A);
-  bytes.push(0x1D, 0x56, 0x41, 0x03); // Full cut
+  // Controlled paper feed & single clean cut command
+  bytes.push(0x0A, 0x0A);
+  bytes.push(0x1D, 0x56, 0x42, 0x00); // Partial cut only once
   return new Uint8Array(bytes);
 }
 
@@ -820,7 +818,7 @@ async function openPrintWindow(title, bodyHtml, scriptBody, textLinesForEscPos){
     }
   }
 
-  // Standard OS print dialog fallback
+  // Standard OS print dialog fallback with robust CDN script fallbacks for barcodes
   const w = window.open("", "_blank", "width=420,height=640");
   if(!w){
     printLine("Popup window was blocked by browser. Click the popup icon in your address bar to allow printing.", "err");
@@ -829,60 +827,61 @@ async function openPrintWindow(title, bodyHtml, scriptBody, textLinesForEscPos){
   const html = `<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>${title}</title>
 <style>
-  @page { size: 80mm auto; margin: 2mm; }
+  @page { size: 80mm auto; margin: 1mm 2mm; }
   * { box-sizing:border-box; }
   html,body{ margin:0; padding:0; }
   body{
-    width:76mm; font-family:Arial, Helvetica, sans-serif;
-    color:#000; font-size:16px; line-height:1.35; font-weight:700;
-    -webkit-font-smoothing:none;
+    width:76mm; font-family:'Courier New', Courier, monospace;
+    color:#000; font-size:15px; line-height:1.25; font-weight:700;
+    -webkit-font-smoothing:none; background:#fff;
   }
   .center{ text-align:center; }
   .bold{ font-weight:900; }
-  .big{ font-size:22px; letter-spacing:0.5px; }
-  .hr{ border-top:3px solid #000; margin:3mm 0; }
-  .row{ display:flex; justify-content:space-between; gap:4mm; font-size:16px; margin:1mm 0; }
+  .big{ font-size:20px; letter-spacing:0.5px; }
+  .hr{ border-top:2px dashed #000; margin:2mm 0; }
+  .row{ display:flex; justify-content:space-between; gap:2mm; font-size:15px; margin:1mm 0; }
   .row span:last-child{ text-align:right; }
-  .grid{ display:flex; flex-direction:column; }
-  .bcgrid{ display:grid; grid-template-columns:1fr 1fr; gap:6mm 4mm; margin-top:2mm; }
-  .bccell{ text-align:center; padding: 2mm 0; }
-  .tag{ text-align:center; padding:2mm 0 3mm 0; margin-bottom:3mm; border-bottom:3px solid #000; }
-  .tag:last-child{ border-bottom:none; }
-  canvas{ max-width:100%; image-rendering:pixelated; }
-  .small{ font-size:14px; font-weight:700; }
-  .code{ font-size:15px; letter-spacing:2px; margin-top:1mm; font-weight:900; }
+  .bcgrid{ display:grid; grid-template-columns:1fr 1fr; gap:4mm 2mm; margin-top:2mm; }
+  .bccell{ text-align:center; padding: 2mm 0; background:#f9f9f9; border:1px solid #ddd; border-radius:2px; }
+  canvas{ max-width:100%; height:auto; image-rendering:pixelated; display:inline-block; }
+  .code{ font-size:14px; letter-spacing:1px; margin-top:1mm; font-weight:900; }
   .bp-header{
-    background:#1a4fa0; color:#fff;
-    display:flex; align-items:center; gap:3mm; padding:4mm 3mm 2mm 3mm;
+    background:#000; color:#fff;
+    display:flex; align-items:center; gap:3mm; padding:3mm;
   }
-  .bp-plane{ width:9mm; flex:0 0 auto; }
-  .bp-plane svg{ width:100%; display:block; }
-  .bp-airline{ font-size:20px; font-weight:900; letter-spacing:0.5px; }
+  .bp-plane{ width:8mm; flex:0 0 auto; }
+  .bp-plane svg{ width:100%; display:block; fill:#fff; }
+  .bp-airline{ font-size:18px; font-weight:900; letter-spacing:1px; }
   .bp-sub{
-    background:#1a4fa0; color:#fff; text-align:center;
-    font-size:15px; font-weight:700; letter-spacing:1px;
-    padding:0 0 3mm 0; width:100%;
+    background:#000; color:#fff; text-align:center;
+    font-size:13px; font-weight:700; letter-spacing:2px;
+    padding:0 0 2mm 0; width:100%;
   }
-  .bp-body{ padding:3mm 3mm 1mm 3mm; }
-  .bp-label{ font-size:11px; color:#333; font-weight:700; margin-top:2mm; }
-  .bp-value{ font-size:18px; font-weight:900; }
-  .bp-row2{ display:flex; justify-content:space-between; gap:3mm; }
+  .bp-body{ padding:2mm 2mm 1mm 2mm; }
+  .bp-label{ font-size:10px; color:#444; font-weight:700; margin-top:1.5mm; text-transform:uppercase; }
+  .bp-value{ font-size:16px; font-weight:900; }
+  .bp-row2{ display:flex; justify-content:space-between; gap:2mm; }
   .bp-row2 > div{ flex:1; }
-  .bp-barcode{ text-align:center; padding:2mm 0; }
+  .bp-barcode{ text-align:center; padding:2mm 0; background:#fff; }
   .bp-footer{
-    background:#1a4fa0; color:#fff; display:flex; flex-direction:column;
-    align-items:center; gap:1mm; padding:2mm 3mm 3mm 3mm;
-    font-size:12px; font-weight:700; text-align:center; width:100%;
+    background:#000; color:#fff; display:flex; flex-direction:column;
+    align-items:center; gap:1mm; padding:2mm;
+    font-size:11px; font-weight:700; text-align:center; width:100%; letter-spacing:1px;
   }
 </style>
 </head>
 <body>
 ${bodyHtml}
-<script src="${BWIP_URL}"><\/script>
+<script src="https://cdn.jsdelivr.net/npm/bwip-js@4.10.0/dist/bwip-js-min.js"><\/script>
 <script>
-${scriptBody}
-window.onafterprint = function(){ window.close(); };
-setTimeout(function(){ window.print(); }, 150);
+window.onload = function() {
+  try {
+    ${scriptBody}
+  } catch(err) {
+    console.error("Barcode generation error:", err);
+  }
+  setTimeout(function(){ window.print(); }, 250);
+};
 <\/script>
 </body></html>`;
   w.document.open();
@@ -895,18 +894,22 @@ setTimeout(function(){ window.print(); }, 150);
 function printManifestBarcodes(flight, passengers){
   let cells = "";
   passengers.forEach((p,i)=>{
-    cells += `<div class="bccell"><canvas id="bc${i}"></canvas></div>`;
+    cells += `<div class="bccell"><canvas id="bc${i}"></canvas><div class="code">${p.checkinCode}</div><div style="font-size:11px;">${p.name.split(" ")[1]||p.name} (${p.seat||'N/A'})</div></div>`;
   });
   const header = `
-  <div class="center bold" style="font-size:20px;">FLIGHT ${flight.flightNumber}</div>
+  <div class="center bold" style="font-size:18px;">FLIGHT MANIFEST: ${flight.flightNumber}</div>
+  <div class="center" style="font-size:13px;">${flight.airlineName} -> ${flight.destCode} (${passengers.name || flight.destName})</div>
+  <div class="hr"></div>
   <div class="bcgrid">${cells}</div>
   `;
   let script = "";
   passengers.forEach((p,i)=>{
     script += `
-    try{
-      bwipjs.toCanvas('bc${i}', { bcid:'code128', text:'${p.checkinCode}', scale:1.5, height:8, includetext:false });
-    }catch(e){ document.getElementById('bc${i}').outerHTML = '${p.checkinCode}'; }
+    try {
+      bwipjs.toCanvas('bc${i}', { bcid:'code128', text:'${p.checkinCode}', scale:1.2, height:10, includetext:false });
+    } catch(e) {
+      document.getElementById('bc${i}').outerHTML = '<div style="font-weight:bold;">${p.checkinCode}</div>';
+    }
     `;
   });
   
@@ -928,21 +931,23 @@ function printBagTag(passenger, weight, tag){
   const flight = data.flights[passenger.flightNumber];
   const body = `
   <div class="center bold big">${flight.airlineName}</div>
-  <div class="center bold">BAGGAGE TAG</div>
+  <div class="center bold" style="font-size:14px; letter-spacing:1px;">OFFICIAL BAGGAGE TAG</div>
   <div class="hr"></div>
-  <div class="row"><span>NAME</span><span class="bold">${escapeHtml(passenger.name)}</span></div>
+  <div class="row"><span>PASSENGER</span><span class="bold">${escapeHtml(passenger.name)}</span></div>
   <div class="row"><span>FLIGHT</span><span class="bold">${passenger.flightNumber}</span></div>
-  <div class="row"><span>DEST</span><span class="bold">${passenger.destCode}</span></div>
+  <div class="row"><span>DESTINATION</span><span class="bold">${passenger.destCode}</span></div>
   <div class="row"><span>SEAT</span><span class="bold">${passenger.seat || "UNASSIGNED"}</span></div>
-  <div class="row"><span>WEIGHT</span><span class="bold">${weight.toFixed(1)} kg</span></div>
+  <div class="row"><span>SCALE WEIGHT</span><span class="bold">${weight.toFixed(1)} kg</span></div>
   <div class="hr"></div>
   <div class="center"><canvas id="bagbc"></canvas></div>
   <div class="center code">${tag}</div>
   `;
   const script = `
-  try{
-    bwipjs.toCanvas('bagbc', { bcid:'code128', text:'${tag}', scale:3, height:20, includetext:false });
-  }catch(e){ document.getElementById('bagbc').outerHTML = '${tag}'; }
+  try {
+    bwipjs.toCanvas('bagbc', { bcid:'code128', text:'${tag}', scale:2, height:18, includetext:false });
+  } catch(e) {
+    document.getElementById('bagbc').outerHTML = '<div class="code">${tag}</div>';
+  }
   `;
   
   const escLines = [
@@ -965,7 +970,7 @@ function printBoardingPass(passenger, flight){
   const boardTill = nowTimeString(boardMinutes);
   const departTime = nowTimeString(boardMinutes + 20);
   const eticket = randomDigits(3);
-  const PLANE_SVG = `<svg viewBox="0 0 576 512" xmlns="http://www.w3.org/2000/svg"><path d="M480 192H365.71L260.61 8.06A16.014 16.014 0 0 0 246.71 0h-65.5c-10.63 0-18.3 10.17-15.38 20.39L214.86 192H112l-43.2-57.6c-3.02-4.03-7.77-6.4-12.8-6.4H16.01C5.6 128-2.04 137.78.49 147.88L32 256 .49 364.12C-2.04 374.22 5.6 384 16.01 384h39.99c5.03 0 9.78-2.37 12.8-6.4L112 320h102.86l-49.03 171.6c-2.92 10.22 4.75 20.4 15.38 20.4h65.5c6.14 0 11.86-3.08 15.27-8.06L365.71 320H480c35.35 0 96-28.65 96-64s-60.65-64-96-64z" fill="#fff"/></svg>`;
+  const PLANE_SVG = `<svg viewBox="0 0 576 512" xmlns="http://www.w3.org/2000/svg"><path d="M480 192H365.71L260.61 8.06A16.014 16.014 0 0 0 246.71 0h-65.5c-10.63 0-18.3 10.17-15.38 20.39L214.86 192H112l-43.2-57.6c-3.02-4.03-7.77-6.4-12.8-6.4H16.01C5.6 128-2.04 137.78.49 147.88L32 256 .49 364.12C-2.04 374.22 5.6 384 16.01 384h39.99c5.03 0 9.78-2.37 12.8-6.4L112 320h102.86l-49.03 171.6c-2.92 10.22 4.75 20.4 15.38 20.4h65.5c6.14 0 11.86-3.08 15.27-8.06L365.71 320H480c35.35 0 96-28.65 96-64s-60.65-64-96-64z"/></svg>`;
   const body = `
   <div class="bp-header">
     <div class="bp-plane">${PLANE_SVG}</div>
@@ -973,10 +978,10 @@ function printBoardingPass(passenger, flight){
   </div>
   <div class="bp-sub">BOARDING PASS</div>
   <div class="bp-body">
-    <div class="bp-label">Passenger</div>
+    <div class="bp-label">Passenger Name</div>
     <div class="bp-value">${escapeHtml(passenger.name)}</div>
 
-    <div class="bp-row2">
+    <div class="bp-row2" style="margin-top:2mm;">
       <div><div class="bp-label">From</div><div class="bp-value">${ORIGIN.code}</div></div>
       <div><div class="bp-label">To</div><div class="bp-value">${flight.destCode}</div></div>
     </div>
@@ -988,27 +993,30 @@ function printBoardingPass(passenger, flight){
 
     <div class="bp-row2">
       <div><div class="bp-label">Gate</div><div class="bp-value">${gate}</div></div>
-      <div><div class="bp-label">Seat</div><div class="bp-value">${passenger.seat || "UNASSIGNED"}</div></div>
+      <div><div class="bp-label">Seat</div><div class="bp-value" style="font-size:20px; text-decoration:underline;">${passenger.seat || "UNASSIGNED"}</div></div>
     </div>
 
     <div class="bp-row2">
-      <div><div class="bp-label">Boarding till</div><div class="bp-value">${boardTill}</div></div>
+      <div><div class="bp-label">Boarding Till</div><div class="bp-value">${boardTill}</div></div>
       <div><div class="bp-label">Departs</div><div class="bp-value">${departTime}</div></div>
     </div>
 
-    <div class="bp-label">Electronic ticket</div>
+    <div class="bp-label">Electronic Ticket Ref</div>
     <div class="bp-value">${eticket}</div>
   </div>
+  <div class="hr" style="margin:1mm 0;"></div>
   <div class="bp-barcode"><canvas id="pdfbc"></canvas></div>
   <div class="bp-footer">
-    <span>${passenger.boardingPassCode}</span>
-    <span>PLEASE BE AT THE GATE AT BOARDING TIME</span>
+    <span>BARCODE: ${passenger.boardingPassCode}</span>
+    <span>PLEASE BE AT GATE BY ${boardTill}</span>
   </div>
   `;
   const script = `
-  try{
-    bwipjs.toCanvas('pdfbc', { bcid:'pdf417', text:'${passenger.boardingPassCode}', scale:3, columns:4 });
-  }catch(e){ document.getElementById('pdfbc').outerHTML = '${passenger.boardingPassCode}'; }
+  try {
+    bwipjs.toCanvas('pdfbc', { bcid:'pdf417', text:'${passenger.boardingPassCode}', scale:2, columns:4, height:12 });
+  } catch(e) {
+    document.getElementById('pdfbc').outerHTML = '<div class="code">${passenger.boardingPassCode}</div>';
+  }
   `;
   
   const escLines = [
