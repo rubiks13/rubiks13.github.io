@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SKYSTORE // POINT OF SALE & INVENTORY TERMINAL</title>
+<style>
+  :root{
+    --green:#3dff7a;
+    --dim:#1c7a3d;
+    --amber:#ffb000;
+    --bg:#050b06;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0;padding:0;height:100%;
+    background:var(--bg);
+    font-family:'Courier New', Courier, monospace;
+    color:var(--green);
+    overflow:hidden;
+  }
+  body{
+    background-image:
+      repeating-linear-gradient(rgba(0,0,0,0) 0px, rgba(0,0,0,0) 1px, rgba(0,0,0,0.15) 2px, rgba(0,0,0,0) 3px);
+  }
+  #screen{
+    position:relative;
+    width:100%;height:100%;
+    display:flex;flex-direction:column;
+    text-shadow:0 0 4px rgba(61,255,122,0.65);
+  }
+  #screen::after{
+    content:"";
+    pointer-events:none;
+    position:absolute;inset:0;
+    background:radial-gradient(ellipse at center, rgba(0,0,0,0) 60%, rgba(0,0,0,0.55) 100%);
+  }
+  #header{
+    flex:0 0 auto;
+    display:flex;justify-content:space-between;align-items:center;
+    padding:8px 16px;
+    border-bottom:1px solid var(--dim);
+    font-size:13px;letter-spacing:1px;
+  }
+  #header .title{color:var(--amber);font-weight:bold;}
+  #output{
+    flex:1 1 auto;
+    overflow-y:auto;
+    padding:12px 16px;
+    font-size:14px;
+    line-height:1.45;
+    white-space:pre-wrap;
+    word-break:break-word;
+  }
+  #output::-webkit-scrollbar{width:8px;}
+  #output::-webkit-scrollbar-thumb{background:var(--dim);}
+  .line{margin:0 0 2px 0;}
+  .sys{color:var(--green);}
+  .amber{color:var(--amber);}
+  .err{color:#ff4d4d;}
+  .dim{color:var(--dim);}
+  .echo{color:#fff;}
+  .rule{color:var(--dim);}
+  .btn-bar{
+    display:flex;
+    gap:8px;
+    padding:6px 16px;
+    background:#0a140b;
+    border-top:1px solid var(--dim);
+    flex-wrap:wrap;
+  }
+  .term-btn{
+    background:transparent;
+    border:1px solid var(--dim);
+    color:var(--green);
+    font-family:inherit;
+    font-size:12px;
+    padding:4px 10px;
+    cursor:pointer;
+    border-radius:3px;
+    transition:all 0.15s ease;
+  }
+  .term-btn:hover{
+    background:var(--dim);
+    color:#fff;
+  }
+  .term-btn.highlight{
+    border-color:var(--amber);
+    color:var(--amber);
+  }
+  .term-btn.highlight:hover{
+    background:var(--amber);
+    color:#000;
+  }
+  #inputRow{
+    flex:0 0 auto;
+    display:flex;align-items:center;
+    padding:8px 16px 14px 16px;
+    border-top:1px solid var(--dim);
+    font-size:14px;
+  }
+  #promptLabel{white-space:pre;color:var(--amber);margin-right:6px;}
+  #cmdInput{
+    flex:1;background:transparent;border:none;outline:none;
+    color:#fff;font-family:inherit;font-size:14px;
+    caret-color:var(--green);
+  }
+  #clock{font-size:12px;color:var(--dim);}
+</style>
+</head>
+<body>
+<div id="screen">
+  <div id="header">
+    <div class="title">SKYSTORE v1.0 — POS & INVENTORY TERMINAL</div>
+    <div id="clock">--:--:--</div>
+  </div>
+  <div class="btn-bar">
+    <button class="term-btn highlight" onclick="connectMunbynPrinter()">⚡ CONNECT PRINTER (WebUSB)</button>
+    <button class="term-btn" onclick="toggleFallbackMode()">🖨️ MODE: <span id="modeStatus">POPUP / DRIVER</span></button>
+    <button class="term-btn" onclick="handleInput('help')">? HELP</button>
+    <button class="term-btn" onclick="handleInput('catalog')">📦 CATALOG</button>
+    <button class="term-btn" onclick="handleInput('sale')">🛒 NEW SALE</button>
+  </div>
+  <div id="output"></div>
+  <div id="inputRow">
+    <span id="promptLabel">SKYSTORE&gt;</span>
+    <input id="cmdInput" autocomplete="off" autocapitalize="off" spellcheck="false" />
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   SKYSTORE — Point of Sale & Inventory Terminal
+   Single-file HTML/CSS/JS with POS Thermal Printing & Returns
+   ========================================================= */
+
+const BWIP_URL = "https://cdnjs.cloudflare.com/ajax/libs/bwip-js/4.10.0/bwip-js-min.js";
+
+/* ---------------- printer bridge state ---------------- */
+let usbPrinterDevice = null;
+let printerInterfaceNumber = null;
+let printerEndpointOut = null;
+let directPrintEnabled = false;
+let forcePopupPrintMode = true; // Default to popup window print dialog for reliable out-of-box operation
+
+function toggleFallbackMode() {
+  forcePopupPrintMode = !forcePopupPrintMode;
+  const statusEl = document.getElementById("modeStatus");
+  if (forcePopupPrintMode) {
+    statusEl.textContent = "POPUP / DRIVER";
+    printLine("Printer Mode set to OS Driver Popup Window (works with standard installed receipt printers).", "amber");
+  } else {
+    statusEl.textContent = "DIRECT ESC/POS (USB)";
+    printLine("Printer Mode set to Direct WebUSB raw ESC/POS commands.", "amber");
+  }
+  playConfirm();
+}
+
+async function connectMunbynPrinter() {
+  if (!navigator.usb) {
+    printLine("WebUSB is not supported in this browser. Please use Chrome, Edge, or Opera.", "err");
+    playError();
+    return;
+  }
+  try {
+    printLine("Requesting USB device selection...", "dim");
+    usbPrinterDevice = await navigator.usb.requestDevice({
+      filters: [] // Empty filter so user can select any connected thermal printer
+    });
+    
+    printLine(`Device selected: ${usbPrinterDevice.productName || 'USB Printer'} (Vendor ID: 0x${usbPrinterDevice.vendorId.toString(16)})`, "sys");
+    
+    await usbPrinterDevice.open();
+    if (usbPrinterDevice.configuration === null) {
+      await usbPrinterDevice.selectConfiguration(1);
+    }
+    
+    let found = false;
+    for (const conf of usbPrinterDevice.configurations) {
+      for (const intf of conf.interfaces) {
+        for (const alt of intf.alternate.endpoints) {
+          if (alt.direction === 'out') {
+            printerInterfaceNumber = intf.interfaceNumber;
+            printerEndpointOut = alt.endpointNumber;
+            found = true;
+            break;
+          }
+        }
+        if (found) break;
+      }
+      if (found) break;
+    }
+
+    if (printerInterfaceNumber === null && usbPrinterDevice.configurations[0]?.interfaces[0]) {
+      printerInterfaceNumber = usbPrinterDevice.configurations[0].interfaces[0].interfaceNumber;
+      printerEndpointOut = 1;
+    }
+
+    await usbPrinterDevice.claimInterface(printerInterfaceNumber);
+    directPrintEnabled = true;
+    forcePopupPrintMode = false;
+    document.getElementById("modeStatus").textContent = "DIRECT ESC/POS (USB)";
+    printLine(`SUCCESS! Connected directly to ${usbPrinterDevice.productName || 'Thermal Printer'}!`, "amber");
+    playConfirm();
+  } catch (err) {
+    if (err.name === "SecurityError" || err.message.includes("Access denied")) {
+      printRule();
+      printLine("⚠️ ACCESS DENIED ERROR DETECTED", "err");
+      printLine("Your OS has locked this USB printer because the system driver is active.", "sys");
+      printLine("HOW TO FIX:", "amber");
+      printLine("  Option 1 (Easiest): Keep mode on 'POPUP / DRIVER' for standard print dialogs.", "sys");
+      printLine("  Option 2 (Direct WebUSB): On Windows, use Zadig (zadig.akeo.ie) to switch driver to WinUSB.", "sys");
+      printRule();
+    } else {
+      printLine(`Printer connection issue: ${err.message}`, "err");
+    }
+    playError();
+  }
+}
+
+async function sendRawToPrinter(uint8Array) {
+  if (!directPrintEnabled || !usbPrinterDevice) return false;
+  try {
+    await usbPrinterDevice.transferOut(printerEndpointOut, uint8Array);
+    return true;
+  } catch (err) {
+    printLine(`Direct print transmission error: ${err.message}`, "err");
+    directPrintEnabled = false;
+    return false;
+  }
+}
+
+/* Helper to build robust ESC/POS byte commands including hardware barcodes */
+function buildEscPosText(textLines, barcodesArray = []) {
+  let bytes = [];
+  bytes.push(0x1B, 0x40); // Init
+  bytes.push(0x1B, 0x61, 0x01); // Center
+
+  for (let line of textLines) {
+    if (line.bold) bytes.push(0x1B, 0x45, 0x01);
+    else bytes.push(0x1B, 0x45, 0x00);
+
+    if (line.size === 'big') bytes.push(0x1D, 0x21, 0x11);
+    else if (line.size === 'med') bytes.push(0x1D, 0x21, 0x01);
+    else bytes.push(0x1D, 0x21, 0x00);
+    
+    for (let i = 0; i < line.text.length; i++) {
+      bytes.push(line.text.charCodeAt(i) & 0xFF);
+    }
+    bytes.push(0x0A);
+  }
+
+  for (let bc of barcodesArray) {
+    bytes.push(0x0A);
+    bytes.push(0x1D, 0x48, 0x02); // HRI below
+    bytes.push(0x1D, 0x68, 0x50); // Height
+    bytes.push(0x1D, 0x77, 0x02); // Width
+    bytes.push(0x1D, 0x6B, 0x49, bc.length + 2, 0x7B, 0x42);
+    for (let i = 0; i < bc.length; i++) {
+      bytes.push(bc.charCodeAt(i) & 0xFF);
+    }
+    bytes.push(0x0A, 0x0A);
+  }
+
+  bytes.push(0x0A, 0x0A);
+  bytes.push(0x1D, 0x56, 0x42, 0x00); // Cut
+  return new Uint8Array(bytes);
+}
+
+/* ---------------- storage & default catalog ---------------- */
+const STORE_KEY = "skystore_data_v2";
+let data = loadData();
+
+function loadData(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  
+  // Default inventory items
+  return {
+    products: {
+      "1001": { sku:"1001", name:"Aero Coffee Mug", price:14.50, stock:24 },
+      "1002": { sku:"1002", name:"Titanium Travel Tumbler", price:28.00, stock:15 },
+      "1003": { sku:"1003", name:"SkyStore Hoodie (L)", price:55.00, stock:10 },
+      "1004": { sku:"1004", name:"Aviator Sunglasses", price:45.00, stock:8 },
+      "1005": { sku:"1005", name:"Leather Passport Wallet", price:32.50, stock:19 }
+    },
+    receipts: {}, // receiptId -> { receiptId, date, items:[{sku, name, qty, price}], total, refunded }
+    usedNumbers: {}
+  };
+}
+function saveData(){
+  localStorage.setItem(STORE_KEY, JSON.stringify(data));
+}
+
+/* ---------------- helpers ---------------- */
+function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+function randomDigits(n){
+  let s = "";
+  for(let i=0;i<n;i++) s += randInt(0,9);
+  return s;
+}
+function generateReceiptId(){
+  let n;
+  do { n = "REC" + randomDigits(6); } while(data.receipts[n]);
+  return n;
+}
+function todayString(){
+  return new Date().toLocaleDateString() + " " + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false});
+}
+
+/* ---------------- audio ---------------- */
+let audioCtx = null;
+function ctx(){
+  if(!audioCtx){
+    try{ audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }catch(e){ return null; }
+  }
+  return audioCtx;
+}
+function beep(freq, duration, type, vol){
+  const ac = ctx();
+  if(!ac) return;
+  const osc = ac.createOscillator();
+  const gain = ac.createGain();
+  osc.type = type || "square";
+  osc.frequency.value = freq;
+  gain.gain.value = vol!==undefined ? vol : 0.04;
+  osc.connect(gain); gain.connect(ac.destination);
+  const t = ac.currentTime;
+  gain.gain.setValueAtTime(gain.gain.value, t);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + duration/1000);
+  osc.start(t);
+  osc.stop(t + duration/1000 + 0.02);
+}
+function playKeyClick(){ beep(randInt(700,1100), 12, "square", 0.02); }
+function playScanBeep(){ beep(1900, 90, "square", 0.05); setTimeout(()=>beep(2300,70,"square",0.05), 100); }
+function playError(){ beep(160, 220, "sawtooth", 0.05); }
+function playConfirm(){ beep(880, 60, "sine", 0.04); setTimeout(()=>beep(1320,70,"sine",0.04),70); }
+function playPrintSound(ticks){
+  const n = ticks || 22;
+  for(let i=0;i<n;i++){
+    setTimeout(()=>beep(180+randInt(0,140), 18, "square", 0.025), i*45);
+  }
+}
+
+/* ---------------- terminal I/O ---------------- */
+const outputEl = document.getElementById("output");
+const inputEl = document.getElementById("cmdInput");
+const promptLabel = document.getElementById("promptLabel");
+
+function printLine(text, cls){
+  const div = document.createElement("div");
+  div.className = "line " + (cls||"sys");
+  div.textContent = text;
+  outputEl.appendChild(div);
+  outputEl.scrollTop = outputEl.scrollHeight;
+}
+function printBlock(text, cls){
+  text.split("\n").forEach(l => printLine(l, cls));
+}
+function printRule(){
+  printLine("------------------------------------------------------------", "rule");
+}
+function clearScreen(){
+  outputEl.innerHTML = "";
+}
+function echoInput(val){
+  printLine(promptLabel.textContent + " " + val, "echo");
+}
+
+/* ---------------- state machine ---------------- */
+const state = {
+  mode: "idle",       // idle | add_sku | add_name | add_price | add_stock | sale_cart | return_rec
+  tempProduct: {},
+  cart: []            // [{sku, name, price, qty}]
+};
+
+function updatePrompt(){
+  if(state.mode === "add_sku") { promptLabel.textContent = "PROD[SKU]>"; return; }
+  if(state.mode === "add_name") { promptLabel.textContent = "PROD[NAME]>"; return; }
+  if(state.mode === "add_price") { promptLabel.textContent = "PROD[PRICE]>"; return; }
+  if(state.mode === "add_stock") { promptLabel.textContent = "PROD[STOCK]>"; return; }
+  if(state.mode === "sale_cart") { promptLabel.textContent = "SALE[CART]>"; return; }
+  if(state.mode === "return_rec") { promptLabel.textContent = "RETURN>"; return; }
+  promptLabel.textContent = "SKYSTORE>";
+}
+
+/* ---------------- boot ---------------- */
+function boot(){
+  printBlock(
+`SKYSTORE POINT OF SALE & INVENTORY TERMINAL — v1.0
+(c) SkyStore Systems, All Rights Reserved.
+Terminal ready.
+
+Type HELP for a list of commands, or CATALOG to view products.`, "amber");
+  printRule();
+  updatePrompt();
+}
+
+/* ---------------- help ---------------- */
+function showHelp(){
+  printBlock(
+`AVAILABLE COMMANDS
+  HELP           show this command list
+  PRINTER        connect USB thermal receipt printer
+  CATALOG        list all store inventory & SKUs
+  ADDPROD        add a new product to inventory
+  SALE           start a new POS checkout cart
+  RETURN         process a return using receipt number
+  RECEIPTS       view past sale receipts & statuses
+  CLEAR          clear terminal screen`, "sys");
+}
+
+function showCatalog(){
+  const skus = Object.keys(data.products);
+  if(skus.length === 0){ printLine("No products in inventory. Type ADDPROD to add items.", "dim"); return; }
+  printLine("STORE INVENTORY CATALOG", "amber");
+  skus.forEach(sku => {
+    const p = data.products[sku];
+    printLine(`  [${p.sku}]  ${p.name.padEnd(28)}  $${p.price.toFixed(2)}   Stock: ${p.stock}`, "sys");
+  });
+}
+
+function showReceipts(){
+  const keys = Object.keys(data.receipts);
+  if(keys.length === 0){ printLine("No receipts recorded yet.", "dim"); return; }
+  printLine("PAID TRANSACTIONS & RECEIPTS", "amber");
+  keys.forEach(k => {
+    const r = data.receipts[k];
+    const status = r.refunded ? "[REFUNDED]" : "[PAID]";
+    printLine(`  ${r.receiptId}  ${r.date}  $${r.total.toFixed(2)}  ${status}`, r.refunded ? "err" : "sys");
+  });
+}
+
+/* ---------------- ADDPROD Flow ---------------- */
+function startAddProd(){
+  state.mode = "add_sku";
+  state.tempProduct = {};
+  printLine("ADD NEW PRODUCT", "amber");
+  printLine("Enter unique SKU (e.g. 1006 or scan barcode):", "sys");
+  updatePrompt();
+}
+
+function handleAddSku(val){
+  const sku = val.trim();
+  if(!sku){ printLine("SKU cannot be empty.", "err"); playError(); return; }
+  if(data.products[sku]){
+    printLine(`Product with SKU ${sku} already exists! Choose another.`, "err");
+    playError();
+    return;
+  }
+  state.tempProduct.sku = sku;
+  state.mode = "add_name";
+  printLine(`SKU set: ${sku}`, "sys");
+  printLine("Enter product name:", "amber");
+  updatePrompt();
+}
+
+function handleAddName(val){
+  const name = val.trim();
+  if(!name){ printLine("Name cannot be empty.", "err"); playError(); return; }
+  state.tempProduct.name = name;
+  state.mode = "add_price";
+  printLine(`Name set: ${name}`, "sys");
+  printLine("Enter retail price (e.g. 19.99):", "amber");
+  updatePrompt();
+}
+
+function handleAddPrice(val){
+  const price = parseFloat(val);
+  if(isNaN(price) || price < 0){
+    printLine("Enter a valid positive price.", "err");
+    playError();
+    return;
+  }
+  state.tempProduct.price = price;
+  state.mode = "add_stock";
+  printLine(`Price set: $${price.toFixed(2)}`, "sys");
+  printLine("Enter initial stock quantity:", "amber");
+  updatePrompt();
+}
+
+function handleAddStock(val){
+  const stock = parseInt(val, 10);
+  if(isNaN(stock) || stock < 0){
+    printLine("Enter a valid stock quantity.", "err");
+    playError();
+    return;
+  }
+  state.tempProduct.stock = stock;
+  const p = state.tempProduct;
+  data.products[p.sku] = p;
+  saveData();
+
+  printRule();
+  printLine(`SUCCESS! Added product [${p.sku}] ${p.name} ($${p.price.toFixed(2)}, Qty: ${p.stock})`, "amber");
+  printRule();
+
+  state.mode = "idle";
+  state.tempProduct = {};
+  updatePrompt();
+}
+
+/* ---------------- SALE / POS Checkout Flow ---------------- */
+function startSale(){
+  state.mode = "sale_cart";
+  state.cart = [];
+  printRule();
+  printLine("POS CHECKOUT TERMINAL", "amber");
+  printLine("Scan item SKU or enter SKU to add to cart.", "sys");
+  printLine("Type DONE to complete purchase & print receipt.", "sys");
+  printLine("Type CANCEL to abort cart.", "sys");
+  printRule();
+  updatePrompt();
+}
+
+function handleSaleCart(val){
+  const cmd = val.trim();
+  if(cmd.toLowerCase() === "cancel"){
+    state.mode = "idle";
+    state.cart = [];
+    printLine("Sale cart cancelled.", "amber");
+    updatePrompt();
+    return;
+  }
+  if(cmd.toLowerCase() === "done" || cmd.toLowerCase() === "checkout"){
+    finishSale();
+    return;
+  }
+
+  // Expecting SKU
+  const product = data.products[cmd];
+  if(!product){
+    printLine(`Product SKU "${cmd}" not found in inventory.`, "err");
+    playError();
+    return;
+  }
+  if(product.stock <= 0){
+    printLine(`OUT OF STOCK: ${product.name}`, "err");
+    playError();
+    return;
+  }
+
+  // Add to cart or increment qty
+  let item = state.cart.find(i => i.sku === product.sku);
+  if(item){
+    if(item.qty >= product.stock){
+      printLine(`Cannot add more. Only ${product.stock} in stock.`, "err");
+      playError();
+      return;
+    }
+    item.qty += 1;
+  } else {
+    state.cart.push({ sku: product.sku, name: product.name, price: product.price, qty: 1 });
+  }
+
+  playScanBeep();
+  printCartSummary();
+}
+
+function printCartSummary(){
+  let total = 0;
+  printLine("--- CURRENT CART ---", "dim");
+  state.cart.forEach(i => {
+    let sub = i.price * i.qty;
+    total += sub;
+    printLine(`  ${i.qty}x ${i.name} @ $${i.price.toFixed(2)} = $${sub.toFixed(2)}`, "sys");
+  });
+  printLine(`  TOTAL: $${total.toFixed(2)}`, "amber");
+  printLine("--------------------", "dim");
+}
+
+function finishSale(){
+  if(state.cart.length === 0){
+    printLine("Cart is empty. Add items first or type CANCEL.", "err");
+    playError();
+    return;
+  }
+
+  let total = 0;
+  state.cart.forEach(i => {
+    total += i.price * i.qty;
+    // Deduct stock
+    if(data.products[i.sku]){
+      data.products[i.sku].stock -= i.qty;
+    }
+  });
+
+  const receiptId = generateReceiptId();
+  const dateStr = todayString();
+  const receiptObj = {
+    receiptId,
+    date: dateStr,
+    items: JSON.parse(JSON.stringify(state.cart)),
+    total,
+    refunded: false
+  };
+
+  data.receipts[receiptId] = receiptObj;
+  saveData();
+
+  printRule();
+  printLine(`TRANSACTION APPROVED // RECEIPT: ${receiptId}`, "amber");
+  printLine(`Total Charged: $${total.toFixed(2)}. Printing customer receipt...`, "sys");
+  printRule();
+
+  playPrintSound(16);
+  printReceipt(receiptObj);
+
+  state.mode = "idle";
+  state.cart = [];
+  updatePrompt();
+}
+
+/* ---------------- RETURN Flow ---------------- */
+function startReturn(){
+  state.mode = "return_rec";
+  printRule();
+  printLine("PROCESS RETURN & REFUND", "amber");
+  printLine("Enter receipt ID (e.g. REC123456):", "sys");
+  printLine("Type CANCEL to abort.", "dim");
+  printRule();
+  updatePrompt();
+}
+
+function handleReturnRec(val){
+  const cmd = val.trim();
+  if(cmd.toLowerCase() === "cancel"){
+    state.mode = "idle";
+    printLine("Return process cancelled.", "amber");
+    updatePrompt();
+    return;
+  }
+
+  const receipt = data.receipts[cmd.toUpperCase()];
+  if(!receipt){
+    printLine(`Receipt ID "${cmd}" not found in system logs.`, "err");
+    playError();
+    return;
+  }
+  if(receipt.refunded){
+    printLine(`Receipt ${receipt.receiptId} has ALREADY been fully refunded.`, "err");
+    playError();
+    return;
+  }
+
+  // Mark refunded and restore stock
+  receipt.refunded = true;
+  receipt.items.forEach(i => {
+    if(data.products[i.sku]){
+      data.products[i.sku].stock += i.qty;
+    }
+  });
+  saveData();
+
+  printRule();
+  printLine(`REFUND PROCESSED SUCCESSFULLY for ${receipt.receiptId}`, "amber");
+  printLine(`Refund Amount: $${receipt.total.toFixed(2)}. Inventory stock restored.`, "sys");
+  printRule();
+
+  playConfirm();
+  state.mode = "idle";
+  updatePrompt();
+}
+
+/* ---------------- main command parser ---------------- */
+function handleInput(raw){
+  const val = raw.trim();
+  if(val === "") return;
+  echoInput(val);
+
+  if(state.mode === "add_sku"){ handleAddSku(val); return; }
+  if(state.mode === "add_name"){ handleAddName(val); return; }
+  if(state.mode === "add_price"){ handleAddPrice(val); return; }
+  if(state.mode === "add_stock"){ handleAddStock(val); return; }
+  if(state.mode === "sale_cart"){ handleSaleCart(val); return; }
+  if(state.mode === "return_rec"){ handleReturnRec(val); return; }
+
+  const cmd = val.toLowerCase();
+  if(cmd === "help"){ showHelp(); return; }
+  if(cmd === "printer"){ connectMunbynPrinter(); return; }
+  if(cmd === "clear"){ clearScreen(); return; }
+  if(cmd === "catalog"){ showCatalog(); return; }
+  if(cmd === "addprod"){ startAddProd(); return; }
+  if(cmd === "sale"){ startSale(); return; }
+  if(cmd === "return"){ startReturn(); return; }
+  if(cmd === "receipts"){ showReceipts(); return; }
+
+  printLine(`Unrecognized command: "${val}". Type HELP for options.`, "err");
+  playError();
+}
+
+/* ---------------- input wiring ---------------- */
+inputEl.addEventListener("keydown", (e)=>{
+  if(e.key === "Enter"){
+    const v = inputEl.value;
+    inputEl.value = "";
+    handleInput(v);
+    updatePrompt();
+  } else if(e.key.length === 1){
+    playKeyClick();
+  }
+});
+document.getElementById("screen").addEventListener("click", ()=> inputEl.focus());
+window.addEventListener("focus", ()=> inputEl.focus());
+inputEl.focus();
+
+/* ---------------- clock ---------------- */
+function tickClock(){
+  document.getElementById("clock").textContent = new Date().toLocaleTimeString([], {hour12:false});
+}
+setInterval(tickClock, 1000);
+tickClock();
+
+/* =========================================================
+   RECEIPT PRINTING — Direct USB ESC/POS & Popup Fallback
+   ========================================================= */
+async function openPrintWindow(title, bodyHtml, scriptBody, textLinesForEscPos, barcodesArray){
+  if(!forcePopupPrintMode && directPrintEnabled && textLinesForEscPos) {
+    const rawBytes = buildEscPosText(textLinesForEscPos, barcodesArray || []);
+    const success = await sendRawToPrinter(rawBytes);
+    if(success) {
+      printLine(`[THERMAL PRINTER] Printed ${title} directly!`, "sys");
+      return;
+    }
+  }
+
+  const w = window.open("", "_blank", "width=420,height=680");
+  if(!w){
+    printLine("Popup blocked by browser. Allow popups to print receipts.", "err");
+    return null;
+  }
+  const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>${title}</title>
+<style>
+  @page { size: 80mm auto; margin: 1mm 2mm; }
+  * { box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    width:76mm; font-family:'Courier New', Courier, monospace;
+    color:#000; font-size:14px; line-height:1.2; font-weight:700;
+    background:#fff;
+  }
+  .center{ text-align:center; }
+  .bold{ font-weight:900; }
+  .big{ font-size:18px; }
+  .hr{ border-top:2px dashed #000; margin:2mm 0; }
+  .row{ display:flex; justify-content:space-between; gap:2mm; font-size:13px; margin:1mm 0; }
+  .row span:last-child{ text-align:right; }
+  canvas{ max-width:100%; height:auto; display:inline-block; }
+  .code{ font-size:14px; letter-spacing:1px; margin-top:1mm; font-weight:900; }
+  .receipt-box { border: 2px solid #000; padding: 3mm; }
+</style>
+</head>
+<body>
+${bodyHtml}
+<script src="https://cdn.jsdelivr.net/npm/bwip-js@4.10.0/dist/bwip-js-min.js"><\/script>
+<script>
+window.onload = function() {
+  try {
+    ${scriptBody}
+  } catch(err) {
+    console.error("Barcode generation error:", err);
+  }
+  setTimeout(function(){ window.print(); }, 250);
+};
+<\/script>
+</body></html>`;
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+  setTimeout(()=> inputEl.focus(), 400);
+  return w;
+}
+
+function printReceipt(receipt){
+  let itemsHtml = "";
+  receipt.items.forEach(i => {
+    itemsHtml += `<div class="row"><span>${i.qty}x ${escapeHtml(i.name)}</span><span>$${(i.price * i.qty).toFixed(2)}</span></div>`;
+  });
+
+  const body = `
+  <div class="receipt-box">
+    <div class="center bold big">SKYSTORE RETAIL</div>
+    <div class="center" style="font-size:12px;">MAIN TERMINAL // HUB</div>
+    <div class="hr"></div>
+    <div style="font-size:12px;">RECEIPT: ${receipt.receiptId}</div>
+    <div style="font-size:12px;">DATE: ${receipt.date}</div>
+    <div class="hr"></div>
+    ${itemsHtml}
+    <div class="hr"></div>
+    <div class="row bold" style="font-size:16px;">
+      <span>TOTAL PAID</span>
+      <span>$${receipt.total.toFixed(2)}</span>
+    </div>
+    <div class="hr"></div>
+    <div class="center" style="margin-top:2mm;"><canvas id="recbc"></canvas></div>
+    <div class="center code">${receipt.receiptId}</div>
+    <div class="center" style="font-size:10px; margin-top:2mm;">THANK YOU FOR SHOPPING AT SKYSTORE!</div>
+  </div>
+  `;
+
+  const script = `
+  try {
+    bwipjs.toCanvas('recbc', { bcid:'code128', text:'${receipt.receiptId}', scale:2, height:14, includetext:false });
+  } catch(e) {
+    document.getElementById('recbc').outerHTML = '<div class="code">${receipt.receiptId}</div>';
+  }
+  `;
+
+  const escLines = [
+    { text: `SKYSTORE RETAIL`, bold: true, size: 'big' },
+    { text: `RECEIPT: ${receipt.receiptId}`, bold: true, size: 'med' },
+    { text: `DATE: ${receipt.date}`, bold: false, size: 'normal' },
+    { text: `--------------------------------`, bold: false, size: 'normal' }
+  ];
+
+  receipt.items.forEach(i => {
+    escLines.push({ text: `${i.qty}x ${i.name} - $${(i.price * i.qty).toFixed(2)}`, bold: false, size: 'normal' });
+  });
+
+  escLines.push(
+    { text: `--------------------------------`, bold: false, size: 'normal' },
+    { text: `TOTAL: $${receipt.total.toFixed(2)}`, bold: true, size: 'big' },
+    { text: `THANK YOU FOR SHOPPING!`, bold: false, size: 'normal' }
+  );
+
+  openPrintWindow(`Receipt ${receipt.receiptId}`, body, script, escLines, [receipt.receiptId]);
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({
+    "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
+  }[c]));
+}
+
+/* ---------------- go ---------------- */
+boot();
+</script>
+</body>
+</html>
