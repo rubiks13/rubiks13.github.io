@@ -130,7 +130,7 @@
 <script>
 /* =========================================================
    SKYTERM — fictional airport departure control terminal
-   Single-file HTML/CSS/JS with improved printer error handling
+   Single-file HTML/CSS/JS with manual customer booking mode
    ========================================================= */
 
 const BWIP_URL = "https://cdnjs.cloudflare.com/ajax/libs/bwip-js/4.10.0/bwip-js-min.js";
@@ -175,12 +175,24 @@ let printerEndpointOut = null;
 let directPrintEnabled = false;
 let forcePopupPrintMode = true; // Default to web popup mode for reliable out-of-box printing
 
+let manualCustomerMode = true; // true = new customer booking flow, false = old batch schdl flow
+
+function toggleMode() {
+  manualCustomerMode = !manualCustomerMode;
+  if (manualCustomerMode) {
+    printLine("SYSTEM MODE: CUSTOMER BOOKING ('SCHDL' for phone booking, 'SCHDLFLIGHT' for batch)", "amber");
+  } else {
+    printLine("SYSTEM MODE: BATCH SCHDL (Classic quick flight generation)", "amber");
+  }
+  playConfirm();
+}
+
 function toggleFallbackMode() {
   forcePopupPrintMode = !forcePopupPrintMode;
   const statusEl = document.getElementById("modeStatus");
   if (forcePopupPrintMode) {
     statusEl.textContent = "POPUP / DRIVER";
-    printLine("Printer Mode set to OS Driver Popup Window (works with standard installed MUNBYN Windows/Mac drivers).", "amber");
+    printLine("Printer Mode set to OS Driver Popup Window.", "amber");
   } else {
     statusEl.textContent = "DIRECT ESC/POS (USB)";
     printLine("Printer Mode set to Direct WebUSB raw ESC/POS commands.", "amber");
@@ -268,43 +280,35 @@ async function sendRawToPrinter(uint8Array) {
 /* Helper to build robust ESC/POS byte commands for MUNBYN POS-80 including native hardware barcodes */
 function buildEscPosText(textLines, barcodesArray = []) {
   let bytes = [];
-  // Initialize printer ESC @
   bytes.push(0x1B, 0x40);
-  // Center alignment default
   bytes.push(0x1B, 0x61, 0x01);
 
   for (let line of textLines) {
     if (line.bold) {
-      bytes.push(0x1B, 0x45, 0x01); // Bold on
+      bytes.push(0x1B, 0x45, 0x01);
     } else {
-      bytes.push(0x1B, 0x45, 0x00); // Bold off
+      bytes.push(0x1B, 0x45, 0x00);
     }
     if (line.size === 'big') {
-      bytes.push(0x1D, 0x21, 0x11); // Double width & height
+      bytes.push(0x1D, 0x21, 0x11);
     } else if (line.size === 'med') {
-      bytes.push(0x1D, 0x21, 0x01); // Double height
+      bytes.push(0x1D, 0x21, 0x01);
     } else {
-      bytes.push(0x1D, 0x21, 0x00); // Normal
+      bytes.push(0x1D, 0x21, 0x00);
     }
     
-    // Encode text
     for (let i = 0; i < line.text.length; i++) {
       bytes.push(line.text.charCodeAt(i) & 0xFF);
     }
-    bytes.push(0x0A); // Newline
+    bytes.push(0x0A);
   }
 
-  // If multiple barcodes are provided, print each one as a native hardware barcode
   for (let bc of barcodesArray) {
     bytes.push(0x0A);
-    // Set HRI characters printing position (2 = below barcode)
     bytes.push(0x1D, 0x48, 0x02);
-    // Set barcode height (80 dots)
     bytes.push(0x1D, 0x68, 0x50);
-    // Set barcode width multiplier (2)
     bytes.push(0x1D, 0x77, 0x02);
 
-    // ESC/POS Code 128 command: GS k 73 len data
     bytes.push(0x1D, 0x6B, 0x49, bc.length + 2, 0x7B, 0x42);
     for (let i = 0; i < bc.length; i++) {
       bytes.push(bc.charCodeAt(i) & 0xFF);
@@ -312,14 +316,13 @@ function buildEscPosText(textLines, barcodesArray = []) {
     bytes.push(0x0A, 0x0A);
   }
 
-  // Controlled paper feed & single clean cut command
   bytes.push(0x0A, 0x0A);
-  bytes.push(0x1D, 0x56, 0x42, 0x00); // Partial cut
+  bytes.push(0x1D, 0x56, 0x42, 0x00);
   return new Uint8Array(bytes);
 }
 
 /* ---------------- storage ---------------- */
-const STORE_KEY = "skyterm_data_v1";
+const STORE_KEY = "skyterm_data_v2";
 let data = loadData();
 
 function loadData(){
@@ -445,16 +448,18 @@ function echoInput(val){
 
 /* ---------------- state machine ---------------- */
 const state = {
-  mode: "idle",       // idle | schdl_dest | schdl_aircraft | schdl_count | addbg_weight | brd_flight | boarding
-  currentPassenger: null, // checkin code
-  boardingFlight: null,   // flight number currently being boarded
-  schdl: {}
+  mode: "idle",       // idle | schdl_dest | schdl_aircraft | schdl_count | manual_dest | manual_count | manual_names | manual_address | addbg_weight | brd_flight | boarding
+  currentPassenger: null,
+  boardingFlight: null,
+  schdl: {},
+  manualBooking: {}   // destination, paxCount, names:[], address:''
 };
 
 function updatePrompt(){
   if(state.mode === "boarding"){ promptLabel.textContent = "BOARD[" + state.boardingFlight + "]>"; return; }
   if(state.mode === "brd_flight"){ promptLabel.textContent = "BOARD>"; return; }
-  if(state.mode.startsWith("schdl")){ promptLabel.textContent = "SCHDL>"; return; }
+  if(state.mode.startsWith("schdl")){ promptLabel.textContent = "SCHDLFLIGHT>"; return; }
+  if(state.mode.startsWith("manual_")){ promptLabel.textContent = "BOOKING>"; return; }
   if(state.mode === "addbg_weight"){ promptLabel.textContent = "BAG>"; return; }
   if(state.currentPassenger && data.passengers[state.currentPassenger]){
     const p = data.passengers[state.currentPassenger];
@@ -468,11 +473,11 @@ function updatePrompt(){
 /* ---------------- boot ---------------- */
 function boot(){
   printBlock(
-`SKYTERM DEPARTURE CONTROL SYSTEM — v3.1 (MUNBYN POS-80 Direct Link Ready)
+`SKYTERM DEPARTURE CONTROL SYSTEM — v4.0 (Customer Phone Booking Enabled)
 (c) fictional airline systems, for simulation & training use only
 Terminal ready.
 
-Type HELP for a list of commands, or PRINTER to connect your MUNBYN POS-80.`, "amber");
+Type HELP for commands. Type MODE to toggle between Manual Customer Booking and Batch Flight Scheduling.`, "amber");
   printRule();
   updatePrompt();
 }
@@ -482,24 +487,22 @@ function showHelp(){
   printBlock(
 `AVAILABLE COMMANDS
   PRINTER        connect MUNBYN POS-80 thermal printer via WebUSB
+  MODE           toggle between Manual Booking Mode and Batch Schdl Mode
   HELP           show this list
-  SCHDL          schedule a new flight (destination / aircraft / pax count)
-  [scan barcode] type or scan a 10-digit check-in number to check a
-                 passenger in (this also selects them as the active
-                 passenger for ADDBG / PTPS)
-  ADDBG          add a bag for the active (checked-in) passenger
-  PTPS           print boarding pass for the active passenger
-  BRD            board a flight (asks which flight number first, then
-                 scan boarding passes at the gate)
-  BRD COMPLETE   exit boarding mode, list any no-shows, and clear the
-                 boarded passengers from storage
+  SCHDL          [Manual Mode] customer calls for booking (destination, pax, names, address, check-in slips)
+                 [Batch Mode] classic batch flight creation
+  SCHDLFLIGHT    [Always available] schedule a whole flight instantly
+  [scan barcode] scan 10-digit check-in barcode to activate passenger
+  ADDBG          add a bag for active passenger
+  PTPS           print boarding pass for active passenger
+  BRD            board a flight
   FLIGHTS        list scheduled flights
-  CLEAR          clear the screen`, "sys");
+  CLEAR          clear screen`, "sys");
 }
 
 function showFlights(){
   const keys = Object.keys(data.flights);
-  if(keys.length===0){ printLine("No flights scheduled yet. Type SCHDL to create one.", "dim"); return; }
+  if(keys.length===0){ printLine("No flights scheduled yet. Type SCHDL to book or SCHDLFLIGHT to create batch.", "dim"); return; }
   printLine("SCHEDULED FLIGHTS", "amber");
   keys.forEach(fn=>{
     const f = data.flights[fn];
@@ -510,11 +513,11 @@ function showFlights(){
   });
 }
 
-/* ---------------- SCHDL flow ---------------- */
-function startSchdl(){
+/* ---------------- CLASSIC SCHDLFLIGHT & SCHDL (Batch) ---------------- */
+function startSchdlFlight(){
   state.mode = "schdl_dest";
   state.schdl = {};
-  printLine("SCHEDULE NEW FLIGHT", "amber");
+  printLine("SCHEDULE BATCH FLIGHT (SCHDLFLIGHT)", "amber");
   printLine("Select destination:", "sys");
   DESTINATIONS.forEach((d,i)=> printLine(`  ${i+1}) ${d.code}  ${d.name}`, "sys"));
   printLine("Enter destination code or number:", "amber");
@@ -526,7 +529,7 @@ function handleSchdlDest(val){
   if(!isNaN(idx) && DESTINATIONS[idx-1]) dest = DESTINATIONS[idx-1];
   else dest = DESTINATIONS.find(d=>d.code.toLowerCase() === val.toLowerCase());
   if(!dest){
-    printLine(`Unrecognized destination "${val}". Try a code like LAX, or a number 1-10.`, "err");
+    printLine(`Unrecognized destination "${val}". Try a code like LAX, or 1-10.`, "err");
     playError();
     return;
   }
@@ -544,14 +547,14 @@ function handleSchdlAircraft(val){
   if(!isNaN(idx) && AIRCRAFT[idx-1]) ac = AIRCRAFT[idx-1];
   else ac = AIRCRAFT.find(a=>a.code.toLowerCase() === val.toLowerCase());
   if(!ac){
-    printLine(`Unrecognized aircraft "${val}". Try a code like 737, or a number 1-5.`, "err");
+    printLine(`Unrecognized aircraft "${val}". Try a code like 737, or 1-5.`, "err");
     playError();
     return;
   }
   state.schdl.aircraft = ac;
   state.mode = "schdl_count";
   printLine(`Aircraft set: ${ac.name}`, "sys");
-  printLine(`Enter number of passengers for this flight (1-${ac.capacity}):`, "amber");
+  printLine(`Enter number of passengers (1-${ac.capacity}):`, "amber");
   updatePrompt();
 }
 function handleSchdlCount(val){
@@ -562,13 +565,13 @@ function handleSchdlCount(val){
     playError();
     return;
   }
-  createFlight(state.schdl.dest, state.schdl.aircraft, n);
+  createBatchFlight(state.schdl.dest, state.schdl.aircraft, n);
   state.mode = "idle";
   state.schdl = {};
   updatePrompt();
 }
 
-function createFlight(dest, aircraft, count){
+function createBatchFlight(dest, aircraft, count){
   const {flightNumber, airlineName} = generateFlightNumber();
   const flight = {
     flightNumber, airlineName,
@@ -581,8 +584,7 @@ function createFlight(dest, aircraft, count){
   const passengers = [];
   for(let i=0;i<count;i++){
     const checkinCode = generateUniqueNumber();
-    const assignSeat = Math.random() < 0.75;
-    const seat = assignSeat ? randomSeat(usedSeats, aircraft.capacity) : null;
+    const seat = randomSeat(usedSeats, aircraft.capacity);
     const passenger = {
       checkinCode, name: randomName(),
       flightNumber, destCode: dest.code,
@@ -597,13 +599,142 @@ function createFlight(dest, aircraft, count){
   saveData();
 
   printRule();
-  printLine(`Creating flight ${flightNumber} (${airlineName}) -> ${dest.code} ${dest.name}`, "amber");
+  printLine(`Created batch flight ${flightNumber} (${airlineName}) -> ${dest.code} ${dest.name}`, "amber");
   printLine(`Aircraft: ${aircraft.name}   Passengers: ${count}`, "sys");
-  printLine("Sending manifest barcodes to printer...", "sys");
+  printRule();
+  playPrintSound(10);
+}
+
+/* ---------------- MANUAL CUSTOMER BOOKING FLOW (SCHDL) ---------------- */
+function startManualBooking(){
+  state.mode = "manual_dest";
+  state.manualBooking = { names: [] };
+  printLine("CUSTOMER PHONE BOOKING (SCHDL)", "amber");
+  printLine("Select destination for customer:", "sys");
+  DESTINATIONS.forEach((d,i)=> printLine(`  ${i+1}) ${d.code}  ${d.name}`, "sys"));
+  printLine("Enter destination code or number:", "amber");
+  updatePrompt();
+}
+
+function handleManualDest(val){
+  const idx = parseInt(val,10);
+  let dest = null;
+  if(!isNaN(idx) && DESTINATIONS[idx-1]) dest = DESTINATIONS[idx-1];
+  else dest = DESTINATIONS.find(d=>d.code.toLowerCase() === val.toLowerCase());
+  if(!dest){
+    printLine(`Unrecognized destination "${val}". Try a code like LAX or 1-10.`, "err");
+    playError();
+    return;
+  }
+  state.manualBooking.dest = dest;
+  state.mode = "manual_count";
+  printLine(`Destination set: ${dest.code} - ${dest.name}`, "sys");
+  printLine("Enter number of passengers for this booking:", "amber");
+  updatePrompt();
+}
+
+function handleManualCount(val){
+  const count = parseInt(val, 10);
+  if(isNaN(count) || count < 1 || count > 10){
+    printLine("Enter a valid passenger count (1-10).", "err");
+    playError();
+    return;
+  }
+  state.manualBooking.paxTotal = count;
+  state.manualBooking.names = [];
+  state.mode = "manual_names";
+  printLine(`Passenger count set to ${count}.`, "sys");
+  printLine(`Enter name for passenger #1:`, "amber");
+  updatePrompt();
+}
+
+function handleManualNames(val){
+  const name = val.trim();
+  if(!name){
+    printLine("Passenger name cannot be blank.", "err");
+    playError();
+    return;
+  }
+  state.manualBooking.names.push(name);
+  const currentIdx = state.manualBooking.names.length;
+  const total = state.manualBooking.paxTotal;
+
+  if(currentIdx < total){
+    printLine(`Passenger #${currentIdx} (${name}) recorded.`, "sys");
+    printLine(`Enter name for passenger #${currentIdx + 1}:`, "amber");
+    updatePrompt();
+  } else {
+    printLine(`All ${total} passenger names recorded.`, "sys");
+    state.mode = "manual_address";
+    printLine("Enter customer billing/contact address:", "amber");
+    updatePrompt();
+  }
+}
+
+function handleManualAddress(val){
+  const address = val.trim();
+  if(!address){
+    printLine("Address cannot be blank.", "err");
+    playError();
+    return;
+  }
+  state.manualBooking.address = address;
+  finalizeManualBooking();
+  state.mode = "idle";
+  updatePrompt();
+}
+
+function finalizeManualBooking(){
+  const booking = state.manualBooking;
+  const dest = booking.dest;
+
+  // Ensure there is an active flight for this destination or create one automatically
+  let flight = Object.values(data.flights).find(f => f.destCode === dest.code);
+  if(!flight){
+    const {flightNumber, airlineName} = generateFlightNumber();
+    const ac = AIRCRAFT[0];
+    flight = {
+      flightNumber, airlineName,
+      destCode: dest.code, destName: dest.name,
+      aircraftCode: ac.code, aircraftName: ac.name,
+      createdAt: new Date().toISOString(),
+      passengerCodes: []
+    };
+    data.flights[flightNumber] = flight;
+  }
+
+  const createdPassengers = [];
+  const usedSeats = new Set(flight.passengerCodes.map(c => data.passengers[c]?.seat).filter(Boolean));
+
+  booking.names.forEach(name => {
+    const checkinCode = generateUniqueNumber();
+    const seat = randomSeat(usedSeats, 32);
+    const passenger = {
+      checkinCode,
+      name,
+      flightNumber: flight.flightNumber,
+      destCode: dest.code,
+      seat,
+      checkedIn: false,
+      bags: [],
+      address: booking.address,
+      boardingPassCode: null,
+      boarded: false
+    };
+    data.passengers[checkinCode] = passenger;
+    flight.passengerCodes.push(checkinCode);
+    createdPassengers.push(passenger);
+  });
+  saveData();
+
+  printRule();
+  printLine(`BOOKING CONFIRMED! Flight ${flight.flightNumber} -> ${dest.code}`, "amber");
+  printLine(`Passengers: ${createdPassengers.length} | Address: ${booking.address}`, "sys");
+  printLine("Printing individual check-in slips with cuts between passengers...", "sys");
   printRule();
 
-  playPrintSound(count*2);
-  printManifestBarcodes(flight, passengers);
+  // Print each passenger's check-in slip sequentially with cuts between them
+  printManualCustomerSlips(flight, createdPassengers, booking.address);
 }
 
 /* ---------------- ADDBG flow ---------------- */
@@ -657,7 +788,7 @@ function doPtps(){
 function startBoarding(){
   const keys = Object.keys(data.flights);
   if(keys.length === 0){
-    printLine("No flights scheduled yet. Type SCHDL to create one first.", "err");
+    printLine("No flights scheduled yet.", "err");
     playError();
     return;
   }
@@ -675,7 +806,7 @@ function handleBrdFlight(val){
   const fn = val.trim().toUpperCase();
   const flight = data.flights[fn];
   if(!flight){
-    printLine(`No flight found with number "${val}". Enter one of the flight numbers listed above.`, "err");
+    printLine(`No flight found with number "${val}".`, "err");
     playError();
     return;
   }
@@ -700,12 +831,12 @@ function handleBoarding(val){
       return;
     }
     if(match.flightNumber !== state.boardingFlight){
-      printLine(`WRONG FLIGHT: that boarding pass is for flight ${match.flightNumber}, not ${state.boardingFlight}.`, "err");
+      printLine(`WRONG FLIGHT: boarding pass is for flight ${match.flightNumber}, not ${state.boardingFlight}.`, "err");
       playError();
       return;
     }
     if(match.boarded){
-      printLine(`Already boarded: ${match.name} (seat ${match.seat||"N/A"})`, "dim");
+      printLine(`Already boarded: ${match.name}`, "dim");
       playError();
       return;
     }
@@ -715,7 +846,7 @@ function handleBoarding(val){
     printLine(`Boarded: ${match.name}  Flight ${match.flightNumber}  Seat ${match.seat || "N/A"}`, "sys");
     return;
   }
-  printLine("Invalid input during boarding. Scan a boarding pass or type BRD COMPLETE.", "err");
+  printLine("Invalid input during boarding. Scan boarding pass or type BRD COMPLETE.", "err");
   playError();
 }
 function finishBoarding(){
@@ -727,15 +858,12 @@ function finishBoarding(){
 
   printRule();
   if(noShows.length === 0){
-    printLine(`Boarding complete for flight ${fn}. All passengers with printed boarding passes have boarded.`, "amber");
+    printLine(`Boarding complete for flight ${fn}. All passengers boarded.`, "amber");
   } else {
-    printLine(`Boarding complete for flight ${fn}. The following passengers have NOT boarded:`, "amber");
-    noShows.forEach(p=>{
-      printLine(`  ${p.name}  Seat ${p.seat || "N/A"}`, "err");
-    });
+    printLine(`Boarding complete for flight ${fn}. No-shows:`, "amber");
+    noShows.forEach(p=> printLine(`  ${p.name}  Seat ${p.seat || "N/A"}`, "err"));
   }
 
-  // Clear out data for anyone who has boarded — no longer needed.
   const boardedCodes = flight.passengerCodes.filter(c => data.passengers[c] && data.passengers[c].boarded);
   boardedCodes.forEach(c => delete data.passengers[c]);
   flight.passengerCodes = flight.passengerCodes.filter(c => !boardedCodes.includes(c));
@@ -762,10 +890,9 @@ function scanCheckin(code){
   saveData();
   printRule();
   printLine(`Checked in: ${passenger.name}`, "amber");
-  printLine(`Flight ${passenger.flightNumber}  ->  ${passenger.destCode}`, "sys");
-  printLine(`Seat: ${passenger.seat || "NO SEAT ASSIGNED - assign at gate"}`, "sys");
-  printLine(`Bags on file: ${passenger.bags.length}`, "sys");
-  printLine("Type ADDBG to add a bag, or PTPS to print a boarding pass.", "dim");
+  printLine(`Flight ${passenger.flightNumber}  ->  ${passenger.destCode} | Seat: ${passenger.seat || "N/A"}`, "sys");
+  printLine(`Address on file: ${passenger.address || 'N/A'}`, "sys");
+  printLine("Type ADDBG to add a bag, or PTPS to print boarding pass.", "dim");
   printRule();
   updatePrompt();
 }
@@ -779,6 +906,10 @@ function handleInput(raw){
   if(state.mode === "schdl_dest"){ handleSchdlDest(val); return; }
   if(state.mode === "schdl_aircraft"){ handleSchdlAircraft(val); return; }
   if(state.mode === "schdl_count"){ handleSchdlCount(val); return; }
+  if(state.mode === "manual_dest"){ handleManualDest(val); return; }
+  if(state.mode === "manual_count"){ handleManualCount(val); return; }
+  if(state.mode === "manual_names"){ handleManualNames(val); return; }
+  if(state.mode === "manual_address"){ handleManualAddress(val); return; }
   if(state.mode === "addbg_weight"){ handleAddbgWeight(val); return; }
   if(state.mode === "brd_flight"){ handleBrdFlight(val); return; }
   if(state.mode === "boarding"){ handleBoarding(val); return; }
@@ -787,14 +918,20 @@ function handleInput(raw){
   if(cmd === "help"){ showHelp(); return; }
   if(cmd === "printer"){ connectMunbynPrinter(); return; }
   if(cmd === "clear"){ clearScreen(); return; }
-  if(cmd === "schdl"){ startSchdl(); return; }
+  if(cmd === "mode"){ toggleMode(); return; }
+  if(cmd === "schdlflight"){ startSchdlFlight(); return; }
+  if(cmd === "schdl"){
+    if(manualCustomerMode){ startManualBooking(); }
+    else { startSchdlFlight(); }
+    return;
+  }
   if(cmd === "addbg"){ startAddbg(); return; }
   if(cmd === "ptps"){ doPtps(); return; }
   if(cmd === "brd"){ startBoarding(); return; }
   if(cmd === "flights"){ showFlights(); return; }
   if(/^\d{10}$/.test(val)){ scanCheckin(val); return; }
 
-  printLine(`Unrecognized command: "${val}". Type HELP for a list of commands.`, "err");
+  printLine(`Unrecognized command: "${val}". Type HELP for options.`, "err");
   playError();
 }
 
@@ -821,24 +958,21 @@ setInterval(tickClock, 1000);
 tickClock();
 
 /* =========================================================
-   PRINTING — supports direct WebUSB ESC/POS (MUNBYN POS-80) 
-   with fallback popup window for standard system printers.
+   PRINTING — Individual customer check-in slips with cuts
    ========================================================= */
 async function openPrintWindow(title, bodyHtml, scriptBody, textLinesForEscPos, barcodesArray){
-  // Try direct ESC/POS printing first if WebUSB is active and popup mode is not forced
   if(!forcePopupPrintMode && directPrintEnabled && textLinesForEscPos) {
     const rawBytes = buildEscPosText(textLinesForEscPos, barcodesArray || []);
     const success = await sendRawToPrinter(rawBytes);
     if(success) {
-      printLine(`[MUNBYN POS-80] Printed ${title} directly with hardware barcodes!`, "sys");
-      return; // Skip popup window entirely when direct printing succeeds to prevent duplicates
+      printLine(`[MUNBYN POS-80] Printed ${title} directly!`, "sys");
+      return;
     }
   }
 
-  // Standard OS print dialog fallback with premium thermal ticket styling
   const w = window.open("", "_blank", "width=420,height=680");
   if(!w){
-    printLine("Popup window was blocked by browser. Click the popup icon in your address bar to allow printing.", "err");
+    printLine("Popup window was blocked by browser. Allow popups to print tickets.", "err");
     return null;
   }
   const html = `<!DOCTYPE html>
@@ -850,97 +984,17 @@ async function openPrintWindow(title, bodyHtml, scriptBody, textLinesForEscPos, 
   body{
     width:76mm; font-family:'Courier New', Courier, monospace;
     color:#000; font-size:14px; line-height:1.2; font-weight:700;
-    -webkit-font-smoothing:none; background:#fff;
+    background:#fff;
   }
   .center{ text-align:center; }
   .bold{ font-weight:900; }
-  .big{ font-size:20px; letter-spacing:0.5px; }
+  .big{ font-size:18px; }
   .hr{ border-top:2px dashed #000; margin:2mm 0; }
-  .hr-solid{ border-top:2px solid #000; margin:2mm 0; }
-  .row{ display:flex; justify-content:space-between; gap:2mm; font-size:14px; margin:1mm 0; }
+  .row{ display:flex; justify-content:space-between; gap:2mm; font-size:13px; margin:1mm 0; }
   .row span:last-child{ text-align:right; }
-  .bcgrid{ display:flex; flex-direction:column; gap:3mm; margin-top:2mm; }
-  .bccell{ text-align:center; padding: 2mm 0; background:#f9f9f9; border:1px solid #ddd; border-radius:2px; }
-  canvas{ max-width:100%; height:auto; image-rendering:pixelated; display:inline-block; }
+  canvas{ max-width:100%; height:auto; display:inline-block; }
   .code{ font-size:14px; letter-spacing:1px; margin-top:1mm; font-weight:900; }
-
-  /* Professional Airline Ticket & Baggage Tag Styling */
-  .ticket-box {
-    border: 2px solid #000;
-    border-radius: 4px;
-    padding: 3mm;
-    margin-bottom: 2mm;
-    background: #fff;
-  }
-  .ticket-header {
-    background: #000;
-    color: #fff;
-    padding: 2mm 3mm;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-weight: 900;
-    letter-spacing: 1px;
-  }
-  .ticket-title {
-    font-size: 15px;
-  }
-  .airline-badge {
-    font-size: 12px;
-    background: #fff;
-    color: #000;
-    padding: 1px 4px;
-    border-radius: 2px;
-  }
-  .grid-2 {
-    display: flex;
-    justify-content: space-between;
-    gap: 2mm;
-    margin: 1.5mm 0;
-  }
-  .grid-2 > div {
-    flex: 1;
-    background: #f4f4f4;
-    padding: 1.5mm 2mm;
-    border: 1px solid #ccc;
-    border-radius: 2px;
-  }
-  .field-label {
-    font-size: 9px;
-    color: #333;
-    text-transform: uppercase;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-  }
-  .field-val {
-    font-size: 16px;
-    font-weight: 900;
-    margin-top: 0.5mm;
-  }
-  .field-val-lg {
-    font-size: 22px;
-    font-weight: 900;
-    letter-spacing: 1px;
-  }
-  .bag-tag-main {
-    border: 3px solid #000;
-    padding: 3mm;
-    text-align: center;
-    background: #fff;
-  }
-  .bag-dest-box {
-    border: 4px solid #000;
-    background: #000;
-    color: #fff;
-    padding: 2mm;
-    margin: 2mm 0;
-  }
-  .bag-dest-code {
-    font-size: 42px;
-    font-weight: 900;
-    letter-spacing: 3px;
-    line-height: 1;
-  }
+  .slip-box { border: 2px solid #000; padding: 3mm; margin-bottom: 4mm; page-break-after: always; }
 </style>
 </head>
 <body>
@@ -964,201 +1018,56 @@ window.onload = function() {
   return w;
 }
 
-function printManifestBarcodes(flight, passengers){
-  let cells = "";
-  passengers.forEach((p,i)=>{
-    cells += `<div class="bccell"><div style="font-size:12px; font-weight:bold;">${escapeHtml(p.name)} (Seat: ${p.seat||'N/A'})</div><canvas id="bc${i}"></canvas><div class="code">${p.checkinCode}</div></div>`;
-  });
-  const header = `
-  <div class="center bold" style="font-size:18px;">FLIGHT MANIFEST: ${flight.flightNumber}</div>
-  <div class="center" style="font-size:13px;">${flight.airlineName} -> ${flight.destCode}</div>
-  <div class="hr"></div>
-  <div class="bcgrid">${cells}</div>
-  `;
-  let script = "";
-  passengers.forEach((p,i)=>{
-    script += `
-    try {
-      bwipjs.toCanvas('bc${i}', { bcid:'code128', text:'${p.checkinCode}', scale:1.5, height:12, includetext:false });
-    } catch(e) {
-      document.getElementById('bc${i}').outerHTML = '<div style="font-weight:bold;">${p.checkinCode}</div>';
-    }
+/* Print individual customer check-in slips with cuts between passengers */
+function printManualCustomerSlips(flight, passengers, address){
+  let bodyHtml = "";
+  let scriptBody = "";
+  let escLines = [];
+  let allBarcodes = [];
+
+  passengers.forEach((p, index) => {
+    bodyHtml += `
+    <div class="slip-box">
+      <div class="center bold big">SKYTERM RESERVATION SLIP</div>
+      <div class="center" style="font-size:11px;">CUSTOMER PHONE BOOKING // DAILY RUN</div>
+      <div class="hr"></div>
+      <div style="font-size:13px;">PASSENGER: ${escapeHtml(p.name)}</div>
+      <div style="font-size:12px;">ADDRESS: ${escapeHtml(address)}</div>
+      <div class="hr"></div>
+      <div class="row"><span>FLIGHT:</span><span>${flight.flightNumber} (${flight.airlineName})</span></div>
+      <div class="row"><span>DESTINATION:</span><span>${flight.destCode} - ${flight.destName}</span></div>
+      <div class="row"><span>SEAT ASSIGN:</span><span>${p.seat || 'UNASSIGNED'}</span></div>
+      <div class="row"><span>BOOKED DATE:</span><span>${todayString()}</span></div>
+      <div class="hr"></div>
+      <div class="center" style="margin-top:2mm;"><canvas id="slipbc_${index}"></canvas></div>
+      <div class="center code">${p.checkinCode}</div>
+      <div class="center" style="font-size:10px; margin-top:1mm;">CHECK-IN BARCODE (PRESENT AT COUNTER)</div>
+    </div>
     `;
-  });
-  
-  const escLines = [
-    { text: `FLIGHT MANIFEST: ${flight.flightNumber}`, bold: true, size: 'big' },
-    { text: `${flight.airlineName} -> ${flight.destCode}`, bold: false, size: 'med' },
-    { text: `Total Passengers: ${passengers.length}`, bold: false, size: 'normal' },
-    { text: `--------------------------------`, bold: false, size: 'normal' }
-  ];
-  
-  const allCodes = [];
-  passengers.forEach(p => {
-    escLines.push({ text: `${p.name} | Seat: ${p.seat||'N/A'}`, bold: true, size: 'normal' });
-    allCodes.push(p.checkinCode);
+
+    scriptBody += `
+    try {
+      bwipjs.toCanvas('slipbc_${index}', { bcid:'code128', text:'${p.checkinCode}', scale:2, height:14, includetext:false });
+    } catch(e) {}
+    `;
+
+    allBarcodes.push(p.checkinCode);
   });
 
-  openPrintWindow(`Manifest ${flight.flightNumber}`, header, script, escLines, allCodes);
-}
+  // For ESC/POS raw hardware printing, build lines
+  passengers.forEach((p) => {
+    escLines.push(
+      { text: `SKYTERM RESERVATION SLIP`, bold: true, size: 'big' },
+      { text: `PASSENGER: ${p.name}`, bold: true, size: 'med' },
+      { text: `ADDRESS: ${address}`, bold: false, size: 'normal' },
+      { text: `FLT: ${flight.flightNumber} | DEST: ${flight.destCode}`, bold: true, size: 'normal' },
+      { text: `SEAT: ${p.seat || 'UNASSIGNED'}`, bold: false, size: 'normal' },
+      { text: `--------------------------------`, bold: false, size: 'normal' }
+    );
+  });
 
-function printBagTag(passenger, weight, tag){
-  const flight = data.flights[passenger.flightNumber];
-  const body = `
-  <div class="bag-tag-main">
-    <div style="font-size:12px; font-weight:900; letter-spacing:1px;">SKYTERM AIR // INTERLINE BAGGAGE</div>
-    <div class="hr-solid"></div>
-    <div style="font-size:11px; text-align:left;">PASSENGER NAME:</div>
-    <div style="font-size:18px; font-weight:900; text-align:left; text-transform:uppercase; margin-bottom:2mm;">${escapeHtml(passenger.name)}</div>
-    
-    <div class="bag-dest-box">
-      <div style="font-size:10px; letter-spacing:1px; margin-bottom:1mm;">FINAL DESTINATION</div>
-      <div class="bag-dest-code">${passenger.destCode}</div>
-      <div style="font-size:11px; margin-top:1mm; font-weight:700;">${flight.destName}</div>
-    </div>
-
-    <div class="grid-2">
-      <div>
-        <div class="field-label">FLIGHT</div>
-        <div class="field-val">${passenger.flightNumber}</div>
-      </div>
-      <div>
-        <div class="field-label">SCALE WT</div>
-        <div class="field-val">${weight.toFixed(1)} KG</div>
-      </div>
-    </div>
-    <div class="grid-2">
-      <div>
-        <div class="field-label">SEAT</div>
-        <div class="field-val">${passenger.seat || 'STANDBY'}</div>
-      </div>
-      <div>
-        <div class="field-label">DATE</div>
-        <div class="field-val">${todayString()}</div>
-      </div>
-    </div>
-
-    <div class="hr"></div>
-    <div style="margin:2mm 0;"><canvas id="bagbc"></canvas></div>
-    <div class="code">${tag}</div>
-    <div style="font-size:10px; margin-top:1mm;">MANDATORY SECURITY BAG IDENTIFIER</div>
-  </div>
-  `;
-  const script = `
-  try {
-    bwipjs.toCanvas('bagbc', { bcid:'code128', text:'${tag}', scale:2, height:16, includetext:false });
-  } catch(e) {
-    document.getElementById('bagbc').outerHTML = '<div class="code">${tag}</div>';
-  }
-  `;
-  
-  const escLines = [
-    { text: `${flight.airlineName}`, bold: true, size: 'big' },
-    { text: `BAGGAGE TAG // ${tag}`, bold: true, size: 'med' },
-    { text: `--------------------------------`, bold: false, size: 'normal' },
-    { text: `PASSENGER: ${passenger.name}`, bold: true, size: 'normal' },
-    { text: `DEST: ${passenger.destCode} | FLT: ${passenger.flightNumber}`, bold: true, size: 'normal' },
-    { text: `WEIGHT: ${weight.toFixed(1)}kg | SEAT: ${passenger.seat || 'STANDBY'}`, bold: false, size: 'normal' },
-    { text: `--------------------------------`, bold: false, size: 'normal' }
-  ];
-
-  openPrintWindow(`Bag Tag ${tag}`, body, script, escLines, [tag]);
-}
-
-function printBoardingPass(passenger, flight){
-  const gate = pick(["A","B","C","D","E"]) + randInt(1,30);
-  const boardMinutes = randInt(20,60);
-  const boardTill = nowTimeString(boardMinutes);
-  const departTime = nowTimeString(boardMinutes + 20);
-  const eticket = randomDigits(3);
-  
-  const body = `
-  <div class="ticket-box">
-    <div class="ticket-header">
-      <span class="ticket-title">PASSENGER BOARDING PASS</span>
-      <span class="airline-badge">${flight.airlineName}</span>
-    </div>
-
-    <div style="padding: 2mm 0;">
-      <div class="field-label">PASSENGER NAME</div>
-      <div style="font-size:18px; font-weight:900; text-transform:uppercase; margin-bottom:2mm;">${escapeHtml(passenger.name)}</div>
-
-      <div class="grid-2">
-        <div>
-          <div class="field-label">ORIGIN</div>
-          <div class="field-val">${ORIGIN.code}</div>
-        </div>
-        <div>
-          <div class="field-label">DESTINATION</div>
-          <div class="field-val-lg">${flight.destCode}</div>
-        </div>
-      </div>
-
-      <div class="grid-2">
-        <div>
-          <div class="field-label">FLIGHT</div>
-          <div class="field-val">${flight.flightNumber}</div>
-        </div>
-        <div>
-          <div class="field-label">DATE</div>
-          <div class="field-val" style="font-size:13px; padding-top:2px;">${todayString()}</div>
-        </div>
-      </div>
-
-      <div class="grid-2">
-        <div>
-          <div class="field-label">GATE</div>
-          <div class="field-val">${gate}</div>
-        </div>
-        <div>
-          <div class="field-label">SEAT</div>
-          <div class="field-val" style="color:#000; text-decoration:underline;">${passenger.seat || 'OPEN'}</div>
-        </div>
-      </div>
-
-      <div class="grid-2">
-        <div>
-          <div class="field-label">BOARDING TILL</div>
-          <div class="field-val" style="font-size:14px;">${boardTill}</div>
-        </div>
-        <div>
-          <div class="field-label">DEPARTS</div>
-          <div class="field-val" style="font-size:14px;">${departTime}</div>
-        </div>
-      </div>
-
-      <div style="display:flex; justify-content:space-between; margin-top:2mm; font-size:11px;">
-        <span>ETKT: ${eticket}</span>
-        <span>CLASS: ECONOMY / ST</span>
-      </div>
-    </div>
-
-    <div class="hr"></div>
-    <div class="center" style="margin-top:1mm;"><canvas id="pdfbc"></canvas></div>
-    <div class="center code">${passenger.boardingPassCode}</div>
-  </div>
-  `;
-  const script = `
-  try {
-    bwipjs.toCanvas('pdfbc', { bcid:'code128', text:'${passenger.boardingPassCode}', scale:2, height:14, includetext:false });
-  } catch(e) {
-    document.getElementById('pdfbc').outerHTML = '<div class="code">${passenger.boardingPassCode}</div>';
-  }
-  `;
-  
-  const escLines = [
-    { text: `${flight.airlineName}`, bold: true, size: 'big' },
-    { text: `BOARDING PASS`, bold: true, size: 'med' },
-    { text: `--------------------------------`, bold: false, size: 'normal' },
-    { text: `PASSENGER: ${passenger.name}`, bold: true, size: 'normal' },
-    { text: `FLIGHT: ${flight.flightNumber}   GATE: ${gate}`, bold: false, size: 'normal' },
-    { text: `FROM: ${ORIGIN.code}      TO: ${flight.destCode}`, bold: false, size: 'normal' },
-    { text: `SEAT: ${passenger.seat || 'OPEN'}`, bold: true, size: 'med' },
-    { text: `BOARDING TILL: ${boardTill}`, bold: false, size: 'normal' },
-    { text: `--------------------------------`, bold: false, size: 'normal' }
-  ];
-
-  openPrintWindow(`Boarding Pass ${passenger.boardingPassCode}`, body, script, escLines, [passenger.boardingPassCode]);
+  playPrintSound(passengers.length * 12);
+  openPrintWindow(`Reservation Slips (${passengers.length})`, bodyHtml, scriptBody, escLines, allBarcodes);
 }
 
 function escapeHtml(s){
