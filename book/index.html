@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZenScribe - Distraction-Free Writing System</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Docx UMD Library for Word Export -->
+    <script src="https://unpkg.com/docx@8.2.2/build/index.umd.js"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Georgia&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+
+    <style>
+        /* CSS Variables for Themes */
+        :root {
+            --bg-main: #0f172a;
+            --bg-sidebar: #1e293b;
+            --bg-card: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #38bdf8;
+            --border-color: #334155;
+            --editor-bg: #0f172a;
+        }
+
+        body.theme-sepia {
+            --bg-main: #fbf0d9;
+            --bg-sidebar: #f4e4c1;
+            --bg-card: #e8d5b0;
+            --text-main: #2c221e;
+            --text-muted: #705e52;
+            --accent: #b45309;
+            --border-color: #e2ceaa;
+            --editor-bg: #fbf0d9;
+        }
+
+        body.theme-oled {
+            --bg-main: #000000;
+            --bg-sidebar: #0a0a0a;
+            --bg-card: #171717;
+            --text-main: #e5e5e5;
+            --text-muted: #737373;
+            --accent: #a855f7;
+            --border-color: #262626;
+            --editor-bg: #000000;
+        }
+
+        body.theme-light {
+            --bg-main: #ffffff;
+            --bg-sidebar: #f8fafc;
+            --bg-card: #f1f5f9;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --accent: #0284c7;
+            --border-color: #e2e8f0;
+            --editor-bg: #ffffff;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            transition: background-color 0.3s ease, color 0.3s ease;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .bg-custom-sidebar { background-color: var(--bg-sidebar); }
+        .bg-custom-card { background-color: var(--bg-card); }
+        .border-custom { border-color: var(--border-color); }
+        .text-custom-muted { color: var(--text-muted); }
+
+        /* Writing Editor Custom Styles */
+        #editor {
+            background-color: var(--editor-bg);
+            color: var(--text-main);
+            outline: none;
+            min-height: calc(100vh - 180px);
+            tab-size: 4;
+        }
+
+        #editor p {
+            margin-bottom: 1.25em;
+            line-height: inherit;
+            transition: opacity 0.25s ease;
+        }
+
+        /* Focus Mode Dimming */
+        .focus-mode #editor p:not(.active-paragraph) {
+            opacity: 0.25;
+        }
+
+        .focus-mode #editor p.active-paragraph {
+            opacity: 1;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(150, 150, 150, 0.2);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(150, 150, 150, 0.4);
+        }
+
+        /* Zen Mode Overlay */
+        .zen-active header, 
+        .zen-active sidebar, 
+        .zen-active footer, 
+        .zen-active #sidebar-container {
+            display: none !important;
+        }
+
+        .zen-active #editor-container {
+            padding-top: 4rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col overflow-hidden">
+
+    <header class="h-14 border-b border-custom bg-custom-sidebar flex items-center justify-between px-4 select-none z-30 transition-all">
+        <div class="flex items-center space-x-3">
+            <button id="btn-toggle-sidebar" class="p-2 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 text-custom-muted hover:text-current transition">
+                <i data-lucide="panel-left" class="w-5 h-5"></i>
+            </button>
+            <div class="flex items-center space-x-2">
+                <i data-lucide="feather" class="w-5 h-5 text-sky-400"></i>
+                <span class="font-bold tracking-tight text-lg hidden sm:inline">ZenScribe</span>
+            </div>
+            <span class="text-custom-muted text-xs hidden md:inline">|</span>
+            <!-- Editable Book Title in Navigation -->
+            <div class="flex items-center space-x-1 group">
+                <input id="header-book-title" type="text" value="Untitled Manuscript" 
+                       class="bg-transparent font-medium text-sm px-2 py-1 rounded border border-transparent hover:border-custom focus:border-sky-500 focus:bg-custom-card outline-none transition max-w-[180px] sm:max-w-[280px] truncate"
+                       title="Click to rename manuscript">
+                <i data-lucide="pencil" class="w-3.5 h-3.5 text-custom-muted opacity-0 group-hover:opacity-100 transition"></i>
+            </div>
+        </div>
+
+        <!-- Center Controls: Quick Stats -->
+        <div class="hidden lg:flex items-center space-x-4 text-xs text-custom-muted bg-custom-card/50 px-3 py-1.5 rounded-full border border-custom">
+            <span id="quick-word-count">0 words</span>
+            <span>•</span>
+            <span id="quick-page-count">0 pages (5"×8")</span>
+            <span>•</span>
+            <span id="quick-read-time">0 min read</span>
+        </div>
+
+        <!-- Right Action Controls -->
+        <div class="flex items-center space-x-2">
+            <!-- Theme Selector -->
+            <select id="theme-select" class="bg-custom-card border border-custom text-xs rounded-lg px-2 py-1.5 outline-none cursor-pointer">
+                <option value="dark">Zen Dark</option>
+                <option value="sepia">Warm Sepia</option>
+                <option value="oled">OLED Night</option>
+                <option value="light">Minimal Light</option>
+            </select>
+
+            <!-- Zen Mode Toggle -->
+            <button id="btn-zen-mode" class="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-sky-500/10 text-sky-400 hover:bg-sky-500/20 text-xs font-medium transition">
+                <i data-lucide="maximize-2" class="w-4 h-4"></i>
+                <span class="hidden sm:inline">Zen Mode</span>
+            </button>
+
+            <!-- Settings Button -->
+            <button id="btn-settings" class="p-2 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 text-custom-muted hover:text-current transition" title="Editor Settings">
+                <i data-lucide="settings" class="w-5 h-5"></i>
+            </button>
+
+            <!-- Export Dropdown Button -->
+            <div class="relative">
+                <button id="btn-export-dropdown" class="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-sky-500 text-white hover:bg-sky-600 text-xs font-medium transition shadow-sm">
+                    <i data-lucide="download" class="w-4 h-4"></i>
+                    <span>Export</span>
+                    <i data-lucide="chevron-down" class="w-3 h-3 ml-0.5"></i>
+                </button>
+
+                <!-- Export Menu Popup -->
+                <div id="export-menu" class="hidden absolute right-0 mt-2 w-56 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-1.5 z-[100] text-xs text-slate-200">
+                    <button id="exp-docx" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-800 flex items-center space-x-2 transition">
+                        <i data-lucide="file-text" class="w-4 h-4 text-blue-400"></i>
+                        <div>
+                            <div class="font-medium">Export Word (.docx)</div>
+                            <div class="text-[10px] text-slate-400">Standard 0.5" Indents</div>
+                        </div>
+                    </button>
+                    <button id="exp-markdown" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-800 flex items-center space-x-2 transition">
+                        <i data-lucide="file-code" class="w-4 h-4 text-emerald-400"></i>
+                        <div>
+                            <div class="font-medium">Export Markdown (.md)</div>
+                            <div class="text-[10px] text-slate-400">Clean formatted text</div>
+                        </div>
+                    </button>
+                    <button id="exp-txt" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-800 flex items-center space-x-2 transition">
+                        <i data-lucide="file" class="w-4 h-4 text-slate-400"></i>
+                        <div>
+                            <div class="font-medium">Plain Text (.txt)</div>
+                            <div class="text-[10px] text-slate-400">Raw manuscript backup</div>
+                        </div>
+                    </button>
+                    <div class="h-px bg-slate-800 my-1"></div>
+                    <button id="exp-json" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-800 flex items-center space-x-2 transition">
+                        <i data-lucide="database" class="w-4 h-4 text-amber-400"></i>
+                        <div>
+                            <div class="font-medium">Full Manuscript Backup (.json)</div>
+                            <div class="text-[10px] text-slate-400">Includes all books & settings</div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex-1 flex overflow-hidden relative">
+        
+        <!-- Left Sidebar: Books & Storage -->
+        <aside id="sidebar-container" class="w-72 border-r border-custom bg-custom-sidebar flex flex-col transition-all duration-300 z-20">
+            
+            <!-- Book Management Header -->
+            <div class="p-3 border-b border-custom flex items-center justify-between">
+                <span class="text-xs font-semibold tracking-wider uppercase text-custom-muted">Books & Manuscripts</span>
+                <button id="btn-new-book" class="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 text-sky-400 transition" title="Create New Book">
+                    <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <!-- Book Selector List -->
+            <div class="p-2 border-b border-custom">
+                <div class="flex items-center space-x-1">
+                    <select id="book-select" class="flex-1 bg-custom-card border border-custom text-xs rounded-lg px-2.5 py-1.5 outline-none font-medium truncate">
+                        <!-- Populated Dynamically -->
+                    </select>
+                    <button id="btn-rename-book" class="p-1.5 rounded-lg border border-custom bg-custom-card hover:bg-black/10 dark:hover:bg-white/10 text-custom-muted hover:text-current transition" title="Rename Book">
+                        <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                    </button>
+                    <button id="btn-delete-book" class="p-1.5 rounded-lg border border-custom bg-custom-card hover:bg-rose-500/10 text-custom-muted hover:text-rose-400 transition" title="Delete Active Book">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Chapter Manager List -->
+            <div class="flex-1 overflow-y-auto p-2 space-y-1" id="chapters-list">
+                <!-- Chapters Rendered Here -->
+            </div>
+
+            <!-- Add Chapter Button -->
+            <div class="p-2 border-t border-custom">
+                <button id="btn-add-chapter" class="w-full flex items-center justify-center space-x-2 py-2 px-3 rounded-lg border border-dashed border-custom hover:border-sky-500 text-xs font-medium text-custom-muted hover:text-sky-400 transition">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>Add New Chapter</span>
+                </button>
+            </div>
+
+            <!-- Storage Indicator Widget -->
+            <div class="p-3 border-t border-custom bg-custom-card/30">
+                <div class="flex items-center justify-between text-xs mb-1.5">
+                    <span class="font-medium text-custom-muted flex items-center space-x-1">
+                        <i data-lucide="hard-drive" class="w-3.5 h-3.5"></i>
+                        <span>Browser Storage</span>
+                    </span>
+                    <span id="storage-percentage" class="font-mono text-[11px] font-semibold text-sky-400">0%</span>
+                </div>
+                <div class="w-full bg-custom-card rounded-full h-1.5 overflow-hidden">
+                    <div id="storage-bar" class="bg-sky-400 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+                <div class="flex justify-between text-[10px] text-custom-muted mt-1 font-mono">
+                    <span id="storage-used">0 MB used</span>
+                    <span id="storage-total">50 MB max</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Canvas Area -->
+        <main id="editor-container" class="flex-1 overflow-y-auto relative flex flex-col items-center px-4 py-8">
+            
+            <!-- Zen Mode Exit Pill (Visible Floating in Top Right during Zen Mode) -->
+            <button id="btn-exit-zen" class="fixed top-4 right-6 z-50 hidden opacity-40 hover:opacity-100 bg-slate-900/80 hover:bg-slate-900 border border-slate-700 text-slate-200 text-xs font-medium px-3 py-1.5 rounded-full shadow-lg flex items-center space-x-1.5 transition">
+                <i data-lucide="minimize-2" class="w-3.5 h-3.5"></i>
+                <span>Exit Zen Mode (Esc)</span>
+            </button>
+
+            <!-- Manuscript Workspace Box -->
+            <div id="manuscript-wrapper" class="w-full max-w-2xl transition-all duration-300 flex flex-col">
+                
+                <!-- Chapter Header Input -->
+                <input id="chapter-title-input" type="text" value="Chapter 1" 
+                       class="w-full bg-transparent font-serif font-bold text-2xl sm:text-3xl mb-6 outline-none border-b border-transparent focus:border-custom pb-2 transition"
+                       placeholder="Chapter Title...">
+
+                <!-- Core Editable Manuscript Div -->
+                <div id="editor" contenteditable="true" spellcheck="true" class="w-full font-serif text-lg leading-relaxed outline-none">
+                    <p>Start writing your masterpiece here...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Bottom Footer Bar -->
+    <footer class="h-10 border-t border-custom bg-custom-sidebar px-4 flex items-center justify-between text-xs text-custom-muted z-30 select-none">
+        <div class="flex items-center space-x-4">
+            <span class="flex items-center space-x-1">
+                <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                <span id="stat-words">0 words</span>
+            </span>
+            <span class="flex items-center space-x-1">
+                <i data-lucide="align-left" class="w-3.5 h-3.5"></i>
+                <span id="stat-chars">0 characters</span>
+            </span>
+            <span class="flex items-center space-x-1">
+                <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+                <span id="stat-pages">0 pages (5"×8")</span>
+            </span>
+            <span class="hidden md:flex items-center space-x-1">
+                <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+                <span id="stat-time">0 min read</span>
+            </span>
+        </div>
+
+        <div class="flex items-center space-x-4">
+            <!-- Focus Mode Paragraph Toggle -->
+            <button id="btn-toggle-focus" class="flex items-center space-x-1 hover:text-current transition" title="Focus line paragraph highlighting">
+                <i data-lucide="target" class="w-3.5 h-3.5"></i>
+                <span id="lbl-focus">Focus: Off</span>
+            </button>
+
+            <!-- Sound Switcher Toggle -->
+            <button id="btn-toggle-sound" class="flex items-center space-x-1 hover:text-current transition" title="Typewriter sound effects">
+                <i data-lucide="volume-x" id="icon-sound" class="w-3.5 h-3.5"></i>
+                <span id="lbl-sound">Sound: Off</span>
+            </button>
+        </div>
+    </footer>
+
+    <!-- MODAL: Export Direct Download Fallback -->
+    <div id="modal-export" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl text-slate-100">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-bold text-lg flex items-center space-x-2">
+                    <i data-lucide="file-check" class="w-5 h-5 text-emerald-400"></i>
+                    <span>Export Ready</span>
+                </h3>
+                <button class="btn-close-modal p-1 text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <p class="text-sm text-slate-300 mb-4">Your manuscript has been compiled into the selected format. Click below to download directly:</p>
+            
+            <div class="space-y-3">
+                <a id="export-download-btn" href="#" download="" class="w-full flex items-center justify-center space-x-2 bg-sky-500 hover:bg-sky-600 text-white font-medium py-2.5 px-4 rounded-xl transition text-sm shadow-md">
+                    <i data-lucide="download" class="w-4 h-4"></i>
+                    <span id="export-download-lbl">Download File</span>
+                </a>
+                <button id="export-copy-btn" class="w-full flex items-center justify-center space-x-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium py-2.5 px-4 rounded-xl transition text-sm">
+                    <i data-lucide="copy" class="w-4 h-4"></i>
+                    <span>Copy Text Content to Clipboard</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Rename Book -->
+    <div id="modal-rename" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl text-slate-100">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-bold text-lg">Rename Book</h3>
+                <button class="btn-close-modal p-1 text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <input id="rename-book-input" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm outline-none focus:border-sky-500 mb-4">
+            <div class="flex justify-end space-x-2">
+                <button class="btn-close-modal px-4 py-2 text-xs font-medium bg-slate-800 hover:bg-slate-700 rounded-lg">Cancel</button>
+                <button id="btn-save-rename" class="px-4 py-2 text-xs font-medium bg-sky-500 hover:bg-sky-600 rounded-lg">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Delete Book Confirmation -->
+    <div id="modal-delete-book" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl text-slate-100">
+            <div class="flex items-center space-x-3 text-rose-400 mb-3">
+                <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+                <h3 class="font-bold text-lg">Delete Book?</h3>
+            </div>
+            <p class="text-sm text-slate-300 mb-4">Are you sure you want to permanently delete "<span id="delete-book-name" class="font-semibold text-white"></span>"? This action cannot be undone.</p>
+            <div class="flex justify-end space-x-2">
+                <button class="btn-close-modal px-4 py-2 text-xs font-medium bg-slate-800 hover:bg-slate-700 rounded-lg">Cancel</button>
+                <button id="btn-confirm-delete-book" class="px-4 py-2 text-xs font-medium bg-rose-600 hover:bg-rose-700 text-white rounded-lg">Delete Book</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Settings -->
+    <div id="modal-settings" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl text-slate-100 space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="font-bold text-lg flex items-center space-x-2">
+                    <i data-lucide="settings" class="w-5 h-5 text-sky-400"></i>
+                    <span>Editor Settings</span>
+                </h3>
+                <button class="btn-close-modal p-1 text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-slate-400 mb-1">Font Family</label>
+                    <select id="setting-font-family" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 outline-none">
+                        <option value="Georgia, serif">Georgia (Classic Serif)</option>
+                        <option value="'Lora', serif">Lora (Modern Serif)</option>
+                        <option value="'Inter', sans-serif">Inter (Clean Sans)</option>
+                        <option value="'JetBrains Mono', monospace">JetBrains Mono (Code/Typewriter)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-slate-400 mb-1">Font Size</label>
+                    <select id="setting-font-size" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 outline-none">
+                        <option value="16px">Small (16px)</option>
+                        <option value="18px">Medium (18px)</option>
+                        <option value="20px">Large (20px)</option>
+                        <option value="24px">Extra Large (24px)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-slate-400 mb-1">Canvas Width</label>
+                    <select id="setting-canvas-width" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 outline-none">
+                        <option value="max-w-xl">Narrow (576px)</option>
+                        <option value="max-w-2xl">Standard (672px)</option>
+                        <option value="max-w-4xl">Wide (896px)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-2">
+                <button class="btn-close-modal px-4 py-2 text-xs font-medium bg-sky-500 hover:bg-sky-600 text-white rounded-lg">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-12 right-6 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+    <script>
+        /* Modern Distraction-Free Web Application Engine */
+
+        // Default Manuscript State
+        const DEFAULT_STATE = {
+            books: [
+                {
+                    id: 'book-1',
+                    title: 'The Unwritten Novel',
+                    chapters: [
+                        {
+                            id: 'chap-1',
+                            title: 'Chapter 1: The Beginning',
+                            content: '<p>The morning light filtered through the dusty window, casting long shadows across the empty wooden desk.</p><p>&nbsp;&nbsp;&nbsp;&nbsp;Every writer knows the daunting expanse of a blank page, but today felt different. The quiet was absolute, inviting thoughts to crystallize into words.</p>'
+                        }
+                    ]
+                }
+            ],
+            activeBookId: 'book-1',
+            activeChapterId: 'chap-1',
+            settings: {
+                theme: 'dark',
+                focusMode: false,
+                soundEnabled: false,
+                fontFamily: 'Georgia, serif',
+                fontSize: '18px',
+                canvasWidth: 'max-w-2xl'
+            }
+        };
+
+        let STATE = JSON.parse(localStorage.getItem('zenscribe_state')) || DEFAULT_STATE;
+
+        // Web Audio Synthesizer Typewriter Engine
+        class TypewriterSoundEngine {
+            constructor() {
+                this.ctx = null;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+
+            playClick() {
+                if (!STATE.settings.soundEnabled) return;
+                this.init();
+                
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(400 + Math.random() * 200, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(100, this.ctx.currentTime + 0.03);
+                
+                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.03);
+                
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.03);
+            }
+
+            playReturn() {
+                if (!STATE.settings.soundEnabled) return;
+                this.init();
+                
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(250, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(80, this.ctx.currentTime + 0.12);
+                
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.12);
+                
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.12);
+            }
+        }
+
+        const soundFx = new TypewriterSoundEngine();
+
+        // Safe Lucide Icon Renderer
+        function safeCreateIcons() {
+            if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                window.lucide.createIcons();
+            }
+        }
+
+        function saveState() {
+            localStorage.setItem('zenscribe_state', JSON.stringify(STATE));
+            updateStorageQuota();
+        }
+
+        function getActiveBook() {
+            return STATE.books.find(b => b.id === STATE.activeBookId) || STATE.books[0];
+        }
+
+        function getActiveChapter() {
+            const book = getActiveBook();
+            if (!book) return null;
+            return book.chapters.find(c => c.id === STATE.activeChapterId) || book.chapters[0];
+        }
+
+        // Real-Time Storage Estimation Gauge
+        async function updateStorageQuota() {
+            let usedMB = 0;
+            let totalMB = 50;
+
+            if (navigator.storage && navigator.storage.estimate) {
+                try {
+                    const estimate = await navigator.storage.estimate();
+                    usedMB = (estimate.usage / (1024 * 1024)).toFixed(2);
+                    totalMB = (estimate.quota / (1024 * 1024)).toFixed(0);
+                } catch (e) {
+                    const str = JSON.stringify(STATE);
+                    usedMB = (new Blob([str]).size / (1024 * 1024)).toFixed(2);
+                }
+            } else {
+                const str = JSON.stringify(STATE);
+                usedMB = (new Blob([str]).size / (1024 * 1024)).toFixed(2);
+            }
+
+            const pct = Math.min(100, Math.max(1, ((usedMB / totalMB) * 100).toFixed(1)));
+            
+            document.getElementById('storage-percentage').textContent = `${pct}%`;
+            document.getElementById('storage-bar').style.width = `${pct}%`;
+            document.getElementById('storage-used').textContent = `${usedMB} MB used`;
+            document.getElementById('storage-total').textContent = `${totalMB} MB total`;
+        }
+
+        function renderBookSelect() {
+            const select = document.getElementById('book-select');
+            select.innerHTML = '';
+            STATE.books.forEach(b => {
+                const opt = document.createElement('option');
+                opt.value = b.id;
+                opt.textContent = b.title;
+                if (b.id === STATE.activeBookId) opt.selected = true;
+                select.appendChild(opt);
+            });
+
+            const activeBook = getActiveBook();
+            if (activeBook) {
+                document.getElementById('header-book-title').value = activeBook.title;
+            }
+        }
+
+        function renderChaptersList() {
+            const container = document.getElementById('chapters-list');
+            container.innerHTML = '';
+            const book = getActiveBook();
+
+            if (!book) return;
+
+            book.chapters.forEach((chap, idx) => {
+                const div = document.createElement('div');
+                const isActive = chap.id === STATE.activeChapterId;
+
+                div.className = `group flex items-center justify-between p-2 rounded-lg text-xs cursor-pointer transition ${
+                    isActive ? 'bg-sky-500/10 text-sky-400 font-medium' : 'hover:bg-black/10 dark:hover:bg-white/5 text-custom-muted'
+                }`;
+
+                div.onclick = () => switchChapter(chap.id);
+
+                div.innerHTML = `
+                    <div class="flex items-center space-x-2 truncate pr-2">
+                        <i data-lucide="file-text" class="w-3.5 h-3.5 shrink-0"></i>
+                        <span class="truncate">${chap.title || 'Untitled Chapter'}</span>
+                    </div>
+                    ${book.chapters.length > 1 ? `
+                        <button onclick="event.stopPropagation(); deleteChapter('${chap.id}')" class="opacity-0 group-hover:opacity-100 p-1 hover:text-rose-400 transition" title="Delete chapter">
+                            <i data-lucide="x" class="w-3 h-3"></i>
+                        </button>
+                    ` : ''}
+                `;
+
+                container.appendChild(div);
+            });
+
+            safeCreateIcons();
+        }
+
+        function loadChapterToEditor() {
+            const chap = getActiveChapter();
+            if (chap) {
+                document.getElementById('chapter-title-input').value = chap.title;
+                document.getElementById('editor').innerHTML = chap.content || '<p></p>';
+                updateWordStats();
+            }
+        }
+
+        function syncEditorToState() {
+            const chap = getActiveChapter();
+            if (chap) {
+                chap.title = document.getElementById('chapter-title-input').value;
+                chap.content = document.getElementById('editor').innerHTML;
+                saveState();
+                updateWordStats();
+            }
+        }
+
+        function updateWordStats() {
+            const editor = document.getElementById('editor');
+            const text = editor.innerText || '';
+            
+            // Clean word count
+            const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+            const chars = text.length;
+            const readTime = Math.ceil(words / 200);
+            
+            // Standard 5" x 8" Novel Page Estimate (~250 words per trade paperback page)
+            const pages = words > 0 ? (words / 250).toFixed(1) : '0';
+
+            document.getElementById('stat-words').textContent = `${words.toLocaleString()} words`;
+            document.getElementById('stat-chars').textContent = `${chars.toLocaleString()} characters`;
+            document.getElementById('stat-pages').textContent = `${pages} pages (5"×8")`;
+            document.getElementById('stat-time').textContent = `${readTime} min read`;
+
+            document.getElementById('quick-word-count').textContent = `${words.toLocaleString()} words`;
+            document.getElementById('quick-page-count').textContent = `${pages} pages (5"×8")`;
+            document.getElementById('quick-read-time').textContent = `${readTime} min read`;
+        }
+
+        function switchChapter(chapId) {
+            syncEditorToState();
+            STATE.activeChapterId = chapId;
+            saveState();
+            renderChaptersList();
+            loadChapterToEditor();
+        }
+
+        function createNewBook() {
+            const newId = 'book-' + Date.now();
+            const newBook = {
+                id: newId,
+                title: 'New Manuscript',
+                chapters: [
+                    { id: 'chap-' + Date.now(), title: 'Chapter 1', content: '<p>Start writing...</p>' }
+                ]
+            };
+            STATE.books.push(newBook);
+            STATE.activeBookId = newId;
+            STATE.activeChapterId = newBook.chapters[0].id;
+            saveState();
+            renderBookSelect();
+            renderChaptersList();
+            loadChapterToEditor();
+            showToast('New manuscript created!');
+        }
+
+        function confirmDeleteActiveBook() {
+            const book = getActiveBook();
+            if (!book) return;
+
+            if (STATE.books.length <= 1) {
+                showToast('Cannot delete the only manuscript.', 'error');
+                return;
+            }
+
+            document.getElementById('delete-book-name').textContent = book.title;
+            document.getElementById('modal-delete-book').classList.remove('hidden');
+        }
+
+        function deleteActiveBook() {
+            STATE.books = STATE.books.filter(b => b.id !== STATE.activeBookId);
+            STATE.activeBookId = STATE.books[0].id;
+            STATE.activeChapterId = STATE.books[0].chapters[0].id;
+            saveState();
+            renderBookSelect();
+            renderChaptersList();
+            loadChapterToEditor();
+            document.getElementById('modal-delete-book').classList.add('hidden');
+            showToast('Book deleted successfully.');
+        }
+
+        function deleteChapter(chapId) {
+            const book = getActiveBook();
+            if (!book || book.chapters.length <= 1) return;
+
+            book.chapters = book.chapters.filter(c => c.id !== chapId);
+            if (STATE.activeChapterId === chapId) {
+                STATE.activeChapterId = book.chapters[0].id;
+            }
+            saveState();
+            renderChaptersList();
+            loadChapterToEditor();
+            showToast('Chapter deleted.');
+        }
+
+        async function exportToDocx() {
+            syncEditorToState();
+            const book = getActiveBook();
+            if (!book) {
+                showToast('No active book found.', 'error');
+                return;
+            }
+
+            showToast('Generating .docx file...');
+
+            try {
+                const docxLib = window.docx || (window.docx && window.docx.default);
+                if (docxLib && docxLib.Document && docxLib.Packer) {
+                    const docParagraphs = [];
+
+                    // Title Header
+                    docParagraphs.push(new docxLib.Paragraph({
+                        children: [
+                            new docxLib.TextRun({
+                                text: book.title || 'Untitled Manuscript',
+                                bold: true,
+                                size: 48,
+                                font: "Georgia"
+                            })
+                        ],
+                        spacing: { after: 400 }
+                    }));
+
+                    (book.chapters || []).forEach(chap => {
+                        docParagraphs.push(new docxLib.Paragraph({
+                            children: [
+                                new docxLib.TextRun({
+                                    text: chap.title || 'Untitled Chapter',
+                                    bold: true,
+                                    size: 32,
+                                    font: "Georgia"
+                                })
+                            ],
+                            spacing: { before: 400, after: 200 }
+                        }));
+
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = chap.content || '';
+                        const pNodes = tempDiv.querySelectorAll('p');
+
+                        if (pNodes.length > 0) {
+                            pNodes.forEach(p => {
+                                let lineText = p.innerText || p.textContent || '';
+                                // Clean non-breaking space bytes (\u00A0) that cause gray boxes in Word
+                                const sanitizedLine = lineText.replace(/\u00A0/g, ' ');
+                                const hasIndent = /^\s{2,}/.test(sanitizedLine) || /^\t/.test(sanitizedLine);
+                                const cleanText = sanitizedLine.replace(/^[\s\t]+/, '');
+
+                                if (cleanText.trim()) {
+                                    docParagraphs.push(new docxLib.Paragraph({
+                                        children: [
+                                            new docxLib.TextRun({
+                                                text: cleanText,
+                                                size: 24,
+                                                font: "Georgia"
+                                            })
+                                        ],
+                                        // Standard 0.5-inch publication first-line indent (720 twips)
+                                        indent: hasIndent ? { firstLine: 720 } : undefined,
+                                        spacing: { line: 360, after: 180 }
+                                    }));
+                                }
+                            });
+                        } else {
+                            // Raw text line fallback
+                            const lines = (chap.content || '').replace(/<[^>]+>/g, '\n').split('\n');
+                            lines.forEach(line => {
+                                const sanitizedLine = line.replace(/\u00A0/g, ' ');
+                                const cleanText = sanitizedLine.replace(/^[\s\t]+/, '');
+                                if (cleanText.trim()) {
+                                    docParagraphs.push(new docxLib.Paragraph({
+                                        children: [new docxLib.TextRun({ text: cleanText, size: 24, font: "Georgia" })],
+                                        spacing: { line: 360, after: 180 }
+                                    }));
+                                }
+                            });
+                        }
+                    });
+
+                    const doc = new docxLib.Document({
+                        sections: [{ properties: {}, children: docParagraphs }]
+                    });
+
+                    const blob = await docxLib.Packer.toBlob(doc);
+                    triggerModalDownload(blob, `${slugify(book.title)}.docx`, 'docx');
+                } else {
+                    exportWordFallback(book);
+                }
+            } catch (err) {
+                console.warn('Docx library error, using browser Word fallback:', err);
+                exportWordFallback(book);
+            }
+        }
+
+        function exportWordFallback(book) {
+            let htmlContent = `
+                <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+                <head><meta charset='utf-8'><title>${escapeHtml(book.title)}</title>
+                <style>
+                    body { font-family: 'Georgia', serif; line-height: 1.6; margin: 40pt; }
+                    h1 { font-size: 24pt; margin-bottom: 20pt; }
+                    h2 { font-size: 16pt; margin-top: 30pt; margin-bottom: 10pt; }
+                    p { font-size: 12pt; text-indent: 36pt; margin-bottom: 8pt; }
+                </style>
+                </head><body>
+                <h1>${escapeHtml(book.title)}</h1>
+            `;
+
+            (book.chapters || []).forEach(chap => {
+                htmlContent += `<h2>${escapeHtml(chap.title)}</h2>`;
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = chap.content || '';
+                const pNodes = tempDiv.querySelectorAll('p');
+                pNodes.forEach(p => {
+                    const cleanText = (p.innerText || '').replace(/\u00A0/g, ' ');
+                    if (cleanText.trim()) {
+                        htmlContent += `<p>${escapeHtml(cleanText)}</p>`;
+                    }
+                });
+            });
+
+            htmlContent += `</body></html>`;
+            const blob = new Blob(['\ufeff' + htmlContent], { type: 'application/msword' });
+            triggerModalDownload(blob, `${slugify(book.title)}.doc`, 'doc');
+        }
+
+        function exportToMarkdown() {
+            syncEditorToState();
+            const book = getActiveBook();
+            let md = `# ${book.title}\n\n`;
+
+            (book.chapters || []).forEach(chap => {
+                md += `## ${chap.title}\n\n`;
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = chap.content || '';
+                const pNodes = tempDiv.querySelectorAll('p');
+                if (pNodes.length > 0) {
+                    pNodes.forEach(p => {
+                        const cleanText = (p.innerText || '').replace(/\u00A0/g, ' ').trim();
+                        if (cleanText) md += `${cleanText}\n\n`;
+                    });
+                } else {
+                    md += `${tempDiv.innerText || ''}\n\n`;
+                }
+            });
+
+            const blob = new Blob([md], { type: 'text/markdown;charset=utf-8;' });
+            triggerModalDownload(blob, `${slugify(book.title)}.md`, 'markdown');
+        }
+
+        function exportToTxt() {
+            syncEditorToState();
+            const book = getActiveBook();
+            let txt = `${book.title.toUpperCase()}\n${'='.repeat(book.title.length)}\n\n`;
+
+            (book.chapters || []).forEach(chap => {
+                txt += `${chap.title}\n${'-'.repeat(chap.title.length)}\n\n`;
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = chap.content || '';
+                txt += `${tempDiv.innerText || ''}\n\n`;
+            });
+
+            const blob = new Blob([txt], { type: 'text/plain;charset=utf-8;' });
+            triggerModalDownload(blob, `${slugify(book.title)}.txt`, 'txt');
+        }
+
+        function exportToBackupJson() {
+            syncEditorToState();
+            const str = JSON.stringify(STATE, null, 2);
+            const blob = new Blob([str], { type: 'application/json' });
+            triggerModalDownload(blob, `zenscribe-backup-${new Date().toISOString().slice(0,10)}.json`, 'json');
+        }
+
+        function triggerModalDownload(blob, filename, format) {
+            const url = URL.createObjectURL(blob);
+            const downloadBtn = document.getElementById('export-download-btn');
+            downloadBtn.href = url;
+            downloadBtn.download = filename;
+
+            document.getElementById('export-download-lbl').textContent = `Download ${filename}`;
+            document.getElementById('modal-export').classList.remove('hidden');
+
+            document.getElementById('export-copy-btn').onclick = () => {
+                const book = getActiveBook();
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = book.chapters.map(c => `<h1>${c.title}</h1>${c.content}`).join('<br>');
+                const textToCopy = tempDiv.innerText || '';
+                
+                const textArea = document.createElement('textarea');
+                textArea.value = textToCopy;
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    showToast('Copied to clipboard!');
+                } catch (e) {
+                    showToast('Copy failed, please select text manually.', 'error');
+                }
+                document.body.removeChild(textArea);
+            };
+        }
+
+        function initEventListeners() {
+            // Book Title Input Handlers
+            const headerTitleInput = document.getElementById('header-book-title');
+            headerTitleInput.addEventListener('change', () => {
+                const book = getActiveBook();
+                if (book) {
+                    book.title = headerTitleInput.value || 'Untitled Manuscript';
+                    saveState();
+                    renderBookSelect();
+                }
+            });
+
+            document.getElementById('book-select').addEventListener('change', (e) => {
+                STATE.activeBookId = e.target.value;
+                const book = getActiveBook();
+                if (book && book.chapters.length > 0) {
+                    STATE.activeChapterId = book.chapters[0].id;
+                }
+                saveState();
+                renderBookSelect();
+                renderChaptersList();
+                loadChapterToEditor();
+            });
+
+            document.getElementById('btn-new-book').addEventListener('click', createNewBook);
+            document.getElementById('btn-delete-book').addEventListener('click', confirmDeleteActiveBook);
+            document.getElementById('btn-confirm-delete-book').addEventListener('click', deleteActiveBook);
+
+            document.getElementById('btn-rename-book').addEventListener('click', () => {
+                const book = getActiveBook();
+                if (book) {
+                    document.getElementById('rename-book-input').value = book.title;
+                    document.getElementById('modal-rename').classList.remove('hidden');
+                }
+            });
+
+            document.getElementById('btn-save-rename').addEventListener('click', () => {
+                const book = getActiveBook();
+                const newTitle = document.getElementById('rename-book-input').value.trim();
+                if (book && newTitle) {
+                    book.title = newTitle;
+                    saveState();
+                    renderBookSelect();
+                    document.getElementById('modal-rename').classList.add('hidden');
+                    showToast('Book renamed!');
+                }
+            });
+
+            document.getElementById('btn-add-chapter').addEventListener('click', () => {
+                const book = getActiveBook();
+                if (!book) return;
+                const newChap = {
+                    id: 'chap-' + Date.now(),
+                    title: `Chapter ${book.chapters.length + 1}`,
+                    content: '<p></p>'
+                };
+                book.chapters.push(newChap);
+                STATE.activeChapterId = newChap.id;
+                saveState();
+                renderChaptersList();
+                loadChapterToEditor();
+            });
+
+            document.getElementById('chapter-title-input').addEventListener('input', () => {
+                syncEditorToState();
+                renderChaptersList();
+            });
+
+            // Editor Input Listeners
+            const editor = document.getElementById('editor');
+            editor.addEventListener('input', () => {
+                syncEditorToState();
+            });
+
+            // Tab key indentation support
+            editor.addEventListener('keydown', (e) => {
+                if (e.key === 'Tab') {
+                    e.preventDefault();
+                    document.execCommand('insertHTML', false, '&nbsp;&nbsp;&nbsp;&nbsp;');
+                    soundFx.playClick();
+                    syncEditorToState();
+                    return;
+                }
+
+                if (e.key === 'Enter') {
+                    soundFx.playReturn();
+                } else if (e.key.length === 1) {
+                    soundFx.playClick();
+                }
+
+                if (STATE.settings.focusMode) {
+                    setTimeout(() => {
+                        const sel = window.getSelection();
+                        if (sel.rangeCount > 0) {
+                            const node = sel.anchorNode;
+                            const p = node.nodeType === 1 ? node.closest('p') : node.parentElement.closest('p');
+                            document.querySelectorAll('#editor p').forEach(el => el.classList.remove('active-paragraph'));
+                            if (p) p.classList.add('active-paragraph');
+                        }
+                    }, 10);
+                }
+            });
+
+            // Zen Mode Controls
+            document.getElementById('btn-zen-mode').addEventListener('click', enterZenMode);
+            document.getElementById('btn-exit-zen').addEventListener('click', exitZenMode);
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && document.body.classList.contains('zen-active')) {
+                    exitZenMode();
+                }
+            });
+
+            // Sidebar Toggle
+            document.getElementById('btn-toggle-sidebar').addEventListener('click', () => {
+                const sidebar = document.getElementById('sidebar-container');
+                sidebar.classList.toggle('hidden');
+            });
+
+            // Export Menu Dropdown Toggle
+            const btnExp = document.getElementById('btn-export-dropdown');
+            const menuExp = document.getElementById('export-menu');
+            btnExp.addEventListener('click', (e) => {
+                e.stopPropagation();
+                menuExp.classList.toggle('hidden');
+            });
+
+            document.addEventListener('click', () => {
+                menuExp.classList.add('hidden');
+            });
+
+            document.getElementById('exp-docx').addEventListener('click', () => { menuExp.classList.add('hidden'); exportToDocx(); });
+            document.getElementById('exp-markdown').addEventListener('click', () => { menuExp.classList.add('hidden'); exportToMarkdown(); });
+            document.getElementById('exp-txt').addEventListener('click', () => { menuExp.classList.add('hidden'); exportToTxt(); });
+            document.getElementById('exp-json').addEventListener('click', () => { menuExp.classList.add('hidden'); exportToBackupJson(); });
+
+            // Theme Switcher
+            document.getElementById('theme-select').addEventListener('change', (e) => {
+                applyTheme(e.target.value);
+            });
+
+            // Modal Close Buttons
+            document.querySelectorAll('.btn-close-modal').forEach(btn => {
+                btn.onclick = () => {
+                    document.querySelectorAll('.fixed.inset-0').forEach(m => m.classList.add('hidden'));
+                };
+            });
+
+            // Focus Mode Toggle
+            document.getElementById('btn-toggle-focus').addEventListener('click', () => {
+                STATE.settings.focusMode = !STATE.settings.focusMode;
+                applySettings();
+                saveState();
+            });
+
+            // Sound Toggle
+            document.getElementById('btn-toggle-sound').addEventListener('click', () => {
+                STATE.settings.soundEnabled = !STATE.settings.soundEnabled;
+                applySettings();
+                saveState();
+            });
+
+            // Settings Modal
+            document.getElementById('btn-settings').addEventListener('click', () => {
+                document.getElementById('modal-settings').classList.remove('hidden');
+            });
+
+            document.getElementById('setting-font-family').addEventListener('change', (e) => {
+                STATE.settings.fontFamily = e.target.value;
+                applySettings();
+                saveState();
+            });
+
+            document.getElementById('setting-font-size').addEventListener('change', (e) => {
+                STATE.settings.fontSize = e.target.value;
+                applySettings();
+                saveState();
+            });
+
+            document.getElementById('setting-canvas-width').addEventListener('change', (e) => {
+                STATE.settings.canvasWidth = e.target.value;
+                applySettings();
+                saveState();
+            });
+        }
+
+        function enterZenMode() {
+            document.body.classList.add('zen-active');
+            document.getElementById('btn-exit-zen').classList.remove('hidden');
+            showToast('Entered Zen Mode (Press Esc to exit)');
+        }
+
+        function exitZenMode() {
+            document.body.classList.remove('zen-active');
+            document.getElementById('btn-exit-zen').classList.add('hidden');
+            showToast('Exited Zen Mode');
+        }
+
+        function applyTheme(theme) {
+            document.body.className = document.body.className.replace(/theme-\w+/g, '');
+            if (theme !== 'dark') {
+                document.body.classList.add(`theme-${theme}`);
+            }
+            STATE.settings.theme = theme;
+            document.getElementById('theme-select').value = theme;
+            saveState();
+        }
+
+        function applySettings() {
+            const editor = document.getElementById('editor');
+            const wrapper = document.getElementById('manuscript-wrapper');
+
+            editor.style.fontFamily = STATE.settings.fontFamily;
+            editor.style.fontSize = STATE.settings.fontSize;
+
+            wrapper.className = `w-full ${STATE.settings.canvasWidth} transition-all duration-300 flex flex-col`;
+
+            if (STATE.settings.focusMode) {
+                document.body.classList.add('focus-mode');
+                document.getElementById('lbl-focus').textContent = 'Focus: On';
+            } else {
+                document.body.classList.remove('focus-mode');
+                document.getElementById('lbl-focus').textContent = 'Focus: Off';
+            }
+
+            if (STATE.settings.soundEnabled) {
+                document.getElementById('lbl-sound').textContent = 'Sound: On';
+            } else {
+                document.getElementById('lbl-sound').textContent = 'Sound: Off';
+            }
+
+            document.getElementById('setting-font-family').value = STATE.settings.fontFamily;
+            document.getElementById('setting-font-size').value = STATE.settings.fontSize;
+            document.getElementById('setting-canvas-width').value = STATE.settings.canvasWidth;
+        }
+
+        function showToast(msg, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `px-4 py-2.5 rounded-xl text-xs font-medium shadow-xl transition-all duration-300 transform translate-y-2 opacity-0 flex items-center space-x-2 ${
+                type === 'error' ? 'bg-rose-500 text-white' : 'bg-slate-800 text-slate-100 border border-slate-700'
+            }`;
+            toast.innerHTML = `<span>${msg}</span>`;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function escapeHtml(str) {
+            return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function slugify(str) {
+            return (str || 'manuscript').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            renderBookSelect();
+            renderChaptersList();
+            loadChapterToEditor();
+            applyTheme(STATE.settings.theme);
+            applySettings();
+            initEventListeners();
+            updateStorageQuota();
+            safeCreateIcons();
+        });
+    </script>
+</body>
+</html>
